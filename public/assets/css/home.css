@@ -1,0 +1,106 @@
+body.pagina-home { background-attachment: fixed; }
+
+.hero {
+    display: grid;
+    grid-template-columns: 1.3fr 0.9fr;
+    gap: 22px;
+    align-items: stretch;
+    margin-top: 20px;
+}
+.hero-copy {
+    padding: 36px;
+    min-height: 380px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.hero-copy h1 {
+    margin: 12px 0 18px 0;
+    font-size: clamp(36px, 5vw, 62px);
+    line-height: 0.98;
+}
+.hero-actions {
+    display: grid;
+    gap: 16px;
+    margin-top: 24px;
+    grid-template-columns: repeat(2, max-content);
+}
+.home-info-list {
+    display: grid;
+    gap: 10px;
+}
+.home-info-item {
+    margin: 0;
+    line-height: 1.45;
+    display: grid;
+    grid-template-columns: 16px 1fr;
+    gap: 8px;
+    align-items: start;
+}
+.home-info-bullet {
+    display: inline-flex;
+    justify-content: center;
+    font-size: 16px;
+    line-height: 1.2;
+}
+.home-info-text {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.home-info-link {
+    margin-left: 6px;
+    color: var(--brand-900);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.special-event-grid {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.special-event-card {
+    display: grid;
+    grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
+    gap: 16px;
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 16px;
+    background: linear-gradient(180deg, #fffef8 0%, #ffffff 100%);
+}
+
+.special-event-card-image {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 16px;
+}
+
+.special-event-card-body {
+    min-width: 0;
+}
+
+.special-event-card-body h3 {
+    margin: 8px 0 10px 0;
+}
+
+.post-card-special-event {
+    border-color: #d8c081;
+    background: linear-gradient(180deg, #fffaf0 0%, #ffffff 100%);
+}
+
+@media (max-width: 980px) {
+    .hero {
+        grid-template-columns: 1fr;
+    }
+    .hero-actions {
+        grid-template-columns: 1fr;
+    }
+    .special-event-card {
+        grid-template-columns: 1fr;
+    }
+}

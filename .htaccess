@@ -1,0 +1,15 @@
+RewriteEngine On
+
+# Entrega assets reais armazenados dentro de public/assets quando o projeto e aberto pela raiz.
+RewriteRule ^assets/(.*)$ public/assets/$1 [L]
+
+# Entrega uploads reais armazenados dentro de public/uploads quando o projeto e aberto pela raiz.
+RewriteRule ^uploads/(.*)$ public/uploads/$1 [L]
+
+# Mantem acesso direto aos arquivos reais existentes na raiz.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Envia todas as rotas amigaveis para o front controller da aplicacao.
+RewriteRule ^ index.php [QSA,L]

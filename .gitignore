@@ -1,0 +1,28 @@
+.agents/
+.codex/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+
+# Environment and local overrides
+.env
+.env.*
+config/database.local.php
+config/app.local.php
+
+# PHP/runtime artifacts
+vendor/
+composer.phar
+composer.lock
+*.log
+*.cache
+.phpunit.result.cache
+
+# Uploaded files and generated content
+public/uploads/
+

@@ -1,0 +1,50 @@
+.auth-wrap { display: flex; justify-content: center; margin-top: 20px; }
+.auth-card { max-width: 760px; padding: 30px; }
+.auth-card-wide { max-width: 900px; }
+.modal-page-wrap {
+    align-items: flex-start;
+    min-height: calc(100vh - 180px);
+    padding: 24px 0 12px 0;
+}
+.modal-page-card {
+    max-width: 760px;
+    border-radius: 30px;
+    border: 1px solid rgba(18, 69, 89, 0.16);
+    box-shadow: 0 28px 60px rgba(18, 69, 89, 0.18);
+    position: relative;
+}
+.modal-page-card::before {
+    content: "";
+    position: absolute;
+    inset: -14px;
+    border-radius: 36px;
+    background: rgba(255, 255, 255, 0.28);
+    z-index: -1;
+    backdrop-filter: blur(8px);
+}
+.modal-page-card-wide {
+    max-width: 980px;
+}
+.popup-route-card {
+    width: min(1080px, 100%);
+    margin: 16px 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    overflow: visible;
+    position: relative;
+}
+.popup-route-body {
+    overflow: visible;
+    max-height: none;
+    padding: 0;
+    position: relative;
+}
+.popup-route-inline-close {
+    background: rgba(255, 253, 248, 0.96);
+    border: 1px solid var(--line);
+    z-index: 2;
+}
+.popup-profile-completion-card {
+    width: min(560px, 100%);
+}
