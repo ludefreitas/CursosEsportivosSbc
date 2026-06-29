@@ -2,6 +2,7 @@
 
 use App\Controllers\AdminController;
 use App\Controllers\AgendaController;
+use App\Controllers\BlogController;
 use App\Controllers\CepController;
 use App\Controllers\AuthController;
 use App\Controllers\DashboardController;
@@ -10,6 +11,8 @@ use App\Controllers\ProfileController;
 
 return [
     ['GET', '/', [HomeController::class, 'index']],
+    ['GET', '/blog', [BlogController::class, 'index']],
+    ['GET', '/blog/post', [BlogController::class, 'post']],
     ['GET', '/login', [AuthController::class, 'showLogin']],
     ['POST', '/login', [AuthController::class, 'login']],
     ['GET', '/cadastro', [AuthController::class, 'showRegister']],
@@ -22,6 +25,8 @@ return [
     ['GET', '/perfil/certificados/modal', [ProfileController::class, 'certificateModal']],
     ['GET', '/perfil/certificados/arquivo', [ProfileController::class, 'certificateDocument']],
     ['POST', '/perfil/certificados/salvar', [ProfileController::class, 'saveCertificateDocuments']],
+    ['GET', '/perfil/atestados/modal', [ProfileController::class, 'healthCertificatesModal']],
+    ['POST', '/perfil/atestados/salvar', [ProfileController::class, 'saveHealthCertificates']],
     ['GET', '/dependentes/detalhe', [ProfileController::class, 'dependentDetails']],
     ['POST', '/dependentes/salvar', [ProfileController::class, 'saveDependent']],
     ['POST', '/dependentes/atualizar', [ProfileController::class, 'updateDependent']],
@@ -38,8 +43,13 @@ return [
     ['GET', '/admin/secao', [AdminController::class, 'section']],
     ['GET', '/admin/pessoas/detalhe', [AdminController::class, 'personDetails']],
     ['GET', '/admin/pessoas/lista', [AdminController::class, 'peoplePanel']],
+    ['GET', '/admin/usuarios/detalhe', [AdminController::class, 'userDetails']],
+    ['GET', '/admin/usuarios/dependentes', [AdminController::class, 'userDependents']],
+    ['POST', '/admin/usuarios/papeis', [AdminController::class, 'updateUserRoles']],
+    ['GET', '/admin/postagens/detalhe', [AdminController::class, 'postDetails']],
     ['GET', '/admin/certificados/arquivo', [AdminController::class, 'certificateDocument']],
     ['GET', '/admin/certificados/validacao/modal', [AdminController::class, 'conditionValidationModal']],
+    ['GET', '/admin/atestados/validacao/modal', [AdminController::class, 'healthCertificateValidationModal']],
     ['GET', '/api/admin/agenda/eventos', [AdminController::class, 'calendarEvents']],
     ['GET', '/admin/agendamentos/ocorrencia', [AdminController::class, 'bookingOccurrence']],
     ['GET', '/admin/horarios-semanais/detalhe', [AdminController::class, 'weeklyScheduleDetails']],
@@ -47,6 +57,7 @@ return [
     ['POST', '/admin/pessoas/atualizar', [AdminController::class, 'updatePerson']],
     ['POST', '/admin/agendamentos/presenca', [AdminController::class, 'markBookingAttendance']],
     ['POST', '/admin/certificados/validacao/salvar', [AdminController::class, 'saveConditionValidation']],
+    ['POST', '/admin/atestados/validacao/salvar', [AdminController::class, 'saveHealthCertificateValidation']],
     ['POST', '/admin/espacos/suspensoes', [AdminController::class, 'storeSpaceSuspension']],
     ['POST', '/admin/espacos/suspensoes/inativar', [AdminController::class, 'deactivateSpaceSuspension']],
     ['POST', '/admin/horarios-semanais', [AdminController::class, 'storeWeeklySchedule']],

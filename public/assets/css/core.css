@@ -211,6 +211,72 @@ input[readonly][data-locked-support-alert="1"] {
     border: 1px solid #e0b15c;
     color: #7b4d00;
 }
+.dashboard-health-status-list {
+    display: grid;
+    gap: 12px;
+    min-width: 240px;
+}
+.dashboard-health-status-item {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.94);
+}
+.dashboard-health-status-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.dashboard-health-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+}
+.dashboard-health-status-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+}
+.dashboard-health-status-badge.is-validado {
+    background: #e5f6ea;
+    border-color: #9fd0aa;
+    color: #205b32;
+}
+.dashboard-health-status-badge.is-pendente,
+.dashboard-health-status-badge.is-a-vencer {
+    background: #fff5d8;
+    border-color: #e5c671;
+    color: #7b5a00;
+}
+.dashboard-health-status-badge.is-vencido,
+.dashboard-health-status-badge.is-reprovado {
+    background: #fde8e8;
+    border-color: #e4aaaa;
+    color: #8d2a2a;
+}
+.dashboard-health-status-badge.is-nao-enviado,
+.dashboard-health-status-badge.is-enviado {
+    background: #eef3f2;
+    border-color: #ccd6d8;
+    color: #4c6266;
+}
 .dashboard-certificate-upload-highlight {
     padding: 14px 16px;
     border: 2px solid #1d6f8c;

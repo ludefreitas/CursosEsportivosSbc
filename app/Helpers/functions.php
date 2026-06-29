@@ -425,6 +425,103 @@ function is_minor_by_birth_date(?string $birthDate): ?bool
 }
 
 /**
+ * Normaliza o modo de validacao etaria.
+ */
+function normalize_age_rule_mode(?string $mode): string
+{
+    $normalized = trim(strtolower((string) $mode));
+
+    return in_array($normalized, ['idade_exata', 'ano_nascimento'], true) ? $normalized : 'idade_exata';
+}
+
+/**
+ * Extrai somente o ano da data de nascimento.
+ */
+function birth_year_from_date(?string $birthDate): ?int
+{
+    if (!$birthDate) {
+        return null;
+    }
+
+    try {
+        $birth = new DateTimeImmutable($birthDate);
+        return (int) $birth->format('Y');
+    } catch (Exception $e) {
+        return null;
+    }
+}
+
+/**
+ * Retorna a faixa de anos de nascimento aceita para uma faixa etaria.
+ */
+function birth_year_range_from_age_range(int $minAge, int $maxAge, ?DateTimeImmutable $referenceDate = null): array
+{
+    $reference = $referenceDate ?? new DateTimeImmutable('today');
+    $referenceYear = (int) $reference->format('Y');
+
+    return [
+        'from' => $referenceYear - $maxAge,
+        'to' => $referenceYear - $minAge,
+        'reference_year' => $referenceYear,
+    ];
+}
+
+/**
+ * Informa se a pessoa atende a regra etaria configurada.
+ */
+function person_matches_age_rule(?string $birthDate, int $minAge, int $maxAge, ?string $mode, ?DateTimeImmutable $referenceDate = null): bool
+{
+    $normalizedMode = normalize_age_rule_mode($mode);
+
+    if ($normalizedMode === 'ano_nascimento') {
+        $birthYear = birth_year_from_date($birthDate);
+
+        if ($birthYear === null) {
+            return false;
+        }
+
+        $yearRange = birth_year_range_from_age_range($minAge, $maxAge, $referenceDate);
+        return $birthYear >= (int) $yearRange['from'] && $birthYear <= (int) $yearRange['to'];
+    }
+
+    $age = calculate_age($birthDate);
+
+    return $age !== null && $age >= $minAge && $age <= $maxAge;
+}
+
+/**
+ * Gera a descricao humana da regra etaria.
+ */
+function describe_age_rule(int $minAge, int $maxAge, ?string $mode, ?DateTimeImmutable $referenceDate = null): array
+{
+    $normalizedMode = normalize_age_rule_mode($mode);
+
+    if ($normalizedMode === 'ano_nascimento') {
+        $yearRange = birth_year_range_from_age_range($minAge, $maxAge, $referenceDate);
+
+        return [
+            'mode' => $normalizedMode,
+            'mode_label' => 'Ano de nascimento',
+            'summary' => $minAge . ' a ' . $maxAge . ' anos por ano de nascimento',
+            'detailed' => 'Nascidos entre ' . $yearRange['from'] . ' e ' . $yearRange['to'],
+            'birth_year_from' => (int) $yearRange['from'],
+            'birth_year_to' => (int) $yearRange['to'],
+            'reference_year' => (int) $yearRange['reference_year'],
+        ];
+    }
+
+    return [
+        'mode' => $normalizedMode,
+        'mode_label' => 'Idade exata',
+        'summary' => $minAge . ' a ' . $maxAge . ' anos por data de nascimento',
+        'detailed' => $minAge . ' a ' . $maxAge . ' anos',
+        'birth_year_from' => null,
+        'birth_year_to' => null,
+        'reference_year' => (int) (($referenceDate ?? new DateTimeImmutable('today'))->format('Y')),
+    ];
+}
+
+/**
  * Retorna o IP da requisicao atual.
  */
 function request_ip(): string

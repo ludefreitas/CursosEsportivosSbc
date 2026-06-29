@@ -13,6 +13,7 @@
             $nav.html([
                 '<a href="' + App.core.buildUrl('/') + '">Inicio</a>',
                 '<a href="' + App.core.buildUrl('/agenda') + '">Agenda</a>',
+                '<a href="' + App.core.buildUrl('/blog') + '">Blog</a>',
                 '<a href="' + App.core.buildUrl('/dashboard') + '" data-profile-completion-link="' + profileCompletionRequired + '">Meu painel</a>',
                 '<a href="' + App.core.buildUrl('/admin') + '" data-profile-completion-link="' + profileCompletionRequired + '">Admin</a>',
                 '<form method="POST" action="' + App.core.buildUrl('/logout') + '" class="inline-form">',

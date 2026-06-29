@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="<?php echo e(asset_url('css/agenda.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/admin.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/home.css')); ?>">
+    <link rel="stylesheet" href="<?php echo e(asset_url('css/blog.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/style.css')); ?>">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
@@ -39,6 +40,7 @@
             <nav class="site-nav">
                 <a href="<?php echo e(url('/')); ?>">Inicio</a>
                 <a href="<?php echo e(url('/agenda')); ?>">Agenda</a>
+                <a href="<?php echo e(url('/blog')); ?>">Blog</a>
                 <?php if ($isAuthenticated) { ?>
                     <a
                         href="<?php echo e(url('/dashboard')); ?>"

@@ -360,6 +360,73 @@ class ProfileController extends Controller
     }
 
     /**
+     * Retorna o modal de atestados clinico e dermatologico do dependente.
+     */
+    public function healthCertificatesModal(): void
+    {
+        if (!Auth::check()) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Faca login para gerenciar atestados.',
+                'redirect' => login_modal_url('/dashboard'),
+            ], 401);
+        }
+
+        try {
+            $html = $this->renderHealthCertificatesModalHtml(
+                $this->profileService->getManagedHealthCertificatesData((int) ($_GET['person_id'] ?? 0))
+            );
+
+            $this->jsonResponse([
+                'success' => true,
+                'html' => $html,
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Salva ou substitui os atestados de um dependente.
+     */
+    public function saveHealthCertificates(): void
+    {
+        if (!Auth::check()) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Faca login para continuar.',
+                    'redirect' => login_modal_url('/dashboard'),
+                ], 401);
+            }
+
+            redirect_to_login_modal('/dashboard');
+        }
+
+        try {
+            $modalData = $this->profileService->saveManagedHealthCertificates(
+                (int) ($_POST['person_id'] ?? 0),
+                $_POST,
+                $_FILES
+            );
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Atestados atualizados com sucesso.',
+                'html' => $this->renderHealthCertificatesModalHtml($modalData),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
      * Renderiza o conteudo interno do modal de certificados.
      */
     private function renderCertificateModalHtml(array $modalData): string
@@ -367,6 +434,17 @@ class ProfileController extends Controller
         ob_start();
         extract($modalData, EXTR_SKIP);
         require ROOT_PATH . '/app/Views/profile/partials/certificates_modal.php';
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * Renderiza o modal de atestados do dependente.
+     */
+    private function renderHealthCertificatesModalHtml(array $modalData): string
+    {
+        ob_start();
+        extract($modalData, EXTR_SKIP);
+        require ROOT_PATH . '/app/Views/dashboard/partials/health_certificates_modal.php';
         return (string) ob_get_clean();
     }
 

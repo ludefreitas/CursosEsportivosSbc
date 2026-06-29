@@ -2,7 +2,7 @@
 <article class="content-card" id="admin-people-panel">
     <h2>Usuarios e dependentes</h2>
     <p class="muted">Clique no nome para consultar os dados da pessoa e, se precisar, abrir a edicao sem redirecionamento. A lista mostra primeiro os cadastros mais recentes.</p>
-    <form method="GET" action="<?php echo e(url('/admin/pessoas/lista')); ?>" class="stack-form admin-people-filter-form" id="admin-people-filter-form" data-manual-submit="1">
+    <form method="GET" action="<?php echo e(url('/admin/pessoas/lista')); ?>" class="stack-form admin-people-filter-form" id="admin-people-filter-form" data-manual-submit="1" data-admin-people-filter="1">
         <div class="grid-two admin-people-filter-grid">
             <label>
                 <span>Buscar por nome ou CPF</span>
@@ -10,6 +10,7 @@
                     type="text"
                     name="people_search"
                     id="admin-people-search"
+                    class="admin-people-search-input"
                     value="<?php echo e((string) ($peopleSearch ?? '')); ?>"
                     placeholder="Digite um nome ou CPF"
                     autocomplete="off"
@@ -35,13 +36,15 @@
                     <th>Faixa</th>
                     <th>Cadastro</th>
                     <th>Condicao</th>
+                    <th>Atestado clinico</th>
+                    <th>Atestado dermatologico</th>
                     <th>Responsavel</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($people)) { ?>
                     <tr>
-                        <td colspan="6" class="muted">Nenhuma pessoa encontrada para este filtro.</td>
+                        <td colspan="8" class="muted">Nenhuma pessoa encontrada para este filtro.</td>
                     </tr>
                 <?php } ?>
                 <?php foreach ($people as $person) { ?>
@@ -96,6 +99,92 @@
                                                 <span class="admin-status-icon-ok" aria-label="Certificado em dia" title="Certificado em dia">✓</span>
                                             <?php } ?>
                                         </div>
+                                    <?php } ?>
+                                </div>
+                            <?php } ?>
+                        </td>
+                        <?php
+                        $healthIndicators = [];
+                        foreach (($person['health_certificate_indicators'] ?? []) as $indicator) {
+                            $healthIndicators[(string) ($indicator['slug'] ?? '')] = $indicator;
+                        }
+                        ?>
+                        <td>
+                            <?php $indicator = $healthIndicators['clinico'] ?? null; ?>
+                            <?php if ($indicator === null) { ?>
+                                <span class="muted">Nao enviado</span>
+                            <?php } else { ?>
+                                <div class="admin-condition-indicator-item">
+                                    <button
+                                        type="button"
+                                        class="link-button admin-condition-link"
+                                        data-open-health-certificate-validation="1"
+                                        data-person-id="<?php echo e((string) $person['id']); ?>"
+                                        data-certificate-type="clinico"
+                                    ><?php echo e((string) ($indicator['label'] ?? 'Atestado clinico')); ?></button>
+                                    <span class="muted"><?php echo e((string) ($indicator['status_label'] ?? '')); ?></span>
+                                    <?php if (($indicator['icon_type'] ?? '') === 'warning') { ?>
+                                        <button
+                                            type="button"
+                                            class="admin-status-icon-button is-warning"
+                                            data-certificate-status-alert="1"
+                                            data-alert-level="erro"
+                                            data-alert-message="<?php echo e((string) ($indicator['icon_message'] ?? '')); ?>"
+                                            aria-label="Atestado clinico pendente ou a vencer"
+                                            title="Atestado clinico pendente ou a vencer"
+                                        ><span class="admin-status-icon-triangle" aria-hidden="true">!</span></button>
+                                    <?php } elseif (($indicator['icon_type'] ?? '') === 'expired') { ?>
+                                        <button
+                                            type="button"
+                                            class="admin-status-icon-button is-expired"
+                                            data-certificate-status-alert="1"
+                                            data-alert-level="erro"
+                                            data-alert-message="<?php echo e((string) ($indicator['icon_message'] ?? '')); ?>"
+                                            aria-label="Atestado clinico vencido ou reprovado"
+                                            title="Atestado clinico vencido ou reprovado"
+                                        ><span class="admin-status-icon-circle" aria-hidden="true">!</span></button>
+                                    <?php } elseif (($indicator['icon_type'] ?? '') === 'ok') { ?>
+                                        <span class="admin-status-icon-ok" aria-label="Atestado clinico em dia" title="Atestado clinico em dia">OK</span>
+                                    <?php } ?>
+                                </div>
+                            <?php } ?>
+                        </td>
+                        <td>
+                            <?php $indicator = $healthIndicators['dermatologico'] ?? null; ?>
+                            <?php if ($indicator === null) { ?>
+                                <span class="muted">Nao enviado</span>
+                            <?php } else { ?>
+                                <div class="admin-condition-indicator-item">
+                                    <button
+                                        type="button"
+                                        class="link-button admin-condition-link"
+                                        data-open-health-certificate-validation="1"
+                                        data-person-id="<?php echo e((string) $person['id']); ?>"
+                                        data-certificate-type="dermatologico"
+                                    ><?php echo e((string) ($indicator['label'] ?? 'Atestado dermatologico')); ?></button>
+                                    <span class="muted"><?php echo e((string) ($indicator['status_label'] ?? '')); ?></span>
+                                    <?php if (($indicator['icon_type'] ?? '') === 'warning') { ?>
+                                        <button
+                                            type="button"
+                                            class="admin-status-icon-button is-warning"
+                                            data-certificate-status-alert="1"
+                                            data-alert-level="erro"
+                                            data-alert-message="<?php echo e((string) ($indicator['icon_message'] ?? '')); ?>"
+                                            aria-label="Atestado dermatologico pendente ou a vencer"
+                                            title="Atestado dermatologico pendente ou a vencer"
+                                        ><span class="admin-status-icon-triangle" aria-hidden="true">!</span></button>
+                                    <?php } elseif (($indicator['icon_type'] ?? '') === 'expired') { ?>
+                                        <button
+                                            type="button"
+                                            class="admin-status-icon-button is-expired"
+                                            data-certificate-status-alert="1"
+                                            data-alert-level="erro"
+                                            data-alert-message="<?php echo e((string) ($indicator['icon_message'] ?? '')); ?>"
+                                            aria-label="Atestado dermatologico vencido ou reprovado"
+                                            title="Atestado dermatologico vencido ou reprovado"
+                                        ><span class="admin-status-icon-circle" aria-hidden="true">!</span></button>
+                                    <?php } elseif (($indicator['icon_type'] ?? '') === 'ok') { ?>
+                                        <span class="admin-status-icon-ok" aria-label="Atestado dermatologico em dia" title="Atestado dermatologico em dia">OK</span>
                                     <?php } ?>
                                 </div>
                             <?php } ?>
@@ -321,11 +410,217 @@
     </div>
 </article>
 
+<article class="content-card top-gap" id="admin-users-panel">
+    <h2>Lista somente de usuarios</h2>
+    <p class="muted">Esta lista mostra apenas quem ja possui conta criada. Use os links para verificar os dados do usuario ou abrir a relacao de dependentes em pop-up.</p>
+    <form method="GET" action="<?php echo e(url('/admin/pessoas/lista')); ?>" class="stack-form admin-people-filter-form" id="admin-users-filter-form" data-manual-submit="1" data-admin-people-filter="1">
+        <div class="grid-two admin-people-filter-grid">
+            <label>
+                <span>Buscar por nome ou CPF</span>
+                <input
+                    type="text"
+                    name="people_search"
+                    class="admin-people-search-input"
+                    value="<?php echo e((string) ($peopleSearch ?? '')); ?>"
+                    placeholder="Digite um nome ou CPF"
+                    autocomplete="off"
+                >
+                <small class="muted">A lista vai sendo atualizada enquanto voce digita.</small>
+            </label>
+            <label>
+                <span>Quantidade de nomes para listar</span>
+                <input type="number" name="people_limit" min="1" max="<?php echo e((string) $peopleLimitMax); ?>" value="<?php echo e((string) $peopleLimit); ?>" required>
+                <small class="muted">Limite maximo aplicado nesta tela: <?php echo e((string) $peopleLimitMax); ?> nomes por consulta.</small>
+            </label>
+            <div class="admin-filter-actions">
+                <button type="submit" class="btn btn-secondary">Atualizar lista</button>
+            </div>
+        </div>
+    </form>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Usuario</th>
+                    <th>CPF</th>
+                    <th>E-mail</th>
+                    <th>Cadastro</th>
+                    <th>Conta</th>
+                    <th>Papeis</th>
+                    <th>Ultima atribuicao</th>
+                    <th>Dependentes</th>
+                    <th>Acoes</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($usersOnly)) { ?>
+                    <tr>
+                        <td colspan="9" class="muted">Nenhum usuario encontrado para este filtro.</td>
+                    </tr>
+                <?php } ?>
+                <?php foreach (($usersOnly ?? []) as $userRow) { ?>
+                    <tr data-admin-user-row="1" data-account-id="<?php echo e((string) ($userRow['conta_id'] ?? '')); ?>">
+                        <td><?php echo e((string) ($userRow['nome_completo'] ?? '-')); ?></td>
+                        <td><?php echo e(format_cpf((string) ($userRow['cpf'] ?? ''))); ?></td>
+                        <td><?php echo e((string) (($userRow['email'] ?? '') !== '' ? $userRow['email'] : '-')); ?></td>
+                        <td><?php echo (int) ($userRow['cadastro_completo'] ?? 0) === 1 ? 'Completo' : 'Pendente'; ?></td>
+                        <td><?php echo (int) ($userRow['conta_ativa'] ?? 0) === 1 ? 'Ativa' : 'Inativa'; ?></td>
+                        <td data-admin-user-roles-summary>
+                            <span><?php echo e((string) (($userRow['papeis_nomes'] ?? '') !== '' ? $userRow['papeis_nomes'] : 'Sem papel')); ?></span>
+                            <?php if (!empty($canManageRoles)) { ?>
+                                <div class="top-gap">
+                                    <button
+                                        type="button"
+                                        class="link-button admin-person-link"
+                                        data-admin-user-roles="1"
+                                        data-account-id="<?php echo e((string) ($userRow['conta_id'] ?? '')); ?>"
+                                    >Atribuir ou excluir papeis</button>
+                                </div>
+                            <?php } ?>
+                        </td>
+                        <td data-admin-user-role-assignment-date><?php echo !empty($userRow['ultima_atribuicao_papel_em']) ? e(date('d/m/Y H:i', strtotime((string) $userRow['ultima_atribuicao_papel_em']))) : '-'; ?></td>
+                        <td><?php echo e((string) ((int) ($userRow['total_dependentes'] ?? 0))); ?></td>
+                        <td>
+                            <div class="admin-inline-links">
+                                <button
+                                    type="button"
+                                    class="link-button admin-person-link"
+                                    data-admin-user-view="1"
+                                    data-account-id="<?php echo e((string) ($userRow['conta_id'] ?? '')); ?>"
+                                >Verificar dados</button>
+                                <button
+                                    type="button"
+                                    class="link-button admin-person-link"
+                                    data-admin-user-dependents="1"
+                                    data-account-id="<?php echo e((string) ($userRow['conta_id'] ?? '')); ?>"
+                                >Listar dependentes</button>
+                            </div>
+                        </td>
+                    </tr>
+                <?php } ?>
+            </tbody>
+        </table>
+    </div>
+</article>
+
 <?php require ROOT_PATH . '/app/Views/admin/partials/condition_validation_panel.php'; ?>
+<?php require ROOT_PATH . '/app/Views/admin/partials/health_certificate_validation_panel.php'; ?>
 
 <div class="popup-overlay hidden" id="admin-condition-validation-modal" aria-hidden="true">
     <div class="popup-card popup-admin-card admin-condition-validation-card" role="dialog" aria-modal="true" aria-labelledby="admin-condition-validation-title">
         <div id="admin-condition-validation-modal-content"></div>
+    </div>
+</div>
+
+<div class="popup-overlay hidden" id="admin-health-certificate-validation-modal" aria-hidden="true">
+    <div class="popup-card popup-admin-card admin-condition-validation-card" role="dialog" aria-modal="true" aria-labelledby="admin-health-certificate-validation-title">
+        <div id="admin-health-certificate-validation-modal-content"></div>
+    </div>
+</div>
+
+<div class="popup-overlay hidden" id="admin-user-details-modal" aria-hidden="true">
+    <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-user-details-title">
+        <div class="popup-head admin-popup-head">
+            <div>
+                <h3 id="admin-user-details-title">Dados do usuario</h3>
+                <p class="muted" id="admin-user-details-subtitle">Selecione um usuario na lista para carregar os dados.</p>
+            </div>
+            <button type="button" class="popup-close-icon" id="admin-user-details-close" aria-label="Fechar dados do usuario">&times;</button>
+        </div>
+
+        <div class="popup-body admin-popup-body">
+            <div class="popup-meta-list">
+                <p><strong>Nome:</strong> <span id="admin-user-details-name">-</span></p>
+                <p><strong>CPF:</strong> <span id="admin-user-details-cpf">-</span></p>
+                <p><strong>E-mail:</strong> <span id="admin-user-details-email">-</span></p>
+                <p><strong>WhatsApp:</strong> <span id="admin-user-details-phone">-</span></p>
+                <p><strong>Sexo:</strong> <span id="admin-user-details-sex">-</span></p>
+                <p><strong>Data de nascimento:</strong> <span id="admin-user-details-birth-date">-</span></p>
+                <p><strong>Cadastro:</strong> <span id="admin-user-details-registration">-</span></p>
+                <p><strong>Status da conta:</strong> <span id="admin-user-details-account-status">-</span></p>
+                <p><strong>Papeis:</strong> <span id="admin-user-details-roles">-</span></p>
+                <p><strong>Dependentes vinculados:</strong> <span id="admin-user-details-dependents-count">0</span></p>
+                <p><strong>Conta criada em:</strong> <span id="admin-user-details-created-at">-</span></p>
+                <p><strong>Ultimo acesso:</strong> <span id="admin-user-details-last-access">-</span></p>
+                <p><strong>IP do ultimo acesso:</strong> <span id="admin-user-details-last-ip">-</span></p>
+            </div>
+
+            <div class="popup-actions">
+                <button type="button" class="btn btn-secondary" id="admin-user-details-dismiss">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="popup-overlay hidden" id="admin-user-dependents-modal" aria-hidden="true">
+    <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-user-dependents-title">
+        <div class="popup-head admin-popup-head">
+            <div>
+                <h3 id="admin-user-dependents-title">Dependentes do usuario</h3>
+                <p class="muted" id="admin-user-dependents-subtitle">Selecione um usuario na lista para carregar os dependentes.</p>
+            </div>
+            <button type="button" class="popup-close-icon" id="admin-user-dependents-close" aria-label="Fechar lista de dependentes do usuario">&times;</button>
+        </div>
+
+        <div class="popup-body admin-popup-body">
+            <div id="admin-user-dependents-content">
+                <p class="muted">Nenhum usuario selecionado.</p>
+            </div>
+
+            <div class="popup-actions">
+                <button type="button" class="btn btn-secondary" id="admin-user-dependents-dismiss">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="popup-overlay hidden" id="admin-user-roles-modal" aria-hidden="true">
+    <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-user-roles-title">
+        <div class="popup-head admin-popup-head">
+            <div>
+                <h3 id="admin-user-roles-title">Gerenciar papeis do usuario</h3>
+                <p class="muted" id="admin-user-roles-subtitle">Selecione os papeis ativos para este usuario.</p>
+            </div>
+            <button type="button" class="popup-close-icon" id="admin-user-roles-close" aria-label="Fechar gerenciador de papeis">&times;</button>
+        </div>
+
+        <div class="popup-body admin-popup-body">
+            <form method="POST" action="<?php echo e(url('/admin/usuarios/papeis')); ?>" class="stack-form" id="admin-user-roles-form" data-manual-submit="1">
+                <input type="hidden" name="conta_id" id="admin-user-roles-account-id" value="">
+
+                <div class="admin-user-role-meta">
+                    <p><strong>Usuario:</strong> <span id="admin-user-roles-account-name">-</span></p>
+                    <p><strong>Ultimo acesso conhecido:</strong> <span id="admin-user-roles-last-access">-</span></p>
+                    <p><strong>Situacao para atribuicao:</strong> <span id="admin-user-roles-status">-</span></p>
+                </div>
+
+                <div class="admin-role-checkbox-grid">
+                    <?php foreach (($availableRoles ?? []) as $roleOption) { ?>
+                        <label class="checkbox-chip admin-role-checkbox">
+                            <input
+                                type="checkbox"
+                                name="roles[]"
+                                value="<?php echo e((string) ($roleOption['id'] ?? '')); ?>"
+                                data-role-id="<?php echo e((string) ($roleOption['id'] ?? '')); ?>"
+                                data-role-slug="<?php echo e((string) ($roleOption['slug'] ?? '')); ?>"
+                            >
+                            <span><?php echo e((string) ($roleOption['nome'] ?? 'Papel')); ?></span>
+                        </label>
+                    <?php } ?>
+                </div>
+                <small class="muted">Voce pode selecionar mais de um papel ao mesmo tempo. O sistema registra atribuicoes manuais, remocoes manuais e remocoes automaticas por inatividade.</small>
+
+                <label>
+                    <span>Motivo da alteracao</span>
+                    <textarea name="reason" id="admin-user-roles-reason" rows="3" placeholder="Explique por que os papeis deste usuario estao sendo alterados." required></textarea>
+                </label>
+
+                <div class="popup-actions">
+                    <button type="button" class="btn btn-secondary" id="admin-user-roles-dismiss">Fechar</button>
+                    <button type="submit" class="btn btn-primary">Salvar papeis</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 </div>

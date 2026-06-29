@@ -10,6 +10,11 @@ use RuntimeException;
 
 class AgendaService
 {
+    public function __construct()
+    {
+        $this->ensureWeeklyScheduleAgeRuleSchema();
+    }
+
     /**
      * Lista locais resumidos para a home e agenda.
      */
@@ -68,6 +73,7 @@ class AgendaService
                 hs.janela_horas_antes_fechamento,
                 hs.idade_minima,
                 hs.idade_maxima,
+                hs.criterio_faixa_etaria,
                 hs.sexo,
                 hs.ativo,
                 hs.data_inativacao,
@@ -130,6 +136,12 @@ class AgendaService
                 $availableSlots = max(0, $totalSlots - $occupiedSlots);
                 $classNames = [];
                 $hasBookingStatus = !empty($bookingSummary['status_principal']);
+                $ageRuleDescription = describe_age_rule(
+                    (int) $row['idade_minima'],
+                    (int) $row['idade_maxima'],
+                    (string) ($row['criterio_faixa_etaria'] ?? 'idade_exata'),
+                    $date
+                );
 
                 if ((int) ($row['ativo'] ?? 0) !== 1 && !$hasBookingStatus) {
                     $classNames[] = 'agenda-schedule-inactive';
@@ -160,6 +172,9 @@ class AgendaService
                         'vagas_disponiveis' => $availableSlots,
                         'idade_minima' => (int) $row['idade_minima'],
                         'idade_maxima' => (int) $row['idade_maxima'],
+                        'criterio_faixa_etaria' => normalize_age_rule_mode((string) ($row['criterio_faixa_etaria'] ?? 'idade_exata')),
+                        'criterio_faixa_etaria_rotulo' => (string) ($ageRuleDescription['mode_label'] ?? 'Idade exata'),
+                        'ano_nascimento_intervalo' => (string) ($ageRuleDescription['detailed'] ?? ''),
                         'sexo' => $row['sexo'],
                         'meus_agendamentos' => $bookingSummary['items'],
                         'meu_status_agendamento' => $bookingSummary['status_principal'],
@@ -680,7 +695,6 @@ class AgendaService
     {
         $pdo = Database::connection();
         $reasons = [];
-        $age = calculate_age($person['data_nascimento'] ?? null);
         $personName = trim((string) ($person['nome_completo'] ?? 'Pessoa'));
 
         if ((int) ($person['cadastro_completo'] ?? 0) !== 1) {
@@ -702,9 +716,32 @@ class AgendaService
             $reasons[] = $windowReason;
         }
 
-        if ($age === null || $age < (int) $schedule['idade_minima'] || $age > (int) $schedule['idade_maxima']) {
-            $idadeAtual = $age === null ? 'nao informada' : (string) $age;
-            $reasons[] = 'Este horario esta reservado para pessoas de ' . (int) $schedule['idade_minima'] . ' a ' . (int) $schedule['idade_maxima'] . ' anos, ' . $personName . ' tem ' . $idadeAtual . ' anos.';
+        $ageRuleMode = normalize_age_rule_mode((string) ($schedule['criterio_faixa_etaria'] ?? 'idade_exata'));
+        $matchesAgeRule = person_matches_age_rule(
+            $person['data_nascimento'] ?? null,
+            (int) $schedule['idade_minima'],
+            (int) $schedule['idade_maxima'],
+            $ageRuleMode,
+            $startDate
+        );
+
+        if (!$matchesAgeRule) {
+            $ageDescription = describe_age_rule(
+                (int) $schedule['idade_minima'],
+                (int) $schedule['idade_maxima'],
+                $ageRuleMode,
+                $startDate
+            );
+
+            if ($ageRuleMode === 'ano_nascimento') {
+                $birthYear = birth_year_from_date($person['data_nascimento'] ?? null);
+                $yearLabel = $birthYear === null ? 'nao informado' : (string) $birthYear;
+                $reasons[] = 'Este horario esta reservado para ' . strtolower((string) $ageDescription['detailed']) . ', ' . $personName . ' tem ano de nascimento ' . $yearLabel . '.';
+            } else {
+                $age = calculate_age($person['data_nascimento'] ?? null);
+                $ageLabel = $age === null ? 'nao informada' : (string) $age;
+                $reasons[] = 'Este horario esta reservado para pessoas de ' . (int) $schedule['idade_minima'] . ' a ' . (int) $schedule['idade_maxima'] . ' anos, ' . $personName . ' tem ' . $ageLabel . ' anos.';
+            }
         }
 
         if (!empty($schedule['sexo'])) {
@@ -897,6 +934,32 @@ class AgendaService
         }
 
         return $reasons;
+    }
+
+    /**
+     * Garante a coluna do criterio etario nos horarios semanais.
+     */
+    private function ensureWeeklyScheduleAgeRuleSchema(): void
+    {
+        static $ensured = false;
+
+        if ($ensured) {
+            return;
+        }
+
+        $pdo = Database::connection();
+        $columns = [];
+        $stmt = $pdo->query('SHOW COLUMNS FROM horarios_semanais');
+
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $column) {
+            $columns[(string) ($column['Field'] ?? '')] = true;
+        }
+
+        if (!isset($columns['criterio_faixa_etaria'])) {
+            $pdo->exec('ALTER TABLE horarios_semanais ADD COLUMN criterio_faixa_etaria ENUM("idade_exata", "ano_nascimento") NOT NULL DEFAULT "idade_exata" AFTER idade_maxima');
+        }
+
+        $ensured = true;
     }
 
     /**

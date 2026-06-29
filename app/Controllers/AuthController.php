@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Services\AccountAccessService;
 use App\Services\AuthService;
 use App\Services\ProfileService;
 
@@ -51,6 +52,7 @@ class AuthController extends Controller
             $account = $this->authService->attempt($cpf, (string) ($_POST['password'] ?? ''));
             clear_old_input();
             Auth::login((int) $account['conta_id']);
+            (new AccountAccessService())->registerAccessForAccount((int) $account['conta_id'], true);
             $redirectUrl = url($returnTo);
             $successMessage = 'Login realizado com sucesso.';
 

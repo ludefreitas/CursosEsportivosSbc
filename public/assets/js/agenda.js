@@ -401,7 +401,9 @@
                 + '<p><strong>Espaco:</strong> ' + props.espaco + '</p>'
                 + '<p><strong>Modalidade:</strong> ' + props.modalidade + '</p>'
                 + '<p><strong>Tipo:</strong> ' + props.tipo_horario + '</p>'
-                + '<p><strong>Faixa etaria:</strong> ' + props.idade_minima + ' a ' + props.idade_maxima + ' anos</p>'
+                + (String(props.criterio_faixa_etaria || '') === 'ano_nascimento' && String(props.ano_nascimento_intervalo || '').trim() !== ''
+                    ? '<p><strong>Ano de nascimento permitido:</strong> ( para ' + String(props.ano_nascimento_intervalo).replace('Nascidos entre ', 'nascidos entre ') + ' )</p>'
+                    : '<p><strong>Faixa etaria:</strong> ( para ' + props.idade_minima + ' a ' + props.idade_maxima + ' anos de idade )</p>')
                 + '<p><strong>Sexo permitido:</strong> ' + App.agenda.formatarSexoHorario(props.sexo) + '</p>'
                 + '<p><strong>Vagas:</strong> ' + App.agenda.formatarVagasAgenda(props.vagas_disponiveis, props.vagas_total) + ' disponiveis</p>'
                 + '<p><strong>Ocupacao:</strong> ' + String(props.vagas_ocupadas || 0).padStart(2, '0') + ' agendamento(s) de ' + String(props.vagas_total || 0).padStart(2, '0') + ' vaga(s)</p>'

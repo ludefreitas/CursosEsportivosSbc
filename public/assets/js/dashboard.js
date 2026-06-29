@@ -27,6 +27,14 @@
                 return $('#dashboard-dependent-create-modal-content');
             }
 
+            function getHealthCertificatesModal() {
+                return $('#dashboard-health-certificates-modal');
+            }
+
+            function getHealthCertificatesContent() {
+                return $('#dashboard-health-certificates-modal-content');
+            }
+
             function openModal(html) {
                 const $modal = getModal();
                 const $content = getContent();
@@ -126,6 +134,71 @@
                 $modal.addClass('hidden').attr('aria-hidden', 'true');
             }
 
+            function openHealthCertificatesModal(html) {
+                const $modal = getHealthCertificatesModal();
+                const $content = getHealthCertificatesContent();
+
+                if ($modal.length === 0 || $content.length === 0) {
+                    return;
+                }
+
+                $content.html(String(html || ''));
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+            }
+
+            function closeHealthCertificatesModal() {
+                const $modal = getHealthCertificatesModal();
+                const $content = getHealthCertificatesContent();
+
+                if ($modal.length === 0 || $content.length === 0) {
+                    return;
+                }
+
+                $modal.addClass('hidden').attr('aria-hidden', 'true');
+                $content.html('');
+            }
+
+            function focusHealthCertificateSection(certificateType) {
+                const normalizedType = String(certificateType || '').trim().toLowerCase();
+                const $content = getHealthCertificatesContent();
+                const $cards = $content.find('[data-health-certificate-section]');
+                const $title = $content.find('#dashboard-health-certificates-modal-title');
+
+                $cards.removeClass('is-targeted hidden');
+
+                if (!normalizedType) {
+                    if ($title.length > 0) {
+                        $title.text('Atualizar atestados');
+                    }
+                    return;
+                }
+
+                const $target = $content.find('[data-health-certificate-section="' + normalizedType + '"]').first();
+
+                if ($target.length === 0) {
+                    return;
+                }
+
+                if ($title.length > 0) {
+                    if (normalizedType === 'clinico') {
+                        $title.text('Atualizar atestado clinico');
+                    } else if (normalizedType === 'dermatologico') {
+                        $title.text('Atualizar atestado dermatologico');
+                    }
+                }
+
+                $content.find('input[name="target_certificate_type"]').val(normalizedType);
+
+                $content.find('.dashboard-certificate-card.is-targeted').removeClass('is-targeted');
+                $cards.not($target).addClass('hidden');
+                $target.addClass('is-targeted');
+
+                const targetElement = $target.get(0);
+                if (targetElement && typeof targetElement.scrollIntoView === 'function') {
+                    targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+
             function showDependentPanel(panel) {
                 const targetPanel = String(panel || 'view');
                 const $content = getDependentContent();
@@ -199,6 +272,31 @@
                 openDependentCreateModal();
             });
 
+            $(document).on('click', '[data-open-health-certificates-modal="1"]', function () {
+                const personId = Number($(this).data('personId') || 0);
+                const certificateType = String($(this).data('certificateType') || '').trim().toLowerCase();
+
+                if (!personId) {
+                    App.core.abrirPopup('erro', 'Nao foi possivel identificar a pessoa selecionada.');
+                    return;
+                }
+
+                $.getJSON(App.core.buildUrl('/perfil/atestados/modal'), { person_id: personId })
+                    .done(function (response) {
+                        if (!response || response.success === false || !response.html) {
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar os atestados desta pessoa.'));
+                            return;
+                        }
+
+                        openHealthCertificatesModal(response.html);
+                        focusHealthCertificateSection(certificateType);
+                    })
+                    .fail(function (xhr) {
+                        const erro = App.core.extrairMensagemErroAjax(xhr);
+                        App.core.abrirPopup('erro', erro.mensagem);
+                    });
+            });
+
             $(document).on('click', '#dashboard-certificates-modal-close, #dashboard-certificates-modal-close-footer', function () {
                 closeModal();
             });
@@ -217,6 +315,10 @@
                 closeDependentCreateModal();
             });
 
+            $(document).on('click', '#dashboard-health-certificates-modal-close, #dashboard-health-certificates-modal-close-footer', function () {
+                closeHealthCertificatesModal();
+            });
+
             $(document).on('click', '#dashboard-dependent-modal', function (event) {
                 if (event.target === this) {
                     closeDependentModal();
@@ -226,6 +328,12 @@
             $(document).on('click', '#dashboard-dependent-create-modal', function (event) {
                 if (event.target === this) {
                     closeDependentCreateModal();
+                }
+            });
+
+            $(document).on('click', '#dashboard-health-certificates-modal', function (event) {
+                if (event.target === this) {
+                    closeHealthCertificatesModal();
                 }
             });
 
@@ -349,6 +457,43 @@
 
                     closeDependentCreateModal();
                     App.core.abrirPopup('sucesso', String(response.message || 'Dependente salvo com sucesso.'));
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                }).always(function () {
+                    $submitButton.prop('disabled', false);
+                });
+            });
+
+            $(document).on('submit', '.dashboard-health-certificate-form', function (event) {
+                event.preventDefault();
+
+                const $form = $(this);
+                const $submitButton = $form.closest('.popup-card').find('button[type="submit"][form="dashboard-health-certificate-form"]').first();
+                const formData = new FormData($form[0]);
+                const targetCertificateType = String($form.find('input[name="target_certificate_type"]').val() || '').trim().toLowerCase();
+
+                $submitButton.prop('disabled', true);
+
+                $.ajax({
+                    url: String($form.attr('action') || ''),
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                }).done(function (response) {
+                    if (!response || response.success === false || !response.html) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel atualizar os atestados.'));
+                        return;
+                    }
+
+                    openHealthCertificatesModal(response.html);
+                    focusHealthCertificateSection(targetCertificateType);
+                    App.core.abrirPopup('sucesso', String(response.message || 'Atestados atualizados com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);

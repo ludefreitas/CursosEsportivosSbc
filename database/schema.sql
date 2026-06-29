@@ -38,7 +38,12 @@ CREATE TABLE IF NOT EXISTS contas (
     cpf CHAR(11) NOT NULL UNIQUE,
     senha_hash VARCHAR(255) NOT NULL,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
+    ultimo_acesso_em DATETIME NULL,
+    ultimo_acesso_ip VARCHAR(45) NULL,
+    ultimo_acesso_user_agent VARCHAR(255) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT NULL,
+    INDEX idx_contas_ultimo_acesso (ultimo_acesso_em),
     CONSTRAINT fk_contas_pessoa_cpf FOREIGN KEY (cpf) REFERENCES pessoas(cpf) ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
@@ -51,9 +56,44 @@ CREATE TABLE IF NOT EXISTS papeis (
 CREATE TABLE IF NOT EXISTS conta_papeis (
     conta_id BIGINT UNSIGNED NOT NULL,
     papel_id BIGINT UNSIGNED NOT NULL,
+    atribuido_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atribuido_por_conta_id BIGINT UNSIGNED NULL,
+    origem_atribuicao VARCHAR(50) NULL,
     PRIMARY KEY (conta_id, papel_id),
     CONSTRAINT fk_conta_papeis_conta FOREIGN KEY (conta_id) REFERENCES contas(id) ON DELETE CASCADE,
-    CONSTRAINT fk_conta_papeis_papel FOREIGN KEY (papel_id) REFERENCES papeis(id) ON DELETE CASCADE
+    CONSTRAINT fk_conta_papeis_papel FOREIGN KEY (papel_id) REFERENCES papeis(id) ON DELETE CASCADE,
+    CONSTRAINT fk_conta_papeis_atribuido_por FOREIGN KEY (atribuido_por_conta_id) REFERENCES contas(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS conta_papeis_historico (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    conta_id BIGINT UNSIGNED NOT NULL,
+    papel_id BIGINT UNSIGNED NOT NULL,
+    acao ENUM('atribuicao_manual', 'remocao_manual', 'remocao_automatica_inatividade') NOT NULL,
+    realizado_por_conta_id BIGINT UNSIGNED NULL,
+    ip_usuario VARCHAR(45) NULL,
+    user_agent VARCHAR(255) NULL,
+    motivo VARCHAR(255) NULL,
+    ultimo_acesso_referencia_em DATETIME NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_conta_papeis_historico_conta (conta_id, created_at),
+    INDEX idx_conta_papeis_historico_acao (acao, created_at),
+    CONSTRAINT fk_conta_papeis_hist_conta FOREIGN KEY (conta_id) REFERENCES contas(id) ON DELETE CASCADE,
+    CONSTRAINT fk_conta_papeis_hist_papel FOREIGN KEY (papel_id) REFERENCES papeis(id) ON DELETE CASCADE,
+    CONSTRAINT fk_conta_papeis_hist_realizado_por FOREIGN KEY (realizado_por_conta_id) REFERENCES contas(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS contas_acessos (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    conta_id BIGINT UNSIGNED NOT NULL,
+    ip_usuario VARCHAR(45) NULL,
+    user_agent VARCHAR(255) NULL,
+    caminho VARCHAR(255) NULL,
+    session_id VARCHAR(128) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_contas_acessos_conta (conta_id, created_at),
+    INDEX idx_contas_acessos_ip (ip_usuario, created_at),
+    CONSTRAINT fk_contas_acessos_conta FOREIGN KEY (conta_id) REFERENCES contas(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS vinculos_responsaveis (
@@ -132,10 +172,16 @@ CREATE TABLE IF NOT EXISTS atestados_saude (
     nome_arquivo VARCHAR(255) NOT NULL,
     caminho_arquivo VARCHAR(255) NOT NULL,
     data_emissao DATE NULL,
+    data_emissao_validada DATE NULL,
+    validade_meses TINYINT UNSIGNED NULL,
+    crm_medico VARCHAR(40) NULL,
+    local_atendimento ENUM('servico_publico', 'clinica_particular', 'clinica_convenio') NULL,
     validade_certificado DATE NULL,
     status_validacao ENUM('pendente', 'validado', 'reprovado') NOT NULL DEFAULT 'pendente',
     validado_por_conta_id BIGINT UNSIGNED NULL,
+    validado_em DATETIME NULL,
     observacoes TEXT NULL,
+    observacao_validacao TEXT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT NULL,
     UNIQUE KEY uniq_atestado_tipo (pessoa_id, tipo_atestado),
@@ -271,6 +317,7 @@ CREATE TABLE IF NOT EXISTS horarios_semanais (
     hora_fim TIME NOT NULL,
     idade_minima INT NOT NULL DEFAULT 0,
     idade_maxima INT NOT NULL DEFAULT 120,
+    criterio_faixa_etaria ENUM('idade_exata', 'ano_nascimento') NOT NULL DEFAULT 'idade_exata',
     regra_atestado_clinico ENUM('global', 'exigir', 'dispensar') NOT NULL DEFAULT 'global',
     regra_atestado_dermatologico ENUM('global', 'exigir', 'dispensar') NOT NULL DEFAULT 'global',
     sexo ENUM('masculino', 'feminino') NULL,
@@ -373,13 +420,40 @@ CREATE TABLE IF NOT EXISTS postagens_blog (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     titulo VARCHAR(180) NOT NULL,
     slug VARCHAR(180) NOT NULL UNIQUE,
+    categoria VARCHAR(120) NULL,
+    tags VARCHAR(255) NULL,
     resumo TEXT NOT NULL,
     conteudo LONGTEXT NOT NULL,
+    capa_imagem_url VARCHAR(255) NULL,
+    status ENUM('rascunho', 'publicado') NOT NULL DEFAULT 'rascunho',
+    destaque TINYINT(1) NOT NULL DEFAULT 0,
+    publicar_na_home TINYINT(1) NOT NULL DEFAULT 0,
+    permitir_compartilhamento TINYINT(1) NOT NULL DEFAULT 1,
+    compartilhar_whatsapp TINYINT(1) NOT NULL DEFAULT 1,
+    compartilhar_facebook TINYINT(1) NOT NULL DEFAULT 1,
+    compartilhar_linkedin TINYINT(1) NOT NULL DEFAULT 0,
+    compartilhar_x TINYINT(1) NOT NULL DEFAULT 0,
+    texto_compartilhamento VARCHAR(255) NULL,
+    data_publicacao DATETIME NULL,
+    publicado_em DATETIME NULL,
     criado_por_conta_id BIGINT UNSIGNED NOT NULL,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT NULL,
+    INDEX idx_postagens_blog_status_publicacao (status, data_publicacao, ativo),
+    INDEX idx_postagens_blog_categoria (categoria, ativo),
     CONSTRAINT fk_postagem_conta FOREIGN KEY (criado_por_conta_id) REFERENCES contas(id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS blog_postagens_imagens (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    postagem_blog_id BIGINT UNSIGNED NOT NULL,
+    imagem_url VARCHAR(255) NOT NULL,
+    legenda VARCHAR(255) NULL,
+    ordem INT UNSIGNED NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_blog_postagens_imagens_ordem (postagem_blog_id, ordem),
+    CONSTRAINT fk_blog_postagens_imagens_postagem FOREIGN KEY (postagem_blog_id) REFERENCES postagens_blog(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS site_popups (

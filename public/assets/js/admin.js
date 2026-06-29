@@ -953,6 +953,399 @@
             });
         },
 
+        iniciarConsultaUsuariosAdmin: function () {
+            function formatCpf(value) {
+                const digits = String(value || '').replace(/\D+/g, '');
+
+                if (digits.length !== 11) {
+                    return digits !== '' ? digits : '-';
+                }
+
+                return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+            }
+
+            function formatSex(value) {
+                const normalized = String(value || '').trim();
+
+                if (normalized === 'masculino') {
+                    return 'Masculino';
+                }
+
+                if (normalized === 'feminino') {
+                    return 'Feminino';
+                }
+
+                return normalized !== '' ? normalized : '-';
+            }
+
+            function formatRegistration(value) {
+                return Number(value || 0) === 1 ? 'Completo' : 'Pendente';
+            }
+
+            function formatDateTime(value) {
+                const raw = String(value || '').trim();
+
+                if (raw === '') {
+                    return '-';
+                }
+
+                const normalized = raw.replace(' ', 'T');
+                const date = new Date(normalized);
+
+                if (Number.isNaN(date.getTime())) {
+                    return raw;
+                }
+
+                return date.toLocaleString('pt-BR');
+            }
+
+            function formatRoles(roles) {
+                if (!Array.isArray(roles) || roles.length === 0) {
+                    return 'Sem papel';
+                }
+
+                return roles.map(function (role) {
+                    return String((role && role.nome) || '').trim();
+                }).filter(function (name) {
+                    return name !== '';
+                }).join(', ') || 'Sem papel';
+            }
+
+            function getDetailsModal() {
+                return $('#admin-user-details-modal');
+            }
+
+            function getDependentsModal() {
+                return $('#admin-user-dependents-modal');
+            }
+
+            function closeDetailsModal() {
+                getDetailsModal().addClass('hidden').attr('aria-hidden', 'true');
+            }
+
+            function closeDependentsModal() {
+                getDependentsModal().addClass('hidden').attr('aria-hidden', 'true');
+            }
+
+            function openDetailsModal() {
+                getDetailsModal().removeClass('hidden').attr('aria-hidden', 'false');
+            }
+
+            function openDependentsModal() {
+                getDependentsModal().removeClass('hidden').attr('aria-hidden', 'false');
+            }
+
+            function fillDetails(user) {
+                $('#admin-user-details-subtitle').text('Consultando os dados de ' + String(user.nome_completo || '') + ' sem sair desta pagina.');
+                $('#admin-user-details-name').text(String(user.nome_completo || '-'));
+                $('#admin-user-details-cpf').text(formatCpf(user.cpf));
+                $('#admin-user-details-email').text(String(user.email || '-'));
+                $('#admin-user-details-phone').text(String(user.telefone_whatsapp || '-'));
+                $('#admin-user-details-sex').text(formatSex(user.sexo));
+                $('#admin-user-details-birth-date').text(String(user.data_nascimento || '-'));
+                $('#admin-user-details-registration').text(formatRegistration(user.cadastro_completo));
+                $('#admin-user-details-account-status').text(Number(user.conta_ativa || 0) === 1 ? 'Conta ativa' : 'Conta inativa');
+                $('#admin-user-details-roles').text(formatRoles(user.roles));
+                $('#admin-user-details-dependents-count').text(String(user.total_dependentes || 0));
+                $('#admin-user-details-created-at').text(formatDateTime(user.conta_criada_em));
+                $('#admin-user-details-last-access').text(formatDateTime(user.ultimo_acesso_em));
+                $('#admin-user-details-last-ip').text(String(user.ultimo_acesso_ip || '-'));
+            }
+
+            function renderDependents(payload) {
+                const user = payload && payload.user ? payload.user : {};
+                const dependents = Array.isArray(payload && payload.dependents) ? payload.dependents : [];
+                const $content = $('#admin-user-dependents-content');
+
+                $('#admin-user-dependents-subtitle').text('Dependentes vinculados a ' + String(user.nome_completo || 'este usuario') + '.');
+
+                if (dependents.length === 0) {
+                    $content.html('<p class="muted">Este usuario nao possui dependentes vinculados no momento.</p>');
+                    return;
+                }
+
+                const rows = dependents.map(function (dependent) {
+                    const registration = Number(dependent.cadastro_completo || 0) === 1 ? 'Completo' : 'Pendente';
+                    const since = String(dependent.data_inicio || '').trim() || '-';
+                    const note = String(dependent.observacoes || '').trim() || '-';
+
+                    return '' +
+                        '<tr>' +
+                            '<td>' + App.core.escapeHtml(String(dependent.nome_completo || '-')) + '</td>' +
+                            '<td>' + App.core.escapeHtml(formatCpf(dependent.cpf)) + '</td>' +
+                            '<td>' + App.core.escapeHtml(String(dependent.data_nascimento || '-')) + '</td>' +
+                            '<td>' + App.core.escapeHtml(registration) + '</td>' +
+                            '<td>' + App.core.escapeHtml(since) + '</td>' +
+                            '<td>' + App.core.escapeHtml(note) + '</td>' +
+                        '</tr>';
+                }).join('');
+
+                $content.html('' +
+                    '<div class="admin-user-dependent-summary">' +
+                        '<p><strong>Usuario:</strong> ' + App.core.escapeHtml(String(user.nome_completo || '-')) + '</p>' +
+                        '<p><strong>Total de dependentes:</strong> ' + App.core.escapeHtml(String(dependents.length)) + '</p>' +
+                    '</div>' +
+                    '<div class="table-wrap">' +
+                        '<table class="data-table">' +
+                            '<thead>' +
+                                '<tr>' +
+                                    '<th>Nome</th>' +
+                                    '<th>CPF</th>' +
+                                    '<th>Nascimento</th>' +
+                                    '<th>Cadastro</th>' +
+                                    '<th>Vinculo desde</th>' +
+                                    '<th>Observacoes</th>' +
+                                '</tr>' +
+                            '</thead>' +
+                            '<tbody>' + rows + '</tbody>' +
+                        '</table>' +
+                    '</div>');
+            }
+
+            $(document).on('click', '[data-admin-user-view="1"]', function () {
+                const accountId = Number($(this).data('accountId') || 0);
+
+                if (!accountId) {
+                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o usuario selecionado.');
+                    return;
+                }
+
+                $.getJSON(App.core.buildUrl('/admin/usuarios/detalhe'), { id: accountId })
+                    .done(function (response) {
+                        if (!response || response.success === false || !response.user) {
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar os dados deste usuario.'));
+                            return;
+                        }
+
+                        fillDetails(response.user);
+                        openDetailsModal();
+                    })
+                    .fail(function (xhr) {
+                        const erro = App.core.extrairMensagemErroAjax(xhr);
+                        App.core.abrirPopup('erro', erro.mensagem);
+                    });
+            });
+
+            $(document).on('click', '[data-admin-user-dependents="1"]', function () {
+                const accountId = Number($(this).data('accountId') || 0);
+
+                if (!accountId) {
+                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o usuario selecionado.');
+                    return;
+                }
+
+                $('#admin-user-dependents-content').html('<p class="muted">Carregando dependentes...</p>');
+                openDependentsModal();
+
+                $.getJSON(App.core.buildUrl('/admin/usuarios/dependentes'), { conta_id: accountId })
+                    .done(function (response) {
+                        if (!response || response.success === false) {
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar os dependentes deste usuario.'));
+                            closeDependentsModal();
+                            return;
+                        }
+
+                        renderDependents(response);
+                    })
+                    .fail(function (xhr) {
+                        closeDependentsModal();
+                        const erro = App.core.extrairMensagemErroAjax(xhr);
+                        App.core.abrirPopup('erro', erro.mensagem);
+                    });
+            });
+
+            $(document).on('click', '#admin-user-details-close, #admin-user-details-dismiss', function () {
+                closeDetailsModal();
+            });
+
+            $(document).on('click', '#admin-user-dependents-close, #admin-user-dependents-dismiss', function () {
+                closeDependentsModal();
+            });
+
+            $(document).on('click', '#admin-user-details-modal', function (event) {
+                if (event.target === this) {
+                    closeDetailsModal();
+                }
+            });
+
+            $(document).on('click', '#admin-user-dependents-modal', function (event) {
+                if (event.target === this) {
+                    closeDependentsModal();
+                }
+            });
+        },
+
+        iniciarGerenciamentoPapeisAdmin: function () {
+            function formatDateTime(value) {
+                const raw = String(value || '').trim();
+
+                if (raw === '') {
+                    return '-';
+                }
+
+                const normalized = raw.replace(' ', 'T');
+                const date = new Date(normalized);
+
+                if (Number.isNaN(date.getTime())) {
+                    return raw;
+                }
+
+                return date.toLocaleString('pt-BR');
+            }
+
+            function formatRolesSummary(roles) {
+                if (!Array.isArray(roles) || roles.length === 0) {
+                    return 'Sem papel';
+                }
+
+                return roles.map(function (role) {
+                    return String((role && role.nome) || '').trim();
+                }).filter(function (value) {
+                    return value !== '';
+                }).join(', ') || 'Sem papel';
+            }
+
+            function getModal() {
+                return $('#admin-user-roles-modal');
+            }
+
+            function getForm() {
+                return $('#admin-user-roles-form');
+            }
+
+            function closeModal() {
+                const $modal = getModal();
+                const $form = getForm();
+
+                if ($modal.length === 0 || $form.length === 0) {
+                    return;
+                }
+
+                $modal.addClass('hidden').attr('aria-hidden', 'true');
+                $form[0].reset();
+                $form.find('input[type="checkbox"][data-role-id]').prop('checked', false).prop('disabled', false).closest('label').removeClass('is-disabled');
+            }
+
+            function openModal() {
+                getModal().removeClass('hidden').attr('aria-hidden', 'false');
+            }
+
+            function fillForm(user) {
+                const roleIds = Array.isArray(user.roles) ? user.roles.map(function (role) {
+                    return String((role && role.id) || '');
+                }) : [];
+                const blockReason = String(user.role_assignment_block_reason || '').trim();
+
+                $('#admin-user-roles-account-id').val(String(user.conta_id || ''));
+                $('#admin-user-roles-account-name').text(String(user.nome_completo || '-'));
+                $('#admin-user-roles-last-access').text(formatDateTime(user.ultimo_acesso_em));
+                $('#admin-user-roles-subtitle').text('Defina os papeis ativos de ' + String(user.nome_completo || 'este usuario') + '.');
+                $('#admin-user-roles-status').text(blockReason !== '' ? 'Bloqueado: ' + blockReason : 'Liberado para atribuicao');
+                $('#admin-user-roles-reason').val('');
+
+                $('#admin-user-roles-form input[type="checkbox"][data-role-id]').each(function () {
+                    const $input = $(this);
+                    const roleId = String($input.data('roleId') || '');
+                    const shouldCheck = roleIds.indexOf(roleId) >= 0;
+
+                    $input.prop('checked', shouldCheck);
+                    $input.prop('disabled', false);
+                    $input.closest('label').removeClass('is-disabled');
+                });
+            }
+
+            function updateUserRow(user) {
+                const $row = $('tr[data-admin-user-row="1"][data-account-id="' + String(user.conta_id || '') + '"]');
+
+                if ($row.length === 0) {
+                    return;
+                }
+
+                $row.find('[data-admin-user-roles-summary] span').first().text(formatRolesSummary(user.roles));
+                $row.find('[data-admin-user-role-assignment-date]').text(
+                    user.ultima_atribuicao_papel_em ? formatDateTime(user.ultima_atribuicao_papel_em) : '-'
+                );
+            }
+
+            $(document).on('click', '[data-admin-user-roles="1"]', function () {
+                const accountId = Number($(this).data('accountId') || 0);
+
+                if (!accountId) {
+                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o usuario selecionado para gerenciar os papeis.');
+                    return;
+                }
+
+                $.getJSON(App.core.buildUrl('/admin/usuarios/detalhe'), { id: accountId })
+                    .done(function (response) {
+                        if (!response || response.success === false || !response.user) {
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar os papeis deste usuario.'));
+                            return;
+                        }
+
+                        if (Number(response.user.role_assignment_allowed || 0) !== 1) {
+                            App.core.abrirPopup(
+                                'erro',
+                                String(response.user.role_assignment_block_reason || 'Este usuario nao pode receber papeis no momento.')
+                            );
+                            return;
+                        }
+
+                        fillForm(response.user);
+                        openModal();
+                    })
+                    .fail(function (xhr) {
+                        const erro = App.core.extrairMensagemErroAjax(xhr);
+                        App.core.abrirPopup('erro', erro.mensagem);
+                    });
+            });
+
+            $(document).on('click', '#admin-user-roles-close, #admin-user-roles-dismiss', function () {
+                closeModal();
+            });
+
+            $(document).on('click', '#admin-user-roles-modal', function (event) {
+                if (event.target === this) {
+                    closeModal();
+                }
+            });
+
+            $(document).on('submit', '#admin-user-roles-form', function (event) {
+                event.preventDefault();
+
+                const $form = $(this);
+                const $submitButton = $form.find('button[type="submit"]').first();
+                const formData = new FormData($form[0]);
+
+                $submitButton.prop('disabled', true);
+
+                $.ajax({
+                    url: String($form.attr('action') || ''),
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                }).done(function (response) {
+                    if (!response || response.success === false || !response.user) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel salvar os papeis deste usuario.'));
+                        return;
+                    }
+
+                    updateUserRow(response.user);
+                    closeModal();
+                    App.core.abrirPopup('sucesso', String(response.message || 'Papeis do usuario atualizados com sucesso.'));
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                }).always(function () {
+                    $submitButton.prop('disabled', false);
+                });
+            });
+        },
+
         iniciarFiltroPessoasAdmin: function () {
             let peopleFilterTimer = null;
 
@@ -962,8 +1355,10 @@
                 }, options || {});
                 const limit = String($form.find('input[name="people_limit"]').val() || '').trim();
                 const search = String($form.find('input[name="people_search"]').val() || '').trim();
-                const selectionStart = settings.preserveSearchFocus ? Number($form.find('input[name="people_search"]')[0] && $form.find('input[name="people_search"]')[0].selectionStart) : null;
-                const selectionEnd = settings.preserveSearchFocus ? Number($form.find('input[name="people_search"]')[0] && $form.find('input[name="people_search"]')[0].selectionEnd) : null;
+                const $searchField = $form.find('input[name="people_search"]').first();
+                const selectionStart = settings.preserveSearchFocus ? Number($searchField[0] && $searchField[0].selectionStart) : null;
+                const selectionEnd = settings.preserveSearchFocus ? Number($searchField[0] && $searchField[0].selectionEnd) : null;
+                const focusFormId = settings.preserveSearchFocus ? String($form.attr('id') || '') : '';
 
                 $.getJSON(App.core.buildUrl('/admin/pessoas/lista'), {
                     people_limit: limit,
@@ -979,7 +1374,15 @@
 
                         if (settings.preserveSearchFocus) {
                             window.requestAnimationFrame(function () {
-                                const $searchInput = $('#admin-people-search');
+                                let $searchInput = $();
+
+                                if (focusFormId !== '') {
+                                    $searchInput = $('#' + focusFormId).find('input[name="people_search"]').first();
+                                }
+
+                                if ($searchInput.length === 0) {
+                                    $searchInput = $('.admin-people-search-input').first();
+                                }
 
                                 if ($searchInput.length === 0) {
                                     return;
@@ -1001,15 +1404,15 @@
                     });
             }
 
-            $(document).on('submit', '#admin-people-filter-form', function (event) {
+            $(document).on('submit', '[data-admin-people-filter="1"]', function (event) {
                 event.preventDefault();
 
                 const $form = $(this);
                 refreshPeoplePanel($form);
             });
 
-            $(document).on('input', '#admin-people-search', function () {
-                const $form = $('#admin-people-filter-form');
+            $(document).on('input', '.admin-people-search-input', function () {
+                const $form = $(this).closest('form');
 
                 if ($form.length === 0) {
                     return;
@@ -1026,8 +1429,8 @@
                 }, 250);
             });
 
-            $(document).on('change', '#admin-people-filter-form input[name="people_limit"]', function () {
-                const $form = $('#admin-people-filter-form');
+            $(document).on('change', '[data-admin-people-filter="1"] input[name="people_limit"]', function () {
+                const $form = $(this).closest('form');
 
                 if ($form.length === 0) {
                     return;
@@ -1038,6 +1441,43 @@
         },
 
         iniciarEditorHorariosSemanais: function () {
+            function normalizeInteger(value, fallback) {
+                const parsed = Number.parseInt(String(value || ''), 10);
+
+                return Number.isFinite(parsed) ? parsed : fallback;
+            }
+
+            function syncWeeklyScheduleAgePreview($scope) {
+                const $container = $scope && $scope.length ? $scope : $(document);
+                const $ageMin = $container.find('input[name="idade_minima"]').first();
+                const $ageMax = $container.find('input[name="idade_maxima"]').first();
+                const $mode = $container.find('select[name="criterio_faixa_etaria"]').first();
+                const $agePreview = $container.find('[data-weekly-age-preview="1"], #admin-weekly-schedule-age-preview').first();
+                const $birthYearPreview = $container.find('[data-weekly-birth-year-preview="1"], #admin-weekly-schedule-birth-year-preview').first();
+                const $validationMessage = $container.find('[data-weekly-age-validation-message="1"], #admin-weekly-schedule-age-validation-message').first();
+                const currentYear = new Date().getFullYear();
+                const minAge = normalizeInteger($ageMin.val(), 0);
+                const maxAge = normalizeInteger($ageMax.val(), 120);
+                const mode = String($mode.val() || 'idade_exata').trim().toLowerCase();
+                const birthYearFrom = currentYear - maxAge;
+                const birthYearTo = currentYear - minAge;
+
+                if ($agePreview.length > 0) {
+                    $agePreview.text('Faixa etaria: para ' + String(minAge) + ' a ' + String(maxAge) + ' anos de idade.');
+                }
+
+                if ($birthYearPreview.length > 0) {
+                    $birthYearPreview.text(
+                        'Ano de nascimento correspondente em ' + String(currentYear) + ': para nascidos entre ' + String(birthYearFrom) + ' a ' + String(birthYearTo) + '.'
+                    );
+                    $birthYearPreview.removeClass('hidden');
+                }
+
+                if ($validationMessage.length > 0) {
+                    $validationMessage.toggleClass('hidden', maxAge >= minAge);
+                }
+            }
+
             function getModal() {
                 return $('#admin-weekly-schedule-editor');
             }
@@ -1106,6 +1546,7 @@
                 setValue('#admin-weekly-schedule-end', String(schedule.hora_fim || '').slice(0, 5));
                 setValue('#admin-weekly-schedule-age-min', schedule.idade_minima);
                 setValue('#admin-weekly-schedule-age-max', schedule.idade_maxima);
+                setValue('#admin-weekly-schedule-age-rule-mode', schedule.criterio_faixa_etaria || 'idade_exata');
                 setValue('#admin-weekly-schedule-clinical-rule', schedule.regra_atestado_clinico || 'global');
                 setValue('#admin-weekly-schedule-dermatological-rule', schedule.regra_atestado_dermatologico || 'global');
                 setValue('#admin-weekly-schedule-slots-general', schedule.vagas_geral);
@@ -1120,6 +1561,7 @@
                 setValue('#admin-weekly-schedule-window-days-before', schedule.janela_dias_antecedencia || 7);
                 setValue('#admin-weekly-schedule-window-hours-before-close', schedule.janela_horas_antes_fechamento || 2);
                 setValue('#admin-weekly-schedule-active', Number(schedule.ativo || 0) === 1 ? '1' : '0');
+                syncWeeklyScheduleAgePreview(getForm());
 
                 $('#admin-weekly-schedule-editor-subtitle').text(
                     'Editando ' + String(schedule.modalidade_nome || '') + ' em ' + String(schedule.local_nome || '') + ' sem sair da agenda administrativa.'
@@ -1152,6 +1594,10 @@
 
             $(document).on('click', '#admin-weekly-schedule-editor-close, #admin-weekly-schedule-cancel', function () {
                 closeEditor();
+            });
+
+            $(document).on('input change', '#admin-weekly-schedule-create-form input[name="idade_minima"], #admin-weekly-schedule-create-form input[name="idade_maxima"], #admin-weekly-schedule-create-form select[name="criterio_faixa_etaria"], #admin-weekly-schedule-form input[name="idade_minima"], #admin-weekly-schedule-form input[name="idade_maxima"], #admin-weekly-schedule-form select[name="criterio_faixa_etaria"]', function () {
+                syncWeeklyScheduleAgePreview($(this).closest('form'));
             });
 
             $(document).on('click', '#admin-weekly-schedule-editor', function (event) {
@@ -1307,6 +1753,9 @@
                     $submitButton.prop('disabled', false);
                 });
             });
+
+            syncWeeklyScheduleAgePreview($('#admin-weekly-schedule-create-form'));
+            syncWeeklyScheduleAgePreview(getForm());
         },
 
         iniciarEditorEventosEspeciais: function () {
@@ -1598,13 +2047,450 @@
             });
         },
 
+        iniciarValidacaoAtestadosSaudeAdmin: function () {
+            function getModal() {
+                return $('#admin-health-certificate-validation-modal');
+            }
+
+            function getModalContent() {
+                return $('#admin-health-certificate-validation-modal-content');
+            }
+
+            function closeModal() {
+                const $modal = getModal();
+                const $content = getModalContent();
+
+                if ($modal.length === 0) {
+                    return;
+                }
+
+                $modal.addClass('hidden').attr('aria-hidden', 'true');
+                $content.empty();
+            }
+
+            function openModal() {
+                const $modal = getModal();
+
+                if ($modal.length === 0) {
+                    return;
+                }
+
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+            }
+
+            function syncValidationFields() {
+                const status = String($('#admin-health-certificate-validation-status').val() || '').trim();
+                const requireValidatedFields = status === 'validado';
+                const requireNote = status === 'reprovado';
+
+                $('#admin-health-certificate-validation-issued-at').prop('required', requireValidatedFields);
+                $('#admin-health-certificate-validation-months').prop('required', requireValidatedFields);
+                $('#admin-health-certificate-validation-note').prop('required', requireNote);
+            }
+
+            $(document).on('click', '[data-open-health-certificate-validation="1"]', function () {
+                const personId = Number($(this).data('personId') || 0);
+                const certificateType = String($(this).data('certificateType') || '').trim().toLowerCase();
+
+                if (!personId || certificateType === '') {
+                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o atestado selecionado para validacao.');
+                    return;
+                }
+
+                $.getJSON(App.core.buildUrl('/admin/atestados/validacao/modal'), {
+                    person_id: personId,
+                    certificate_type: certificateType
+                }).done(function (response) {
+                    if (!response || response.success === false || !response.html) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel abrir a validacao deste atestado.'));
+                        return;
+                    }
+
+                    getModalContent().html(String(response.html || ''));
+                    openModal();
+                    syncValidationFields();
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                });
+            });
+
+            $(document).on('change', '#admin-health-certificate-validation-status', function () {
+                syncValidationFields();
+            });
+
+            $(document).on('click', '#admin-health-certificate-validation-close, #admin-health-certificate-validation-cancel', function () {
+                closeModal();
+            });
+
+            $(document).on('click', '#admin-health-certificate-validation-modal', function (event) {
+                if (event.target === this) {
+                    closeModal();
+                }
+            });
+
+            $(document).on('submit', '#admin-health-certificate-validation-form', function (event) {
+                event.preventDefault();
+
+                const $form = $(this);
+                const $submitButton = $form.find('button[type="submit"]').first();
+                const formData = new FormData($form[0]);
+
+                $submitButton.prop('disabled', true);
+
+                $.ajax({
+                    url: String($form.attr('action') || ''),
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel salvar a validacao do atestado.'));
+                        return;
+                    }
+
+                    if (response.panel_html) {
+                        const $currentPanel = $('#admin-health-certificate-validation-panel');
+
+                        if ($currentPanel.length > 0) {
+                            $currentPanel.replaceWith(String(response.panel_html));
+                        }
+                    }
+
+                    closeModal();
+                    App.core.abrirPopup('sucesso', String(response.message || 'Validacao do atestado atualizada com sucesso.'));
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                }).always(function () {
+                    $submitButton.prop('disabled', false);
+                });
+            });
+        },
+
+        iniciarEditorPostagensBlog: function () {
+            let pendingDeleteForm = null;
+
+            function getModal() {
+                return $('#admin-blog-post-modal');
+            }
+
+            function getForm() {
+                return $('#admin-blog-post-form');
+            }
+
+            function getGalleryList() {
+                return $('#admin-blog-gallery-list');
+            }
+
+            function setCoverCurrent(imageUrl) {
+                $('#admin-blog-post-image-current').val(String(imageUrl || ''));
+                $('#admin-blog-post-image-current-text').text(
+                    String(imageUrl || '').trim() !== ''
+                        ? 'Imagem atual: ' + String(imageUrl)
+                        : 'Se nenhuma imagem for enviada, o sistema usa a imagem padrao da home como capa e fundo da postagem.'
+                );
+            }
+
+            function addGalleryRow(imageUrl, caption) {
+                const template = document.getElementById('admin-blog-gallery-item-template');
+                const $list = getGalleryList();
+
+                if (!template || $list.length === 0) {
+                    return;
+                }
+
+                const clone = template.content.firstElementChild.cloneNode(true);
+                const $item = $(clone);
+                $item.find('input[name="galeria_imagem_atual[]"]').val(String(imageUrl || ''));
+                $item.find('input[name="galeria_imagem_legenda[]"]').val(String(caption || ''));
+                $item.find('[data-admin-blog-gallery-current-text="1"]').text(
+                    String(imageUrl || '').trim() !== ''
+                        ? 'Imagem atual: ' + String(imageUrl)
+                        : 'Nenhuma imagem atual nesta linha.'
+                );
+                $list.append($item);
+            }
+
+            function resetForm() {
+                const $form = getForm();
+
+                if ($form.length === 0) {
+                    return;
+                }
+
+                $form[0].reset();
+                $('#admin-blog-post-id').val('');
+                $('#admin-blog-post-modal-title').text('Nova postagem do blog');
+                $('#admin-blog-post-submit').text('Salvar postagem');
+                setCoverCurrent('');
+                getGalleryList().empty();
+                addGalleryRow('', '');
+                syncShareOptions();
+            }
+
+            function openModal() {
+                getModal().removeClass('hidden').attr('aria-hidden', 'false');
+            }
+
+            function closeModal() {
+                getModal().addClass('hidden').attr('aria-hidden', 'true');
+                resetForm();
+            }
+
+            function reloadBlogSection() {
+                $('[data-admin-nav-target="blog"]').trigger('click');
+            }
+
+            function getDeleteConfirmModal() {
+                return $('#admin-blog-delete-confirm-modal');
+            }
+
+            function closeDeleteConfirmModal() {
+                pendingDeleteForm = null;
+                getDeleteConfirmModal().addClass('hidden').attr('aria-hidden', 'true');
+                $('#admin-blog-delete-confirm-text').text('Tem certeza que deseja remover esta postagem?');
+            }
+
+            function openDeleteConfirmModal($form) {
+                const postTitle = String($form.data('postTitle') || '').trim();
+                pendingDeleteForm = $form;
+                $('#admin-blog-delete-confirm-text').text(
+                    postTitle !== ''
+                        ? 'Tem certeza que deseja remover a postagem "' + postTitle + '"?'
+                        : 'Tem certeza que deseja remover esta postagem?'
+                );
+                getDeleteConfirmModal().removeClass('hidden').attr('aria-hidden', 'false');
+            }
+
+            function submitDeleteForm($form) {
+                const formData = new FormData($form[0]);
+                const $submitButton = $form.find('button[type="submit"]').first();
+
+                $submitButton.prop('disabled', true);
+
+                $.ajax({
+                    url: String($form.attr('action') || ''),
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel remover a postagem.'));
+                        return;
+                    }
+
+                    reloadBlogSection();
+                    App.core.abrirPopup('sucesso', String(response.message || 'Postagem removida com sucesso.'));
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                }).always(function () {
+                    $submitButton.prop('disabled', false);
+                });
+            }
+
+            function setCheckbox(selector, value) {
+                $(selector).prop('checked', Number(value || 0) === 1);
+            }
+
+            function syncShareOptions() {
+                const enabled = $('#admin-blog-post-allow-share').is(':checked');
+                const $scope = $('[data-admin-blog-share-options="1"]');
+
+                $scope.toggleClass('is-disabled', !enabled);
+                $scope.find('input[type="checkbox"]').prop('disabled', !enabled);
+            }
+
+            function fillForm(post) {
+                $('#admin-blog-post-id').val(String(post.id || ''));
+                $('#admin-blog-post-title').val(String(post.titulo || ''));
+                $('#admin-blog-post-slug').val(String(post.slug || ''));
+                $('#admin-blog-post-category').val(String(post.categoria || ''));
+                $('#admin-blog-post-tags').val(String(post.tags || ''));
+                $('#admin-blog-post-summary').val(String(post.resumo || ''));
+                $('#admin-blog-post-content').val(String(post.conteudo || ''));
+                setCoverCurrent(String(post.capa_imagem_url || ''));
+                $('#admin-blog-post-status').val(String(post.status || 'rascunho'));
+                $('#admin-blog-post-share-text').val(String(post.texto_compartilhamento || ''));
+                getGalleryList().empty();
+
+                if (post.data_publicacao) {
+                    $('#admin-blog-post-publish-at').val(String(post.data_publicacao).replace(' ', 'T').slice(0, 16));
+                } else {
+                    $('#admin-blog-post-publish-at').val('');
+                }
+
+                setCheckbox('#admin-blog-post-featured', post.destaque);
+                setCheckbox('#admin-blog-post-home', post.publicar_na_home);
+                setCheckbox('#admin-blog-post-allow-share', post.permitir_compartilhamento);
+                setCheckbox('#admin-blog-post-share-whatsapp', post.compartilhar_whatsapp);
+                setCheckbox('#admin-blog-post-share-facebook', post.compartilhar_facebook);
+                setCheckbox('#admin-blog-post-share-linkedin', post.compartilhar_linkedin);
+                setCheckbox('#admin-blog-post-share-x', post.compartilhar_x);
+
+                if (Array.isArray(post.gallery_images) && post.gallery_images.length > 0) {
+                    post.gallery_images.forEach(function (item) {
+                        addGalleryRow(item.imagem_url || '', item.legenda || '');
+                    });
+                } else {
+                    addGalleryRow('', '');
+                }
+
+                $('#admin-blog-post-modal-title').text('Editar postagem do blog');
+                $('#admin-blog-post-submit').text('Salvar alteracoes');
+                syncShareOptions();
+            }
+
+            $(document).on('click', '[data-admin-blog-create="1"]', function () {
+                resetForm();
+                openModal();
+            });
+
+            $(document).on('click', '[data-admin-blog-edit="1"]', function () {
+                const postId = Number($(this).data('postId') || 0);
+
+                if (!postId) {
+                    App.core.abrirPopup('erro', 'Nao foi possivel identificar a postagem selecionada.');
+                    return;
+                }
+
+                $.getJSON(App.core.buildUrl('/admin/postagens/detalhe'), { id: postId })
+                    .done(function (response) {
+                        if (!response || response.success === false || !response.post) {
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar a postagem.'));
+                            return;
+                        }
+
+                        resetForm();
+                        fillForm(response.post);
+                        openModal();
+                    })
+                    .fail(function (xhr) {
+                        const erro = App.core.extrairMensagemErroAjax(xhr);
+                        App.core.abrirPopup('erro', erro.mensagem);
+                    });
+            });
+
+            $(document).on('click', '#admin-blog-post-close, #admin-blog-post-cancel', function () {
+                closeModal();
+            });
+
+            $(document).on('click', '[data-admin-blog-gallery-add="1"]', function () {
+                addGalleryRow('', '');
+            });
+
+            $(document).on('click', '[data-admin-blog-gallery-remove="1"]', function () {
+                const $items = $('.admin-blog-gallery-item');
+
+                if ($items.length <= 1) {
+                    $(this).closest('.admin-blog-gallery-item').find('input').val('');
+                    return;
+                }
+
+                $(this).closest('.admin-blog-gallery-item').remove();
+            });
+
+            $(document).on('click', '[data-close-popup="#admin-blog-post-modal"]', function () {
+                window.setTimeout(function () {
+                    resetForm();
+                }, 0);
+            });
+
+            $(document).on('click', '#admin-blog-post-modal', function (event) {
+                if (event.target === this) {
+                    closeModal();
+                }
+            });
+
+            $(document).on('change', '#admin-blog-post-allow-share', function () {
+                syncShareOptions();
+            });
+
+            $(document).on('click', '#admin-blog-delete-confirm-close, #admin-blog-delete-confirm-cancel', function () {
+                closeDeleteConfirmModal();
+            });
+
+            $(document).on('click', '#admin-blog-delete-confirm-modal', function (event) {
+                if (event.target === this) {
+                    closeDeleteConfirmModal();
+                }
+            });
+
+            $(document).on('click', '#admin-blog-delete-confirm-submit', function () {
+                if (!pendingDeleteForm || pendingDeleteForm.length === 0) {
+                    closeDeleteConfirmModal();
+                    return;
+                }
+
+                const $form = pendingDeleteForm;
+                closeDeleteConfirmModal();
+                submitDeleteForm($form);
+            });
+
+            $(document).on('submit', '#admin-blog-post-form', function (event) {
+                event.preventDefault();
+
+                const $form = $(this);
+                const $submitButton = $('#admin-blog-post-submit');
+                const formData = new FormData($form[0]);
+
+                $submitButton.prop('disabled', true);
+
+                $.ajax({
+                    url: String($form.attr('action') || ''),
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel salvar a postagem.'));
+                        return;
+                    }
+
+                    closeModal();
+                    reloadBlogSection();
+                    App.core.abrirPopup('sucesso', String(response.message || 'Postagem salva com sucesso.'));
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                }).always(function () {
+                    $submitButton.prop('disabled', false);
+                });
+            });
+
+            $(document).on('submit', 'form[data-admin-blog-delete-form="1"]', function (event) {
+                event.preventDefault();
+                openDeleteConfirmModal($(this));
+            });
+        },
+
         init: function () {
             App.admin.iniciarSecoesAdmin();
             App.admin.iniciarEditorPessoaAdmin();
+            App.admin.iniciarConsultaUsuariosAdmin();
+            App.admin.iniciarGerenciamentoPapeisAdmin();
             App.admin.iniciarFiltroPessoasAdmin();
             App.admin.iniciarEditorHorariosSemanais();
             App.admin.iniciarEditorEventosEspeciais();
             App.admin.iniciarValidacaoCondicoesAdmin();
+            App.admin.iniciarValidacaoAtestadosSaudeAdmin();
+            App.admin.iniciarEditorPostagensBlog();
         }
     });
 

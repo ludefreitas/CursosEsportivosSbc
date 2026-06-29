@@ -42,6 +42,8 @@
                         <th>CPF</th>
                         <th>Data de nascimento</th>
                         <th>Dados</th>
+                        <th>Atestado clinico</th>
+                        <th>Atestado dermatologico</th>
                         <th>Documentacao por condicao</th>
                     </tr>
                 </thead>
@@ -58,6 +60,12 @@
 <div id="dashboard-certificates-modal" class="popup-overlay hidden" aria-hidden="true">
     <div class="popup-card popup-admin-card dashboard-certificates-modal-card" role="dialog" aria-modal="true">
         <div id="dashboard-certificates-modal-content"></div>
+    </div>
+</div>
+
+<div id="dashboard-health-certificates-modal" class="popup-overlay hidden" aria-hidden="true">
+    <div class="popup-card popup-admin-card dashboard-certificates-modal-card" role="dialog" aria-modal="true">
+        <div id="dashboard-health-certificates-modal-content"></div>
     </div>
 </div>
 

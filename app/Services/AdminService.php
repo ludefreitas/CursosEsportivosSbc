@@ -11,6 +11,21 @@ class AdminService
 {
     public const DEFAULT_PEOPLE_LIMIT = 50;
     public const MAX_PEOPLE_LIMIT = 100;
+    private const HEALTH_CERTIFICATE_TYPES = [
+        'clinico' => 'Atestado clinico',
+        'dermatologico' => 'Atestado dermatologico',
+    ];
+    private const HEALTH_CERTIFICATE_SERVICE_LOCATIONS = [
+        'servico_publico' => 'Servico publico',
+        'clinica_particular' => 'Clinica particular',
+        'clinica_convenio' => 'Clinica convenio medico',
+    ];
+
+    public function __construct()
+    {
+        $this->ensureHealthCertificateSchema();
+        $this->ensureWeeklyScheduleAgeRuleSchema();
+    }
 
     /**
      * Mapa fixo das condicoes especiais monitoradas para validacao.
@@ -108,7 +123,85 @@ class AdminService
             return [];
         }
 
-        return $this->attachConditionIndicatorsToPeople($pdo, $people);
+        return $this->attachAdministrativeIndicatorsToPeople($pdo, $people);
+    }
+
+    /**
+     * Lista somente usuarios com conta criada para consulta administrativa.
+     */
+    public function listUsersOnly(int $limit = self::DEFAULT_PEOPLE_LIMIT, string $search = ''): array
+    {
+        $limit = max(1, min(self::MAX_PEOPLE_LIMIT, $limit));
+        $search = trim($search);
+        $normalizedCpfSearch = preg_replace('/\D+/', '', $search) ?? '';
+        $pdo = Database::connection();
+        $sql = '
+            SELECT
+                c.id AS conta_id,
+                c.cpf,
+                c.ativo AS conta_ativa,
+                c.created_at AS conta_criada_em,
+                c.ultimo_acesso_em,
+                p.id AS pessoa_id,
+                p.nome_completo,
+                p.email,
+                p.telefone_whatsapp,
+                p.cadastro_completo,
+                COUNT(DISTINCT vr.dependente_pessoa_id) AS total_dependentes,
+                GROUP_CONCAT(DISTINCT pa.nome ORDER BY pa.nome SEPARATOR ", ") AS papeis_nomes,
+                MAX(cp.atribuido_em) AS ultima_atribuicao_papel_em
+            FROM contas c
+            INNER JOIN pessoas p ON p.cpf = c.cpf
+            LEFT JOIN conta_papeis cp ON cp.conta_id = c.id
+            LEFT JOIN papeis pa ON pa.id = cp.papel_id
+            LEFT JOIN vinculos_responsaveis vr ON vr.responsavel_pessoa_id = p.id
+        ';
+
+        $params = [];
+
+        if ($search !== '') {
+            $conditions = [
+                'p.nome_completo LIKE :search_name',
+                'p.email LIKE :search_email',
+            ];
+            $params[':search_name'] = '%' . $search . '%';
+            $params[':search_email'] = '%' . $search . '%';
+
+            if ($normalizedCpfSearch !== '') {
+                $conditions[] = 'c.cpf LIKE :search_cpf';
+                $params[':search_cpf'] = '%' . $normalizedCpfSearch . '%';
+            }
+
+            $sql .= '
+                WHERE (' . implode(' OR ', $conditions) . ')
+            ';
+        }
+
+        $sql .= '
+            GROUP BY c.id, c.cpf, c.ativo, c.created_at, c.ultimo_acesso_em, p.id, p.nome_completo, p.email, p.telefone_whatsapp, p.cadastro_completo
+            ORDER BY c.created_at DESC, c.id DESC
+            LIMIT :limit
+        ';
+
+        $stmt = $pdo->prepare($sql);
+
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_STR);
+        }
+
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        foreach ($users as &$user) {
+            $roleAssignmentBlock = $this->resolveRoleAssignmentBlockForUser($user);
+            $user['role_assignment_allowed'] = $roleAssignmentBlock === null ? 1 : 0;
+            $user['role_assignment_block_reason'] = $roleAssignmentBlock;
+        }
+        unset($user);
+
+        return $users;
     }
 
     /**
@@ -144,6 +237,389 @@ class AdminService
         $person['situacao_certificados'] = $this->buildPersonCertificateSituationSummary($pdo, $person);
 
         return $person;
+    }
+
+    /**
+     * Busca os dados completos de uma conta de usuario para consulta administrativa.
+     */
+    public function getUserDetails(int $accountId): array
+    {
+        if ($accountId <= 0) {
+            throw new RuntimeException('Usuario invalido para consulta.');
+        }
+
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('
+            SELECT
+                c.id AS conta_id,
+                c.cpf,
+                c.ativo AS conta_ativa,
+                c.created_at AS conta_criada_em,
+                c.ultimo_acesso_em,
+                c.ultimo_acesso_ip,
+                c.ultimo_acesso_user_agent,
+                p.id AS pessoa_id,
+                p.nome_completo,
+                p.email,
+                p.telefone_whatsapp,
+                p.sexo,
+                p.data_nascimento,
+                p.cadastro_completo
+            FROM contas c
+            INNER JOIN pessoas p ON p.cpf = c.cpf
+            WHERE c.id = :conta_id
+            LIMIT 1
+        ');
+        $stmt->execute([':conta_id' => $accountId]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$user) {
+            throw new RuntimeException('Usuario nao encontrado.');
+        }
+
+        $stmtRoles = $pdo->prepare('
+            SELECT p.id, p.slug, p.nome, cp.atribuido_em
+            FROM conta_papeis cp
+            INNER JOIN papeis p ON p.id = cp.papel_id
+            WHERE cp.conta_id = :conta_id
+            ORDER BY p.nome ASC
+        ');
+        $stmtRoles->execute([':conta_id' => $accountId]);
+        $user['roles'] = $stmtRoles->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $user['ultima_atribuicao_papel_em'] = null;
+
+        foreach ($user['roles'] as $role) {
+            $assignedAt = trim((string) ($role['atribuido_em'] ?? ''));
+
+            if ($assignedAt === '') {
+                continue;
+            }
+
+            if ($user['ultima_atribuicao_papel_em'] === null || $assignedAt > (string) $user['ultima_atribuicao_papel_em']) {
+                $user['ultima_atribuicao_papel_em'] = $assignedAt;
+            }
+        }
+
+        $stmtDependents = $pdo->prepare('
+            SELECT COUNT(*)
+            FROM vinculos_responsaveis vr
+            WHERE vr.responsavel_pessoa_id = :pessoa_id
+        ');
+        $stmtDependents->execute([':pessoa_id' => (int) $user['pessoa_id']]);
+        $user['total_dependentes'] = (int) $stmtDependents->fetchColumn();
+        $roleAssignmentBlock = $this->resolveRoleAssignmentBlockForUser($user);
+        $user['role_assignment_allowed'] = $roleAssignmentBlock === null ? 1 : 0;
+        $user['role_assignment_block_reason'] = $roleAssignmentBlock;
+
+        return $user;
+    }
+
+    /**
+     * Lista os dependentes vinculados ao usuario selecionado.
+     */
+    public function listUserDependents(int $accountId): array
+    {
+        $user = $this->getUserDetails($accountId);
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('
+            SELECT
+                d.id,
+                d.nome_completo,
+                d.cpf,
+                d.data_nascimento,
+                d.email,
+                d.telefone_whatsapp,
+                d.cadastro_completo,
+                vr.data_inicio,
+                vr.observacoes
+            FROM vinculos_responsaveis vr
+            INNER JOIN pessoas d ON d.id = vr.dependente_pessoa_id
+            WHERE vr.responsavel_pessoa_id = :pessoa_id
+            ORDER BY d.nome_completo ASC, d.id ASC
+        ');
+        $stmt->execute([':pessoa_id' => (int) $user['pessoa_id']]);
+
+        return [
+            'user' => $user,
+            'dependents' => $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [],
+        ];
+    }
+
+    /**
+     * Lista todos os papeis disponiveis para administracao.
+     */
+    public function listRolesForManagement(): array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->query('
+            SELECT id, slug, nome
+            FROM papeis
+            ORDER BY nome ASC, id ASC
+        ');
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Atualiza a lista de papeis ativos de um usuario.
+     */
+    public function updateUserRoles(int $targetAccountId, int $actorAccountId, array $data): array
+    {
+        $targetAccountId = (int) $targetAccountId;
+        $actorAccountId = (int) $actorAccountId;
+        $reason = trim((string) ($data['reason'] ?? ''));
+
+        if ($targetAccountId <= 0) {
+            throw new RuntimeException('Usuario invalido para atualizar os papeis.');
+        }
+
+        if ($actorAccountId <= 0) {
+            throw new RuntimeException('Conta administrativa invalida para atualizar os papeis.');
+        }
+
+        if ($reason === '') {
+            throw new RuntimeException('Informe o motivo da alteracao dos papeis.');
+        }
+
+        $roleAssignmentBlock = $this->resolveRoleAssignmentBlockForUser($targetUser = $this->getUserDetails($targetAccountId));
+
+        if ($roleAssignmentBlock !== null) {
+            throw new RuntimeException('Este usuario nao pode receber papeis agora. Motivo: ' . $roleAssignmentBlock);
+        }
+
+        $selectedRoleIds = $data['roles'] ?? [];
+
+        if (!is_array($selectedRoleIds)) {
+            $selectedRoleIds = [$selectedRoleIds];
+        }
+
+        $selectedRoleIds = array_values(array_unique(array_filter(array_map(static function ($value): int {
+            return (int) $value;
+        }, $selectedRoleIds), static function (int $value): bool {
+            return $value > 0;
+        })));
+
+        $pdo = Database::connection();
+
+        $stmtActorRoles = $pdo->prepare('
+            SELECT p.id, p.slug, p.nome
+            FROM conta_papeis cp
+            INNER JOIN papeis p ON p.id = cp.papel_id
+            WHERE cp.conta_id = :conta_id
+            ORDER BY p.nome ASC
+        ');
+        $stmtActorRoles->execute([':conta_id' => $actorAccountId]);
+        $actorRoles = $stmtActorRoles->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $actorIsMasterAdmin = has_role($actorRoles, 'master_admin');
+
+        $activeRoles = $targetUser['roles'] ?? [];
+        $activeRoleIds = array_map(static fn (array $role): int => (int) ($role['id'] ?? 0), $activeRoles);
+        $activeRoleIds = array_values(array_filter($activeRoleIds, static fn (int $value): bool => $value > 0));
+        $activeRoleIdsMap = array_fill_keys($activeRoleIds, true);
+
+        $selectedRoles = [];
+
+        if ($selectedRoleIds !== []) {
+            $placeholders = implode(', ', array_fill(0, count($selectedRoleIds), '?'));
+            $stmtSelectedRoles = $pdo->prepare('
+                SELECT id, slug, nome
+                FROM papeis
+                WHERE id IN (' . $placeholders . ')
+                ORDER BY nome ASC
+            ');
+            $stmtSelectedRoles->execute($selectedRoleIds);
+            $selectedRoles = $stmtSelectedRoles->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        }
+
+        if (count($selectedRoles) !== count($selectedRoleIds)) {
+            throw new RuntimeException('Um ou mais papeis selecionados nao existem mais.');
+        }
+
+        $selectedRolesById = [];
+        $selectedRoleSlugs = [];
+
+        foreach ($selectedRoles as $role) {
+            $roleId = (int) ($role['id'] ?? 0);
+
+            if ($roleId <= 0) {
+                continue;
+            }
+
+            $selectedRolesById[$roleId] = $role;
+            $selectedRoleSlugs[] = (string) ($role['slug'] ?? '');
+        }
+
+        $currentHasMasterAdmin = false;
+
+        foreach ($activeRoles as $role) {
+            if ((string) ($role['slug'] ?? '') === 'master_admin') {
+                $currentHasMasterAdmin = true;
+                break;
+            }
+        }
+
+        $willKeepMasterAdmin = in_array('master_admin', $selectedRoleSlugs, true);
+
+        if (!$actorIsMasterAdmin) {
+            if (in_array('master_admin', $selectedRoleSlugs, true) || ($currentHasMasterAdmin && !$willKeepMasterAdmin)) {
+                throw new RuntimeException('Somente um Administrador Master pode alterar o papel Administrador Master.');
+            }
+        }
+
+        $rolesToAdd = array_values(array_filter($selectedRoleIds, static function (int $roleId) use ($activeRoleIdsMap): bool {
+            return !isset($activeRoleIdsMap[$roleId]);
+        }));
+        $rolesToRemove = array_values(array_filter($activeRoles, static function (array $role) use ($selectedRolesById): bool {
+            return !isset($selectedRolesById[(int) ($role['id'] ?? 0)]);
+        }));
+
+        foreach ($rolesToRemove as $role) {
+            if ((string) ($role['slug'] ?? '') !== 'master_admin') {
+                continue;
+            }
+
+            $stmtMasterCount = $pdo->query('
+                SELECT COUNT(*)
+                FROM conta_papeis cp
+                INNER JOIN papeis p ON p.id = cp.papel_id
+                WHERE p.slug = "master_admin"
+            ');
+            $masterCount = (int) $stmtMasterCount->fetchColumn();
+
+            if ($masterCount <= 1) {
+                throw new RuntimeException('Nao e permitido remover o ultimo papel Administrador Master ativo do sistema.');
+            }
+        }
+
+        if ($rolesToAdd === [] && $rolesToRemove === []) {
+            return $this->getUserDetails($targetAccountId);
+        }
+
+        $ip = request_ip();
+        $userAgent = substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
+        $pdo->beginTransaction();
+
+        try {
+            $stmtInsertRole = $pdo->prepare('
+                INSERT INTO conta_papeis (conta_id, papel_id, atribuido_em, atribuido_por_conta_id, origem_atribuicao)
+                VALUES (:conta_id, :papel_id, NOW(), :atribuido_por_conta_id, :origem_atribuicao)
+            ');
+            $stmtDeleteRole = $pdo->prepare('
+                DELETE FROM conta_papeis
+                WHERE conta_id = :conta_id
+                  AND papel_id = :papel_id
+            ');
+            $stmtHistory = $pdo->prepare('
+                INSERT INTO conta_papeis_historico (
+                    conta_id,
+                    papel_id,
+                    acao,
+                    realizado_por_conta_id,
+                    ip_usuario,
+                    user_agent,
+                    motivo,
+                    ultimo_acesso_referencia_em
+                ) VALUES (
+                    :conta_id,
+                    :papel_id,
+                    :acao,
+                    :realizado_por_conta_id,
+                    :ip_usuario,
+                    :user_agent,
+                    :motivo,
+                    :ultimo_acesso_referencia_em
+                )
+            ');
+
+            foreach ($rolesToAdd as $roleId) {
+                $stmtInsertRole->execute([
+                    ':conta_id' => $targetAccountId,
+                    ':papel_id' => $roleId,
+                    ':atribuido_por_conta_id' => $actorAccountId,
+                    ':origem_atribuicao' => 'admin_modal',
+                ]);
+
+                $stmtHistory->execute([
+                    ':conta_id' => $targetAccountId,
+                    ':papel_id' => $roleId,
+                    ':acao' => 'atribuicao_manual',
+                    ':realizado_por_conta_id' => $actorAccountId,
+                    ':ip_usuario' => $ip !== '' ? $ip : null,
+                    ':user_agent' => $userAgent !== '' ? $userAgent : null,
+                    ':motivo' => $reason,
+                    ':ultimo_acesso_referencia_em' => $targetUser['ultimo_acesso_em'] ?? null,
+                ]);
+            }
+
+            foreach ($rolesToRemove as $role) {
+                $roleId = (int) ($role['id'] ?? 0);
+
+                if ($roleId <= 0) {
+                    continue;
+                }
+
+                $stmtHistory->execute([
+                    ':conta_id' => $targetAccountId,
+                    ':papel_id' => $roleId,
+                    ':acao' => 'remocao_manual',
+                    ':realizado_por_conta_id' => $actorAccountId,
+                    ':ip_usuario' => $ip !== '' ? $ip : null,
+                    ':user_agent' => $userAgent !== '' ? $userAgent : null,
+                    ':motivo' => $reason,
+                    ':ultimo_acesso_referencia_em' => $targetUser['ultimo_acesso_em'] ?? null,
+                ]);
+
+                $stmtDeleteRole->execute([
+                    ':conta_id' => $targetAccountId,
+                    ':papel_id' => $roleId,
+                ]);
+            }
+
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+
+        AuditLogService::record('conta.papeis_atualizados', 'contas', $targetAccountId, [
+            'motivo' => $reason,
+            'papeis_adicionados' => array_values(array_map(static function (int $roleId) use ($selectedRolesById): string {
+                return (string) ($selectedRolesById[$roleId]['slug'] ?? '');
+            }, $rolesToAdd)),
+            'papeis_removidos' => array_values(array_map(static function (array $role): string {
+                return (string) ($role['slug'] ?? '');
+            }, $rolesToRemove)),
+        ]);
+
+        return $this->getUserDetails($targetAccountId);
+    }
+
+    /**
+     * Informa se a conta pode receber papeis administrativos e devolve o motivo do bloqueio.
+     */
+    private function resolveRoleAssignmentBlockForUser(array $user): ?string
+    {
+        if ((int) ($user['conta_ativa'] ?? 0) !== 1) {
+            return 'A conta do usuario esta inativa.';
+        }
+
+        if ((int) ($user['cadastro_completo'] ?? 0) !== 1) {
+            return 'O cadastro da pessoa ainda esta pendente e precisa ser completado.';
+        }
+
+        $personId = (int) ($user['pessoa_id'] ?? 0);
+
+        if ($personId <= 0) {
+            return 'Nao foi possivel localizar a pessoa vinculada a esta conta.';
+        }
+
+        $registrationBlock = (new ProfileService())->getRegistrationBlockForPerson($personId);
+
+        if ($registrationBlock !== null) {
+            return (string) ($registrationBlock['mensagem'] ?? 'Existe um bloqueio operacional neste cadastro.');
+        }
+
+        return null;
     }
 
     /**
@@ -490,6 +966,189 @@ class AdminService
         ]);
 
         return $this->getConditionValidationDetails($personId, $conditionSlug);
+    }
+
+    /**
+     * Lista atestados de saude que precisam de validacao administrativa.
+     */
+    public function listPeopleRequiringHealthCertificateValidation(): array
+    {
+        $pdo = Database::connection();
+        $rows = $pdo->query('
+            SELECT
+                a.id,
+                a.pessoa_id,
+                a.tipo_atestado,
+                a.nome_arquivo,
+                a.caminho_arquivo,
+                a.data_emissao,
+                a.crm_medico,
+                a.local_atendimento,
+                a.status_validacao,
+                a.created_at,
+                a.updated_at,
+                p.nome_completo,
+                p.cpf,
+                p.data_nascimento,
+                p.telefone_whatsapp,
+                (
+                    SELECT responsavel.nome_completo
+                    FROM vinculos_responsaveis vr
+                    INNER JOIN pessoas responsavel ON responsavel.id = vr.responsavel_pessoa_id
+                    WHERE vr.dependente_pessoa_id = p.id
+                    ORDER BY vr.id DESC
+                    LIMIT 1
+                ) AS nome_responsavel
+            FROM atestados_saude a
+            INNER JOIN pessoas p ON p.id = a.pessoa_id
+            WHERE a.status_validacao IN ("pendente", "reprovado")
+            ORDER BY a.updated_at DESC, a.created_at DESC, a.id DESC
+        ')->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($rows as $index => $row) {
+            $rows[$index]['tipo_label'] = self::HEALTH_CERTIFICATE_TYPES[(string) ($row['tipo_atestado'] ?? '')] ?? 'Atestado';
+            $rows[$index]['pendencia_validacao'] = $this->buildHealthCertificateValidationPendingReason($row);
+            $rows[$index]['local_atendimento_label'] = $this->formatHealthCertificateServiceLocationLabel((string) ($row['local_atendimento'] ?? ''));
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Busca os dados de um atestado de saude para validacao administrativa.
+     */
+    public function getHealthCertificateValidationDetails(int $personId, string $certificateType): array
+    {
+        $certificateType = trim(strtolower($certificateType));
+
+        if ($personId <= 0 || !isset(self::HEALTH_CERTIFICATE_TYPES[$certificateType])) {
+            throw new RuntimeException('Atestado invalido para validacao.');
+        }
+
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('
+            SELECT
+                a.*,
+                p.nome_completo,
+                p.cpf,
+                p.data_nascimento,
+                p.telefone_whatsapp,
+                (
+                    SELECT responsavel.nome_completo
+                    FROM vinculos_responsaveis vr
+                    INNER JOIN pessoas responsavel ON responsavel.id = vr.responsavel_pessoa_id
+                    WHERE vr.dependente_pessoa_id = p.id
+                    ORDER BY vr.id DESC
+                    LIMIT 1
+                ) AS nome_responsavel
+            FROM atestados_saude a
+            INNER JOIN pessoas p ON p.id = a.pessoa_id
+            WHERE a.pessoa_id = :pessoa_id
+              AND a.tipo_atestado = :tipo_atestado
+            LIMIT 1
+        ');
+        $stmt->execute([
+            ':pessoa_id' => $personId,
+            ':tipo_atestado' => $certificateType,
+        ]);
+        $certificate = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$certificate) {
+            throw new RuntimeException('Nao existe atestado enviado para essa pessoa nesse tipo ainda.');
+        }
+
+        return [
+            'person' => [
+                'id' => (int) ($certificate['pessoa_id'] ?? 0),
+                'nome_completo' => (string) ($certificate['nome_completo'] ?? ''),
+                'cpf' => (string) ($certificate['cpf'] ?? ''),
+                'data_nascimento' => (string) ($certificate['data_nascimento'] ?? ''),
+                'telefone_whatsapp' => (string) ($certificate['telefone_whatsapp'] ?? ''),
+                'nome_responsavel' => (string) ($certificate['nome_responsavel'] ?? ''),
+            ],
+            'certificate_type' => [
+                'slug' => $certificateType,
+                'label' => self::HEALTH_CERTIFICATE_TYPES[$certificateType],
+            ],
+            'certificate' => $certificate,
+            'pending_reason' => $this->buildHealthCertificateValidationPendingReason($certificate),
+            'service_location_label' => $this->formatHealthCertificateServiceLocationLabel((string) ($certificate['local_atendimento'] ?? '')),
+            'service_location_options' => self::HEALTH_CERTIFICATE_SERVICE_LOCATIONS,
+            'validity_month_options' => [6, 12, 18, 24],
+        ];
+    }
+
+    /**
+     * Atualiza a validacao administrativa de um atestado de saude.
+     */
+    public function updateHealthCertificateValidation(int $personId, string $certificateType, int $accountId, array $data): array
+    {
+        $details = $this->getHealthCertificateValidationDetails($personId, $certificateType);
+        $certificate = $details['certificate'];
+        $status = trim((string) ($data['status'] ?? ''));
+        $validatedIssueDate = trim((string) ($data['data_emissao_validada'] ?? ''));
+        $validityMonths = (int) ($data['validade_meses'] ?? 0);
+        $validationNote = trim((string) ($data['observacao_validacao'] ?? ''));
+        $allowedStatuses = ['pendente', 'reprovado', 'validado'];
+        $allowedMonthOptions = [6, 12, 18, 24];
+
+        if (!in_array($status, $allowedStatuses, true)) {
+            throw new RuntimeException('Selecione um status valido para o atestado.');
+        }
+
+        if ($status === 'validado' && !$this->isValidDate($validatedIssueDate)) {
+            throw new RuntimeException('Informe a data de emissao validada para concluir a validacao do atestado.');
+        }
+
+        if ($status === 'validado' && !in_array($validityMonths, $allowedMonthOptions, true)) {
+            throw new RuntimeException('Selecione um prazo de validade em meses valido para o atestado.');
+        }
+
+        if ($status === 'reprovado' && $validationNote === '') {
+            throw new RuntimeException('Ao reprovar um atestado, informe o motivo da reprovacao.');
+        }
+
+        $validityDate = null;
+
+        if ($status === 'validado') {
+            $validatedDate = new DateTimeImmutable($validatedIssueDate);
+            $validityDate = $validatedDate->modify('+' . $validityMonths . ' months')->format('Y-m-d');
+        }
+
+        $stmt = Database::connection()->prepare('
+            UPDATE atestados_saude
+            SET status_validacao = :status_validacao,
+                data_emissao_validada = :data_emissao_validada,
+                validade_meses = :validade_meses,
+                validade_certificado = :validade_certificado,
+                observacao_validacao = :observacao_validacao,
+                validado_por_conta_id = :validado_por_conta_id,
+                validado_em = :validado_em,
+                updated_at = NOW()
+            WHERE id = :id
+        ');
+        $stmt->execute([
+            ':status_validacao' => $status,
+            ':data_emissao_validada' => $status === 'validado' ? $validatedIssueDate : null,
+            ':validade_meses' => $status === 'validado' ? $validityMonths : null,
+            ':validade_certificado' => $validityDate,
+            ':observacao_validacao' => $validationNote !== '' ? $validationNote : null,
+            ':validado_por_conta_id' => $status === 'pendente' ? null : $accountId,
+            ':validado_em' => $status === 'pendente' ? null : date('Y-m-d H:i:s'),
+            ':id' => (int) ($certificate['id'] ?? 0),
+        ]);
+
+        AuditLogService::record('atestado_saude.validacao_admin_atualizada', 'atestados_saude', (int) ($certificate['id'] ?? 0), [
+            'pessoa_id' => $personId,
+            'tipo_atestado' => $certificateType,
+            'status_validacao' => $status,
+            'data_emissao_validada' => $status === 'validado' ? $validatedIssueDate : null,
+            'validade_meses' => $status === 'validado' ? $validityMonths : null,
+            'validade_certificado' => $validityDate,
+            'observacao_validacao' => $validationNote !== '' ? $validationNote : null,
+        ]);
+
+        return $this->getHealthCertificateValidationDetails($personId, $certificateType);
     }
 
     /**
@@ -859,6 +1518,7 @@ class AdminService
                 hs.hora_fim,
                 hs.idade_minima,
                 hs.idade_maxima,
+                hs.criterio_faixa_etaria,
                 hs.regra_atestado_clinico,
                 hs.regra_atestado_dermatologico,
                 hs.sexo,
@@ -1358,6 +2018,7 @@ class AdminService
                 hora_fim,
                 idade_minima,
                 idade_maxima,
+                criterio_faixa_etaria,
                 regra_atestado_clinico,
                 regra_atestado_dermatologico,
                 sexo,
@@ -1384,6 +2045,7 @@ class AdminService
                 :hora_fim,
                 :idade_minima,
                 :idade_maxima,
+                :criterio_faixa_etaria,
                 :regra_atestado_clinico,
                 :regra_atestado_dermatologico,
                 :sexo,
@@ -1412,6 +2074,7 @@ class AdminService
             ':hora_fim' => $payload['hora_fim'],
             ':idade_minima' => (int) $payload['idade_minima'],
             ':idade_maxima' => (int) $payload['idade_maxima'],
+            ':criterio_faixa_etaria' => $payload['criterio_faixa_etaria'],
             ':regra_atestado_clinico' => $payload['regra_atestado_clinico'],
             ':regra_atestado_dermatologico' => $payload['regra_atestado_dermatologico'],
             ':sexo' => $payload['sexo'] !== '' ? $payload['sexo'] : null,
@@ -1444,6 +2107,7 @@ class AdminService
             'hora_fim' => $payload['hora_fim'],
             'idade_minima' => (int) $payload['idade_minima'],
             'idade_maxima' => (int) $payload['idade_maxima'],
+            'criterio_faixa_etaria' => $payload['criterio_faixa_etaria'],
             'regra_atestado_clinico' => $payload['regra_atestado_clinico'],
             'regra_atestado_dermatologico' => $payload['regra_atestado_dermatologico'],
             'sexo' => $payload['sexo'],
@@ -1496,6 +2160,7 @@ class AdminService
                 hora_fim = :hora_fim,
                 idade_minima = :idade_minima,
                 idade_maxima = :idade_maxima,
+                criterio_faixa_etaria = :criterio_faixa_etaria,
                 regra_atestado_clinico = :regra_atestado_clinico,
                 regra_atestado_dermatologico = :regra_atestado_dermatologico,
                 sexo = :sexo,
@@ -1525,6 +2190,7 @@ class AdminService
             ':hora_fim' => $payload['hora_fim'],
             ':idade_minima' => (int) $payload['idade_minima'],
             ':idade_maxima' => (int) $payload['idade_maxima'],
+            ':criterio_faixa_etaria' => $payload['criterio_faixa_etaria'],
             ':regra_atestado_clinico' => $payload['regra_atestado_clinico'],
             ':regra_atestado_dermatologico' => $payload['regra_atestado_dermatologico'],
             ':sexo' => $payload['sexo'] !== '' ? $payload['sexo'] : null,
@@ -1556,6 +2222,7 @@ class AdminService
                 'hora_fim' => $payload['hora_fim'],
                 'idade_minima' => (int) $payload['idade_minima'],
                 'idade_maxima' => (int) $payload['idade_maxima'],
+                'criterio_faixa_etaria' => $payload['criterio_faixa_etaria'],
                 'regra_atestado_clinico' => $payload['regra_atestado_clinico'],
                 'regra_atestado_dermatologico' => $payload['regra_atestado_dermatologico'],
                 'sexo' => $payload['sexo'],
@@ -1884,6 +2551,7 @@ class AdminService
             'hora_fim' => $this->normalizeTimeValue((string) ($data['hora_fim'] ?? '')),
             'idade_minima' => (int) ($data['idade_minima'] ?? 0),
             'idade_maxima' => (int) ($data['idade_maxima'] ?? 0),
+            'criterio_faixa_etaria' => normalize_age_rule_mode((string) ($data['criterio_faixa_etaria'] ?? 'idade_exata')),
             'regra_atestado_clinico' => trim((string) ($data['regra_atestado_clinico'] ?? 'global')),
             'regra_atestado_dermatologico' => trim((string) ($data['regra_atestado_dermatologico'] ?? 'global')),
             'sexo' => trim((string) ($data['sexo'] ?? '')),
@@ -1927,6 +2595,10 @@ class AdminService
 
         if ($payload['idade_minima'] < 0 || $payload['idade_maxima'] < 0 || $payload['idade_minima'] > $payload['idade_maxima']) {
             throw new RuntimeException('Informe uma faixa etaria valida para o horario semanal.');
+        }
+
+        if (!in_array($payload['criterio_faixa_etaria'], ['idade_exata', 'ano_nascimento'], true)) {
+            throw new RuntimeException('Selecione um criterio etario valido para o horario semanal.');
         }
 
         if (!in_array($payload['regra_atestado_clinico'], ['global', 'exigir', 'dispensar'], true)) {
@@ -2149,6 +2821,28 @@ class AdminService
     }
 
     /**
+     * Traduz a pendencia atual do atestado para a fila administrativa.
+     */
+    private function buildHealthCertificateValidationPendingReason(array $certificate): string
+    {
+        $status = trim((string) ($certificate['status_validacao'] ?? ''));
+
+        if ($status === 'reprovado') {
+            return 'O atestado foi reprovado e aguarda novo envio ou nova analise.';
+        }
+
+        return 'O atestado foi enviado e aguarda validacao administrativa.';
+    }
+
+    /**
+     * Traduz o local de atendimento do atestado.
+     */
+    private function formatHealthCertificateServiceLocationLabel(string $value): string
+    {
+        return self::HEALTH_CERTIFICATE_SERVICE_LOCATIONS[$value] ?? '-';
+    }
+
+    /**
      * Traduz a pendencia atual da condicao declarada para a fila administrativa.
      */
     private function buildConditionValidationPendingReason(?array $certificate, array $documents): ?string
@@ -2288,6 +2982,84 @@ class AdminService
     }
 
     /**
+     * Garante as colunas mais novas do fluxo de atestados de saude.
+     */
+    private function ensureHealthCertificateSchema(): void
+    {
+        static $ensured = false;
+
+        if ($ensured) {
+            return;
+        }
+
+        $pdo = Database::connection();
+        $columns = [];
+        $stmt = $pdo->query('SHOW COLUMNS FROM atestados_saude');
+
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $column) {
+            $columns[(string) ($column['Field'] ?? '')] = true;
+        }
+
+        $alterations = [];
+
+        if (!isset($columns['data_emissao_validada'])) {
+            $alterations[] = 'ADD COLUMN data_emissao_validada DATE NULL AFTER data_emissao';
+        }
+
+        if (!isset($columns['validade_meses'])) {
+            $alterations[] = 'ADD COLUMN validade_meses TINYINT UNSIGNED NULL AFTER data_emissao_validada';
+        }
+
+        if (!isset($columns['crm_medico'])) {
+            $alterations[] = 'ADD COLUMN crm_medico VARCHAR(40) NULL AFTER validade_meses';
+        }
+
+        if (!isset($columns['local_atendimento'])) {
+            $alterations[] = 'ADD COLUMN local_atendimento ENUM("servico_publico", "clinica_particular", "clinica_convenio") NULL AFTER crm_medico';
+        }
+
+        if (!isset($columns['validado_em'])) {
+            $alterations[] = 'ADD COLUMN validado_em DATETIME NULL AFTER validado_por_conta_id';
+        }
+
+        if (!isset($columns['observacao_validacao'])) {
+            $alterations[] = 'ADD COLUMN observacao_validacao TEXT NULL AFTER observacoes';
+        }
+
+        if ($alterations !== []) {
+            $pdo->exec('ALTER TABLE atestados_saude ' . implode(', ', $alterations));
+        }
+
+        $ensured = true;
+    }
+
+    /**
+     * Garante a coluna do criterio etario nos horarios semanais.
+     */
+    private function ensureWeeklyScheduleAgeRuleSchema(): void
+    {
+        static $ensured = false;
+
+        if ($ensured) {
+            return;
+        }
+
+        $pdo = Database::connection();
+        $columns = [];
+        $stmt = $pdo->query('SHOW COLUMNS FROM horarios_semanais');
+
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $column) {
+            $columns[(string) ($column['Field'] ?? '')] = true;
+        }
+
+        if (!isset($columns['criterio_faixa_etaria'])) {
+            $pdo->exec('ALTER TABLE horarios_semanais ADD COLUMN criterio_faixa_etaria ENUM("idade_exata", "ano_nascimento") NOT NULL DEFAULT "idade_exata" AFTER idade_maxima');
+        }
+
+        $ensured = true;
+    }
+
+    /**
      * Resume a situacao atual dos certificados das condicoes declaradas da pessoa.
      */
     private function buildPersonCertificateSituationSummary(\PDO $pdo, array $person): string
@@ -2387,7 +3159,7 @@ class AdminService
     /**
      * Enriqueçe a listagem administrativa com o status visual das condicoes declaradas.
      */
-    private function attachConditionIndicatorsToPeople(\PDO $pdo, array $people): array
+    private function attachAdministrativeIndicatorsToPeople(\PDO $pdo, array $people): array
     {
         $personIds = array_values(array_unique(array_map(static fn (array $person): int => (int) ($person['id'] ?? 0), $people)));
         $personIds = array_values(array_filter($personIds, static fn (int $id): bool => $id > 0));
@@ -2429,8 +3201,36 @@ class AdminService
             $latestByPersonAndSlug[$personId][$slug] = $row;
         }
 
+        $healthStmt = $pdo->prepare('
+            SELECT
+                id,
+                pessoa_id,
+                tipo_atestado,
+                status_validacao,
+                validade_certificado,
+                updated_at,
+                created_at
+            FROM atestados_saude
+            WHERE pessoa_id IN (' . $placeholders . ')
+            ORDER BY pessoa_id ASC, tipo_atestado ASC, updated_at DESC, created_at DESC, id DESC
+        ');
+        $healthStmt->execute($personIds);
+        $latestHealthByPersonAndType = [];
+
+        foreach ($healthStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $personId = (int) ($row['pessoa_id'] ?? 0);
+            $type = (string) ($row['tipo_atestado'] ?? '');
+
+            if ($personId <= 0 || $type === '' || isset($latestHealthByPersonAndType[$personId][$type])) {
+                continue;
+            }
+
+            $latestHealthByPersonAndType[$personId][$type] = $row;
+        }
+
         foreach ($people as &$person) {
             $person['condition_indicators'] = [];
+            $person['health_certificate_indicators'] = [];
             $personId = (int) ($person['id'] ?? 0);
 
             foreach ($this->certificateConditionMap() as $slug => $meta) {
@@ -2440,6 +3240,16 @@ class AdminService
 
                 $certificate = $latestByPersonAndSlug[$personId][$slug] ?? null;
                 $person['condition_indicators'][] = $this->buildConditionIndicator($slug, $meta['label'], $certificate);
+            }
+
+            foreach (self::HEALTH_CERTIFICATE_TYPES as $type => $label) {
+                $healthCertificate = $latestHealthByPersonAndType[$personId][$type] ?? null;
+
+                if ($healthCertificate === null) {
+                    continue;
+                }
+
+                $person['health_certificate_indicators'][] = $this->buildHealthCertificateIndicator($type, $label, $healthCertificate);
             }
         }
         unset($person);
@@ -2499,6 +3309,69 @@ class AdminService
 
         return [
             'slug' => $slug,
+            'label' => $label,
+            'status_label' => $statusLabel,
+            'icon_type' => $iconType,
+            'icon_message' => $iconMessage,
+        ];
+    }
+
+    /**
+     * Monta o indicador visual de um atestado de saude para a lista administrativa.
+     */
+    private function buildHealthCertificateIndicator(string $type, string $label, array $certificate): array
+    {
+        $status = trim((string) ($certificate['status_validacao'] ?? ''));
+        $expiry = trim((string) ($certificate['validade_certificado'] ?? ''));
+        $today = new \DateTimeImmutable('today');
+        $warningLimit = $today->modify('+30 days');
+        $iconType = 'none';
+        $iconMessage = '';
+        $statusLabel = 'Pendente';
+
+        if ($status === 'reprovado') {
+            $statusLabel = 'Reprovado';
+        } elseif ($status === 'validado') {
+            $statusLabel = 'Validado';
+        } elseif ($status !== '') {
+            $statusLabel = ucfirst(str_replace('_', ' ', $status));
+        }
+
+        if ($status === 'validado' && $expiry !== '') {
+            try {
+                $expiryDate = new \DateTimeImmutable($expiry);
+
+                if ($expiryDate < $today) {
+                    $statusLabel = 'Vencido';
+                    $iconType = 'expired';
+                    $iconMessage = $label . ' vencido em ' . $expiryDate->format('d/m/Y') . '.';
+                } elseif ($expiryDate <= $warningLimit) {
+                    $statusLabel = 'A vencer';
+                    $iconType = 'warning';
+                    $iconMessage = $label . ' vence em ' . $expiryDate->format('d/m/Y') . '.';
+                } else {
+                    $iconType = 'ok';
+                    $iconMessage = $label . ' valido ate ' . $expiryDate->format('d/m/Y') . '.';
+                }
+            } catch (\Throwable $e) {
+                $iconType = 'ok';
+            }
+        } elseif ($status === 'validado') {
+            $iconType = 'ok';
+        }
+
+        if ($status === 'reprovado') {
+            $iconType = 'expired';
+            $iconMessage = $label . ' reprovado e aguardando regularizacao.';
+        }
+
+        if ($status === 'pendente' || $status === '') {
+            $iconType = 'warning';
+            $iconMessage = $label . ' aguardando validacao administrativa.';
+        }
+
+        return [
+            'slug' => $type,
             'label' => $label,
             'status_label' => $statusLabel,
             'icon_type' => $iconType,

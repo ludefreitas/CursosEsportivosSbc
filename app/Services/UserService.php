@@ -17,9 +17,11 @@ class UserService
             return null;
         }
 
+        (new AccountAccessService())->revokeExpiredRolesForAccount((int) Auth::id());
+
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
-            SELECT c.id AS conta_id, p.id AS pessoa_id, p.nome_completo, p.cpf, p.email, p.cadastro_completo
+            SELECT c.id AS conta_id, p.id AS pessoa_id, p.nome_completo, p.cpf, p.email, p.cadastro_completo, c.ultimo_acesso_em
             FROM contas c
             INNER JOIN pessoas p ON p.cpf = c.cpf
             WHERE c.id = :conta_id
@@ -44,7 +46,7 @@ class UserService
     {
         $pdo = Database::connection();
         $stmtRoles = $pdo->prepare('
-            SELECT p.slug, p.nome
+            SELECT p.id, p.slug, p.nome, cp.atribuido_em
             FROM conta_papeis cp
             INNER JOIN papeis p ON p.id = cp.papel_id
             WHERE cp.conta_id = :conta_id

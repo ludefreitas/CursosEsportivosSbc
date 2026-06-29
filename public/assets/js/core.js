@@ -19,6 +19,15 @@
             return appBaseUrl + '/' + String(path).replace(/^\/+/, '');
         },
 
+        escapeHtml: function (value) {
+            return String(value == null ? '' : value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        },
+
         abrirPopup: function (tipo, mensagem, onClose) {
             const $popup = $('#popup-mensagem');
             const $titulo = $('#popup-titulo');

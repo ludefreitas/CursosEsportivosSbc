@@ -1,4 +1,5 @@
 <?php $dependent = $dependent ?? []; ?>
+<?php $healthSummary = $dependent['health_certificates_summary'] ?? []; ?>
 <tr data-dependent-row-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>">
     <td><?php echo e((string) ($dependent['nome_completo'] ?? '')); ?></td>
     <td><?php echo e(format_cpf((string) ($dependent['cpf'] ?? ''))); ?></td>
@@ -10,6 +11,38 @@
             data-open-dependent-modal="1"
             data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
         >Visualizar dados</button>
+    </td>
+    <td>
+        <?php $status = $healthSummary['clinico'] ?? ['class' => 'is-nao-enviado', 'icon' => '--', 'label' => 'Nao enviado']; ?>
+        <div class="dashboard-health-status-item">
+            <span class="dashboard-health-status-badge <?php echo e((string) ($status['class'] ?? 'is-nao-enviado')); ?>">
+                <span class="dashboard-health-status-icon"><?php echo e((string) ($status['icon'] ?? '--')); ?></span>
+                <span><?php echo e((string) ($status['label'] ?? 'Nao enviado')); ?></span>
+            </span>
+            <button
+                type="button"
+                class="btn btn-secondary btn-compact"
+                data-open-health-certificates-modal="1"
+                data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
+                data-certificate-type="clinico"
+            >Atualizar atestado clinico</button>
+        </div>
+    </td>
+    <td>
+        <?php $status = $healthSummary['dermatologico'] ?? ['class' => 'is-nao-enviado', 'icon' => '--', 'label' => 'Nao enviado']; ?>
+        <div class="dashboard-health-status-item">
+            <span class="dashboard-health-status-badge <?php echo e((string) ($status['class'] ?? 'is-nao-enviado')); ?>">
+                <span class="dashboard-health-status-icon"><?php echo e((string) ($status['icon'] ?? '--')); ?></span>
+                <span><?php echo e((string) ($status['label'] ?? 'Nao enviado')); ?></span>
+            </span>
+            <button
+                type="button"
+                class="btn btn-secondary btn-compact"
+                data-open-health-certificates-modal="1"
+                data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
+                data-certificate-type="dermatologico"
+            >Atualizar atestado dermatologico</button>
+        </div>
     </td>
     <td>
         <?php $hasConditionAction = false; ?>

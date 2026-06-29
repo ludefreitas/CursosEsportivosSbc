@@ -3,6 +3,7 @@
 namespace App\Core;
 
 use App\Core\Auth;
+use App\Services\AccountAccessService;
 use App\Services\ProfileService;
 use App\Services\SitePopupService;
 use App\Services\UserService;
@@ -25,6 +26,7 @@ class View
 
             if (Auth::check()) {
                 try {
+                    (new AccountAccessService())->touchAuthenticatedAccount();
                     $profileService = new ProfileService();
                     $person = $profileService->getAuthenticatedPerson();
                     $registrationBlock = $profileService->getRegistrationBlockForAuthenticatedPerson();

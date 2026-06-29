@@ -38,6 +38,8 @@ class AuthService
             throw new RuntimeException('O CPF digitado pertence a uma pessoa menor de idade e por isso nao pode acessar o sistema.');
         }
 
+        (new AccountAccessService())->revokeExpiredRolesForAccount((int) $account['conta_id']);
+
         AuditLogService::record('autenticacao.login', 'contas', (int) $account['conta_id'], [
             'cpf' => $cpf,
         ]);

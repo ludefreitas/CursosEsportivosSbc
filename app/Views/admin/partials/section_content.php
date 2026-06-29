@@ -481,10 +481,27 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <label><span>Hora final</span><input type="time" name="hora_fim" required></label>
                     </div>
 
-                    <div class="grid-two">
-                        <label><span>Idade minima</span><input type="number" name="idade_minima" min="0" max="120" value="0" required></label>
-                        <label><span>Idade maxima</span><input type="number" name="idade_maxima" min="0" max="120" value="120" required></label>
-                    </div>
+                        <label>
+                            <span>Criterio etario</span>
+                            <select name="criterio_faixa_etaria" required>
+                                <option value="idade_exata">Usar idade exata pela data de nascimento</option>
+                                <option value="ano_nascimento">Usar apenas o ano de nascimento</option>
+                            </select>
+                            <small class="muted">Quando usar ano de nascimento, o sistema ignora dia e mes no momento do agendamento.</small>
+                        </label>
+
+                        <div class="grid-two">
+                            <label><span>Idade minima</span><input type="number" name="idade_minima" min="0" max="120" value="0" required></label>
+                            <label>
+                                <span>Idade maxima</span>
+                                <input type="number" name="idade_maxima" min="0" max="120" value="120" required>
+                                <small class="muted hidden" data-weekly-age-validation-message="1">A idade maxima nao pode ser menor que a idade minima.</small>
+                            </label>
+                        </div>
+                        <div class="stack-form top-gap">
+                            <small class="muted" data-weekly-age-preview="1">Faixa etaria: para 0 a 120 anos de idade.</small>
+                            <small class="muted" data-weekly-birth-year-preview="1">Ano de nascimento correspondente em <?php echo e((string) date('Y')); ?>: para nascidos entre <?php echo e((string) (date('Y') - 120)); ?> a <?php echo e((string) date('Y')); ?>.</small>
+                        </div>
 
                     <div class="grid-two">
                         <label>
@@ -627,7 +644,20 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                         <strong><?php echo e($schedule['local_nome']); ?></strong><br>
                                                         <small><?php echo e($schedule['espaco_nome'] . ' - ' . $schedule['modalidade_nome'] . ' (' . ucfirst((string) $schedule['tipo_horario']) . ')'); ?></small>
                                                     </td>
-                                                    <td><?php echo e((string) $schedule['idade_minima'] . ' a ' . (string) $schedule['idade_maxima'] . ' anos'); ?></td>
+                                                    <td>
+                                                        <?php
+                                                        $scheduleAgeDescription = describe_age_rule(
+                                                            (int) ($schedule['idade_minima'] ?? 0),
+                                                            (int) ($schedule['idade_maxima'] ?? 120),
+                                                            (string) ($schedule['criterio_faixa_etaria'] ?? 'idade_exata')
+                                                        );
+                                                        ?>
+                                                        <?php echo e((string) $schedule['idade_minima'] . ' a ' . (string) $schedule['idade_maxima'] . ' anos'); ?><br>
+                                                        <small><?php echo e((string) ($scheduleAgeDescription['mode_label'] ?? 'Idade exata')); ?></small>
+                                                        <?php if (normalize_age_rule_mode((string) ($schedule['criterio_faixa_etaria'] ?? 'idade_exata')) === 'ano_nascimento') { ?>
+                                                            <br><small><?php echo e((string) ($scheduleAgeDescription['detailed'] ?? '')); ?></small>
+                                                        <?php } ?>
+                                                    </td>
                                                     <td>
                                                         <strong><?php echo e((string) $scheduleTotalVacancies); ?> vaga(s)</strong><br>
                                                         <small><?php echo e('Geral ' . (int) ($schedule['vagas_geral'] ?? 0) . ', PCD ' . (int) ($schedule['vagas_pcd'] ?? 0) . ', PLM ' . (int) ($schedule['vagas_plm'] ?? 0) . ', PVS ' . (int) ($schedule['vagas_pvs'] ?? 0)); ?></small>
@@ -745,9 +775,26 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             <label><span>Hora final</span><input type="time" name="hora_fim" id="admin-weekly-schedule-end" required></label>
                         </div>
 
+                        <label>
+                            <span>Criterio etario</span>
+                            <select name="criterio_faixa_etaria" id="admin-weekly-schedule-age-rule-mode" required>
+                                <option value="idade_exata">Usar idade exata pela data de nascimento</option>
+                                <option value="ano_nascimento">Usar apenas o ano de nascimento</option>
+                            </select>
+                            <small class="muted">No modo ano de nascimento, 10 a 20 anos em 2026 aceita nascidos entre 2006 e 2016.</small>
+                        </label>
+
                         <div class="grid-two">
                             <label><span>Idade minima</span><input type="number" name="idade_minima" id="admin-weekly-schedule-age-min" min="0" max="120" required></label>
-                            <label><span>Idade maxima</span><input type="number" name="idade_maxima" id="admin-weekly-schedule-age-max" min="0" max="120" required></label>
+                            <label>
+                                <span>Idade maxima</span>
+                                <input type="number" name="idade_maxima" id="admin-weekly-schedule-age-max" min="0" max="120" required>
+                                <small class="muted hidden" id="admin-weekly-schedule-age-validation-message">A idade maxima nao pode ser menor que a idade minima.</small>
+                            </label>
+                        </div>
+                        <div class="stack-form top-gap">
+                            <small class="muted" id="admin-weekly-schedule-age-preview">Faixa etaria: para 0 a 120 anos de idade.</small>
+                            <small class="muted" id="admin-weekly-schedule-birth-year-preview">Ano de nascimento correspondente em <?php echo e((string) date('Y')); ?>: para nascidos entre <?php echo e((string) (date('Y') - 120)); ?> a <?php echo e((string) date('Y')); ?>.</small>
                         </div>
 
                         <div class="grid-two">
@@ -1230,37 +1277,101 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         <div class="section-head admin-section-head">
             <div>
                 <h2>Blog</h2>
-                <p class="muted">Crie e gerencie postagens institucionais em uma area dedicada.</p>
+                <p class="muted">Alimente o blog publico com postagens completas, edite por modal e escolha quais publicacoes podem ser compartilhadas nas redes sociais.</p>
+            </div>
+            <div class="hero-actions">
+                <a href="<?php echo e(url('/blog')); ?>" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">Ver blog publico</a>
             </div>
         </div>
 
         <section class="grid-two">
             <article class="content-card">
-                <h2>Nova postagem do blog</h2>
-                <form method="POST" action="<?php echo e(url('/admin/postagens')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1">
-                    <label><span>Titulo</span><input type="text" name="titulo" required></label>
-                    <label><span>Resumo</span><textarea name="resumo" rows="3" required></textarea></label>
-                    <label><span>Conteudo</span><textarea name="conteudo" rows="6" required></textarea></label>
-                    <button type="submit" class="btn btn-primary">Publicar postagem</button>
-                </form>
+                <h2>Resumo editorial</h2>
+                <div class="admin-daily-bookings-summary">
+                    <div class="admin-daily-booking-stat">
+                        <strong><?php echo e((string) ($blogSummary['total_ativos'] ?? 0)); ?></strong>
+                        <span>Postagens ativas</span>
+                    </div>
+                    <div class="admin-daily-booking-stat">
+                        <strong><?php echo e((string) ($blogSummary['total_publicados'] ?? 0)); ?></strong>
+                        <span>Publicadas</span>
+                    </div>
+                    <div class="admin-daily-booking-stat">
+                        <strong><?php echo e((string) ($blogSummary['total_rascunhos'] ?? 0)); ?></strong>
+                        <span>Rascunhos</span>
+                    </div>
+                    <div class="admin-daily-booking-stat">
+                        <strong><?php echo e((string) ($blogSummary['total_destaques'] ?? 0)); ?></strong>
+                        <span>Destaques</span>
+                    </div>
+                </div>
+                <p class="muted top-gap">Use a postagem como rascunho ou publicada, programe a data, marque destaque e escolha os canais de compartilhamento por publicacao.</p>
             </article>
 
             <article class="content-card">
-                <h2>Postagens existentes</h2>
-                <div class="post-grid">
-                    <?php foreach (($posts ?? []) as $post) { ?>
-                        <article class="post-card">
-                            <h3><?php echo e($post['titulo']); ?></h3>
-                            <p><?php echo e($post['resumo']); ?></p>
-                            <small><?php echo e($post['autor_nome']); ?></small>
-                            <form method="POST" action="<?php echo e(url('/admin/postagens/remover')); ?>" class="inline-form top-gap" data-ajax-form="1" data-remove-closest="article">
-                                <input type="hidden" name="post_id" value="<?php echo e((string) $post['id']); ?>">
-                                <button type="submit" class="btn btn-secondary">Remover</button>
-                            </form>
-                        </article>
+                <h2>Categorias em uso</h2>
+                <div class="chips-wrap">
+                    <?php if (empty($blogCategories ?? [])) { ?>
+                        <span class="chip">Nenhuma categoria publicada ainda</span>
+                    <?php } ?>
+                    <?php foreach (($blogCategories ?? []) as $category) { ?>
+                        <span class="chip"><?php echo e((string) $category['categoria']); ?> (<?php echo e((string) $category['total']); ?>)</span>
                     <?php } ?>
                 </div>
             </article>
+        </section>
+
+        <section class="content-card top-gap">
+            <div class="section-head">
+                <div>
+                    <h2>Postagens cadastradas</h2>
+                    <p class="muted">Clique em editar para reabrir a postagem em modal. O link publico abre a materia pronta para leitura e compartilhamento.</p>
+                </div>
+                <button type="button" class="btn btn-primary" data-admin-blog-create="1">Nova postagem</button>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Titulo</th>
+                            <th>Status</th>
+                            <th>Categoria</th>
+                            <th>Data da atribuicao/publicacao</th>
+                            <th>Compartilhar</th>
+                            <th>Home</th>
+                            <th>Acao</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($posts ?? [])) { ?>
+                            <tr><td colspan="7">Nenhuma postagem cadastrada.</td></tr>
+                        <?php } ?>
+                        <?php foreach (($posts ?? []) as $post) { ?>
+                            <tr data-admin-blog-row="1" data-post-id="<?php echo e((string) $post['id']); ?>">
+                                <td>
+                                    <strong><?php echo e((string) $post['titulo']); ?></strong><br>
+                                    <small><?php echo e((string) ($post['autor_nome'] ?? 'Equipe')); ?></small>
+                                </td>
+                                <td><?php echo e((string) ucfirst((string) ($post['status'] ?? 'rascunho'))); ?></td>
+                                <td><?php echo e(trim((string) ($post['categoria'] ?? '')) !== '' ? (string) $post['categoria'] : '-'); ?></td>
+                                <td><?php echo e(!empty($post['data_publicacao']) ? date('d/m/Y H:i', strtotime((string) $post['data_publicacao'])) : date('d/m/Y H:i', strtotime((string) ($post['created_at'] ?? 'now')))); ?></td>
+                                <td><?php echo e((string) ($post['share_channels_label'] ?? 'Link direto')); ?></td>
+                                <td><?php echo (int) ($post['publicar_na_home'] ?? 0) === 1 ? 'Sim' : 'Nao'; ?></td>
+                                <td>
+                                    <div class="admin-blog-actions">
+                                        <button type="button" class="btn btn-secondary" data-admin-blog-edit="1" data-post-id="<?php echo e((string) $post['id']); ?>">Editar</button>
+                                        <a href="<?php echo e((string) ($post['public_url'] ?? url('/blog'))); ?>" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">Abrir</a>
+                                        <form method="POST" action="<?php echo e(url('/admin/postagens/remover')); ?>" class="inline-form" data-admin-blog-delete-form="1" data-manual-submit="1" data-post-title="<?php echo e((string) $post['titulo']); ?>">
+                                            <input type="hidden" name="post_id" value="<?php echo e((string) $post['id']); ?>">
+                                            <button type="submit" class="btn btn-secondary">Remover</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php } ?>
+                    </tbody>
+                </table>
+            </div>
         </section>
 
         <section class="content-card top-gap">
@@ -1284,6 +1395,154 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 <?php } ?>
             </div>
         </section>
+
+        <div
+            id="admin-blog-post-modal"
+            class="popup-overlay hidden"
+            aria-hidden="true"
+            onclick="if (event.target === this) { this.classList.add('hidden'); this.setAttribute('aria-hidden', 'true'); var form = document.getElementById('admin-blog-post-form'); if (form) { form.reset(); } }"
+        >
+            <div class="popup-card admin-blog-post-modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-blog-post-modal-title">
+                <div class="popup-head">
+                    <h3 id="admin-blog-post-modal-title">Nova postagem do blog</h3>
+                    <button
+                        type="button"
+                        class="popup-close-icon"
+                        id="admin-blog-post-close"
+                        data-close-popup="#admin-blog-post-modal"
+                        aria-label="Fechar editor"
+                        onclick="var modal = document.getElementById('admin-blog-post-modal'); var form = document.getElementById('admin-blog-post-form'); if (modal) { modal.classList.add('hidden'); modal.setAttribute('aria-hidden', 'true'); } if (form) { form.reset(); }"
+                    >&times;</button>
+                </div>
+                <div class="popup-body">
+                    <form method="POST" action="<?php echo e(url('/admin/postagens')); ?>" class="stack-form admin-blog-form" id="admin-blog-post-form" data-manual-submit="1">
+                        <input type="hidden" name="post_id" id="admin-blog-post-id" value="">
+                        <div class="grid-two">
+                            <label>
+                                <span>Titulo</span>
+                                <input type="text" name="titulo" id="admin-blog-post-title" maxlength="180" required>
+                            </label>
+                            <label>
+                                <span>Slug publico</span>
+                                <input type="text" name="slug" id="admin-blog-post-slug" maxlength="180" placeholder="Opcional. Se vazio, o sistema gera automaticamente.">
+                            </label>
+                        </div>
+                        <div class="grid-two">
+                            <label>
+                                <span>Categoria</span>
+                                <input type="text" name="categoria" id="admin-blog-post-category" maxlength="120" placeholder="Ex.: Noticias, Campanhas, Avisos">
+                            </label>
+                            <label>
+                                <span>Tags</span>
+                                <input type="text" name="tags" id="admin-blog-post-tags" maxlength="255" placeholder="Separe por virgula">
+                            </label>
+                        </div>
+                        <label>
+                            <span>Resumo</span>
+                            <textarea name="resumo" id="admin-blog-post-summary" rows="3" required></textarea>
+                        </label>
+                        <label>
+                            <span>Conteudo</span>
+                            <textarea name="conteudo" id="admin-blog-post-content" rows="10" required></textarea>
+                        </label>
+                        <label>
+                            <span>Imagem de capa</span>
+                            <input type="hidden" name="capa_imagem_atual" id="admin-blog-post-image-current" value="">
+                            <input type="file" name="capa_imagem_arquivo" id="admin-blog-post-image-file" accept="image/*">
+                            <small class="muted" id="admin-blog-post-image-current-text">Se nenhuma imagem for enviada, o sistema usa a imagem padrao da home como capa e fundo da postagem.</small>
+                        </label>
+                        <div class="admin-blog-gallery-panel">
+                            <div class="section-head">
+                                <div>
+                                    <h4>Galeria de imagens da postagem</h4>
+                                    <p class="muted">Lista livre de imagens exibidas uma abaixo da outra na pagina de detalhe.</p>
+                                </div>
+                                <button type="button" class="btn btn-secondary" data-admin-blog-gallery-add="1">Adicionar imagem</button>
+                            </div>
+                            <div class="admin-blog-gallery-list" id="admin-blog-gallery-list"></div>
+                            <small class="muted">Envie quantas imagens quiser. Se nenhuma imagem extra for enviada, a pagina de detalhe usa a capa como fallback.</small>
+                        </div>
+                        <div class="grid-two">
+                            <label>
+                                <span>Status</span>
+                                <select name="status" id="admin-blog-post-status">
+                                    <option value="rascunho">Rascunho</option>
+                                    <option value="publicado">Publicado</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Data de publicacao</span>
+                                <input type="datetime-local" name="data_publicacao" id="admin-blog-post-publish-at">
+                            </label>
+                        </div>
+                        <label>
+                            <span>Texto de compartilhamento</span>
+                            <input type="text" name="texto_compartilhamento" id="admin-blog-post-share-text" maxlength="255" placeholder="Resumo curto para redes sociais">
+                        </label>
+                        <div class="admin-blog-checkbox-grid">
+                            <label class="checkbox-line"><input type="checkbox" name="destaque" value="1" id="admin-blog-post-featured"> <span>Marcar como destaque</span></label>
+                            <label class="checkbox-line"><input type="checkbox" name="publicar_na_home" value="1" id="admin-blog-post-home"> <span>Exibir na home</span></label>
+                            <label class="checkbox-line"><input type="checkbox" name="permitir_compartilhamento" value="1" id="admin-blog-post-allow-share" checked> <span>Permitir compartilhamento</span></label>
+                        </div>
+                        <div class="admin-blog-share-options" data-admin-blog-share-options="1">
+                            <span>Canais de compartilhamento</span>
+                            <div class="admin-blog-checkbox-grid">
+                                <label class="checkbox-line"><input type="checkbox" name="compartilhar_whatsapp" value="1" id="admin-blog-post-share-whatsapp" checked> <span>WhatsApp</span></label>
+                                <label class="checkbox-line"><input type="checkbox" name="compartilhar_facebook" value="1" id="admin-blog-post-share-facebook" checked> <span>Facebook</span></label>
+                                <label class="checkbox-line"><input type="checkbox" name="compartilhar_linkedin" value="1" id="admin-blog-post-share-linkedin"> <span>LinkedIn</span></label>
+                                <label class="checkbox-line"><input type="checkbox" name="compartilhar_x" value="1" id="admin-blog-post-share-x"> <span>X</span></label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="popup-actions">
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        id="admin-blog-post-cancel"
+                        data-close-popup="#admin-blog-post-modal"
+                        onclick="var modal = document.getElementById('admin-blog-post-modal'); var form = document.getElementById('admin-blog-post-form'); if (modal) { modal.classList.add('hidden'); modal.setAttribute('aria-hidden', 'true'); } if (form) { form.reset(); }"
+                    >Cancelar</button>
+                    <button type="submit" class="btn btn-primary" form="admin-blog-post-form" id="admin-blog-post-submit">Salvar postagem</button>
+                </div>
+            </div>
+        </div>
+
+        <template id="admin-blog-gallery-item-template">
+            <div class="admin-blog-gallery-item">
+                <div class="grid-two">
+                    <label>
+                        <span>Arquivo da imagem</span>
+                        <input type="hidden" name="galeria_imagem_atual[]" value="">
+                        <input type="file" name="galeria_imagem_arquivo[]" accept="image/*">
+                        <small class="muted" data-admin-blog-gallery-current-text="1">Nenhuma imagem atual nesta linha.</small>
+                    </label>
+                    <label>
+                        <span>Legenda da imagem</span>
+                        <input type="text" name="galeria_imagem_legenda[]" maxlength="255" placeholder="Texto opcional abaixo da imagem">
+                    </label>
+                </div>
+                <div class="admin-blog-gallery-actions">
+                    <button type="button" class="btn btn-secondary" data-admin-blog-gallery-remove="1">Remover imagem</button>
+                </div>
+            </div>
+        </template>
+
+        <div id="admin-blog-delete-confirm-modal" class="popup-overlay hidden" aria-hidden="true">
+            <div class="popup-card" role="dialog" aria-modal="true" aria-labelledby="admin-blog-delete-confirm-title">
+                <div class="popup-head">
+                    <h3 id="admin-blog-delete-confirm-title">Confirmar remocao</h3>
+                    <button type="button" class="popup-close-icon" id="admin-blog-delete-confirm-close" aria-label="Fechar confirmacao">&times;</button>
+                </div>
+                <div class="popup-body">
+                    <p id="admin-blog-delete-confirm-text">Tem certeza que deseja remover esta postagem?</p>
+                </div>
+                <div class="popup-actions">
+                    <button type="button" class="btn btn-secondary" id="admin-blog-delete-confirm-cancel">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="admin-blog-delete-confirm-submit">Confirmar remocao</button>
+                </div>
+            </div>
+        </div>
     </section>
 <?php } ?>
 

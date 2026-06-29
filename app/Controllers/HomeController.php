@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Services\AdminService;
 use App\Services\AgendaService;
+use App\Services\BlogService;
 use App\Services\HomeInfoService;
 
 class HomeController extends Controller
@@ -16,13 +17,16 @@ class HomeController extends Controller
     {
         $agendaService = new AgendaService();
         $adminService = new AdminService();
+        $blogService = new BlogService();
         $homeInfoService = new HomeInfoService();
 
         $this->view('home/index', [
             'title' => 'Cursos Esportivos SBC',
             'pageClass' => 'pagina-home',
             'locations' => $agendaService->listLocations(),
-            'posts' => $adminService->listPosts(),
+            'posts' => $blogService->listPublishedPosts([
+                'limit' => 3,
+            ]),
             'homeSpecialEvents' => $adminService->listPublishedSpecialAgendaEvents('home', 3),
             'blogSpecialEvents' => $adminService->listPublishedSpecialAgendaEvents('blog', 6),
             'homeInfoBox' => $homeInfoService->getHomeInfoBox(),

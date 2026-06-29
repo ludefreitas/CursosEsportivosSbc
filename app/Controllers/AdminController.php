@@ -4,7 +4,9 @@ namespace App\Controllers;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Services\AccountAccessService;
 use App\Services\AdminService;
+use App\Services\BlogService;
 use App\Services\CepService;
 use App\Services\ProfileService;
 use App\Services\SitePopupService;
@@ -19,6 +21,7 @@ class AdminController extends Controller
     private SitePopupService $sitePopupService;
     private UserService $userService;
     private HomeInfoService $homeInfoService;
+    private BlogService $blogService;
 
     /**
      * Inicializa servicos da area administrativa.
@@ -30,6 +33,7 @@ class AdminController extends Controller
         $this->sitePopupService = new SitePopupService();
         $this->userService = new UserService();
         $this->homeInfoService = new HomeInfoService();
+        $this->blogService = new BlogService();
     }
 
     /**
@@ -144,6 +148,88 @@ class AdminController extends Controller
                 'message' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Retorna os dados completos de um usuario para consulta em modal.
+     */
+    public function userDetails(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            (new AccountAccessService())->revokeExpiredRolesForAccount((int) ($_GET['id'] ?? 0));
+            $user = $this->adminService->getUserDetails((int) ($_GET['id'] ?? 0));
+            $this->jsonResponse([
+                'success' => true,
+                'user' => $user,
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Retorna os dependentes do usuario selecionado para consulta em modal.
+     */
+    public function userDependents(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            (new AccountAccessService())->revokeExpiredRolesForAccount((int) ($_GET['conta_id'] ?? 0));
+            $payload = $this->adminService->listUserDependents((int) ($_GET['conta_id'] ?? 0));
+            $this->jsonResponse([
+                'success' => true,
+                'user' => $payload['user'],
+                'dependents' => $payload['dependents'],
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Atualiza os papeis ativos do usuario selecionado.
+     */
+    public function updateUserRoles(): void
+    {
+        $user = $this->assertRoleManagementAccess();
+
+        try {
+            $updatedUser = $this->adminService->updateUserRoles(
+                (int) ($_POST['conta_id'] ?? 0),
+                (int) ($user['conta_id'] ?? 0),
+                $_POST
+            );
+
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Papeis do usuario atualizados com sucesso.',
+                    'user' => $updatedUser,
+                ]);
+            }
+
+            flash('success', 'Papeis do usuario atualizados com sucesso.');
+        } catch (\Throwable $e) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+
+            flash('error', $e->getMessage());
+        }
+
+        redirect('/admin');
     }
 
     /**
@@ -278,12 +364,17 @@ class AdminController extends Controller
         $this->assertAdminAccess();
 
         try {
+            (new AccountAccessService())->revokeExpiredRoles();
             $peopleLimit = (int) ($_GET['people_limit'] ?? AdminService::DEFAULT_PEOPLE_LIMIT);
             $peopleLimit = max(1, min(AdminService::MAX_PEOPLE_LIMIT, $peopleLimit));
             $peopleSearch = trim((string) ($_GET['people_search'] ?? ''));
             $people = $this->adminService->listUsersAndDependents($peopleLimit, $peopleSearch);
+            $usersOnly = $this->adminService->listUsersOnly($peopleLimit, $peopleSearch);
             $conditionValidationRows = $this->adminService->listPeopleRequiringConditionValidation();
+            $availableRoles = $this->adminService->listRolesForManagement();
             $peopleLimitMax = AdminService::MAX_PEOPLE_LIMIT;
+            $currentAdmin = $this->userService->currentAccountWithRoles();
+            $canManageRoles = $currentAdmin ? $this->canManageUserRoles($currentAdmin) : false;
 
             ob_start();
             require ROOT_PATH . '/app/Views/admin/partials/people_panel.php';
@@ -391,6 +482,64 @@ class AdminController extends Controller
                 'message' => 'Validacao do certificado atualizada com sucesso.',
                 'html' => $this->renderConditionValidationModalHtml($modalData),
                 'panel_html' => $html,
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Retorna o modal de validacao administrativa de um atestado de saude.
+     */
+    public function healthCertificateValidationModal(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $modalData = $this->adminService->getHealthCertificateValidationDetails(
+                (int) ($_GET['person_id'] ?? 0),
+                (string) ($_GET['certificate_type'] ?? '')
+            );
+
+            $this->jsonResponse([
+                'success' => true,
+                'html' => $this->renderHealthCertificateValidationModalHtml($modalData),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Salva a validacao administrativa de um atestado de saude.
+     */
+    public function saveHealthCertificateValidation(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $modalData = $this->adminService->updateHealthCertificateValidation(
+                (int) ($_POST['person_id'] ?? 0),
+                (string) ($_POST['certificate_type'] ?? ''),
+                (int) Auth::id(),
+                $_POST
+            );
+
+            $panelHtml = $this->renderHealthCertificateValidationPanelHtml(
+                $this->adminService->listPeopleRequiringHealthCertificateValidation()
+            );
+
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Validacao do atestado atualizada com sucesso.',
+                'html' => $this->renderHealthCertificateValidationModalHtml($modalData),
+                'panel_html' => $panelHtml,
             ]);
         } catch (\Throwable $e) {
             $this->jsonResponse([
@@ -583,17 +732,19 @@ class AdminController extends Controller
         $user = $this->assertAdminAccess();
 
         try {
-            $this->adminService->createPost((int) $user['conta_id'], $_POST);
+            $isEdit = (int) ($_POST['post_id'] ?? 0) > 0;
+            $post = $this->blogService->savePost((int) $user['conta_id'], $_POST, $_FILES);
+            $message = $isEdit ? 'Postagem atualizada com sucesso.' : 'Postagem salva com sucesso.';
 
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Postagem publicada com sucesso.',
-                    'redirect' => url('/admin'),
+                    'message' => $message,
+                    'post' => $post,
                 ]);
             }
 
-            flash('success', 'Postagem publicada com sucesso.');
+            flash('success', $message);
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -616,13 +767,12 @@ class AdminController extends Controller
         $this->assertAdminAccess();
 
         try {
-            $this->adminService->deletePost((int) ($_POST['post_id'] ?? 0));
+            $this->blogService->deletePost((int) ($_POST['post_id'] ?? 0));
 
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
                     'message' => 'Postagem removida com sucesso.',
-                    'redirect' => url('/admin'),
                 ]);
             }
 
@@ -639,6 +789,27 @@ class AdminController extends Controller
         }
 
         redirect('/admin');
+    }
+
+    /**
+     * Retorna os dados de uma postagem para edicao em modal.
+     */
+    public function postDetails(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $post = $this->blogService->getPostForAdmin((int) ($_GET['id'] ?? 0));
+            $this->jsonResponse([
+                'success' => true,
+                'post' => $post,
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
     }
 
     /**
@@ -1171,9 +1342,40 @@ class AdminController extends Controller
     }
 
     /**
+     * Restringe a gestao de papeis a administradores master e administradores.
+     */
+    private function assertRoleManagementAccess(): array
+    {
+        $user = $this->assertAdminAccess();
+
+        if ($this->canManageUserRoles($user)) {
+            return $user;
+        }
+
+        if ($this->isAjaxRequest()) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Somente Administrador Master e Administrador podem gerenciar papeis de usuario.',
+                'redirect' => url('/admin'),
+            ], 403);
+        }
+
+        flash('error', 'Somente Administrador Master e Administrador podem gerenciar papeis de usuario.');
+        redirect('/admin');
+    }
+
+    /**
      * Informa se a conta atual pode gerenciar pop-ups do site.
      */
     private function canManageSitePopups(array $user): bool
+    {
+        return has_role($user['roles'] ?? [], 'master_admin') || has_role($user['roles'] ?? [], 'admin');
+    }
+
+    /**
+     * Informa se a conta atual pode gerenciar papeis de usuario.
+     */
+    private function canManageUserRoles(array $user): bool
     {
         return has_role($user['roles'] ?? [], 'master_admin') || has_role($user['roles'] ?? [], 'admin');
     }
@@ -1188,12 +1390,17 @@ class AdminController extends Controller
         ];
 
         if ($sectionName === 'usuarios-pessoas') {
+            (new AccountAccessService())->revokeExpiredRoles();
             $peopleLimit = (int) ($_GET['people_limit'] ?? AdminService::DEFAULT_PEOPLE_LIMIT);
             $peopleLimit = max(1, min(AdminService::MAX_PEOPLE_LIMIT, $peopleLimit));
             $data['peopleSearch'] = trim((string) ($_GET['people_search'] ?? ''));
 
             $data['people'] = $this->adminService->listUsersAndDependents($peopleLimit, (string) $data['peopleSearch']);
+            $data['usersOnly'] = $this->adminService->listUsersOnly($peopleLimit, (string) $data['peopleSearch']);
             $data['conditionValidationRows'] = $this->adminService->listPeopleRequiringConditionValidation();
+            $data['healthCertificateValidationRows'] = $this->adminService->listPeopleRequiringHealthCertificateValidation();
+            $data['availableRoles'] = $this->adminService->listRolesForManagement();
+            $data['canManageRoles'] = $this->canManageUserRoles($user);
             $data['peopleLimit'] = $peopleLimit;
             $data['peopleLimitMax'] = AdminService::MAX_PEOPLE_LIMIT;
         }
@@ -1238,7 +1445,9 @@ class AdminController extends Controller
         }
 
         if ($sectionName === 'blog') {
-            $data['posts'] = $this->adminService->listPosts();
+            $data['posts'] = $this->blogService->listPostsForAdmin();
+            $data['blogSummary'] = $this->blogService->adminSummary();
+            $data['blogCategories'] = $this->blogService->listPublicCategories();
             $data['blogSpecialEvents'] = $this->adminService->listPublishedSpecialAgendaEvents('blog', 20);
         }
 
@@ -1273,6 +1482,27 @@ class AdminController extends Controller
     {
         ob_start();
         require ROOT_PATH . '/app/Views/admin/partials/condition_validation_panel.php';
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * Renderiza o modal de validacao administrativa de atestado de saude.
+     */
+    private function renderHealthCertificateValidationModalHtml(array $modalData): string
+    {
+        ob_start();
+        extract($modalData, EXTR_SKIP);
+        require ROOT_PATH . '/app/Views/admin/partials/health_certificate_validation_modal.php';
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * Renderiza somente o quadro da fila administrativa de atestados.
+     */
+    private function renderHealthCertificateValidationPanelHtml(array $healthCertificateValidationRows): string
+    {
+        ob_start();
+        require ROOT_PATH . '/app/Views/admin/partials/health_certificate_validation_panel.php';
         return (string) ob_get_clean();
     }
 }

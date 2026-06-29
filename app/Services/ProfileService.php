@@ -10,10 +10,20 @@ use RuntimeException;
 class ProfileService
 {
     private CepService $cepService;
+    private const HEALTH_CERTIFICATE_TYPES = [
+        'clinico' => 'Atestado clinico',
+        'dermatologico' => 'Atestado dermatologico',
+    ];
+    private const HEALTH_CERTIFICATE_SERVICE_LOCATIONS = [
+        'servico_publico' => 'Servico publico',
+        'clinica_particular' => 'Clinica particular',
+        'clinica_convenio' => 'Clinica convenio medico',
+    ];
 
     public function __construct()
     {
         $this->cepService = new CepService();
+        $this->ensureHealthCertificateSchema();
     }
 
     /**
@@ -140,7 +150,9 @@ class ProfileService
         ');
         $stmt->execute([':responsavel_pessoa_id' => $person['id']]);
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $dependents = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return $this->attachHealthCertificatesSummary($dependents);
     }
 
     /**
@@ -302,7 +314,13 @@ class ProfileService
             throw new RuntimeException('A pessoa selecionada nao esta vinculada a sua conta.');
         }
 
-        return $dependent;
+        $dependents = $this->attachHealthCertificatesSummary([$dependent]);
+
+        if (!isset($dependents[0])) {
+            throw new RuntimeException('Nao foi possivel carregar os atestados deste dependente.');
+        }
+
+        return $dependents[0];
     }
 
     /**
@@ -502,6 +520,248 @@ class ProfileService
             $pdo->rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * Monta os dados do modal de atestados de um dependente gerenciado.
+     */
+    public function getManagedHealthCertificatesData(int $personId): array
+    {
+        $person = $this->getManagedDependent($personId);
+        $records = $this->loadHealthCertificatesIndexedByType((int) $person['id']);
+        $certificates = [];
+
+        foreach (self::HEALTH_CERTIFICATE_TYPES as $slug => $label) {
+            $certificate = $records[$slug] ?? null;
+            $statusMeta = $this->buildHealthCertificateStatusMeta($certificate);
+            $certificates[] = [
+                'slug' => $slug,
+                'label' => $label,
+                'record' => $certificate,
+                'status_key' => $statusMeta['key'],
+                'status_icon' => $statusMeta['icon'],
+                'status_class' => $statusMeta['class'],
+                'status_label' => $statusMeta['label'],
+            ];
+        }
+
+        return [
+            'person' => $person,
+            'certificates' => $certificates,
+            'service_location_options' => self::HEALTH_CERTIFICATE_SERVICE_LOCATIONS,
+        ];
+    }
+
+    /**
+     * Salva os atestados enviados para um dependente gerenciado.
+     */
+    public function saveManagedHealthCertificates(int $personId, array $data, array $files): array
+    {
+        $person = $this->getManagedDependent($personId);
+        $pdo = Database::connection();
+        $existingRecords = $this->loadHealthCertificatesIndexedByType((int) $person['id']);
+        $updatedAnything = false;
+        $movedFiles = [];
+        $oldPathsToDelete = [];
+
+        $pdo->beginTransaction();
+
+        try {
+            foreach (self::HEALTH_CERTIFICATE_TYPES as $slug => $label) {
+                $file = $files[$slug . '_arquivo'] ?? null;
+                $normalized = $this->normalizeSingleUploadedFile($file);
+                $issuedAt = trim((string) ($data[$slug . '_data_emissao'] ?? ''));
+                $crm = strtoupper(trim((string) ($data[$slug . '_crm_medico'] ?? '')));
+                $serviceLocation = trim((string) ($data[$slug . '_local_atendimento'] ?? ''));
+                $notes = trim((string) ($data[$slug . '_observacoes'] ?? ''));
+
+                if ($normalized === null) {
+                    if (!isset($existingRecords[$slug])) {
+                        continue;
+                    }
+                } else {
+                    $updatedAnything = true;
+                }
+
+                if ($issuedAt !== '' && !$this->isValidDate($issuedAt)) {
+                    throw new RuntimeException('Informe uma data de emissao valida para ' . strtolower($label) . '.');
+                }
+
+                if ($crm !== '' && !$this->isValidMedicalCrm($crm)) {
+                    throw new RuntimeException('Informe um CRM valido para ' . strtolower($label) . '.');
+                }
+
+                if ($serviceLocation !== '' && !isset(self::HEALTH_CERTIFICATE_SERVICE_LOCATIONS[$serviceLocation])) {
+                    throw new RuntimeException('Selecione um local de atendimento valido para ' . strtolower($label) . '.');
+                }
+
+                $existingRecord = $existingRecords[$slug] ?? null;
+                $metadataChanged = $existingRecord !== null && (
+                    trim((string) ($existingRecord['data_emissao'] ?? '')) !== $issuedAt
+                    || strtoupper(trim((string) ($existingRecord['crm_medico'] ?? ''))) !== $crm
+                    || trim((string) ($existingRecord['local_atendimento'] ?? '')) !== $serviceLocation
+                    || trim((string) ($existingRecord['observacoes'] ?? '')) !== $notes
+                );
+
+                if ($normalized === null && !$metadataChanged) {
+                    continue;
+                }
+
+                $updatedAnything = true;
+
+                if ($normalized === null && $existingRecord !== null) {
+                    $stmt = $pdo->prepare('
+                        UPDATE atestados_saude
+                        SET data_emissao = :data_emissao,
+                            data_emissao_validada = NULL,
+                            validade_meses = NULL,
+                            crm_medico = :crm_medico,
+                            local_atendimento = :local_atendimento,
+                            validade_certificado = NULL,
+                            status_validacao = "pendente",
+                            validado_por_conta_id = NULL,
+                            validado_em = NULL,
+                            observacoes = :observacoes,
+                            observacao_validacao = NULL,
+                            updated_at = NOW()
+                        WHERE id = :id
+                    ');
+                    $stmt->execute([
+                        ':data_emissao' => $issuedAt !== '' ? $issuedAt : null,
+                        ':crm_medico' => $crm !== '' ? $crm : null,
+                        ':local_atendimento' => $serviceLocation !== '' ? $serviceLocation : null,
+                        ':observacoes' => $notes !== '' ? $notes : null,
+                        ':id' => (int) $existingRecord['id'],
+                    ]);
+                    continue;
+                }
+
+                $validated = $this->validatePdfFile($normalized, $label);
+
+                $storageDirectory = $this->ensureHealthCertificateStorageDirectory((int) $person['id'], $slug);
+                $storedFileName = $this->buildStoredPdfFileName((string) $validated['name']);
+                $absolutePath = $storageDirectory . DIRECTORY_SEPARATOR . $storedFileName;
+                $relativePath = '/uploads/atestados/' . (int) $person['id'] . '/' . $slug . '/' . $storedFileName;
+
+                if (!move_uploaded_file((string) $validated['tmp_name'], $absolutePath)) {
+                    throw new RuntimeException('Nao foi possivel salvar o arquivo de ' . strtolower($label) . '.');
+                }
+
+                $movedFiles[] = $absolutePath;
+
+                if (isset($existingRecords[$slug])) {
+                    $oldPath = trim((string) ($existingRecords[$slug]['caminho_arquivo'] ?? ''));
+
+                    if ($oldPath !== '') {
+                        $oldPathsToDelete[] = $oldPath;
+                    }
+
+                    $stmt = $pdo->prepare('
+                        UPDATE atestados_saude
+                        SET nome_arquivo = :nome_arquivo,
+                            caminho_arquivo = :caminho_arquivo,
+                            data_emissao = :data_emissao,
+                            data_emissao_validada = NULL,
+                            validade_meses = NULL,
+                            crm_medico = :crm_medico,
+                            local_atendimento = :local_atendimento,
+                            validade_certificado = NULL,
+                            status_validacao = "pendente",
+                            validado_por_conta_id = NULL,
+                            validado_em = NULL,
+                            observacoes = :observacoes,
+                            observacao_validacao = NULL,
+                            updated_at = NOW()
+                        WHERE id = :id
+                    ');
+                    $stmt->execute([
+                        ':nome_arquivo' => (string) $validated['name'],
+                        ':caminho_arquivo' => $relativePath,
+                        ':data_emissao' => $issuedAt !== '' ? $issuedAt : null,
+                        ':crm_medico' => $crm !== '' ? $crm : null,
+                        ':local_atendimento' => $serviceLocation !== '' ? $serviceLocation : null,
+                        ':observacoes' => $notes !== '' ? $notes : null,
+                        ':id' => (int) $existingRecords[$slug]['id'],
+                    ]);
+                } else {
+                    $stmt = $pdo->prepare('
+                        INSERT INTO atestados_saude (
+                            pessoa_id,
+                            tipo_atestado,
+                            nome_arquivo,
+                            caminho_arquivo,
+                            data_emissao,
+                            data_emissao_validada,
+                            validade_meses,
+                            crm_medico,
+                            local_atendimento,
+                            validade_certificado,
+                            status_validacao,
+                            validado_em,
+                            observacoes,
+                            observacao_validacao,
+                            created_at
+                        ) VALUES (
+                            :pessoa_id,
+                            :tipo_atestado,
+                            :nome_arquivo,
+                            :caminho_arquivo,
+                            :data_emissao,
+                            NULL,
+                            NULL,
+                            :crm_medico,
+                            :local_atendimento,
+                            NULL,
+                            "pendente",
+                            NULL,
+                            :observacoes,
+                            NULL,
+                            NOW()
+                        )
+                    ');
+                    $stmt->execute([
+                        ':pessoa_id' => (int) $person['id'],
+                        ':tipo_atestado' => $slug,
+                        ':nome_arquivo' => (string) $validated['name'],
+                        ':caminho_arquivo' => $relativePath,
+                        ':data_emissao' => $issuedAt !== '' ? $issuedAt : null,
+                        ':crm_medico' => $crm !== '' ? $crm : null,
+                        ':local_atendimento' => $serviceLocation !== '' ? $serviceLocation : null,
+                        ':observacoes' => $notes !== '' ? $notes : null,
+                    ]);
+                }
+            }
+
+            if (!$updatedAnything) {
+                throw new RuntimeException('Envie um PDF novo ou altere os dados declarados de ao menos um atestado.');
+            }
+
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+
+            foreach ($movedFiles as $absolutePath) {
+                if (is_file($absolutePath)) {
+                    @unlink($absolutePath);
+                }
+            }
+
+            throw $e;
+        }
+
+        foreach ($oldPathsToDelete as $oldPath) {
+            $absoluteOldPath = ROOT_PATH . '/public' . $oldPath;
+
+            if (is_file($absoluteOldPath)) {
+                @unlink($absoluteOldPath);
+            }
+        }
+
+        AuditLogService::record('dependente.atestados_atualizados', 'pessoas', (int) $person['id'], [
+            'pessoa_id' => (int) $person['id'],
+        ]);
+
+        return $this->getManagedHealthCertificatesData((int) $person['id']);
     }
 
     /**
@@ -734,5 +994,344 @@ class ProfileService
     private function normalizeNumeroCartaoSus(string $value): string
     {
         return preg_replace('/\D+/', '', trim($value)) ?? '';
+    }
+
+    /**
+     * Carrega atestados da pessoa indexados por tipo.
+     */
+    private function loadHealthCertificatesIndexedByType(int $personId): array
+    {
+        $stmt = Database::connection()->prepare('
+            SELECT *
+            FROM atestados_saude
+            WHERE pessoa_id = :pessoa_id
+            ORDER BY updated_at DESC, created_at DESC, id DESC
+        ');
+        $stmt->execute([':pessoa_id' => $personId]);
+        $indexed = [];
+
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $slug = (string) ($row['tipo_atestado'] ?? '');
+
+            if ($slug === '' || isset($indexed[$slug])) {
+                continue;
+            }
+
+            $indexed[$slug] = $row;
+        }
+
+        return $indexed;
+    }
+
+    /**
+     * Normaliza upload simples.
+     */
+    private function normalizeSingleUploadedFile($file): ?array
+    {
+        if (!is_array($file) || !isset($file['error'])) {
+            return null;
+        }
+
+        $error = (int) $file['error'];
+
+        if ($error === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
+
+        if ($error !== UPLOAD_ERR_OK) {
+            throw new RuntimeException('Um dos arquivos enviados apresentou erro e nao pode ser processado.');
+        }
+
+        return $file;
+    }
+
+    /**
+     * Valida upload de um PDF.
+     */
+    private function validatePdfFile(array $file, string $label): array
+    {
+        $tmpName = (string) ($file['tmp_name'] ?? '');
+
+        if ($tmpName === '' || !is_uploaded_file($tmpName)) {
+            throw new RuntimeException('Nao foi possivel validar o arquivo de ' . strtolower($label) . '.');
+        }
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = (string) $finfo->file($tmpName);
+        $extension = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
+
+        if (!in_array($mime, ['application/pdf', 'application/x-pdf'], true) || $extension !== 'pdf') {
+            throw new RuntimeException('O arquivo de ' . strtolower($label) . ' precisa estar em PDF.');
+        }
+
+        return [
+            'name' => (string) ($file['name'] ?? 'atestado.pdf'),
+            'tmp_name' => $tmpName,
+        ];
+    }
+
+    /**
+     * Valida o CRM informado no atestado.
+     */
+    private function isValidMedicalCrm(string $value): bool
+    {
+        return (bool) preg_match('/^[A-Z]{0,4}\s*\d{4,10}$/', trim($value));
+    }
+
+    /**
+     * Garante a pasta de armazenamento do atestado.
+     */
+    private function ensureHealthCertificateStorageDirectory(int $personId, string $type): string
+    {
+        $directory = ROOT_PATH . '/public/uploads/atestados/' . $personId . '/' . $type;
+
+        if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+            throw new RuntimeException('Nao foi possivel preparar a pasta de armazenamento dos atestados.');
+        }
+
+        return $directory;
+    }
+
+    /**
+     * Monta um nome seguro para PDF enviado.
+     */
+    private function buildStoredPdfFileName(string $originalName): string
+    {
+        $base = strtolower(pathinfo($originalName, PATHINFO_FILENAME));
+        $base = preg_replace('/[^a-z0-9\-]+/', '-', $base) ?: 'documento';
+        $base = trim((string) $base, '-');
+
+        return date('Ymd-His') . '-' . substr(bin2hex(random_bytes(4)), 0, 8) . '-' . $base . '.pdf';
+    }
+
+    /**
+     * Garante as colunas mais novas do fluxo de atestados de saude.
+     */
+    private function ensureHealthCertificateSchema(): void
+    {
+        static $ensured = false;
+
+        if ($ensured) {
+            return;
+        }
+
+        $pdo = Database::connection();
+        $columns = [];
+        $stmt = $pdo->query('SHOW COLUMNS FROM atestados_saude');
+
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $column) {
+            $columns[(string) ($column['Field'] ?? '')] = true;
+        }
+
+        $alterations = [];
+
+        if (!isset($columns['data_emissao_validada'])) {
+            $alterations[] = 'ADD COLUMN data_emissao_validada DATE NULL AFTER data_emissao';
+        }
+
+        if (!isset($columns['validade_meses'])) {
+            $alterations[] = 'ADD COLUMN validade_meses TINYINT UNSIGNED NULL AFTER data_emissao_validada';
+        }
+
+        if (!isset($columns['crm_medico'])) {
+            $alterations[] = 'ADD COLUMN crm_medico VARCHAR(40) NULL AFTER validade_meses';
+        }
+
+        if (!isset($columns['local_atendimento'])) {
+            $alterations[] = 'ADD COLUMN local_atendimento ENUM("servico_publico", "clinica_particular", "clinica_convenio") NULL AFTER crm_medico';
+        }
+
+        if (!isset($columns['validado_em'])) {
+            $alterations[] = 'ADD COLUMN validado_em DATETIME NULL AFTER validado_por_conta_id';
+        }
+
+        if (!isset($columns['observacao_validacao'])) {
+            $alterations[] = 'ADD COLUMN observacao_validacao TEXT NULL AFTER observacoes';
+        }
+
+        if ($alterations !== []) {
+            $pdo->exec('ALTER TABLE atestados_saude ' . implode(', ', $alterations));
+        }
+
+        $ensured = true;
+    }
+
+    /**
+     * Anexa um resumo dos atestados a cada dependente da lista.
+     */
+    private function attachHealthCertificatesSummary(array $dependents): array
+    {
+        if ($dependents === []) {
+            return [];
+        }
+
+        $personIds = [];
+
+        foreach ($dependents as $dependent) {
+            $personId = (int) ($dependent['id'] ?? 0);
+
+            if ($personId > 0) {
+                $personIds[] = $personId;
+            }
+        }
+
+        if ($personIds === []) {
+            return $dependents;
+        }
+
+        $recordsByPerson = $this->loadHealthCertificatesSummaryForPeople($personIds);
+
+        foreach ($dependents as $index => $dependent) {
+            $personId = (int) ($dependent['id'] ?? 0);
+            $summary = [];
+
+            foreach (self::HEALTH_CERTIFICATE_TYPES as $slug => $label) {
+                $record = $recordsByPerson[$personId][$slug] ?? null;
+                $summary[$slug] = $this->buildHealthCertificateStatusMeta($record, $label);
+            }
+
+            $dependents[$index]['health_certificates_summary'] = $summary;
+        }
+
+        return $dependents;
+    }
+
+    /**
+     * Carrega o ultimo atestado de cada tipo para varias pessoas.
+     */
+    private function loadHealthCertificatesSummaryForPeople(array $personIds): array
+    {
+        $personIds = array_values(array_unique(array_filter(array_map('intval', $personIds), static fn (int $id): bool => $id > 0)));
+
+        if ($personIds === []) {
+            return [];
+        }
+
+        $placeholders = [];
+        $params = [];
+
+        foreach ($personIds as $index => $personId) {
+            $placeholder = ':pessoa_' . $index;
+            $placeholders[] = $placeholder;
+            $params[$placeholder] = $personId;
+        }
+
+        $stmt = Database::connection()->prepare('
+            SELECT *
+            FROM atestados_saude
+            WHERE pessoa_id IN (' . implode(', ', $placeholders) . ')
+            ORDER BY pessoa_id, tipo_atestado, updated_at DESC, created_at DESC, id DESC
+        ');
+        $stmt->execute($params);
+
+        $indexed = [];
+
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $personId = (int) ($row['pessoa_id'] ?? 0);
+            $slug = (string) ($row['tipo_atestado'] ?? '');
+
+            if ($personId <= 0 || $slug === '' || isset($indexed[$personId][$slug])) {
+                continue;
+            }
+
+            $indexed[$personId][$slug] = $row;
+        }
+
+        return $indexed;
+    }
+
+    /**
+     * Calcula o status visual do atestado.
+     */
+    private function buildHealthCertificateStatusMeta(?array $record, ?string $label = null): array
+    {
+        if ($record === null) {
+            return [
+                'key' => 'nao-enviado',
+                'class' => 'is-nao-enviado',
+                'icon' => '--',
+                'label' => 'Nao enviado',
+                'type_label' => $label ?? 'Atestado',
+            ];
+        }
+
+        $status = (string) ($record['status_validacao'] ?? '');
+        $expiry = trim((string) ($record['validade_certificado'] ?? ''));
+
+        if ($status === 'pendente') {
+            return [
+                'key' => 'pendente',
+                'class' => 'is-pendente',
+                'icon' => 'AG',
+                'label' => 'Pendente',
+                'type_label' => $label ?? 'Atestado',
+            ];
+        }
+
+        if ($status === 'reprovado') {
+            return [
+                'key' => 'reprovado',
+                'class' => 'is-reprovado',
+                'icon' => 'RE',
+                'label' => 'Reprovado',
+                'type_label' => $label ?? 'Atestado',
+            ];
+        }
+
+        if ($status === 'validado' && $expiry !== '') {
+            try {
+                $expiryDate = new \DateTimeImmutable($expiry);
+                $today = new \DateTimeImmutable('today');
+                $warningDate = $today->modify('+30 days');
+
+                if ($expiryDate < $today) {
+                    return [
+                        'key' => 'vencido',
+                        'class' => 'is-vencido',
+                        'icon' => 'VX',
+                        'label' => 'Vencido',
+                        'type_label' => $label ?? 'Atestado',
+                    ];
+                }
+
+                if ($expiryDate <= $warningDate) {
+                    return [
+                        'key' => 'a-vencer',
+                        'class' => 'is-a-vencer',
+                        'icon' => 'AV',
+                        'label' => 'A vencer',
+                        'type_label' => $label ?? 'Atestado',
+                    ];
+                }
+            } catch (\Throwable $e) {
+            }
+        }
+
+        if ($status === 'validado') {
+            return [
+                'key' => 'validado',
+                'class' => 'is-validado',
+                'icon' => 'OK',
+                'label' => 'Validado',
+                'type_label' => $label ?? 'Atestado',
+            ];
+        }
+
+        return [
+            'key' => 'enviado',
+            'class' => 'is-enviado',
+            'icon' => 'AR',
+            'label' => 'Arquivo enviado',
+            'type_label' => $label ?? 'Atestado',
+        ];
+    }
+
+    /**
+     * Valida data simples no formato Y-m-d.
+     */
+    private function isValidDate(string $value): bool
+    {
+        $date = \DateTimeImmutable::createFromFormat('Y-m-d', $value);
+        return $date instanceof \DateTimeImmutable && $date->format('Y-m-d') === $value;
     }
 }

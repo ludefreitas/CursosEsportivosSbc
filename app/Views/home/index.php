@@ -95,9 +95,9 @@
     <div class="section-head">
         <div>
             <h2>Blog institucional</h2>
-            <p class="muted">Area pensada para comunicados, temporadas, avisos e campanhas esportivas.</p>
+            <p class="muted">Noticias, campanhas, destaques esportivos e informacoes institucionais organizadas em uma pagina propria do blog.</p>
         </div>
-        <a href="<?php echo e(url('/admin')); ?>" class="btn btn-secondary">Gerenciar postagens</a>
+        <a href="<?php echo e(url('/blog')); ?>" class="btn btn-secondary">Abrir blog</a>
     </div>
     <div class="post-grid">
         <?php foreach (($blogSpecialEvents ?? []) as $event) { ?>
@@ -110,10 +110,16 @@
         <?php } ?>
         <?php foreach ($posts as $post) { ?>
             <article class="post-card">
-                <span class="eyebrow eyebrow-soft"><?php echo e($post['autor_nome']); ?></span>
+                <?php if (!empty($post['capa_imagem_url'])) { ?>
+                    <img src="<?php echo e((string) $post['capa_imagem_url']); ?>" alt="<?php echo e((string) $post['titulo']); ?>" class="special-event-card-image">
+                <?php } ?>
+                <span class="eyebrow eyebrow-soft"><?php echo e((string) ($post['categoria'] ?: $post['autor_nome'])); ?></span>
                 <h3><?php echo e($post['titulo']); ?></h3>
                 <p><?php echo e($post['resumo']); ?></p>
-                <small><?php echo e(date('d/m/Y H:i', strtotime((string) $post['created_at']))); ?></small>
+                <small><?php echo e(date('d/m/Y H:i', strtotime((string) ($post['data_publica_ordenacao'] ?? $post['created_at'])))); ?></small>
+                <div class="hero-actions top-gap">
+                    <a href="<?php echo e(url('/blog/post?slug=' . rawurlencode((string) $post['slug']))); ?>" class="btn btn-primary">Ler postagem</a>
+                </div>
             </article>
         <?php } ?>
     </div>
