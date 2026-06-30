@@ -25,6 +25,7 @@ class AdminService
     {
         $this->ensureHealthCertificateSchema();
         $this->ensureWeeklyScheduleAgeRuleSchema();
+        $this->ensureSpecialScheduleSchema();
     }
 
     /**
@@ -1575,49 +1576,53 @@ class AdminService
     /**
      * Lista eventos sazonais/especiais para exibicao e gestao administrativa.
      */
-    public function listSpecialAgendaEventsForManagement(int $locationId = 0, int $modalityId = 0): array
+    public function listSpecialSchedulesForManagement(int $locationId = 0, int $modalityId = 0): array
     {
         $pdo = Database::connection();
         $sql = '
             SELECT
-                ae.id,
-                ae.local_treino_id,
-                ae.espaco_treino_id,
-                ae.modalidade_id,
-                ae.titulo,
-                ae.descricao,
-                ae.data_inicio,
-                ae.data_fim,
-                ae.idade_minima,
-                ae.idade_maxima,
-                ae.data_publicacao_inicio,
-                ae.data_publicacao_fim,
-                ae.publicar_pagina_inicial,
-                ae.publicar_blog,
-                ae.imagem_url,
-                ae.url_destino,
-                ae.rotulo_acao,
-                ae.ativo,
-                ae.created_at,
+                ah.id,
+                ah.local_treino_id,
+                ah.espaco_treino_id,
+                ah.modalidade_id,
+                ah.titulo,
+                ah.descricao,
+                ah.data_inicio,
+                ah.data_fim,
+                ah.idade_minima,
+                ah.idade_maxima,
+                ah.vagas_geral,
+                ah.vagas_pcd,
+                ah.vagas_plm,
+                ah.vagas_pvs,
+                ah.data_publicacao_inicio,
+                ah.data_publicacao_fim,
+                ah.publicar_pagina_inicial,
+                ah.publicar_blog,
+                ah.imagem_url,
+                ah.url_destino,
+                ah.rotulo_acao,
+                ah.ativo,
+                ah.created_at,
                 lt.nome AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome
-            FROM agenda_eventos_especiais ae
-            LEFT JOIN locais_treino lt ON lt.id = ae.local_treino_id
-            LEFT JOIN espacos_treino et ON et.id = ae.espaco_treino_id
-            LEFT JOIN modalidades m ON m.id = ae.modalidade_id
+            FROM agenda_horarios_especiais ah
+            LEFT JOIN locais_treino lt ON lt.id = ah.local_treino_id
+            LEFT JOIN espacos_treino et ON et.id = ah.espaco_treino_id
+            LEFT JOIN modalidades m ON m.id = ah.modalidade_id
         ';
 
         $params = [];
         $conditions = [];
 
         if ($locationId > 0) {
-            $conditions[] = 'ae.local_treino_id = :local_treino_id';
+            $conditions[] = 'ah.local_treino_id = :local_treino_id';
             $params[':local_treino_id'] = $locationId;
         }
 
         if ($modalityId > 0) {
-            $conditions[] = 'ae.modalidade_id = :modalidade_id';
+            $conditions[] = 'ah.modalidade_id = :modalidade_id';
             $params[':modalidade_id'] = $modalityId;
         }
 
@@ -1625,7 +1630,7 @@ class AdminService
             $sql .= ' WHERE ' . implode(' AND ', $conditions);
         }
 
-        $sql .= ' ORDER BY ae.ativo DESC, ae.data_inicio ASC, ae.id ASC';
+        $sql .= ' ORDER BY ah.ativo DESC, ah.data_inicio ASC, ah.id ASC';
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
@@ -1634,36 +1639,36 @@ class AdminService
     }
 
     /**
-     * Retorna um evento especial pronto para preencher o modal de edicao.
+     * Retorna um horario especial pronto para preencher o modal de edicao.
      */
-    public function getSpecialAgendaEventDetails(int $eventId): array
+    public function getSpecialScheduleDetails(int $scheduleId): array
     {
-        if ($eventId <= 0) {
-            throw new RuntimeException('Evento especial invalido.');
+        if ($scheduleId <= 0) {
+            throw new RuntimeException('Horario especial invalido.');
         }
 
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
             SELECT
-                ae.*,
+                ah.*,
                 lt.nome AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome
-            FROM agenda_eventos_especiais ae
-            LEFT JOIN locais_treino lt ON lt.id = ae.local_treino_id
-            LEFT JOIN espacos_treino et ON et.id = ae.espaco_treino_id
-            LEFT JOIN modalidades m ON m.id = ae.modalidade_id
-            WHERE ae.id = :id
+            FROM agenda_horarios_especiais ah
+            LEFT JOIN locais_treino lt ON lt.id = ah.local_treino_id
+            LEFT JOIN espacos_treino et ON et.id = ah.espaco_treino_id
+            LEFT JOIN modalidades m ON m.id = ah.modalidade_id
+            WHERE ah.id = :id
             LIMIT 1
         ');
-        $stmt->execute([':id' => $eventId]);
-        $event = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->execute([':id' => $scheduleId]);
+        $schedule = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$event) {
-            throw new RuntimeException('Evento especial nao encontrado.');
+        if (!$schedule) {
+            throw new RuntimeException('Horario especial nao encontrado.');
         }
 
-        return $event;
+        return $schedule;
     }
 
     /**
@@ -2292,9 +2297,9 @@ class AdminService
     /**
      * Cria um evento sazonal/especial para a agenda publica.
      */
-    public function createSpecialAgendaEvent(int $accountId, array $data, array $files = []): void
+    public function createSpecialSchedule(int $accountId, array $data, array $files = []): void
     {
-        $payload = $this->validateSpecialAgendaEventPayload($data, $files);
+        $payload = $this->validateSpecialSchedulePayload($data, $files);
         $space = null;
 
         if ((int) $payload['espaco_treino_id'] > 0) {
@@ -2304,7 +2309,7 @@ class AdminService
 
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
-            INSERT INTO agenda_eventos_especiais (
+            INSERT INTO agenda_horarios_especiais (
                 local_treino_id,
                 espaco_treino_id,
                 modalidade_id,
@@ -2314,6 +2319,10 @@ class AdminService
                 data_fim,
                 idade_minima,
                 idade_maxima,
+                vagas_geral,
+                vagas_pcd,
+                vagas_plm,
+                vagas_pvs,
                 data_publicacao_inicio,
                 data_publicacao_fim,
                 publicar_pagina_inicial,
@@ -2332,6 +2341,10 @@ class AdminService
                 :data_fim,
                 :idade_minima,
                 :idade_maxima,
+                :vagas_geral,
+                :vagas_pcd,
+                :vagas_plm,
+                :vagas_pvs,
                 :data_publicacao_inicio,
                 :data_publicacao_fim,
                 :publicar_pagina_inicial,
@@ -2352,6 +2365,10 @@ class AdminService
             ':data_fim' => $payload['data_fim'],
             ':idade_minima' => (int) $payload['idade_minima'],
             ':idade_maxima' => (int) $payload['idade_maxima'],
+            ':vagas_geral' => (int) $payload['vagas_geral'],
+            ':vagas_pcd' => (int) $payload['vagas_pcd'],
+            ':vagas_plm' => (int) $payload['vagas_plm'],
+            ':vagas_pvs' => (int) $payload['vagas_pvs'],
             ':data_publicacao_inicio' => $payload['data_publicacao_inicio'],
             ':data_publicacao_fim' => $payload['data_publicacao_fim'],
             ':publicar_pagina_inicial' => (int) $payload['publicar_pagina_inicial'],
@@ -2362,13 +2379,17 @@ class AdminService
             ':ativo' => (int) $payload['ativo'],
         ]);
 
-        AuditLogService::record('admin.agenda_evento_especial_criado', 'agenda_eventos_especiais', (int) $pdo->lastInsertId(), [
+        AuditLogService::record('admin.agenda_horario_especial_criado', 'agenda_horarios_especiais', (int) $pdo->lastInsertId(), [
             'conta_id' => $accountId,
             'titulo' => $payload['titulo'],
             'data_inicio' => $payload['data_inicio'],
             'data_fim' => $payload['data_fim'],
             'idade_minima' => (int) $payload['idade_minima'],
             'idade_maxima' => (int) $payload['idade_maxima'],
+            'vagas_geral' => (int) $payload['vagas_geral'],
+            'vagas_pcd' => (int) $payload['vagas_pcd'],
+            'vagas_plm' => (int) $payload['vagas_plm'],
+            'vagas_pvs' => (int) $payload['vagas_pvs'],
             'data_publicacao_inicio' => $payload['data_publicacao_inicio'],
             'data_publicacao_fim' => $payload['data_publicacao_fim'],
             'publicar_pagina_inicial' => (int) $payload['publicar_pagina_inicial'],
@@ -2377,16 +2398,16 @@ class AdminService
     }
 
     /**
-     * Atualiza um evento especial existente.
+     * Atualiza um horario especial existente.
      */
-    public function updateSpecialAgendaEvent(int $eventId, int $accountId, array $data, array $files = []): array
+    public function updateSpecialSchedule(int $scheduleId, int $accountId, array $data, array $files = []): array
     {
-        if ($eventId <= 0) {
-            throw new RuntimeException('Evento especial invalido.');
+        if ($scheduleId <= 0) {
+            throw new RuntimeException('Horario especial invalido.');
         }
 
-        $existingEvent = $this->getSpecialAgendaEventDetails($eventId);
-        $payload = $this->validateSpecialAgendaEventPayload($data, $files);
+        $existingSchedule = $this->getSpecialScheduleDetails($scheduleId);
+        $payload = $this->validateSpecialSchedulePayload($data, $files);
         $space = null;
 
         if ((int) $payload['espaco_treino_id'] > 0) {
@@ -2397,12 +2418,12 @@ class AdminService
         }
 
         if ($payload['imagem_url'] === '' && (int) (($files['imagem_arquivo']['error'] ?? UPLOAD_ERR_NO_FILE)) === UPLOAD_ERR_NO_FILE) {
-            $payload['imagem_url'] = (string) ($existingEvent['imagem_url'] ?? '');
+            $payload['imagem_url'] = (string) ($existingSchedule['imagem_url'] ?? '');
         }
 
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
-            UPDATE agenda_eventos_especiais
+            UPDATE agenda_horarios_especiais
             SET
                 local_treino_id = :local_treino_id,
                 espaco_treino_id = :espaco_treino_id,
@@ -2413,6 +2434,10 @@ class AdminService
                 data_fim = :data_fim,
                 idade_minima = :idade_minima,
                 idade_maxima = :idade_maxima,
+                vagas_geral = :vagas_geral,
+                vagas_pcd = :vagas_pcd,
+                vagas_plm = :vagas_plm,
+                vagas_pvs = :vagas_pvs,
                 data_publicacao_inicio = :data_publicacao_inicio,
                 data_publicacao_fim = :data_publicacao_fim,
                 publicar_pagina_inicial = :publicar_pagina_inicial,
@@ -2425,7 +2450,7 @@ class AdminService
             WHERE id = :id
         ');
         $stmt->execute([
-            ':id' => $eventId,
+            ':id' => $scheduleId,
             ':local_treino_id' => (int) $payload['local_treino_id'] > 0 ? (int) $payload['local_treino_id'] : null,
             ':espaco_treino_id' => (int) $payload['espaco_treino_id'] > 0 ? (int) $payload['espaco_treino_id'] : null,
             ':modalidade_id' => (int) $payload['modalidade_id'] > 0 ? (int) $payload['modalidade_id'] : null,
@@ -2435,6 +2460,10 @@ class AdminService
             ':data_fim' => $payload['data_fim'],
             ':idade_minima' => (int) $payload['idade_minima'],
             ':idade_maxima' => (int) $payload['idade_maxima'],
+            ':vagas_geral' => (int) $payload['vagas_geral'],
+            ':vagas_pcd' => (int) $payload['vagas_pcd'],
+            ':vagas_plm' => (int) $payload['vagas_plm'],
+            ':vagas_pvs' => (int) $payload['vagas_pvs'],
             ':data_publicacao_inicio' => $payload['data_publicacao_inicio'],
             ':data_publicacao_fim' => $payload['data_publicacao_fim'],
             ':publicar_pagina_inicial' => (int) $payload['publicar_pagina_inicial'],
@@ -2445,29 +2474,29 @@ class AdminService
             ':ativo' => (int) $payload['ativo'],
         ]);
 
-        AuditLogService::record('admin.agenda_evento_especial_atualizado', 'agenda_eventos_especiais', $eventId, [
+        AuditLogService::record('admin.agenda_horario_especial_atualizado', 'agenda_horarios_especiais', $scheduleId, [
             'conta_id' => $accountId,
-            'antes' => $existingEvent,
+            'antes' => $existingSchedule,
             'depois' => $payload,
         ]);
 
-        return $this->getSpecialAgendaEventDetails($eventId);
+        return $this->getSpecialScheduleDetails($scheduleId);
     }
 
     /**
      * Inativa um evento sazonal/especial.
      */
-    public function deactivateSpecialAgendaEvent(int $eventId): void
+    public function deactivateSpecialSchedule(int $scheduleId): void
     {
-        if ($eventId <= 0) {
-            throw new RuntimeException('Evento especial invalido.');
+        if ($scheduleId <= 0) {
+            throw new RuntimeException('Horario especial invalido.');
         }
 
         $pdo = Database::connection();
-        $stmt = $pdo->prepare('UPDATE agenda_eventos_especiais SET ativo = 0, updated_at = NOW() WHERE id = :id');
-        $stmt->execute([':id' => $eventId]);
+        $stmt = $pdo->prepare('UPDATE agenda_horarios_especiais SET ativo = 0, updated_at = NOW() WHERE id = :id');
+        $stmt->execute([':id' => $scheduleId]);
 
-        AuditLogService::record('admin.agenda_evento_especial_inativado', 'agenda_eventos_especiais', $eventId, []);
+        AuditLogService::record('admin.agenda_horario_especial_inativado', 'agenda_horarios_especiais', $scheduleId, []);
     }
 
     /**
@@ -2649,7 +2678,7 @@ class AdminService
     /**
      * Valida o cadastro de um evento sazonal/informativo da agenda.
      */
-    private function validateSpecialAgendaEventPayload(array $data, array $files = []): array
+    private function validateSpecialSchedulePayload(array $data, array $files = []): array
     {
         $payload = [
             'local_treino_id' => (int) ($data['local_treino_id'] ?? 0),
@@ -2661,6 +2690,10 @@ class AdminService
             'data_fim' => trim((string) ($data['data_fim'] ?? '')),
             'idade_minima' => (int) ($data['idade_minima'] ?? 0),
             'idade_maxima' => (int) ($data['idade_maxima'] ?? 120),
+            'vagas_geral' => (int) ($data['vagas_geral'] ?? 0),
+            'vagas_pcd' => (int) ($data['vagas_pcd'] ?? 0),
+            'vagas_plm' => (int) ($data['vagas_plm'] ?? 0),
+            'vagas_pvs' => (int) ($data['vagas_pvs'] ?? 0),
             'data_publicacao_inicio' => trim((string) ($data['data_publicacao_inicio'] ?? '')),
             'data_publicacao_fim' => trim((string) ($data['data_publicacao_fim'] ?? '')),
             'publicar_pagina_inicial' => (int) ($data['publicar_pagina_inicial'] ?? 0) === 1 ? 1 : 0,
@@ -2673,15 +2706,15 @@ class AdminService
         $uploadedImage = $files['imagem_arquivo'] ?? null;
 
         if ($payload['titulo'] === '') {
-            throw new RuntimeException('Informe o titulo do evento especial.');
+            throw new RuntimeException('Informe o titulo do horario especial.');
         }
 
         if ($payload['data_inicio'] === '' || $payload['data_fim'] === '') {
-            throw new RuntimeException('Informe inicio e fim validos para o evento especial.');
+            throw new RuntimeException('Informe inicio e fim validos para o horario especial.');
         }
 
         if ($payload['data_publicacao_inicio'] === '' || $payload['data_publicacao_fim'] === '') {
-            throw new RuntimeException('Informe o inicio e o fim da publicacao do evento especial.');
+            throw new RuntimeException('Informe o inicio e o fim da publicacao do horario especial.');
         }
 
         try {
@@ -2690,11 +2723,11 @@ class AdminService
             $publishStart = new DateTimeImmutable($payload['data_publicacao_inicio']);
             $publishEnd = new DateTimeImmutable($payload['data_publicacao_fim']);
         } catch (\Throwable $e) {
-            throw new RuntimeException('As datas do evento especial sao invalidas.');
+            throw new RuntimeException('As datas do horario especial sao invalidas.');
         }
 
         if ($end <= $start) {
-            throw new RuntimeException('O fim do evento especial precisa ser posterior ao inicio.');
+            throw new RuntimeException('O fim do horario especial precisa ser posterior ao inicio.');
         }
 
         if ($publishEnd <= $publishStart) {
@@ -2702,7 +2735,22 @@ class AdminService
         }
 
         if ($payload['idade_minima'] < 0 || $payload['idade_maxima'] < 0 || $payload['idade_minima'] > $payload['idade_maxima']) {
-            throw new RuntimeException('Informe uma faixa etaria valida para o evento especial.');
+            throw new RuntimeException('Informe uma faixa etaria valida para o horario especial.');
+        }
+
+        foreach (['vagas_geral', 'vagas_pcd', 'vagas_plm', 'vagas_pvs'] as $field) {
+            if ((int) $payload[$field] < 0) {
+                throw new RuntimeException('As vagas do horario especial nao podem ser negativas.');
+            }
+        }
+
+        if (
+            (int) $payload['vagas_geral']
+            + (int) $payload['vagas_pcd']
+            + (int) $payload['vagas_plm']
+            + (int) $payload['vagas_pvs'] <= 0
+        ) {
+            throw new RuntimeException('Informe pelo menos uma vaga para o horario especial.');
         }
 
         if ($payload['imagem_url'] !== '' && !filter_var($payload['imagem_url'], FILTER_VALIDATE_URL) && !str_starts_with($payload['imagem_url'], '/')) {
@@ -2710,21 +2758,21 @@ class AdminService
         }
 
         if (is_array($uploadedImage) && (int) ($uploadedImage['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
-            $payload['imagem_url'] = $this->storeSpecialAgendaEventImage($uploadedImage);
+            $payload['imagem_url'] = $this->storeSpecialScheduleImage($uploadedImage);
         }
 
         return $payload;
     }
 
     /**
-     * Salva a imagem opcional de um evento especial e devolve o caminho publico.
+     * Salva a imagem opcional de um horario especial e devolve o caminho publico.
      */
-    private function storeSpecialAgendaEventImage(array $file): string
+    private function storeSpecialScheduleImage(array $file): string
     {
         $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
 
         if ($error !== UPLOAD_ERR_OK) {
-            throw new RuntimeException('Nao foi possivel enviar a imagem do evento especial.');
+            throw new RuntimeException('Nao foi possivel enviar a imagem do horario especial.');
         }
 
         $tmpName = (string) ($file['tmp_name'] ?? '');
@@ -2742,30 +2790,30 @@ class AdminService
         ];
 
         if (!isset($allowedMimes[$mime])) {
-            throw new RuntimeException('A imagem do evento especial deve estar em JPG, PNG ou WEBP.');
+            throw new RuntimeException('A imagem do horario especial deve estar em JPG, PNG ou WEBP.');
         }
 
         if ((int) ($file['size'] ?? 0) > 5 * 1024 * 1024) {
-            throw new RuntimeException('A imagem do evento especial deve ter no maximo 5 MB.');
+            throw new RuntimeException('A imagem do horario especial deve ter no maximo 5 MB.');
         }
 
-        $directory = ROOT_PATH . '/public/uploads/agenda-eventos-especiais';
+        $directory = ROOT_PATH . '/public/uploads/agenda-horarios-especiais';
 
         if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
-            throw new RuntimeException('Nao foi possivel preparar a pasta da imagem do evento especial.');
+            throw new RuntimeException('Nao foi possivel preparar a pasta da imagem do horario especial.');
         }
 
         $baseName = preg_replace('/[^a-z0-9]+/i', '-', pathinfo($originalName, PATHINFO_FILENAME));
         $baseName = trim((string) $baseName, '-');
-        $baseName = $baseName !== '' ? strtolower($baseName) : 'evento-especial';
+        $baseName = $baseName !== '' ? strtolower($baseName) : 'horario-especial';
         $storedName = $baseName . '-' . date('YmdHis') . '-' . bin2hex(random_bytes(4)) . '.' . $allowedMimes[$mime];
         $absolutePath = $directory . DIRECTORY_SEPARATOR . $storedName;
 
         if (!move_uploaded_file($tmpName, $absolutePath)) {
-            throw new RuntimeException('Nao foi possivel salvar a imagem do evento especial.');
+            throw new RuntimeException('Nao foi possivel salvar a imagem do horario especial.');
         }
 
-        return '/uploads/agenda-eventos-especiais/' . $storedName;
+        return '/uploads/agenda-horarios-especiais/' . $storedName;
     }
 
     /**
@@ -3698,32 +3746,87 @@ class AdminService
     }
 
     /**
-     * Lista eventos especiais visiveis em um canal publico.
+     * Lista horarios especiais visiveis em um canal publico.
      */
-    public function listPublishedSpecialAgendaEvents(string $channel, int $limit = 6): array
+    public function listPublishedSpecialSchedules(string $channel, int $limit = 6): array
     {
         $column = $channel === 'blog' ? 'publicar_blog' : 'publicar_pagina_inicial';
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
             SELECT
-                ae.*,
+                ah.*,
                 lt.nome AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome
-            FROM agenda_eventos_especiais ae
-            LEFT JOIN locais_treino lt ON lt.id = ae.local_treino_id
-            LEFT JOIN espacos_treino et ON et.id = ae.espaco_treino_id
-            LEFT JOIN modalidades m ON m.id = ae.modalidade_id
-            WHERE ae.ativo = 1
-              AND ae.' . $column . ' = 1
-              AND NOW() BETWEEN ae.data_publicacao_inicio AND ae.data_publicacao_fim
-            ORDER BY ae.data_inicio ASC, ae.id DESC
+            FROM agenda_horarios_especiais ah
+            LEFT JOIN locais_treino lt ON lt.id = ah.local_treino_id
+            LEFT JOIN espacos_treino et ON et.id = ah.espaco_treino_id
+            LEFT JOIN modalidades m ON m.id = ah.modalidade_id
+            WHERE ah.ativo = 1
+              AND ah.' . $column . ' = 1
+              AND NOW() BETWEEN ah.data_publicacao_inicio AND ah.data_publicacao_fim
+            ORDER BY ah.data_inicio ASC, ah.id DESC
             LIMIT :limite
         ');
         $stmt->bindValue(':limite', max(1, $limit), PDO::PARAM_INT);
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    private function ensureSpecialScheduleSchema(): void
+    {
+        static $ensured = false;
+
+        if ($ensured) {
+            return;
+        }
+
+        $pdo = Database::connection();
+        $oldTable = $pdo->query("SHOW TABLES LIKE 'agenda_eventos_especiais'")->fetchColumn();
+        $newTable = $pdo->query("SHOW TABLES LIKE 'agenda_horarios_especiais'")->fetchColumn();
+
+        if ($oldTable && !$newTable) {
+            $pdo->exec('RENAME TABLE agenda_eventos_especiais TO agenda_horarios_especiais');
+        }
+
+        $oldRegistrationsTable = $pdo->query("SHOW TABLES LIKE 'agenda_eventos_especiais_inscricoes'")->fetchColumn();
+        $newRegistrationsTable = $pdo->query("SHOW TABLES LIKE 'agenda_horarios_especiais_inscricoes'")->fetchColumn();
+
+        if ($oldRegistrationsTable && !$newRegistrationsTable) {
+            $pdo->exec('RENAME TABLE agenda_eventos_especiais_inscricoes TO agenda_horarios_especiais_inscricoes');
+        }
+
+        $columns = [];
+        $stmt = $pdo->query('SHOW COLUMNS FROM agenda_horarios_especiais');
+
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $column) {
+            $columns[(string) ($column['Field'] ?? '')] = true;
+        }
+
+        $alterations = [];
+
+        if (!isset($columns['vagas_geral'])) {
+            $alterations[] = 'ADD COLUMN vagas_geral INT NOT NULL DEFAULT 9999 AFTER idade_maxima';
+        }
+
+        if (!isset($columns['vagas_pcd'])) {
+            $alterations[] = 'ADD COLUMN vagas_pcd INT NOT NULL DEFAULT 0 AFTER vagas_geral';
+        }
+
+        if (!isset($columns['vagas_plm'])) {
+            $alterations[] = 'ADD COLUMN vagas_plm INT NOT NULL DEFAULT 0 AFTER vagas_pcd';
+        }
+
+        if (!isset($columns['vagas_pvs'])) {
+            $alterations[] = 'ADD COLUMN vagas_pvs INT NOT NULL DEFAULT 0 AFTER vagas_plm';
+        }
+
+        if ($alterations !== []) {
+            $pdo->exec('ALTER TABLE agenda_horarios_especiais ' . implode(', ', $alterations));
+        }
+
+        $ensured = true;
     }
 
     /**

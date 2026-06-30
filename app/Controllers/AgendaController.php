@@ -31,7 +31,7 @@ class AgendaController extends Controller
         $agendaActionLabel = 'Completar cadastro';
         $agendaReminderTitle = 'Complete seu cadastro para agendar';
         $schedulablePeople = [];
-        $specialEventPeople = [];
+        $specialSchedulePeople = [];
 
         if (Auth::check()) {
             $profileService = new ProfileService();
@@ -39,7 +39,7 @@ class AgendaController extends Controller
             $registrationBlock = $profileService->getSchedulingBlockForAuthenticatedAccount();
             $needsProfileCompletion = $registrationBlock !== null || !$profile || (int) ($profile['cadastro_completo'] ?? 0) !== 1;
 
-            $specialEventPeople = $this->agendaService->listSpecialEventPeople();
+            $specialSchedulePeople = $this->agendaService->listSpecialSchedulePeople();
 
             if (!$needsProfileCompletion) {
                 $schedulablePeople = $this->agendaService->listSchedulablePeople();
@@ -55,7 +55,7 @@ class AgendaController extends Controller
             'locations' => $this->agendaService->listLocations(),
             'modalities' => $this->agendaService->listModalities(),
             'schedulablePeople' => $schedulablePeople,
-            'specialEventPeople' => $specialEventPeople,
+            'specialSchedulePeople' => $specialSchedulePeople,
             'profile' => $profile,
             'registrationBlock' => $registrationBlock,
             'needsProfileCompletion' => $needsProfileCompletion,
@@ -262,12 +262,12 @@ class AgendaController extends Controller
     }
 
     /**
-     * Realiza inscricao em evento especial com ou sem autenticacao.
+     * Realiza inscricao em horario especial com ou sem autenticacao.
      */
-    public function registerSpecialEvent(): void
+    public function registerSpecialSchedule(): void
     {
         try {
-            $this->agendaService->registerSpecialEvent($_POST);
+            $this->agendaService->registerSpecialSchedule($_POST);
 
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([

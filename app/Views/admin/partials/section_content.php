@@ -885,9 +885,9 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 
         <section class="grid-two top-gap">
             <article class="content-card">
-                <h2>Evento sazonal ou avaliacao especial</h2>
-                <p class="muted">Use este bloco para datas especificas do ano que nao seguem recorrencia semanal. Elas aparecem na agenda publica como evento clicavel com link de detalhes.</p>
-                <form method="POST" action="<?php echo e(url('/admin/agenda-eventos-especiais')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1" enctype="multipart/form-data">
+                <h2>Horario especial ou avaliacao especial</h2>
+                <p class="muted">Use este bloco para datas especificas do ano que nao seguem recorrencia semanal. Elas aparecem na agenda publica como horario clicavel com inscricao e controle de vagas por publico.</p>
+                <form method="POST" action="<?php echo e(url('/admin/agenda-horarios-especiais')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1" enctype="multipart/form-data">
                     <label><span>Titulo</span><input type="text" name="titulo" maxlength="180" required></label>
                     <label><span>Descricao</span><textarea name="descricao" rows="4" placeholder="Texto livre para orientar o usuario sobre a avaliacao, inscricao ou criterio especial."></textarea></label>
                     <div class="grid-two">
@@ -901,6 +901,14 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     <div class="grid-two">
                         <label><span>Idade minima</span><input type="number" name="idade_minima" min="0" max="120" value="0" required></label>
                         <label><span>Idade maxima</span><input type="number" name="idade_maxima" min="0" max="120" value="120" required></label>
+                    </div>
+                    <div class="grid-two">
+                        <label><span>Vagas geral</span><input type="number" name="vagas_geral" min="0" value="0" required></label>
+                        <label><span>Vagas PCD</span><input type="number" name="vagas_pcd" min="0" value="0" required></label>
+                    </div>
+                    <div class="grid-two">
+                        <label><span>Vagas PVS</span><input type="number" name="vagas_pvs" min="0" value="0" required></label>
+                        <label><span>Vagas PLM</span><input type="number" name="vagas_plm" min="0" value="0" required></label>
                     </div>
                     <div class="grid-two">
                         <label class="checkbox-line">
@@ -953,12 +961,12 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             <option value="0">Inativo</option>
                         </select>
                     </label>
-                    <button type="submit" class="btn btn-primary">Salvar evento especial</button>
+                    <button type="submit" class="btn btn-primary">Salvar horario especial</button>
                 </form>
             </article>
 
             <article class="content-card">
-                <h2>Eventos especiais cadastrados</h2>
+                <h2>Horarios especiais cadastrados</h2>
                 <div class="table-wrap">
                     <table class="data-table">
                         <thead>
@@ -968,6 +976,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 <th>Publicacao</th>
                                 <th>Canais</th>
                                 <th>Faixa etaria</th>
+                                <th>Vagas</th>
                                 <th>Local / modalidade</th>
                                 <th>Destino</th>
                                 <th>Status</th>
@@ -975,19 +984,20 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             </tr>
                         </thead>
                         <tbody>
-                            <?php if (empty($specialAgendaEvents ?? [])) { ?>
-                                <tr><td colspan="9">Nenhum evento especial cadastrado.</td></tr>
+                            <?php if (empty($specialSchedules ?? [])) { ?>
+                                <tr><td colspan="10">Nenhum horario especial cadastrado.</td></tr>
                             <?php } ?>
-                            <?php foreach (($specialAgendaEvents ?? []) as $specialEvent) { ?>
+                            <?php foreach (($specialSchedules ?? []) as $specialEvent) { ?>
                                 <tr>
                                     <td>
-                                        <strong><?php echo e((string) ($specialEvent['titulo'] ?? 'Evento especial')); ?></strong><br>
+                                        <strong><?php echo e((string) ($specialEvent['titulo'] ?? 'Horario especial')); ?></strong><br>
                                         <small><?php echo e(trim((string) ($specialEvent['descricao'] ?? '')) !== '' ? substr((string) $specialEvent['descricao'], 0, 90) . (strlen((string) $specialEvent['descricao']) > 90 ? '...' : '') : 'Sem descricao'); ?></small>
                                     </td>
                                     <td><?php echo e(date('d/m/Y H:i', strtotime((string) $specialEvent['data_inicio']))); ?> ate <?php echo e(date('d/m/Y H:i', strtotime((string) $specialEvent['data_fim']))); ?></td>
                                     <td><?php echo e(date('d/m/Y H:i', strtotime((string) $specialEvent['data_publicacao_inicio']))); ?> ate <?php echo e(date('d/m/Y H:i', strtotime((string) $specialEvent['data_publicacao_fim']))); ?></td>
                                     <td><?php echo (int) ($specialEvent['publicar_pagina_inicial'] ?? 0) === 1 ? 'Home' : '-'; ?> / <?php echo (int) ($specialEvent['publicar_blog'] ?? 0) === 1 ? 'Blog' : '-'; ?></td>
                                     <td><?php echo e((string) ($specialEvent['idade_minima'] ?? 0)); ?> a <?php echo e((string) ($specialEvent['idade_maxima'] ?? 120)); ?> anos</td>
+                                    <td>Geral: <?php echo e((string) ($specialEvent['vagas_geral'] ?? 0)); ?><br><small>PCD: <?php echo e((string) ($specialEvent['vagas_pcd'] ?? 0)); ?> | PVS: <?php echo e((string) ($specialEvent['vagas_pvs'] ?? 0)); ?> | PLM: <?php echo e((string) ($specialEvent['vagas_plm'] ?? 0)); ?></small></td>
                                     <td><?php echo e(trim((string) ($specialEvent['local_nome'] ?? '')) !== '' ? (string) $specialEvent['local_nome'] : '-'); ?><br><small><?php echo e(trim((string) ($specialEvent['modalidade_nome'] ?? '')) !== '' ? (string) $specialEvent['modalidade_nome'] : 'Sem modalidade'); ?></small></td>
                                     <td><?php echo e(trim((string) ($specialEvent['url_destino'] ?? '')) !== '' ? (string) $specialEvent['url_destino'] : '-'); ?></td>
                                     <td><?php echo e((int) ($specialEvent['ativo'] ?? 0) === 1 ? 'Ativo' : 'Inativo'); ?></td>
@@ -995,14 +1005,14 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                         <button
                                             type="button"
                                             class="btn btn-secondary btn-compact"
-                                            data-special-agenda-event-edit="1"
-                                            data-special-agenda-event-id="<?php echo e((string) $specialEvent['id']); ?>"
+                                            data-special-schedule-edit="1"
+                                            data-special-schedule-id="<?php echo e((string) $specialEvent['id']); ?>"
                                         >
                                             Editar
                                         </button>
                                         <?php if ((int) ($specialEvent['ativo'] ?? 0) === 1) { ?>
-                                            <form method="POST" action="<?php echo e(url('/admin/agenda-eventos-especiais/inativar')); ?>" class="inline-form" data-ajax-form="1">
-                                                <input type="hidden" name="agenda_evento_especial_id" value="<?php echo e((string) $specialEvent['id']); ?>">
+                                            <form method="POST" action="<?php echo e(url('/admin/agenda-horarios-especiais/inativar')); ?>" class="inline-form" data-ajax-form="1">
+                                                <input type="hidden" name="agenda_horario_especial_id" value="<?php echo e((string) $specialEvent['id']); ?>">
                                                 <button type="submit" class="btn btn-secondary btn-compact">Inativar</button>
                                             </form>
                                         <?php } else { ?>
@@ -1017,46 +1027,54 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             </article>
         </section>
 
-        <div id="admin-special-agenda-event-editor" class="popup-overlay hidden" aria-hidden="true">
-            <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-special-agenda-event-editor-title">
+        <div id="admin-special-schedule-editor" class="popup-overlay hidden" aria-hidden="true">
+            <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-special-schedule-editor-title">
                 <div class="popup-head admin-popup-head">
                     <div>
-                        <h3 id="admin-special-agenda-event-editor-title">Editar evento especial</h3>
-                        <p class="muted" id="admin-special-agenda-event-editor-subtitle">Atualize os dados do evento especial sem sair da agenda administrativa.</p>
+                        <h3 id="admin-special-schedule-editor-title">Editar horario especial</h3>
+                        <p class="muted" id="admin-special-schedule-editor-subtitle">Atualize os dados do horario especial sem sair da agenda administrativa.</p>
                     </div>
-                    <button type="button" class="popup-close-icon" id="admin-special-agenda-event-editor-close" aria-label="Fechar edicao">&times;</button>
+                    <button type="button" class="popup-close-icon" id="admin-special-schedule-editor-close" aria-label="Fechar edicao">&times;</button>
                 </div>
                 <div class="popup-body admin-popup-body">
-                    <form method="POST" action="<?php echo e(url('/admin/agenda-eventos-especiais/atualizar')); ?>" class="stack-form" id="admin-special-agenda-event-form" enctype="multipart/form-data" data-manual-submit="1">
-                        <input type="hidden" name="agenda_evento_especial_id" id="admin-special-agenda-event-id">
-                        <label><span>Titulo</span><input type="text" name="titulo" id="admin-special-agenda-event-title" maxlength="180" required></label>
-                        <label><span>Descricao</span><textarea name="descricao" id="admin-special-agenda-event-description" rows="4"></textarea></label>
+                    <form method="POST" action="<?php echo e(url('/admin/agenda-horarios-especiais/atualizar')); ?>" class="stack-form" id="admin-special-schedule-form" enctype="multipart/form-data" data-manual-submit="1">
+                        <input type="hidden" name="agenda_horario_especial_id" id="admin-special-schedule-id">
+                        <label><span>Titulo</span><input type="text" name="titulo" id="admin-special-schedule-title" maxlength="180" required></label>
+                        <label><span>Descricao</span><textarea name="descricao" id="admin-special-schedule-description" rows="4"></textarea></label>
                         <div class="grid-two">
-                            <label><span>Inicio</span><input type="datetime-local" name="data_inicio" id="admin-special-agenda-event-start" required></label>
-                            <label><span>Fim</span><input type="datetime-local" name="data_fim" id="admin-special-agenda-event-end" required></label>
+                            <label><span>Inicio</span><input type="datetime-local" name="data_inicio" id="admin-special-schedule-start" required></label>
+                            <label><span>Fim</span><input type="datetime-local" name="data_fim" id="admin-special-schedule-end" required></label>
                         </div>
                         <div class="grid-two">
-                            <label><span>Publicacao: inicio</span><input type="datetime-local" name="data_publicacao_inicio" id="admin-special-agenda-event-publish-start" required></label>
-                            <label><span>Publicacao: fim</span><input type="datetime-local" name="data_publicacao_fim" id="admin-special-agenda-event-publish-end" required></label>
+                            <label><span>Publicacao: inicio</span><input type="datetime-local" name="data_publicacao_inicio" id="admin-special-schedule-publish-start" required></label>
+                            <label><span>Publicacao: fim</span><input type="datetime-local" name="data_publicacao_fim" id="admin-special-schedule-publish-end" required></label>
                         </div>
                         <div class="grid-two">
-                            <label><span>Idade minima</span><input type="number" name="idade_minima" id="admin-special-agenda-event-age-min" min="0" max="120" required></label>
-                            <label><span>Idade maxima</span><input type="number" name="idade_maxima" id="admin-special-agenda-event-age-max" min="0" max="120" required></label>
+                            <label><span>Idade minima</span><input type="number" name="idade_minima" id="admin-special-schedule-age-min" min="0" max="120" required></label>
+                            <label><span>Idade maxima</span><input type="number" name="idade_maxima" id="admin-special-schedule-age-max" min="0" max="120" required></label>
+                        </div>
+                        <div class="grid-two">
+                            <label><span>Vagas geral</span><input type="number" name="vagas_geral" id="admin-special-schedule-vagas-geral" min="0" required></label>
+                            <label><span>Vagas PCD</span><input type="number" name="vagas_pcd" id="admin-special-schedule-vagas-pcd" min="0" required></label>
+                        </div>
+                        <div class="grid-two">
+                            <label><span>Vagas PVS</span><input type="number" name="vagas_pvs" id="admin-special-schedule-vagas-pvs" min="0" required></label>
+                            <label><span>Vagas PLM</span><input type="number" name="vagas_plm" id="admin-special-schedule-vagas-plm" min="0" required></label>
                         </div>
                         <div class="grid-two">
                             <label class="checkbox-line">
-                                <input type="checkbox" name="publicar_pagina_inicial" value="1" id="admin-special-agenda-event-home">
+                                <input type="checkbox" name="publicar_pagina_inicial" value="1" id="admin-special-schedule-home">
                                 <span>Publicar tambem na pagina inicial</span>
                             </label>
                             <label class="checkbox-line">
-                                <input type="checkbox" name="publicar_blog" value="1" id="admin-special-agenda-event-blog">
+                                <input type="checkbox" name="publicar_blog" value="1" id="admin-special-schedule-blog">
                                 <span>Publicar tambem no blog</span>
                             </label>
                         </div>
                         <div class="grid-two">
                             <label>
                                 <span>Espaco de treino</span>
-                                <select name="espaco_treino_id" id="admin-special-agenda-event-space">
+                                <select name="espaco_treino_id" id="admin-special-schedule-space">
                                     <option value="">Opcional</option>
                                     <?php foreach (($trainingSpaces ?? []) as $space) { ?>
                                         <option value="<?php echo e((string) $space['id']); ?>">
@@ -1067,7 +1085,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             </label>
                             <label>
                                 <span>Modalidade</span>
-                                <select name="modalidade_id" id="admin-special-agenda-event-modality">
+                                <select name="modalidade_id" id="admin-special-schedule-modality">
                                     <option value="">Opcional</option>
                                     <?php foreach (($modalities ?? []) as $modality) { ?>
                                         <option value="<?php echo e((string) $modality['id']); ?>"><?php echo e($modality['nome']); ?></option>
@@ -1076,22 +1094,22 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             </label>
                         </div>
                         <div class="grid-two">
-                            <label><span>Imagem (URL opcional)</span><input type="text" name="imagem_url" id="admin-special-agenda-event-image-url" placeholder="https://... ou /assets/imagens/..."></label>
-                            <label><span>Imagem (arquivo opcional)</span><input type="file" name="imagem_arquivo" id="admin-special-agenda-event-image-file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"></label>
+                            <label><span>Imagem (URL opcional)</span><input type="text" name="imagem_url" id="admin-special-schedule-image-url" placeholder="https://... ou /assets/imagens/..."></label>
+                            <label><span>Imagem (arquivo opcional)</span><input type="file" name="imagem_arquivo" id="admin-special-schedule-image-file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"></label>
                         </div>
                         <div class="grid-two">
-                            <label><span>URL de destino</span><input type="text" name="url_destino" id="admin-special-agenda-event-url" placeholder="/blog/post ou https://..."></label>
-                            <label><span>Rotulo do botao</span><input type="text" name="rotulo_acao" id="admin-special-agenda-event-label" maxlength="80" placeholder="Ex.: Ver detalhes"></label>
+                            <label><span>URL de destino</span><input type="text" name="url_destino" id="admin-special-schedule-url" placeholder="/blog/post ou https://..."></label>
+                            <label><span>Rotulo do botao</span><input type="text" name="rotulo_acao" id="admin-special-schedule-label" maxlength="80" placeholder="Ex.: Ver detalhes"></label>
                         </div>
                         <label>
                             <span>Status</span>
-                            <select name="ativo" id="admin-special-agenda-event-active">
+                            <select name="ativo" id="admin-special-schedule-active">
                                 <option value="1">Ativo</option>
                                 <option value="0">Inativo</option>
                             </select>
                         </label>
                         <div class="popup-actions">
-                            <button type="button" class="btn btn-secondary" id="admin-special-agenda-event-cancel">Cancelar</button>
+                            <button type="button" class="btn btn-secondary" id="admin-special-schedule-cancel">Cancelar</button>
                             <button type="submit" class="btn btn-primary">Salvar alteracoes</button>
                         </div>
                     </form>
@@ -1427,18 +1445,18 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         <section class="content-card top-gap">
             <div class="section-head">
                 <div>
-                    <h2>Eventos especiais publicados no blog</h2>
-                    <p class="muted">Esses eventos especiais aparecem na vitrine publica do blog institucional.</p>
+                    <h2>Horarios especiais publicados no blog</h2>
+                    <p class="muted">Esses horarios especiais aparecem na vitrine publica do blog institucional.</p>
                 </div>
             </div>
             <div class="post-grid">
                 <?php if (empty($blogSpecialEvents ?? [])) { ?>
-                    <p class="muted">Nenhum evento especial esta marcado para o blog.</p>
+                    <p class="muted">Nenhum horario especial esta marcado para o blog.</p>
                 <?php } ?>
                 <?php foreach (($blogSpecialEvents ?? []) as $specialEvent) { ?>
                     <article class="post-card">
-                        <span class="eyebrow eyebrow-soft">Evento especial</span>
-                        <h3><?php echo e((string) ($specialEvent['titulo'] ?? 'Evento especial')); ?></h3>
+                        <span class="eyebrow eyebrow-soft">Horario especial</span>
+                        <h3><?php echo e((string) ($specialEvent['titulo'] ?? 'Horario especial')); ?></h3>
                         <p><?php echo e(trim((string) ($specialEvent['descricao'] ?? '')) !== '' ? (string) $specialEvent['descricao'] : 'Sem descricao.'); ?></p>
                         <small><?php echo e(date('d/m/Y H:i', strtotime((string) ($specialEvent['data_inicio'] ?? 'now')))); ?></small>
                     </article>

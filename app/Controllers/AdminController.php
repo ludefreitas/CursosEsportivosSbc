@@ -291,14 +291,14 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna os dados completos de um evento especial para edicao em modal.
+     * Retorna os dados completos de um horario especial para edicao em modal.
      */
-    public function specialAgendaEventDetails(): void
+    public function specialScheduleDetails(): void
     {
         $this->assertAdminAccess();
 
         try {
-            $event = $this->adminService->getSpecialAgendaEventDetails((int) ($_GET['id'] ?? 0));
+            $event = $this->adminService->getSpecialScheduleDetails((int) ($_GET['id'] ?? 0));
             $this->jsonResponse([
                 'success' => true,
                 'event' => $event,
@@ -1052,24 +1052,24 @@ class AdminController extends Controller
     }
 
     /**
-     * Salva um novo evento sazonal/informativo para a agenda publica.
+     * Salva um novo horario especial para a agenda publica.
      */
-    public function storeSpecialAgendaEvent(): void
+    public function storeSpecialSchedule(): void
     {
         $user = $this->assertAdminAccess();
 
         try {
-            $this->adminService->createSpecialAgendaEvent((int) $user['conta_id'], $_POST, $_FILES);
+            $this->adminService->createSpecialSchedule((int) $user['conta_id'], $_POST, $_FILES);
 
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Evento especial salvo com sucesso.',
+                    'message' => 'Horario especial salvo com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'Evento especial salvo com sucesso.');
+            flash('success', 'Horario especial salvo com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1085,24 +1085,24 @@ class AdminController extends Controller
     }
 
     /**
-     * Inativa um evento sazonal/informativo da agenda publica.
+     * Inativa um horario especial da agenda publica.
      */
-    public function deactivateSpecialAgendaEvent(): void
+    public function deactivateSpecialSchedule(): void
     {
         $this->assertAdminAccess();
 
         try {
-            $this->adminService->deactivateSpecialAgendaEvent((int) ($_POST['agenda_evento_especial_id'] ?? 0));
+            $this->adminService->deactivateSpecialSchedule((int) ($_POST['agenda_horario_especial_id'] ?? ($_POST['agenda_evento_especial_id'] ?? 0)));
 
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Evento especial inativado com sucesso.',
+                    'message' => 'Horario especial inativado com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'Evento especial inativado com sucesso.');
+            flash('success', 'Horario especial inativado com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1118,15 +1118,15 @@ class AdminController extends Controller
     }
 
     /**
-     * Atualiza um evento especial existente.
+     * Atualiza um horario especial existente.
      */
-    public function updateSpecialAgendaEvent(): void
+    public function updateSpecialSchedule(): void
     {
         $user = $this->assertAdminAccess();
 
         try {
-            $this->adminService->updateSpecialAgendaEvent(
-                (int) ($_POST['agenda_evento_especial_id'] ?? 0),
+            $this->adminService->updateSpecialSchedule(
+                (int) ($_POST['agenda_horario_especial_id'] ?? ($_POST['agenda_evento_especial_id'] ?? 0)),
                 (int) $user['conta_id'],
                 $_POST,
                 $_FILES
@@ -1135,12 +1135,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Evento especial atualizado com sucesso.',
+                    'message' => 'Horario especial atualizado com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'Evento especial atualizado com sucesso.');
+            flash('success', 'Horario especial atualizado com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1466,7 +1466,7 @@ class AdminController extends Controller
             $data['selectedDailyLocationId'] = $dailyLocationId > 0 ? $dailyLocationId : 0;
             $data['selectedDailySpaceId'] = $dailySpaceId > 0 ? $dailySpaceId : 0;
             $data['weeklySchedules'] = $this->adminService->listWeeklySchedulesForManagement($locationId, $modalityId);
-            $data['specialAgendaEvents'] = $this->adminService->listSpecialAgendaEventsForManagement($locationId, $modalityId);
+            $data['specialSchedules'] = $this->adminService->listSpecialSchedulesForManagement($locationId, $modalityId);
             $data['dailyBookings'] = $this->adminService->listDailyBookingsForManagement($dailyDate, $dailyLocationId, $dailySpaceId);
             $data['currentAdminName'] = (string) ($user['nome_completo'] ?? '');
         }
@@ -1486,7 +1486,7 @@ class AdminController extends Controller
             $data['posts'] = $this->blogService->listPostsForAdmin();
             $data['blogSummary'] = $this->blogService->adminSummary();
             $data['blogCategories'] = $this->blogService->listPublicCategories();
-            $data['blogSpecialEvents'] = $this->adminService->listPublishedSpecialAgendaEvents('blog', 20);
+            $data['blogSpecialEvents'] = $this->adminService->listPublishedSpecialSchedules('blog', 20);
         }
 
         if ($sectionName === 'locais-espacos') {

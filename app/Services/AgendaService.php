@@ -13,6 +13,7 @@ class AgendaService
     public function __construct()
     {
         $this->ensureWeeklyScheduleAgeRuleSchema();
+        $this->ensureSpecialScheduleSchema();
     }
 
     /**
@@ -186,8 +187,8 @@ class AgendaService
             }
         }
 
-        foreach ($this->loadSpecialAgendaEvents($locationId, $modalityId, $calendarStart, $calendarEnd) as $specialEvent) {
-            $events[] = $specialEvent;
+        foreach ($this->loadSpecialSchedules($locationId, $modalityId, $calendarStart, $calendarEnd) as $specialSchedule) {
+            $events[] = $specialSchedule;
         }
 
         usort($events, static function (array $left, array $right): int {
@@ -210,9 +211,9 @@ class AgendaService
     }
 
     /**
-     * Lista pessoas vinculadas para uso em eventos especiais.
+     * Lista pessoas vinculadas para uso em horarios especiais.
      */
-    public function listSpecialEventPeople(): array
+    public function listSpecialSchedulePeople(): array
     {
         if (!Auth::check()) {
             return [];
@@ -407,40 +408,47 @@ class AgendaService
     }
 
     /**
-     * Realiza inscricao em evento especial, com ou sem login.
+     * Realiza inscricao em horario especial, com ou sem login.
      */
-    public function registerSpecialEvent(array $data): void
+    public function registerSpecialSchedule(array $data): void
     {
-        $eventId = (int) ($data['agenda_evento_especial_id'] ?? 0);
+        $eventId = (int) ($data['agenda_horario_especial_id'] ?? ($data['agenda_evento_especial_id'] ?? 0));
         $linkedPersonId = (int) ($data['linked_person_id'] ?? 0);
         $fullName = normalize_nome_completo((string) ($data['nome_completo'] ?? ''));
         $cpf = normalize_cpf((string) ($data['cpf'] ?? ''));
         $birthDate = trim((string) ($data['data_nascimento'] ?? ''));
+        $publico = strtolower(trim((string) ($data['publico_alvo'] ?? 'geral')));
         $acceptedTerms = (int) ($data['aceite_termos'] ?? 0) === 1;
 
-        $event = $this->findSpecialAgendaEventById($eventId);
+        if (!in_array($publico, ['geral', 'pcd', 'pvs', 'plm'], true)) {
+            $publico = 'geral';
+        }
+
+        $event = $this->findSpecialScheduleById($eventId);
         $now = new DateTimeImmutable();
 
         try {
             $publishStart = new DateTimeImmutable((string) $event['data_publicacao_inicio']);
             $publishEnd = new DateTimeImmutable((string) $event['data_publicacao_fim']);
         } catch (\Throwable $e) {
-            throw new RuntimeException('A janela de publicacao deste evento especial esta invalida.');
+            throw new RuntimeException('A janela de publicacao deste horario especial esta invalida.');
         }
 
         if ($now < $publishStart || $now > $publishEnd) {
-            throw new RuntimeException('As inscricoes para este evento especial nao estao abertas no momento.');
+            throw new RuntimeException('As inscricoes para este horario especial nao estao abertas no momento.');
         }
+
+        $linkedPerson = null;
 
         if ($linkedPersonId > 0) {
             if (!Auth::check()) {
                 throw new RuntimeException('Faca login para usar uma pessoa vinculada.');
             }
 
-            $person = $this->findLinkedPersonById($linkedPersonId);
-            $fullName = normalize_nome_completo((string) ($person['nome_completo'] ?? ''));
-            $cpf = normalize_cpf((string) ($person['cpf'] ?? ''));
-            $birthDate = trim((string) ($person['data_nascimento'] ?? ''));
+            $linkedPerson = $this->findLinkedPersonById($linkedPersonId);
+            $fullName = normalize_nome_completo((string) ($linkedPerson['nome_completo'] ?? ''));
+            $cpf = normalize_cpf((string) ($linkedPerson['cpf'] ?? ''));
+            $birthDate = trim((string) ($linkedPerson['data_nascimento'] ?? ''));
         }
 
         if (!validar_nome_cadastro($fullName)) {
@@ -461,12 +469,17 @@ class AgendaService
             throw new RuntimeException('A data de nascimento informada e invalida.');
         }
 
-        $age = calculate_age($birth->format('Y-m-d'));
-        $minAge = (int) ($event['idade_minima'] ?? 0);
-        $maxAge = (int) ($event['idade_maxima'] ?? 120);
+        $specialStart = new DateTimeImmutable((string) ($event['data_inicio'] ?? 'now'));
+        $ageRuleMode = normalize_age_rule_mode((string) ($event['criterio_faixa_etaria'] ?? 'idade_exata'));
 
-        if ($age === null || $age < $minAge || $age > $maxAge) {
-            throw new RuntimeException('A idade informada nao esta dentro da faixa permitida para este evento especial.');
+        if (!person_matches_age_rule(
+            $birth->format('Y-m-d'),
+            (int) ($event['idade_minima'] ?? 0),
+            (int) ($event['idade_maxima'] ?? 120),
+            $ageRuleMode,
+            $specialStart
+        )) {
+            throw new RuntimeException('A data de nascimento informada nao esta dentro da faixa permitida para este horario especial.');
         }
 
         if (!$acceptedTerms) {
@@ -474,10 +487,34 @@ class AgendaService
         }
 
         $pdo = Database::connection();
+
+        $resolvedPersonId = $linkedPersonId;
+
+        if ($linkedPerson === null) {
+            $resolvedPersonId = $this->findPersonIdByCpfAndBirthDate($cpf, $birth->format('Y-m-d'));
+            if ($resolvedPersonId > 0) {
+                $linkedPerson = $this->findPersonById($resolvedPersonId);
+            }
+        }
+
+        if ($linkedPerson !== null) {
+            $conditionBlockReasons = $this->collectConditionCertificateBlockReasons($pdo, $linkedPerson);
+            if ($conditionBlockReasons !== []) {
+                throw new RuntimeException($conditionBlockReasons[0]);
+            }
+
+            $this->validarRestricaoValidacaoParcial($pdo, (int) $linkedPerson['id'], $publico);
+            $this->validarPublicoReservado($pdo, (int) $linkedPerson['id'], $publico);
+        } elseif ($publico !== 'geral') {
+            throw new RuntimeException('As vagas reservadas exigem uma pessoa ja cadastrada e vinculada no sistema.');
+        }
+
+        $this->validarVagasHorarioEspecial($pdo, $event, $publico);
+
         $stmtDuplicate = $pdo->prepare('
             SELECT id
-            FROM agenda_eventos_especiais_inscricoes
-            WHERE agenda_evento_especial_id = :evento_id
+            FROM agenda_horarios_especiais_inscricoes
+            WHERE agenda_horario_especial_id = :evento_id
               AND cpf = :cpf
               AND status = "inscrito"
             LIMIT 1
@@ -488,45 +525,49 @@ class AgendaService
         ]);
 
         if ($stmtDuplicate->fetchColumn()) {
-            throw new RuntimeException('Ja existe uma inscricao ativa com este CPF para este evento especial.');
+            throw new RuntimeException('Ja existe uma inscricao ativa com este CPF para este horario especial.');
         }
 
         $stmt = $pdo->prepare('
-            INSERT INTO agenda_eventos_especiais_inscricoes (
-                agenda_evento_especial_id,
+            INSERT INTO agenda_horarios_especiais_inscricoes (
+                agenda_horario_especial_id,
                 pessoa_id,
                 conta_id,
                 nome_completo,
                 cpf,
                 data_nascimento,
+                publico_alvo,
                 aceite_termos,
                 status,
                 created_at
             ) VALUES (
-                :agenda_evento_especial_id,
+                :agenda_horario_especial_id,
                 :pessoa_id,
                 :conta_id,
                 :nome_completo,
                 :cpf,
                 :data_nascimento,
+                :publico_alvo,
                 :aceite_termos,
                 "inscrito",
                 NOW()
             )
         ');
         $stmt->execute([
-            ':agenda_evento_especial_id' => $eventId,
-            ':pessoa_id' => $linkedPersonId > 0 ? $linkedPersonId : null,
+            ':agenda_horario_especial_id' => $eventId,
+            ':pessoa_id' => $resolvedPersonId > 0 ? $resolvedPersonId : null,
             ':conta_id' => Auth::check() ? (int) Auth::id() : null,
             ':nome_completo' => $fullName,
             ':cpf' => $cpf,
             ':data_nascimento' => $birth->format('Y-m-d'),
+            ':publico_alvo' => $publico,
             ':aceite_termos' => 1,
         ]);
 
-        AuditLogService::record('agenda_evento_especial.inscricao_criada', 'agenda_eventos_especiais_inscricoes', (int) $pdo->lastInsertId(), [
-            'agenda_evento_especial_id' => $eventId,
+        AuditLogService::record('agenda_horario_especial.inscricao_criada', 'agenda_horarios_especiais_inscricoes', (int) $pdo->lastInsertId(), [
+            'agenda_horario_especial_id' => $eventId,
             'cpf' => $cpf,
+            'publico_alvo' => $publico,
             'conta_id' => Auth::check() ? (int) Auth::id() : null,
         ]);
     }
@@ -1107,9 +1148,9 @@ class AgendaService
     }
 
     /**
-     * Carrega eventos sazonais/informativos para a agenda publica.
+     * Carrega horarios especiais para a agenda publica.
      */
-    private function loadSpecialAgendaEvents(int $locationId, int $modalityId, DateTimeImmutable $start, DateTimeImmutable $end): array
+    private function loadSpecialSchedules(int $locationId, int $modalityId, DateTimeImmutable $start, DateTimeImmutable $end): array
     {
         $pdo = Database::connection();
         $sql = '
@@ -1121,6 +1162,11 @@ class AgendaService
                 ae.data_fim,
                 ae.idade_minima,
                 ae.idade_maxima,
+                ae.criterio_faixa_etaria,
+                ae.vagas_geral,
+                ae.vagas_pcd,
+                ae.vagas_plm,
+                ae.vagas_pvs,
                 ae.data_publicacao_inicio,
                 ae.data_publicacao_fim,
                 ae.imagem_url,
@@ -1132,7 +1178,7 @@ class AgendaService
                 lt.nome AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome
-            FROM agenda_eventos_especiais ae
+            FROM agenda_horarios_especiais ae
             LEFT JOIN locais_treino lt ON lt.id = ae.local_treino_id
             LEFT JOIN espacos_treino et ON et.id = ae.espaco_treino_id
             LEFT JOIN modalidades m ON m.id = ae.modalidade_id
@@ -1160,31 +1206,70 @@ class AgendaService
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $events = [];
+        $occupancy = $this->loadSpecialScheduleOccupancy(array_map(
+            static fn (array $row): int => (int) ($row['id'] ?? 0),
+            $stmt->fetchAll(PDO::FETCH_ASSOC)
+        ));
+
+        $stmt->execute($params);
 
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $scheduleId = (int) ($row['id'] ?? 0);
+            $vagasGeral = (int) ($row['vagas_geral'] ?? 0);
+            $vagasPcd = (int) ($row['vagas_pcd'] ?? 0);
+            $vagasPlm = (int) ($row['vagas_plm'] ?? 0);
+            $vagasPvs = (int) ($row['vagas_pvs'] ?? 0);
+            $ocupacao = $occupancy[$scheduleId] ?? [
+                'geral' => 0,
+                'pcd' => 0,
+                'plm' => 0,
+                'pvs' => 0,
+            ];
+            $vagasTotal = $vagasGeral + $vagasPcd + $vagasPlm + $vagasPvs;
+            $vagasOcupadas = (int) $ocupacao['geral'] + (int) $ocupacao['pcd'] + (int) $ocupacao['plm'] + (int) $ocupacao['pvs'];
+            $specialStart = new DateTimeImmutable((string) ($row['data_inicio'] ?? 'now'));
+            $ageRuleDescription = describe_age_rule(
+                (int) ($row['idade_minima'] ?? 0),
+                (int) ($row['idade_maxima'] ?? 120),
+                (string) ($row['criterio_faixa_etaria'] ?? 'idade_exata'),
+                $specialStart
+            );
+
             $events[] = [
-                'id' => 'special-' . (string) ($row['id'] ?? ''),
-                'title' => (string) ($row['titulo'] ?? 'Evento especial'),
+                'id' => 'special-schedule-' . (string) ($row['id'] ?? ''),
+                'title' => (string) ($row['titulo'] ?? 'Horario especial'),
                 'start' => str_replace(' ', 'T', (string) ($row['data_inicio'] ?? '')),
                 'end' => str_replace(' ', 'T', (string) ($row['data_fim'] ?? '')),
                 'classNames' => ['agenda-special-event'],
                 'extendedProps' => [
                     'is_special' => true,
+                    'special_schedule_id' => $scheduleId,
                     'local' => (string) ($row['local_nome'] ?? ''),
                     'espaco' => (string) ($row['espaco_nome'] ?? ''),
                     'modalidade' => (string) ($row['modalidade_nome'] ?? ''),
-                    'tipo_horario' => 'evento especial',
+                    'tipo_horario' => 'horario especial',
                     'special_description' => (string) ($row['descricao'] ?? ''),
                     'special_cta_url' => (string) ($row['url_destino'] ?? ''),
                     'special_cta_label' => trim((string) ($row['rotulo_acao'] ?? '')) !== '' ? (string) $row['rotulo_acao'] : 'Abrir detalhes',
                     'special_image_url' => (string) ($row['imagem_url'] ?? ''),
                     'special_age_min' => (int) ($row['idade_minima'] ?? 0),
                     'special_age_max' => (int) ($row['idade_maxima'] ?? 120),
-                    'vagas_total' => 0,
-                    'vagas_ocupadas' => 0,
-                    'vagas_disponiveis' => 0,
+                    'vagas_geral' => $vagasGeral,
+                    'vagas_pcd' => $vagasPcd,
+                    'vagas_plm' => $vagasPlm,
+                    'vagas_pvs' => $vagasPvs,
+                    'vagas_total' => $vagasTotal,
+                    'vagas_ocupadas' => $vagasOcupadas,
+                    'vagas_disponiveis' => max(0, $vagasTotal - $vagasOcupadas),
+                    'vagas_ocupadas_geral' => (int) $ocupacao['geral'],
+                    'vagas_ocupadas_pcd' => (int) $ocupacao['pcd'],
+                    'vagas_ocupadas_plm' => (int) $ocupacao['plm'],
+                    'vagas_ocupadas_pvs' => (int) $ocupacao['pvs'],
                     'idade_minima' => (int) ($row['idade_minima'] ?? 0),
                     'idade_maxima' => (int) ($row['idade_maxima'] ?? 120),
+                    'criterio_faixa_etaria' => normalize_age_rule_mode((string) ($row['criterio_faixa_etaria'] ?? 'idade_exata')),
+                    'criterio_faixa_etaria_rotulo' => (string) ($ageRuleDescription['mode_label'] ?? 'Idade exata'),
+                    'ano_nascimento_intervalo' => (string) ($ageRuleDescription['detailed'] ?? ''),
                     'sexo' => '',
                     'meus_agendamentos' => [],
                     'meu_status_agendamento' => null,
@@ -1278,18 +1363,18 @@ class AgendaService
     }
 
     /**
-     * Busca um evento especial ativo.
+     * Busca um horario especial ativo.
      */
-    private function findSpecialAgendaEventById(int $eventId): array
+    private function findSpecialScheduleById(int $eventId): array
     {
         if ($eventId <= 0) {
-            throw new RuntimeException('Evento especial invalido.');
+            throw new RuntimeException('Horario especial invalido.');
         }
 
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
             SELECT *
-            FROM agenda_eventos_especiais
+            FROM agenda_horarios_especiais
             WHERE id = :id
               AND ativo = 1
             LIMIT 1
@@ -1298,10 +1383,132 @@ class AgendaService
         $event = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$event) {
-            throw new RuntimeException('Evento especial nao encontrado.');
+            throw new RuntimeException('Horario especial nao encontrado.');
         }
 
         return $event;
+    }
+
+    /**
+     * Valida vagas por publico na agenda de horarios especiais.
+     */
+    private function validarVagasHorarioEspecial(\PDO $pdo, array $schedule, string $publico): void
+    {
+        $campo = match ($publico) {
+            'pcd' => 'vagas_pcd',
+            'plm' => 'vagas_plm',
+            'pvs' => 'vagas_pvs',
+            default => 'vagas_geral',
+        };
+
+        $stmtCount = $pdo->prepare('
+            SELECT COUNT(*)
+            FROM agenda_horarios_especiais_inscricoes
+            WHERE agenda_horario_especial_id = :agenda_horario_especial_id
+              AND publico_alvo = :publico_alvo
+              AND status = "inscrito"
+        ');
+        $stmtCount->execute([
+            ':agenda_horario_especial_id' => (int) ($schedule['id'] ?? 0),
+            ':publico_alvo' => $publico,
+        ]);
+
+        if ((int) $stmtCount->fetchColumn() >= (int) ($schedule[$campo] ?? 0)) {
+            throw new RuntimeException('Nao ha mais vagas disponiveis para o publico selecionado neste horario especial.');
+        }
+    }
+
+    /**
+     * Carrega a ocupacao atual por publico para horarios especiais.
+     *
+     * @param array<int> $scheduleIds
+     * @return array<int, array{geral:int,pcd:int,plm:int,pvs:int}>
+     */
+    private function loadSpecialScheduleOccupancy(array $scheduleIds): array
+    {
+        $scheduleIds = array_values(array_unique(array_filter(array_map('intval', $scheduleIds), static fn (int $id): bool => $id > 0)));
+
+        if ($scheduleIds === []) {
+            return [];
+        }
+
+        $pdo = Database::connection();
+        $placeholders = implode(', ', array_fill(0, count($scheduleIds), '?'));
+        $stmt = $pdo->prepare('
+            SELECT agenda_horario_especial_id, publico_alvo, COUNT(*) AS total
+            FROM agenda_horarios_especiais_inscricoes
+            WHERE agenda_horario_especial_id IN (' . $placeholders . ')
+              AND status = "inscrito"
+            GROUP BY agenda_horario_especial_id, publico_alvo
+        ');
+        $stmt->execute($scheduleIds);
+
+        $occupancy = [];
+
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $scheduleId = (int) ($row['agenda_horario_especial_id'] ?? 0);
+            $publico = (string) ($row['publico_alvo'] ?? 'geral');
+
+            if (!isset($occupancy[$scheduleId])) {
+                $occupancy[$scheduleId] = [
+                    'geral' => 0,
+                    'pcd' => 0,
+                    'plm' => 0,
+                    'pvs' => 0,
+                ];
+            }
+
+            if (!isset($occupancy[$scheduleId][$publico])) {
+                $occupancy[$scheduleId][$publico] = 0;
+            }
+
+            $occupancy[$scheduleId][$publico] = (int) ($row['total'] ?? 0);
+        }
+
+        return $occupancy;
+    }
+
+    /**
+     * Localiza pessoa existente por CPF e data de nascimento.
+     */
+    private function findPersonIdByCpfAndBirthDate(string $cpf, string $birthDate): int
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('
+            SELECT id
+            FROM pessoas
+            WHERE cpf = :cpf
+              AND data_nascimento = :data_nascimento
+            LIMIT 1
+        ');
+        $stmt->execute([
+            ':cpf' => $cpf,
+            ':data_nascimento' => $birthDate,
+        ]);
+
+        return (int) ($stmt->fetchColumn() ?: 0);
+    }
+
+    /**
+     * Busca dados resumidos de uma pessoa do sistema.
+     */
+    private function findPersonById(int $personId): ?array
+    {
+        if ($personId <= 0) {
+            return null;
+        }
+
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('
+            SELECT id, nome_completo, cpf, data_nascimento
+            FROM pessoas
+            WHERE id = :id
+            LIMIT 1
+        ');
+        $stmt->execute([':id' => $personId]);
+        $person = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $person ?: null;
     }
 
     /**
@@ -1623,6 +1830,76 @@ class AgendaService
 
         if (!in_array($publico, $partialSlugs, true)) {
             throw new RuntimeException('Com certificado validado parcialmente, a pessoa so pode agendar nas vagas destinadas a sua propria condicao especial.');
+        }
+    }
+
+    /**
+     * Garante a estrutura base da agenda de horarios especiais.
+     */
+    private function ensureSpecialScheduleSchema(): void
+    {
+        $pdo = Database::connection();
+
+        $oldTable = $pdo->query("SHOW TABLES LIKE 'agenda_eventos_especiais'")->fetchColumn();
+        $newTable = $pdo->query("SHOW TABLES LIKE 'agenda_horarios_especiais'")->fetchColumn();
+
+        if ($oldTable && !$newTable) {
+            $pdo->exec('RENAME TABLE agenda_eventos_especiais TO agenda_horarios_especiais');
+        }
+
+        $oldRegistrationsTable = $pdo->query("SHOW TABLES LIKE 'agenda_eventos_especiais_inscricoes'")->fetchColumn();
+        $newRegistrationsTable = $pdo->query("SHOW TABLES LIKE 'agenda_horarios_especiais_inscricoes'")->fetchColumn();
+
+        if ($oldRegistrationsTable && !$newRegistrationsTable) {
+            $pdo->exec('RENAME TABLE agenda_eventos_especiais_inscricoes TO agenda_horarios_especiais_inscricoes');
+        }
+
+        $tableExists = $pdo->query("SHOW TABLES LIKE 'agenda_horarios_especiais'")->fetchColumn();
+        if ($tableExists) {
+            $columns = [];
+            foreach ($pdo->query('SHOW COLUMNS FROM agenda_horarios_especiais')->fetchAll(PDO::FETCH_ASSOC) as $column) {
+                $columns[(string) ($column['Field'] ?? '')] = true;
+            }
+
+            $alterations = [];
+
+            if (!isset($columns['vagas_geral'])) {
+                $alterations[] = 'ADD COLUMN vagas_geral INT NOT NULL DEFAULT 9999 AFTER idade_maxima';
+            }
+            if (!isset($columns['vagas_pcd'])) {
+                $alterations[] = 'ADD COLUMN vagas_pcd INT NOT NULL DEFAULT 0 AFTER vagas_geral';
+            }
+            if (!isset($columns['vagas_plm'])) {
+                $alterations[] = 'ADD COLUMN vagas_plm INT NOT NULL DEFAULT 0 AFTER vagas_pcd';
+            }
+            if (!isset($columns['vagas_pvs'])) {
+                $alterations[] = 'ADD COLUMN vagas_pvs INT NOT NULL DEFAULT 0 AFTER vagas_plm';
+            }
+
+            if ($alterations !== []) {
+                $pdo->exec('ALTER TABLE agenda_horarios_especiais ' . implode(', ', $alterations));
+            }
+        }
+
+        $registrationsExists = $pdo->query("SHOW TABLES LIKE 'agenda_horarios_especiais_inscricoes'")->fetchColumn();
+        if ($registrationsExists) {
+            $registrationColumns = [];
+            foreach ($pdo->query('SHOW COLUMNS FROM agenda_horarios_especiais_inscricoes')->fetchAll(PDO::FETCH_ASSOC) as $column) {
+                $registrationColumns[(string) ($column['Field'] ?? '')] = true;
+            }
+
+            $registrationAlterations = [];
+
+            if (isset($registrationColumns['agenda_evento_especial_id']) && !isset($registrationColumns['agenda_horario_especial_id'])) {
+                $registrationAlterations[] = 'CHANGE COLUMN agenda_evento_especial_id agenda_horario_especial_id INT NOT NULL';
+            }
+            if (!isset($registrationColumns['publico_alvo'])) {
+                $registrationAlterations[] = 'ADD COLUMN publico_alvo VARCHAR(20) NOT NULL DEFAULT "geral" AFTER data_nascimento';
+            }
+
+            if ($registrationAlterations !== []) {
+                $pdo->exec('ALTER TABLE agenda_horarios_especiais_inscricoes ' . implode(', ', $registrationAlterations));
+            }
         }
     }
 }

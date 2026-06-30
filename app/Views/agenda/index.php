@@ -92,14 +92,14 @@
                 <?php } ?>
             </div>
 
-            <form method="POST" action="<?php echo e(url('/agenda/eventos-especiais/inscrever')); ?>" id="form-agenda-evento-especial" class="stack-form hidden" data-ajax-form="1" data-success-reset="1">
-                <input type="hidden" name="agenda_evento_especial_id" id="agenda_evento_especial_id">
-                <?php if (!empty($specialEventPeople)) { ?>
+            <form method="POST" action="<?php echo e(url('/agenda/horarios-especiais/inscrever')); ?>" id="form-agenda-horario-especial" class="stack-form hidden" data-ajax-form="1" data-success-reset="1">
+                <input type="hidden" name="agenda_horario_especial_id" id="agenda_horario_especial_id">
+                <?php if (!empty($specialSchedulePeople)) { ?>
                     <label>
                         <span>Pessoa vinculada (opcional)</span>
-                        <select name="linked_person_id" id="agenda-special-linked-person">
+                        <select name="linked_person_id" id="agenda-special-schedule-linked-person">
                             <option value="">Preencher manualmente</option>
-                            <?php foreach ($specialEventPeople as $person) { ?>
+                            <?php foreach ($specialSchedulePeople as $person) { ?>
                                 <option
                                     value="<?php echo e((string) ($person['id'] ?? '')); ?>"
                                     data-nome="<?php echo e((string) ($person['nome_completo'] ?? '')); ?>"
@@ -125,8 +125,19 @@
                 <div class="grid-two">
                     <label>
                         <span>Data de nascimento</span>
-                        <input type="date" name="data_nascimento" id="agenda-special-birth-date" required>
+                        <input type="date" name="data_nascimento" id="agenda-special-schedule-birth-date" required>
                     </label>
+                    <label>
+                        <span>Publico da vaga</span>
+                        <select name="publico_alvo" id="agenda-special-schedule-publico">
+                            <option value="geral">Geral</option>
+                            <option value="pcd">PCD</option>
+                            <option value="pvs">PVS</option>
+                            <option value="plm">PLM</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="grid-two">
                     <label>
                         <span>Termos</span>
                         <label class="checkbox-line">
@@ -135,7 +146,7 @@
                         </label>
                     </label>
                 </div>
-                <small class="muted">Se a idade da pessoa estiver fora da faixa etaria do evento, a inscricao sera recusada automaticamente.</small>
+                <small class="muted">Se a idade da pessoa estiver fora da faixa etaria do horario, a inscricao sera recusada automaticamente.</small>
                 <button type="submit" class="btn btn-primary">Confirmar inscricao</button>
             </form>
 

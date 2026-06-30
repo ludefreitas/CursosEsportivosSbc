@@ -27,8 +27,8 @@ class HomeController extends Controller
             'posts' => $blogService->listPublishedPosts([
                 'limit' => 3,
             ]),
-            'homeSpecialEvents' => $adminService->listPublishedSpecialAgendaEvents('home', 3),
-            'blogSpecialEvents' => $adminService->listPublishedSpecialAgendaEvents('blog', 6),
+            'homeSpecialEvents' => $adminService->listPublishedSpecialSchedules('home', 3),
+            'blogSpecialEvents' => $adminService->listPublishedSpecialSchedules('blog', 6),
             'homeInfoBox' => $homeInfoService->getHomeInfoBox(),
         ]);
     }

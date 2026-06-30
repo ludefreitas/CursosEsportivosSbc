@@ -77,8 +77,8 @@
 <section class="content-card">
     <div class="section-head">
         <div>
-            <h2>Eventos especiais em destaque</h2>
-            <p class="muted">Inscricoes e avaliacoes especiais em evidenca na pagina inicial.</p>
+            <h2>Horarios especiais em destaque</h2>
+            <p class="muted">Inscricoes e avaliacoes especiais em evidencia na pagina inicial.</p>
         </div>
         <a href="<?php echo e(url('/agenda')); ?>" class="btn btn-secondary">Abrir agenda</a>
     </div>
@@ -89,7 +89,7 @@
                     <img src="<?php echo e((string) $event['imagem_url']); ?>" alt="<?php echo e((string) $event['titulo']); ?>" class="special-event-card-image">
                 <?php } ?>
                 <div class="special-event-card-body">
-                    <span class="eyebrow eyebrow-soft">Evento especial</span>
+                    <span class="eyebrow eyebrow-soft">Horario especial</span>
                     <h3><?php echo e((string) $event['titulo']); ?></h3>
                     <p><?php echo e((string) ($event['descricao'] ?? '')); ?></p>
                     <small><?php echo e(date('d/m/Y H:i', strtotime((string) $event['data_inicio']))); ?> ate <?php echo e(date('d/m/Y H:i', strtotime((string) $event['data_fim']))); ?></small>
@@ -114,9 +114,9 @@
     <div class="post-grid">
         <?php foreach (($blogSpecialEvents ?? []) as $event) { ?>
             <article class="post-card post-card-special-event">
-                <span class="eyebrow eyebrow-soft">Evento especial</span>
+                <span class="eyebrow eyebrow-soft">Horario especial</span>
                 <h3><?php echo e((string) $event['titulo']); ?></h3>
-                <p><?php echo e(trim((string) ($event['descricao'] ?? '')) !== '' ? (string) $event['descricao'] : 'Evento especial publicado na agenda.'); ?></p>
+                <p><?php echo e(trim((string) ($event['descricao'] ?? '')) !== '' ? (string) $event['descricao'] : 'Horario especial publicado na agenda.'); ?></p>
                 <small><?php echo e(date('d/m/Y H:i', strtotime((string) $event['data_inicio']))); ?></small>
             </article>
         <?php } ?>

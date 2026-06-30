@@ -154,7 +154,7 @@ $search = trim((string) ($search ?? ''));
 
             <?php if (!empty($blogSpecialEvents)) { ?>
                 <section class="blog-section-card">
-                    <h3>Eventos especiais</h3>
+                    <h3>Horarios especiais</h3>
                     <div class="blog-sidebar-events">
                         <?php foreach ($blogSpecialEvents as $event) { ?>
                             <article class="blog-mini-event">

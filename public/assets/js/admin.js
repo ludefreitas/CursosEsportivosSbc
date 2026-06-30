@@ -1760,11 +1760,11 @@
 
         iniciarEditorEventosEspeciais: function () {
             function getModal() {
-                return $('#admin-special-agenda-event-editor');
+                return $('#admin-special-schedule-editor');
             }
 
             function getForm() {
-                return $('#admin-special-agenda-event-form');
+                return $('#admin-special-schedule-form');
             }
 
             function currentAgendaFilters() {
@@ -1821,41 +1821,45 @@
             }
 
             function fillForm(eventData) {
-                setValue('#admin-special-agenda-event-id', eventData.id);
-                setValue('#admin-special-agenda-event-title', eventData.titulo || '');
-                setValue('#admin-special-agenda-event-description', eventData.descricao || '');
-                setValue('#admin-special-agenda-event-start', formatDateTimeLocal(eventData.data_inicio));
-                setValue('#admin-special-agenda-event-end', formatDateTimeLocal(eventData.data_fim));
-                setValue('#admin-special-agenda-event-publish-start', formatDateTimeLocal(eventData.data_publicacao_inicio));
-                setValue('#admin-special-agenda-event-publish-end', formatDateTimeLocal(eventData.data_publicacao_fim));
-                setValue('#admin-special-agenda-event-age-min', eventData.idade_minima);
-                setValue('#admin-special-agenda-event-age-max', eventData.idade_maxima);
-                setValue('#admin-special-agenda-event-space', eventData.espaco_treino_id || '');
-                setValue('#admin-special-agenda-event-modality', eventData.modalidade_id || '');
-                setValue('#admin-special-agenda-event-image-url', eventData.imagem_url || '');
-                setValue('#admin-special-agenda-event-url', eventData.url_destino || '');
-                setValue('#admin-special-agenda-event-label', eventData.rotulo_acao || '');
-                setValue('#admin-special-agenda-event-active', Number(eventData.ativo || 0) === 1 ? '1' : '0');
-                $('#admin-special-agenda-event-home').prop('checked', Number(eventData.publicar_pagina_inicial || 0) === 1);
-                $('#admin-special-agenda-event-blog').prop('checked', Number(eventData.publicar_blog || 0) === 1);
+                setValue('#admin-special-schedule-id', eventData.id);
+                setValue('#admin-special-schedule-title', eventData.titulo || '');
+                setValue('#admin-special-schedule-description', eventData.descricao || '');
+                setValue('#admin-special-schedule-start', formatDateTimeLocal(eventData.data_inicio));
+                setValue('#admin-special-schedule-end', formatDateTimeLocal(eventData.data_fim));
+                setValue('#admin-special-schedule-publish-start', formatDateTimeLocal(eventData.data_publicacao_inicio));
+                setValue('#admin-special-schedule-publish-end', formatDateTimeLocal(eventData.data_publicacao_fim));
+                setValue('#admin-special-schedule-age-min', eventData.idade_minima);
+                setValue('#admin-special-schedule-age-max', eventData.idade_maxima);
+                setValue('#admin-special-schedule-vagas-geral', eventData.vagas_geral);
+                setValue('#admin-special-schedule-vagas-pcd', eventData.vagas_pcd);
+                setValue('#admin-special-schedule-vagas-pvs', eventData.vagas_pvs);
+                setValue('#admin-special-schedule-vagas-plm', eventData.vagas_plm);
+                setValue('#admin-special-schedule-space', eventData.espaco_treino_id || '');
+                setValue('#admin-special-schedule-modality', eventData.modalidade_id || '');
+                setValue('#admin-special-schedule-image-url', eventData.imagem_url || '');
+                setValue('#admin-special-schedule-url', eventData.url_destino || '');
+                setValue('#admin-special-schedule-label', eventData.rotulo_acao || '');
+                setValue('#admin-special-schedule-active', Number(eventData.ativo || 0) === 1 ? '1' : '0');
+                $('#admin-special-schedule-home').prop('checked', Number(eventData.publicar_pagina_inicial || 0) === 1);
+                $('#admin-special-schedule-blog').prop('checked', Number(eventData.publicar_blog || 0) === 1);
 
-                $('#admin-special-agenda-event-editor-subtitle').text(
-                    'Editando ' + String(eventData.titulo || 'evento especial') + ' sem sair da agenda administrativa.'
+                $('#admin-special-schedule-editor-subtitle').text(
+                    'Editando ' + String(eventData.titulo || 'horario especial') + ' sem sair da agenda administrativa.'
                 );
             }
 
-            $(document).on('click', '[data-special-agenda-event-edit="1"]', function () {
-                const eventId = Number($(this).data('specialAgendaEventId') || 0);
+            $(document).on('click', '[data-special-schedule-edit="1"]', function () {
+                const eventId = Number($(this).data('specialScheduleId') || 0);
 
                 if (!eventId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o evento especial selecionado.');
+                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o horario especial selecionado.');
                     return;
                 }
 
-                $.getJSON(App.core.buildUrl('/admin/agenda-eventos-especiais/detalhe'), { id: eventId })
+                $.getJSON(App.core.buildUrl('/admin/agenda-horarios-especiais/detalhe'), { id: eventId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.event) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar este evento especial.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar este horario especial.'));
                             return;
                         }
 
@@ -1868,17 +1872,17 @@
                     });
             });
 
-            $(document).on('click', '#admin-special-agenda-event-editor-close, #admin-special-agenda-event-cancel', function () {
+            $(document).on('click', '#admin-special-schedule-editor-close, #admin-special-schedule-cancel', function () {
                 closeEditor();
             });
 
-            $(document).on('click', '#admin-special-agenda-event-editor', function (event) {
+            $(document).on('click', '#admin-special-schedule-editor', function (event) {
                 if (event.target === this) {
                     closeEditor();
                 }
             });
 
-            $(document).on('submit', '#admin-special-agenda-event-form', function (event) {
+            $(document).on('submit', '#admin-special-schedule-form', function (event) {
                 event.preventDefault();
 
                 const $editForm = $(this);
@@ -1899,13 +1903,13 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel atualizar o evento especial.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel atualizar o horario especial.'));
                         return;
                     }
 
                     closeEditor();
                     App.admin.activateSection('agenda', currentAgendaFilters());
-                    App.core.abrirPopup('sucesso', String(response.message || 'Evento especial atualizado com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Horario especial atualizado com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);

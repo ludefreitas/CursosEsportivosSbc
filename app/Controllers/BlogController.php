@@ -36,7 +36,7 @@ class BlogController extends Controller
             ]),
             'categories' => $blogService->listPublicCategories(),
             'archiveMonths' => $blogService->listArchiveMonths(),
-            'blogSpecialEvents' => $adminService->listPublishedSpecialAgendaEvents('blog', 4),
+            'blogSpecialEvents' => $adminService->listPublishedSpecialSchedules('blog', 4),
             'officialCommunication' => $officialCommunicationService->getBlogBlock(),
         ]);
     }
@@ -67,7 +67,7 @@ class BlogController extends Controller
             'pageClass' => 'pagina-blog',
             'post' => $post,
             'relatedPosts' => $blogService->listRelatedPosts($post, 3),
-            'blogSpecialEvents' => $adminService->listPublishedSpecialAgendaEvents('blog', 3),
+            'blogSpecialEvents' => $adminService->listPublishedSpecialSchedules('blog', 3),
         ]);
     }
 }
