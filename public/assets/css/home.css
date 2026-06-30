@@ -3,12 +3,12 @@ body.pagina-home { background-attachment: fixed; }
 .home-whatsapp-row {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
     gap: 8px;
     flex-wrap: wrap;
-    width: min(1180px, 100%);
-    margin: 6px 0 4px auto;
-    padding-right: 510px;
+    width: 100%;
+    margin: 6px 0 4px 0;
+    padding-left: 118px;
     font-size: 15px;
 }
 
@@ -172,6 +172,7 @@ body.pagina-home { background-attachment: fixed; }
         width: 100%;
         margin-right: 0;
         margin-bottom: 10px;
+        padding-left: 0;
         padding-right: 0;
     }
     .hero-actions {
