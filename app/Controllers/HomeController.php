@@ -7,7 +7,6 @@ use App\Services\AdminService;
 use App\Services\AgendaService;
 use App\Services\BlogService;
 use App\Services\HomeInfoService;
-use App\Services\OfficialCommunicationService;
 
 class HomeController extends Controller
 {
@@ -20,7 +19,6 @@ class HomeController extends Controller
         $adminService = new AdminService();
         $blogService = new BlogService();
         $homeInfoService = new HomeInfoService();
-        $officialCommunicationService = new OfficialCommunicationService();
 
         $this->view('home/index', [
             'title' => 'Cursos Esportivos SBC',
@@ -32,7 +30,6 @@ class HomeController extends Controller
             'homeSpecialEvents' => $adminService->listPublishedSpecialAgendaEvents('home', 3),
             'blogSpecialEvents' => $adminService->listPublishedSpecialAgendaEvents('blog', 6),
             'homeInfoBox' => $homeInfoService->getHomeInfoBox(),
-            'officialCommunication' => $officialCommunicationService->getHomeBlock(),
         ]);
     }
 }

@@ -140,7 +140,7 @@ class AdminController extends Controller
         $user = $this->assertAdminAccess();
 
         try {
-            $officialCommunication = $this->officialCommunicationService->saveHomeBlock((int) $user['conta_id'], $_POST);
+            $officialCommunication = $this->officialCommunicationService->saveBlogBlock((int) $user['conta_id'], $_POST);
 
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1476,13 +1476,13 @@ class AdminController extends Controller
             $data['sitePopups'] = $this->sitePopupService->listAll();
             $data['popupPages'] = $this->sitePopupService->availablePages();
             $data['homeInfoBox'] = $this->homeInfoService->getHomeInfoBox();
-            $data['officialCommunication'] = $this->officialCommunicationService->getHomeBlock();
             $data['homeInfoMaxParagraphs'] = HomeInfoService::MAX_PARAGRAPHS;
             $data['homeInfoMaxTitleLength'] = HomeInfoService::MAX_TITLE_LENGTH;
             $data['homeInfoMaxParagraphLength'] = HomeInfoService::MAX_PARAGRAPH_LENGTH;
         }
 
         if ($sectionName === 'blog') {
+            $data['officialCommunication'] = $this->officialCommunicationService->getBlogBlock();
             $data['posts'] = $this->blogService->listPostsForAdmin();
             $data['blogSummary'] = $this->blogService->adminSummary();
             $data['blogCategories'] = $this->blogService->listPublicCategories();

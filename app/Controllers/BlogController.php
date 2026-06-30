@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Services\AdminService;
 use App\Services\BlogService;
+use App\Services\OfficialCommunicationService;
 
 class BlogController extends Controller
 {
@@ -15,6 +16,7 @@ class BlogController extends Controller
     {
         $blogService = new BlogService();
         $adminService = new AdminService();
+        $officialCommunicationService = new OfficialCommunicationService();
         $search = trim((string) ($_GET['busca'] ?? ''));
         $category = trim((string) ($_GET['categoria'] ?? ''));
 
@@ -35,6 +37,7 @@ class BlogController extends Controller
             'categories' => $blogService->listPublicCategories(),
             'archiveMonths' => $blogService->listArchiveMonths(),
             'blogSpecialEvents' => $adminService->listPublishedSpecialAgendaEvents('blog', 4),
+            'officialCommunication' => $officialCommunicationService->getBlogBlock(),
         ]);
     }
 

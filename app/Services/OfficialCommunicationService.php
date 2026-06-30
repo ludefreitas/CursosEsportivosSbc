@@ -9,14 +9,14 @@ use RuntimeException;
 class OfficialCommunicationService
 {
     private static bool $schemaChecked = false;
-    public const SLUG_DEFAULT = 'home-comunicacao-oficial';
+    public const SLUG_BLOG = 'blog-comunicacao-oficial';
     public const MAX_LABEL_LENGTH = 90;
     public const MAX_TITLE_LENGTH = 160;
     public const MAX_TEXT_LENGTH = 500;
     public const MAX_LINK_TITLE_LENGTH = 90;
     public const MAX_LINK_URL_LENGTH = 255;
 
-    public function getHomeBlock(): array
+    public function getBlogBlock(): array
     {
         $this->ensureSchema();
 
@@ -27,15 +27,15 @@ class OfficialCommunicationService
             WHERE slug = :slug
             LIMIT 1
         ');
-        $stmt->execute([':slug' => self::SLUG_DEFAULT]);
+        $stmt->execute([':slug' => self::SLUG_BLOG]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$row) {
-            return $this->defaultBlock();
+            return $this->defaultBlogBlock();
         }
 
         return [
-            'slug' => (string) ($row['slug'] ?? self::SLUG_DEFAULT),
+            'slug' => (string) ($row['slug'] ?? self::SLUG_BLOG),
             'nome_quadro' => trim((string) ($row['nome_quadro'] ?? '')) ?: 'Comunicacao oficial',
             'titulo' => trim((string) ($row['titulo'] ?? '')),
             'texto_breve' => trim((string) ($row['texto_breve'] ?? '')),
@@ -45,7 +45,7 @@ class OfficialCommunicationService
         ];
     }
 
-    public function saveHomeBlock(int $accountId, array $data): array
+    public function saveBlogBlock(int $accountId, array $data): array
     {
         $this->ensureSchema();
 
@@ -81,7 +81,7 @@ class OfficialCommunicationService
                 updated_at = NOW()
         ');
         $stmt->execute([
-            ':slug' => self::SLUG_DEFAULT,
+            ':slug' => self::SLUG_BLOG,
             ':nome_quadro' => $block['nome_quadro'],
             ':titulo' => $block['titulo'],
             ':texto_breve' => $block['texto_breve'],
@@ -91,22 +91,22 @@ class OfficialCommunicationService
         ]);
 
         AuditLogService::record('home.comunicacao_oficial_salva', 'comunicacoes_oficiais', null, [
-            'slug' => self::SLUG_DEFAULT,
+            'slug' => self::SLUG_BLOG,
             'nome_quadro' => $block['nome_quadro'],
             'titulo' => $block['titulo'],
             'possui_link' => $block['link_url'] !== '',
         ]);
 
-        return $this->getHomeBlock();
+        return $this->getBlogBlock();
     }
 
-    private function defaultBlock(): array
+    private function defaultBlogBlock(): array
     {
         return [
-            'slug' => self::SLUG_DEFAULT,
+            'slug' => self::SLUG_BLOG,
             'nome_quadro' => 'Comunicacao oficial',
-            'titulo' => 'Atualizacoes e orientacoes importantes para o publico',
-            'texto_breve' => 'Use este espaco para destacar avisos institucionais, prazos, campanhas e links oficiais publicados pela administracao.',
+            'titulo' => 'Blog dos Cursos Esportivos SBC',
+            'texto_breve' => 'Noticias, campanhas, avisos e conteudos institucionais em uma pagina inspirada em blog classico, mas adaptada ao nosso portal e ao nosso fluxo administrativo.',
             'link_url' => '',
             'link_titulo' => '',
             'updated_at' => '',

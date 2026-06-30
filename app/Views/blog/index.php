@@ -6,12 +6,16 @@ $search = trim((string) ($search ?? ''));
 <section class="blog-shell">
     <div class="blog-hero">
         <div class="blog-hero-copy">
-            <span class="eyebrow">Comunicacao oficial</span>
-            <h1>Blog dos Cursos Esportivos SBC</h1>
-            <p>
-                Noticias, campanhas, avisos e conteudos institucionais em uma pagina inspirada em blog classico,
-                mas adaptada ao nosso portal e ao nosso fluxo administrativo.
-            </p>
+            <span class="eyebrow"><?php echo e((string) (($officialCommunication['nome_quadro'] ?? 'Comunicacao oficial'))); ?></span>
+            <h1><?php echo e((string) (($officialCommunication['titulo'] ?? 'Blog dos Cursos Esportivos SBC'))); ?></h1>
+            <p><?php echo e((string) (($officialCommunication['texto_breve'] ?? ''))); ?></p>
+            <?php if (!empty($officialCommunication['link_url']) && !empty($officialCommunication['link_titulo'])) { ?>
+                <div class="hero-actions top-gap">
+                    <a href="<?php echo e((string) $officialCommunication['link_url']); ?>" class="btn btn-secondary">
+                        <?php echo e((string) $officialCommunication['link_titulo']); ?>
+                    </a>
+                </div>
+            <?php } ?>
         </div>
         <form method="GET" action="<?php echo e(url('/blog')); ?>" class="blog-search-card">
             <label>

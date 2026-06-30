@@ -33,23 +33,6 @@
     </div>
 </section>
 
-<?php if (!empty($officialCommunication)) { ?>
-<section class="content-card home-official-card">
-    <div class="home-official-content">
-        <span class="eyebrow"><?php echo e((string) ($officialCommunication['nome_quadro'] ?? 'Comunicacao oficial')); ?></span>
-        <h2><?php echo e((string) ($officialCommunication['titulo'] ?? '')); ?></h2>
-        <p><?php echo e((string) ($officialCommunication['texto_breve'] ?? '')); ?></p>
-    </div>
-    <?php if (!empty($officialCommunication['link_url']) && !empty($officialCommunication['link_titulo'])) { ?>
-        <div class="hero-actions home-official-actions">
-            <a href="<?php echo e((string) $officialCommunication['link_url']); ?>" class="btn btn-primary">
-                <?php echo e((string) $officialCommunication['link_titulo']); ?>
-            </a>
-        </div>
-    <?php } ?>
-</section>
-<?php } ?>
-
 <section class="section-grid">
     <article class="info-card">
         <h3>Locais e espacos</h3>
