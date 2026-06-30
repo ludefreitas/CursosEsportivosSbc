@@ -1238,6 +1238,10 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         <?php } ?>
 
         <section class="grid-two">
+            <div id="admin-official-communication-card-shell">
+                <?php require ROOT_PATH . '/app/Views/admin/partials/official_communication_card.php'; ?>
+            </div>
+
             <article class="content-card">
                 <h2>Quadro da home</h2>
                 <form method="POST" action="<?php echo e(url('/admin/home-info')); ?>" class="stack-form" data-ajax-form="1">
@@ -1269,6 +1273,52 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 </form>
             </article>
         </section>
+
+        <div id="admin-official-communication-modal" class="popup-overlay hidden" aria-hidden="true">
+            <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-official-communication-title">
+                <div class="popup-head admin-popup-head">
+                    <div>
+                        <h3 id="admin-official-communication-title">Editar comunicacao oficial</h3>
+                        <p class="muted">Atualize o quadro publico sem recarregar a pagina.</p>
+                    </div>
+                    <button type="button" class="popup-close-icon" id="admin-official-communication-close" aria-label="Fechar editor de comunicacao oficial">&times;</button>
+                </div>
+                <div class="popup-body admin-popup-body">
+                    <form method="POST" action="<?php echo e(url('/admin/comunicacao-oficial')); ?>" id="admin-official-communication-form" class="stack-form">
+                        <label>
+                            <span>Nome do quadro</span>
+                            <input type="text" name="nome_quadro" maxlength="<?php echo e((string) \App\Services\OfficialCommunicationService::MAX_LABEL_LENGTH); ?>" value="<?php echo e((string) ($officialCommunication['nome_quadro'] ?? '')); ?>" required>
+                        </label>
+
+                        <label>
+                            <span>Titulo</span>
+                            <input type="text" name="titulo" maxlength="<?php echo e((string) \App\Services\OfficialCommunicationService::MAX_TITLE_LENGTH); ?>" value="<?php echo e((string) ($officialCommunication['titulo'] ?? '')); ?>" required>
+                        </label>
+
+                        <label>
+                            <span>Texto breve</span>
+                            <textarea name="texto_breve" rows="4" maxlength="<?php echo e((string) \App\Services\OfficialCommunicationService::MAX_TEXT_LENGTH); ?>" required><?php echo e((string) ($officialCommunication['texto_breve'] ?? '')); ?></textarea>
+                        </label>
+
+                        <div class="grid-two">
+                            <label>
+                                <span>Titulo do link</span>
+                                <input type="text" name="link_titulo" maxlength="<?php echo e((string) \App\Services\OfficialCommunicationService::MAX_LINK_TITLE_LENGTH); ?>" value="<?php echo e((string) ($officialCommunication['link_titulo'] ?? '')); ?>" placeholder="Ex.: Ler comunicado completo">
+                            </label>
+                            <label>
+                                <span>URL do link</span>
+                                <input type="text" name="link_url" maxlength="<?php echo e((string) \App\Services\OfficialCommunicationService::MAX_LINK_URL_LENGTH); ?>" value="<?php echo e((string) ($officialCommunication['link_url'] ?? '')); ?>" placeholder="/blog ou https://...">
+                            </label>
+                        </div>
+
+                        <div class="popup-actions">
+                            <button type="button" class="btn btn-secondary" id="admin-official-communication-cancel">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" id="admin-official-communication-submit">Salvar comunicacao oficial</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </section>
 <?php } ?>
 

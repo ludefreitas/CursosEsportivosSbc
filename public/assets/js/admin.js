@@ -2480,6 +2480,93 @@
             });
         },
 
+        iniciarEditorComunicacaoOficialAdmin: function () {
+            function getForm() {
+                return $('#admin-official-communication-form');
+            }
+
+            function openModal() {
+                if ($('#admin-official-communication-modal').length === 0) {
+                    App.core.abrirPopup('erro', 'O editor de comunicacao oficial nao esta disponivel nesta tela.');
+                    return;
+                }
+
+                App.core.abrirPopupCustomizado('#admin-official-communication-modal');
+            }
+
+            function closeModal() {
+                App.core.fecharPopupCustomizado('#admin-official-communication-modal');
+            }
+
+            function syncForm(data) {
+                const $form = getForm();
+
+                if ($form.length === 0 || !data) {
+                    return;
+                }
+
+                $form.find('input[name="nome_quadro"]').val(String(data.nome_quadro || ''));
+                $form.find('input[name="titulo"]').val(String(data.titulo || ''));
+                $form.find('textarea[name="texto_breve"]').val(String(data.texto_breve || ''));
+                $form.find('input[name="link_titulo"]').val(String(data.link_titulo || ''));
+                $form.find('input[name="link_url"]').val(String(data.link_url || ''));
+            }
+
+            $(document).on('click', '[data-admin-official-communication-open="1"]', function () {
+                openModal();
+            });
+
+            $(document).on('click', '#admin-official-communication-close, #admin-official-communication-cancel', function () {
+                closeModal();
+            });
+
+            $(document).on('click', '#admin-official-communication-modal', function (event) {
+                if (event.target === this) {
+                    closeModal();
+                }
+            });
+
+            $(document).on('submit', '#admin-official-communication-form', function (event) {
+                event.preventDefault();
+
+                const $form = $(this);
+                const $submitButton = $('#admin-official-communication-submit');
+
+                $submitButton.prop('disabled', true);
+
+                $.ajax({
+                    url: String($form.attr('action') || ''),
+                    method: 'POST',
+                    data: $form.serialize(),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel salvar a comunicacao oficial.'));
+                        return;
+                    }
+
+                    if (response.card_html) {
+                        $('#admin-official-communication-card-shell').html(String(response.card_html));
+                    }
+
+                    if (response.communication) {
+                        syncForm(response.communication);
+                    }
+
+                    closeModal();
+                    App.core.abrirPopup('sucesso', String(response.message || 'Comunicacao oficial salva com sucesso.'));
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                }).always(function () {
+                    $submitButton.prop('disabled', false);
+                });
+            });
+        },
+
         init: function () {
             App.admin.iniciarSecoesAdmin();
             App.admin.iniciarEditorPessoaAdmin();
@@ -2491,6 +2578,7 @@
             App.admin.iniciarValidacaoCondicoesAdmin();
             App.admin.iniciarValidacaoAtestadosSaudeAdmin();
             App.admin.iniciarEditorPostagensBlog();
+            App.admin.iniciarEditorComunicacaoOficialAdmin();
         }
     });
 

@@ -57,6 +57,29 @@ body.pagina-home { background-attachment: fixed; }
     text-underline-offset: 2px;
 }
 
+.home-official-card {
+    margin-top: 22px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    gap: 20px;
+    align-items: center;
+    background: linear-gradient(135deg, #fff7ea 0%, #fffef8 55%, #ffffff 100%);
+    border: 1px solid #e6cf9a;
+}
+
+.home-official-content h2 {
+    margin: 10px 0 12px 0;
+}
+
+.home-official-content p {
+    margin: 0;
+    max-width: 72ch;
+}
+
+.home-official-actions {
+    margin-top: 0;
+}
+
 .special-event-grid {
     display: grid;
     gap: 18px;
@@ -99,6 +122,12 @@ body.pagina-home { background-attachment: fixed; }
     }
     .hero-actions {
         grid-template-columns: 1fr;
+    }
+    .home-official-card {
+        grid-template-columns: 1fr;
+    }
+    .home-official-actions {
+        margin-top: 12px;
     }
     .special-event-card {
         grid-template-columns: 1fr;

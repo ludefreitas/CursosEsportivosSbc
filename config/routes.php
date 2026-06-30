@@ -68,6 +68,7 @@ return [
     ['POST', '/admin/agenda-eventos-especiais/atualizar', [AdminController::class, 'updateSpecialAgendaEvent']],
     ['POST', '/admin/agenda-eventos-especiais/inativar', [AdminController::class, 'deactivateSpecialAgendaEvent']],
     ['POST', '/admin/home-info', [AdminController::class, 'saveHomeInfoBox']],
+    ['POST', '/admin/comunicacao-oficial', [AdminController::class, 'saveOfficialCommunication']],
     ['POST', '/admin/postagens', [AdminController::class, 'storePost']],
     ['POST', '/admin/postagens/remover', [AdminController::class, 'deletePost']],
     ['POST', '/admin/site-popups', [AdminController::class, 'storeSitePopup']],

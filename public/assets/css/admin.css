@@ -579,6 +579,16 @@
     margin-top: 8px;
 }
 
+.admin-official-communication-card {
+    height: 100%;
+    background: linear-gradient(135deg, #fff8ec 0%, #ffffff 100%);
+    border: 1px solid #e6cf9a;
+}
+
+.admin-official-communication-card .section-head {
+    align-items: start;
+}
+
 @media (max-width: 980px) {
     .admin-blog-checkbox-grid {
         grid-template-columns: 1fr;

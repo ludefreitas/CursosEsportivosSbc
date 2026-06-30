@@ -12,6 +12,7 @@ use App\Services\ProfileService;
 use App\Services\SitePopupService;
 use App\Services\UserService;
 use App\Services\HomeInfoService;
+use App\Services\OfficialCommunicationService;
 use DateTimeImmutable;
 
 class AdminController extends Controller
@@ -22,6 +23,7 @@ class AdminController extends Controller
     private UserService $userService;
     private HomeInfoService $homeInfoService;
     private BlogService $blogService;
+    private OfficialCommunicationService $officialCommunicationService;
 
     /**
      * Inicializa servicos da area administrativa.
@@ -34,6 +36,7 @@ class AdminController extends Controller
         $this->userService = new UserService();
         $this->homeInfoService = new HomeInfoService();
         $this->blogService = new BlogService();
+        $this->officialCommunicationService = new OfficialCommunicationService();
     }
 
     /**
@@ -121,6 +124,40 @@ class AdminController extends Controller
                     'success' => false,
                     'message' => $e->getMessage(),
                 ]);
+            }
+
+            flash('error', $e->getMessage());
+        }
+
+        redirect('/admin');
+    }
+
+    /**
+     * Salva o quadro de comunicacao oficial da home.
+     */
+    public function saveOfficialCommunication(): void
+    {
+        $user = $this->assertAdminAccess();
+
+        try {
+            $officialCommunication = $this->officialCommunicationService->saveHomeBlock((int) $user['conta_id'], $_POST);
+
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Comunicacao oficial salva com sucesso.',
+                    'communication' => $officialCommunication,
+                    'card_html' => $this->renderOfficialCommunicationCardHtml($officialCommunication),
+                ]);
+            }
+
+            flash('success', 'Comunicacao oficial salva com sucesso.');
+        } catch (\Throwable $e) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
             }
 
             flash('error', $e->getMessage());
@@ -1439,6 +1476,7 @@ class AdminController extends Controller
             $data['sitePopups'] = $this->sitePopupService->listAll();
             $data['popupPages'] = $this->sitePopupService->availablePages();
             $data['homeInfoBox'] = $this->homeInfoService->getHomeInfoBox();
+            $data['officialCommunication'] = $this->officialCommunicationService->getHomeBlock();
             $data['homeInfoMaxParagraphs'] = HomeInfoService::MAX_PARAGRAPHS;
             $data['homeInfoMaxTitleLength'] = HomeInfoService::MAX_TITLE_LENGTH;
             $data['homeInfoMaxParagraphLength'] = HomeInfoService::MAX_PARAGRAPH_LENGTH;
@@ -1493,6 +1531,16 @@ class AdminController extends Controller
         ob_start();
         extract($modalData, EXTR_SKIP);
         require ROOT_PATH . '/app/Views/admin/partials/health_certificate_validation_modal.php';
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * Renderiza o card de comunicacao oficial no admin.
+     */
+    private function renderOfficialCommunicationCardHtml(array $officialCommunication): string
+    {
+        ob_start();
+        require ROOT_PATH . '/app/Views/admin/partials/official_communication_card.php';
         return (string) ob_get_clean();
     }
 
