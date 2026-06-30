@@ -3806,8 +3806,12 @@ class AdminService
 
         $alterations = [];
 
+        if (!isset($columns['criterio_faixa_etaria'])) {
+            $alterations[] = 'ADD COLUMN criterio_faixa_etaria ENUM("idade_exata", "ano_nascimento") NOT NULL DEFAULT "idade_exata" AFTER idade_maxima';
+        }
+
         if (!isset($columns['vagas_geral'])) {
-            $alterations[] = 'ADD COLUMN vagas_geral INT NOT NULL DEFAULT 9999 AFTER idade_maxima';
+            $alterations[] = 'ADD COLUMN vagas_geral INT NOT NULL DEFAULT 9999 AFTER criterio_faixa_etaria';
         }
 
         if (!isset($columns['vagas_pcd'])) {

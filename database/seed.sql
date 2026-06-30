@@ -122,12 +122,12 @@ INSERT IGNORE INTO postagens_blog (
     (1, 'Abertura da temporada de inverno', 'abertura-temporada-inverno', 'Inscricoes e horarios iniciais da temporada de inverno 2026.', 'A temporada de inverno ja esta em preparacao com vagas organizadas por publico, local e modalidade.', 1, 1),
     (2, 'Documentos para modalidades aquaticas', 'documentos-modalidades-aquaticas', 'Lembrete sobre atestado clinico e dermatologico.', 'Para natacao e hidroginastica, o aluno precisa manter atestado clinico e dermatologico dentro da validade.', 1, 1);
 
-INSERT IGNORE INTO agenda_eventos_especiais (
+INSERT IGNORE INTO agenda_horarios_especiais (
     id, local_treino_id, espaco_treino_id, modalidade_id, titulo, descricao, data_inicio, data_fim,
-    idade_minima, idade_maxima, data_publicacao_inicio, data_publicacao_fim,
+    idade_minima, idade_maxima, criterio_faixa_etaria, vagas_geral, vagas_pcd, vagas_plm, vagas_pvs, data_publicacao_inicio, data_publicacao_fim,
     publicar_pagina_inicial, publicar_blog, imagem_url, url_destino, rotulo_acao, ativo
 ) VALUES
-    (1, 2, 3, 2, 'Avaliacao Especial de Natacao Avancada', 'Evento especial de avaliacao tecnica para alunos que desejam ingressar nas turmas avancadas e de aperfeicoamento em natacao. Leve documento com foto e compareca com 20 minutos de antecedencia.', '2026-07-12 08:00:00', '2026-07-12 11:00:00', 15, 65, '2026-06-15 08:00:00', '2026-07-11 18:00:00', 1, 1, '/assets/img/cursosesportivossbc.jpg', '/agenda', 'Ver detalhes e se inscrever', 1);
+    (1, 2, 3, 2, 'Avaliacao Especial de Natacao Avancada', 'Horario especial de avaliacao tecnica para alunos que desejam ingressar nas turmas avancadas e de aperfeicoamento em natacao. Leve documento com foto e compareca com 20 minutos de antecedencia.', '2026-07-12 08:00:00', '2026-07-12 11:00:00', 15, 65, 'idade_exata', 40, 5, 5, 5, '2026-06-15 08:00:00', '2026-07-11 18:00:00', 1, 1, '/assets/img/cursosesportivossbc.jpg', '/agenda', 'Ver detalhes e se inscrever', 1);
 
 INSERT IGNORE INTO site_popups (
     id, titulo, texto_principal, texto_secundario, imagem_url, rotulo_acao, url_acao,

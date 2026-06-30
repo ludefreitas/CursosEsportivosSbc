@@ -412,7 +412,7 @@ class AgendaService
      */
     public function registerSpecialSchedule(array $data): void
     {
-        $eventId = (int) ($data['agenda_horario_especial_id'] ?? ($data['agenda_evento_especial_id'] ?? 0));
+        $eventId = (int) ($data['agenda_horario_especial_id'] ?? 0);
         $linkedPersonId = (int) ($data['linked_person_id'] ?? 0);
         $fullName = normalize_nome_completo((string) ($data['nome_completo'] ?? ''));
         $cpf = normalize_cpf((string) ($data['cpf'] ?? ''));
@@ -1863,8 +1863,12 @@ class AgendaService
 
             $alterations = [];
 
+            if (!isset($columns['criterio_faixa_etaria'])) {
+                $alterations[] = 'ADD COLUMN criterio_faixa_etaria ENUM("idade_exata", "ano_nascimento") NOT NULL DEFAULT "idade_exata" AFTER idade_maxima';
+            }
+
             if (!isset($columns['vagas_geral'])) {
-                $alterations[] = 'ADD COLUMN vagas_geral INT NOT NULL DEFAULT 9999 AFTER idade_maxima';
+                $alterations[] = 'ADD COLUMN vagas_geral INT NOT NULL DEFAULT 9999 AFTER criterio_faixa_etaria';
             }
             if (!isset($columns['vagas_pcd'])) {
                 $alterations[] = 'ADD COLUMN vagas_pcd INT NOT NULL DEFAULT 0 AFTER vagas_geral';
@@ -1891,7 +1895,7 @@ class AgendaService
             $registrationAlterations = [];
 
             if (isset($registrationColumns['agenda_evento_especial_id']) && !isset($registrationColumns['agenda_horario_especial_id'])) {
-                $registrationAlterations[] = 'CHANGE COLUMN agenda_evento_especial_id agenda_horario_especial_id INT NOT NULL';
+                $registrationAlterations[] = 'ADD COLUMN agenda_horario_especial_id BIGINT UNSIGNED NULL AFTER agenda_evento_especial_id';
             }
             if (!isset($registrationColumns['publico_alvo'])) {
                 $registrationAlterations[] = 'ADD COLUMN publico_alvo VARCHAR(20) NOT NULL DEFAULT "geral" AFTER data_nascimento';
@@ -1899,6 +1903,14 @@ class AgendaService
 
             if ($registrationAlterations !== []) {
                 $pdo->exec('ALTER TABLE agenda_horarios_especiais_inscricoes ' . implode(', ', $registrationAlterations));
+            }
+
+            if (isset($registrationColumns['agenda_evento_especial_id']) && !isset($registrationColumns['agenda_horario_especial_id'])) {
+                $pdo->exec('
+                    UPDATE agenda_horarios_especiais_inscricoes
+                    SET agenda_horario_especial_id = agenda_evento_especial_id
+                    WHERE agenda_horario_especial_id IS NULL
+                ');
             }
         }
     }

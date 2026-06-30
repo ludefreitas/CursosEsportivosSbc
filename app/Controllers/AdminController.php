@@ -1092,7 +1092,7 @@ class AdminController extends Controller
         $this->assertAdminAccess();
 
         try {
-            $this->adminService->deactivateSpecialSchedule((int) ($_POST['agenda_horario_especial_id'] ?? ($_POST['agenda_evento_especial_id'] ?? 0)));
+            $this->adminService->deactivateSpecialSchedule((int) ($_POST['agenda_horario_especial_id'] ?? 0));
 
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1126,7 +1126,7 @@ class AdminController extends Controller
 
         try {
             $this->adminService->updateSpecialSchedule(
-                (int) ($_POST['agenda_horario_especial_id'] ?? ($_POST['agenda_evento_especial_id'] ?? 0)),
+                (int) ($_POST['agenda_horario_especial_id'] ?? 0),
                 (int) $user['conta_id'],
                 $_POST,
                 $_FILES
