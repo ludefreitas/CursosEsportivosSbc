@@ -6,7 +6,9 @@ body.pagina-home { background-attachment: fixed; }
     justify-content: flex-end;
     gap: 8px;
     flex-wrap: wrap;
-    margin: 6px 8px 4px 0;
+    width: min(1180px, 100%);
+    margin: 6px 0 4px auto;
+    padding-right: 116px;
     font-size: 15px;
 }
 
@@ -167,8 +169,10 @@ body.pagina-home { background-attachment: fixed; }
     }
     .home-whatsapp-row {
         justify-content: flex-start;
+        width: 100%;
         margin-right: 0;
         margin-bottom: 10px;
+        padding-right: 0;
     }
     .hero-actions {
         grid-template-columns: 1fr;
