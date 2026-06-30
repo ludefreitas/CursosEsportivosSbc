@@ -81,6 +81,10 @@
                 App.core.fecharPopupCustomizado(String($(this).data('closePopup') || ''));
             });
 
+            $(document).on('click', '#popup-preview-site-close, #popup-preview-site-close-footer', function () {
+                App.core.fecharPopupCustomizado('#popup-preview-site');
+            });
+
             $(document).on('click', '#popup-mensagem', function (event) {
                 if (event.target === this) {
                     App.core.fecharPopup();

@@ -593,6 +593,10 @@ label span {
     width: min(680px, 100%);
     padding-top: 8px;
 }
+
+.popup-site-card .popup-close-icon {
+    z-index: 3;
+}
 .popup-site-media {
     padding: 20px 22px 0 22px;
 }
@@ -625,6 +629,10 @@ label span {
 }
 .popup-site-actions {
     justify-content: flex-start;
+}
+
+.popup-site-footer-actions {
+    justify-content: flex-end;
 }
 
 @media (max-width: 980px) {

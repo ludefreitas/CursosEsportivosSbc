@@ -47,7 +47,7 @@
     </div>
     <div id="popup-preview-site" class="popup-overlay popup-site-overlay hidden" aria-hidden="true">
         <div class="popup-card popup-site-card" role="dialog" aria-modal="true" aria-labelledby="popup-preview-titulo">
-            <button type="button" class="popup-close-icon" data-close-popup="#popup-preview-site" aria-label="Fechar pre-visualizacao">&times;</button>
+            <button type="button" class="popup-close-icon" id="popup-preview-site-close" data-close-popup="#popup-preview-site" aria-label="Fechar pre-visualizacao">&times;</button>
             <div class="popup-site-media hidden" id="popup-preview-media">
                 <img id="popup-preview-imagem" src="" alt="Imagem do pop-up">
             </div>
@@ -60,6 +60,9 @@
             </div>
             <div class="popup-actions popup-site-actions hidden" id="popup-preview-actions">
                 <a id="popup-preview-acao" href="#" class="btn btn-primary" target="_blank" rel="noopener noreferrer"></a>
+            </div>
+            <div class="popup-actions popup-site-footer-actions" id="popup-preview-footer-actions">
+                <button type="button" class="btn btn-secondary" id="popup-preview-site-close-footer" data-close-popup="#popup-preview-site">Fechar</button>
             </div>
         </div>
     </div>
