@@ -1825,6 +1825,14 @@ class AdminService
             }
         }
 
+        foreach ($this->loadSpecialSchedulesForManagementCalendar($locationId, $modalityId, $range['start'], $range['end']) as $specialSchedule) {
+            $events[] = $specialSchedule;
+        }
+
+        usort($events, static function (array $left, array $right): int {
+            return strcmp((string) ($left['start'] ?? ''), (string) ($right['start'] ?? ''));
+        });
+
         return $events;
     }
 
@@ -3646,6 +3654,105 @@ class AdminService
                 'tipo_horario' => (string) ($schedule['tipo_horario'] ?? ''),
             ],
         ];
+    }
+
+    /**
+     * Carrega horarios especiais para o FullCalendar administrativo.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function loadSpecialSchedulesForManagementCalendar(int $locationId, int $modalityId, DateTimeImmutable $start, DateTimeImmutable $end): array
+    {
+        $pdo = Database::connection();
+        $sql = '
+            SELECT
+                ah.id,
+                ah.titulo,
+                ah.descricao,
+                ah.data_inicio,
+                ah.data_fim,
+                ah.idade_minima,
+                ah.idade_maxima,
+                ah.criterio_faixa_etaria,
+                ah.vagas_geral,
+                ah.vagas_pcd,
+                ah.vagas_plm,
+                ah.vagas_pvs,
+                ah.data_publicacao_inicio,
+                ah.data_publicacao_fim,
+                ah.imagem_url,
+                ah.url_destino,
+                ah.rotulo_acao,
+                ah.ativo,
+                lt.nome AS local_nome,
+                et.nome AS espaco_nome,
+                m.nome AS modalidade_nome
+            FROM agenda_horarios_especiais ah
+            LEFT JOIN locais_treino lt ON lt.id = ah.local_treino_id
+            LEFT JOIN espacos_treino et ON et.id = ah.espaco_treino_id
+            LEFT JOIN modalidades m ON m.id = ah.modalidade_id
+            WHERE NOT (:range_end <= ah.data_inicio OR :range_start >= ah.data_fim)
+        ';
+        $params = [
+            ':range_start' => $start->format('Y-m-d H:i:s'),
+            ':range_end' => $end->format('Y-m-d H:i:s'),
+        ];
+
+        if ($locationId > 0) {
+            $sql .= ' AND ah.local_treino_id = :local_treino_id';
+            $params[':local_treino_id'] = $locationId;
+        }
+
+        if ($modalityId > 0) {
+            $sql .= ' AND ah.modalidade_id = :modalidade_id';
+            $params[':modalidade_id'] = $modalityId;
+        }
+
+        $sql .= ' ORDER BY ah.data_inicio ASC, ah.id ASC';
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $events = [];
+
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $classNames = ['agenda-special-event'];
+
+            if ((int) ($row['ativo'] ?? 0) !== 1) {
+                $classNames[] = 'admin-agenda-event-inactive';
+            }
+
+            $events[] = [
+                'id' => 'special-schedule-' . (string) ($row['id'] ?? ''),
+                'title' => (string) ($row['titulo'] ?? 'Horario especial'),
+                'start' => str_replace(' ', 'T', (string) ($row['data_inicio'] ?? '')),
+                'end' => str_replace(' ', 'T', (string) ($row['data_fim'] ?? '')),
+                'classNames' => $classNames,
+                'extendedProps' => [
+                    'is_special' => true,
+                    'special_schedule_id' => (int) ($row['id'] ?? 0),
+                    'occurrence_start' => (string) ($row['data_inicio'] ?? ''),
+                    'local' => (string) ($row['local_nome'] ?? ''),
+                    'espaco' => (string) ($row['espaco_nome'] ?? ''),
+                    'modalidade' => (string) ($row['modalidade_nome'] ?? ''),
+                    'tipo_horario' => 'horario especial',
+                    'idade_minima' => (int) ($row['idade_minima'] ?? 0),
+                    'idade_maxima' => (int) ($row['idade_maxima'] ?? 120),
+                    'criterio_faixa_etaria' => normalize_age_rule_mode((string) ($row['criterio_faixa_etaria'] ?? 'idade_exata')),
+                    'special_description' => (string) ($row['descricao'] ?? ''),
+                    'special_image_url' => (string) ($row['imagem_url'] ?? ''),
+                    'special_cta_url' => (string) ($row['url_destino'] ?? ''),
+                    'special_cta_label' => trim((string) ($row['rotulo_acao'] ?? '')) !== '' ? (string) $row['rotulo_acao'] : 'Abrir detalhes',
+                    'vagas_geral' => (int) ($row['vagas_geral'] ?? 0),
+                    'vagas_pcd' => (int) ($row['vagas_pcd'] ?? 0),
+                    'vagas_plm' => (int) ($row['vagas_plm'] ?? 0),
+                    'vagas_pvs' => (int) ($row['vagas_pvs'] ?? 0),
+                    'data_publicacao_inicio' => (string) ($row['data_publicacao_inicio'] ?? ''),
+                    'data_publicacao_fim' => (string) ($row['data_publicacao_fim'] ?? ''),
+                    'ativo' => (int) ($row['ativo'] ?? 0),
+                ],
+            ];
+        }
+
+        return $events;
     }
 
     /**

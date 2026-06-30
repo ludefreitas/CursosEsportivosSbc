@@ -193,9 +193,35 @@
                         }
                     },
                     eventClick: function (info) {
+                        const props = info.event.extendedProps || {};
+
+                        if (props.is_special === true) {
+                            let details = ''
+                                + '<strong>Horario especial:</strong> ' + App.core.escapeHtml(String(info.event.title || 'Horario especial'))
+                                + '<br><strong>Periodo:</strong> ' + App.core.escapeHtml(String(info.event.startStr || ''))
+                                + ' ate ' + App.core.escapeHtml(String(info.event.endStr || ''))
+                                + '<br><strong>Local:</strong> ' + App.core.escapeHtml(String(props.local || 'A definir'))
+                                + '<br><strong>Espaco:</strong> ' + App.core.escapeHtml(String(props.espaco || 'A definir'))
+                                + '<br><strong>Modalidade:</strong> ' + App.core.escapeHtml(String(props.modalidade || 'Sem modalidade'))
+                                + '<br><strong>Vagas:</strong> Geral ' + App.core.escapeHtml(String(props.vagas_geral || 0))
+                                + ' | PCD ' + App.core.escapeHtml(String(props.vagas_pcd || 0))
+                                + ' | PVS ' + App.core.escapeHtml(String(props.vagas_pvs || 0))
+                                + ' | PLM ' + App.core.escapeHtml(String(props.vagas_plm || 0))
+                                + '<br><strong>Publicacao:</strong> ' + App.core.escapeHtml(String(props.data_publicacao_inicio || '-'))
+                                + ' ate ' + App.core.escapeHtml(String(props.data_publicacao_fim || '-'))
+                                + '<br><strong>Status:</strong> ' + (Number(props.ativo || 0) === 1 ? 'Ativo' : 'Inativo');
+
+                            if (String(props.special_description || '').trim() !== '') {
+                                details += '<br><strong>Descricao:</strong> ' + App.core.escapeHtml(String(props.special_description || ''));
+                            }
+
+                            App.core.abrirPopup('info', details);
+                            return;
+                        }
+
                         loadOccurrenceAttendance(
                             info.event.id,
-                            String((info.event.extendedProps && info.event.extendedProps.occurrence_start) || info.event.startStr || '')
+                            String(props.occurrence_start || info.event.startStr || '')
                         );
                     }
                 });

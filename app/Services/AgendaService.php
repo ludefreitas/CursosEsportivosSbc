@@ -1433,6 +1433,12 @@ class AgendaService
         }
 
         $pdo = Database::connection();
+        $tableExists = $pdo->query("SHOW TABLES LIKE 'agenda_horarios_especiais_inscricoes'")->fetchColumn();
+
+        if (!$tableExists) {
+            return [];
+        }
+
         $placeholders = implode(', ', array_fill(0, count($scheduleIds), '?'));
         $stmt = $pdo->prepare('
             SELECT agenda_horario_especial_id, publico_alvo, COUNT(*) AS total
