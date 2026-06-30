@@ -64,7 +64,7 @@ foreach ($selectedDisabilityTypes as $selectedType) {
         <?php } ?>
     </div>
 
-    <form method="POST" action="<?php echo e(url('/admin/certificados/validacao/salvar')); ?>" class="stack-form" id="admin-condition-validation-form" data-ajax-form="1">
+    <form method="POST" action="<?php echo e(url('/admin/certificados/validacao/salvar')); ?>" class="stack-form" id="admin-condition-validation-form" data-manual-submit="1">
         <input type="hidden" name="person_id" value="<?php echo e((string) ($person['id'] ?? '0')); ?>">
         <input type="hidden" name="condition_slug" value="<?php echo e((string) ($condition['slug'] ?? '')); ?>">
 

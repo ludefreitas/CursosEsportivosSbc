@@ -452,8 +452,14 @@
                 App.core.showLoading('Carregando pagina...');
             });
 
-            $(document).on('submit', 'form:not([data-ajax-form="1"]):not([data-manual-submit="1"])', function () {
-                App.core.showLoading('Enviando dados...');
+            $(document).on('submit', 'form:not([data-ajax-form="1"]):not([data-manual-submit="1"])', function (event) {
+                const submitEvent = event;
+
+                window.setTimeout(function () {
+                    if (!submitEvent.isDefaultPrevented()) {
+                        App.core.showLoading('Enviando dados...');
+                    }
+                }, 0);
             });
         },
 

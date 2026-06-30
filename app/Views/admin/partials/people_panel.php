@@ -245,7 +245,7 @@
             </div>
 
             <div class="popup-body admin-popup-body">
-                <form method="POST" action="<?php echo e(url('/admin/pessoas/atualizar')); ?>" class="stack-form" id="admin-person-form" data-ajax-form="1">
+                <form method="POST" action="<?php echo e(url('/admin/pessoas/atualizar')); ?>" class="stack-form" id="admin-person-form" data-manual-submit="1">
                     <input type="hidden" name="person_id" id="admin-person-id" value="">
 
                     <div class="grid-two">

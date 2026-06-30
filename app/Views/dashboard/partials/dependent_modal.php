@@ -42,7 +42,7 @@
         <div class="alert-inline dashboard-dependent-attention">
             CPF e data de nascimento ficam bloqueados nesta edicao. Se precisar corrigir esses dados, fale com o suporte antes de seguir.
         </div>
-        <form method="POST" action="<?php echo e(url('/dependentes/atualizar')); ?>" class="stack-form dashboard-dependent-edit-form" id="dashboard-dependent-edit-form" data-ajax-form="1">
+        <form method="POST" action="<?php echo e(url('/dependentes/atualizar')); ?>" class="stack-form dashboard-dependent-edit-form" id="dashboard-dependent-edit-form" data-manual-submit="1">
             <input type="hidden" name="person_id" value="<?php echo e((string) ($dependent['id'] ?? '0')); ?>">
 
             <section class="dashboard-dependent-edit-section">

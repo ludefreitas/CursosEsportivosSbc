@@ -80,7 +80,7 @@ $conditions = $conditions ?? [];
                         method="POST"
                         action="<?php echo e(url('/perfil/certificados/salvar')); ?>"
                         class="stack-form dashboard-certificate-form"
-                        data-ajax-form="1"
+                        data-manual-submit="1"
                         enctype="multipart/form-data"
                     >
                         <input type="hidden" name="person_id" value="<?php echo e((string) ($person['id'] ?? '0')); ?>">

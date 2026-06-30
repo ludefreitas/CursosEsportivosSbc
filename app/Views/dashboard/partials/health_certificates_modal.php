@@ -17,6 +17,7 @@ $serviceLocationOptions = $service_location_options ?? [];
             action="<?php echo e(url('/perfil/atestados/salvar')); ?>"
             class="stack-form dashboard-health-certificate-form"
             id="dashboard-health-certificate-form"
+            data-manual-submit="1"
             enctype="multipart/form-data"
         >
             <input type="hidden" name="person_id" value="<?php echo e((string) ($person['id'] ?? '0')); ?>">

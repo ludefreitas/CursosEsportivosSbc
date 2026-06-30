@@ -44,7 +44,7 @@ $currentValidationNote = (string) ($certificate['observacao_validacao'] ?? '');
         </div>
     </div>
 
-    <form method="POST" action="<?php echo e(url('/admin/atestados/validacao/salvar')); ?>" class="stack-form" id="admin-health-certificate-validation-form">
+    <form method="POST" action="<?php echo e(url('/admin/atestados/validacao/salvar')); ?>" class="stack-form" id="admin-health-certificate-validation-form" data-manual-submit="1">
         <input type="hidden" name="person_id" value="<?php echo e((string) ($person['id'] ?? '0')); ?>">
         <input type="hidden" name="certificate_type" value="<?php echo e((string) ($certificateType['slug'] ?? '')); ?>">
 

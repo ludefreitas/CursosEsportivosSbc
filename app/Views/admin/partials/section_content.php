@@ -422,7 +422,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             <article class="content-card">
                 <h2>Criar horario semanal</h2>
                 <p class="muted">O local e inferido automaticamente a partir do espaco selecionado.</p>
-                <form method="POST" action="<?php echo e(url('/admin/horarios-semanais')); ?>" class="stack-form" id="admin-weekly-schedule-create-form" data-ajax-form="1">
+                <form method="POST" action="<?php echo e(url('/admin/horarios-semanais')); ?>" class="stack-form" id="admin-weekly-schedule-create-form" data-manual-submit="1">
                     <div class="grid-two">
                         <label>
                             <span>Espaco de treino</span>
@@ -680,12 +680,12 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                                 data-weekly-schedule-id="<?php echo e((string) $schedule['id']); ?>"
                                                             >Editar</button>
                                                             <?php if ((int) $schedule['ativo'] === 1) { ?>
-                                                            <form method="POST" action="<?php echo e(url('/admin/horarios-semanais/inativar')); ?>" class="inline-form admin-weekly-schedule-deactivate-form" data-ajax-form="1">
+                                                            <form method="POST" action="<?php echo e(url('/admin/horarios-semanais/inativar')); ?>" class="inline-form admin-weekly-schedule-deactivate-form" data-manual-submit="1">
                                                                 <input type="hidden" name="horario_semanal_id" value="<?php echo e((string) $schedule['id']); ?>">
                                                                 <button type="submit" class="btn btn-secondary btn-compact">Inativar</button>
                                                             </form>
                                                             <?php } else { ?>
-                                                            <form method="POST" action="<?php echo e(url('/admin/horarios-semanais/ativar')); ?>" class="inline-form admin-weekly-schedule-activate-form" data-ajax-form="1">
+                                                            <form method="POST" action="<?php echo e(url('/admin/horarios-semanais/ativar')); ?>" class="inline-form admin-weekly-schedule-activate-form" data-manual-submit="1">
                                                                 <input type="hidden" name="horario_semanal_id" value="<?php echo e((string) $schedule['id']); ?>">
                                                                 <button type="submit" class="btn btn-secondary btn-compact">Ativar</button>
                                                             </form>
@@ -714,7 +714,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     <button type="button" class="popup-close-icon" id="admin-weekly-schedule-editor-close" aria-label="Fechar edicao">&times;</button>
                 </div>
                 <div class="popup-body admin-popup-body">
-                    <form method="POST" action="<?php echo e(url('/admin/horarios-semanais/atualizar')); ?>" class="stack-form" id="admin-weekly-schedule-form" data-ajax-form="1">
+                    <form method="POST" action="<?php echo e(url('/admin/horarios-semanais/atualizar')); ?>" class="stack-form" id="admin-weekly-schedule-form" data-manual-submit="1">
                         <input type="hidden" name="horario_semanal_id" id="admin-weekly-schedule-id">
 
                         <div class="grid-two">
@@ -1335,7 +1335,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     <button type="button" class="popup-close-icon" id="admin-official-communication-close" aria-label="Fechar editor de comunicacao oficial">&times;</button>
                 </div>
                 <div class="popup-body admin-popup-body">
-                    <form method="POST" action="<?php echo e(url('/admin/comunicacao-oficial')); ?>" id="admin-official-communication-form" class="stack-form">
+                    <form method="POST" action="<?php echo e(url('/admin/comunicacao-oficial')); ?>" id="admin-official-communication-form" class="stack-form" data-manual-submit="1">
                         <label>
                             <span>Nome do quadro</span>
                             <input type="text" name="nome_quadro" maxlength="<?php echo e((string) \App\Services\OfficialCommunicationService::MAX_LABEL_LENGTH); ?>" value="<?php echo e((string) ($officialCommunication['nome_quadro'] ?? '')); ?>" required>
