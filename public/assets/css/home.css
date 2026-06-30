@@ -8,7 +8,7 @@ body.pagina-home { background-attachment: fixed; }
     flex-wrap: wrap;
     width: min(1180px, 100%);
     margin: 6px 0 4px auto;
-    padding-right: 116px;
+    padding-right: 448px;
     font-size: 15px;
 }
 
