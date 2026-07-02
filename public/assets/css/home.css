@@ -8,7 +8,12 @@ body.pagina-home {
 }
 
 .home-banner-visual {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
     margin: 6px 0 10px 0;
+    padding: 18px 24px;
     border-radius: 28px;
     overflow: hidden;
     border: 1px solid rgba(31, 118, 181, 0.14);
@@ -25,6 +30,7 @@ body.pagina-home {
 }
 
 .img-eventos {
+    width: 40%;
     min-height: 180px;
     max-height: 360px;
     object-fit: cover;
@@ -55,6 +61,19 @@ body.pagina-home {
     100% {
         opacity: 1;
         transform: scale(1) translateY(0);
+    }
+}
+
+@media (max-width: 900px) {
+    .home-banner-visual {
+        padding: 14px 16px;
+    }
+
+    .img-eventos {
+        width: min(100%, 420px);
+        min-height: 0;
+        max-height: none;
+        object-fit: contain;
     }
 }
 
