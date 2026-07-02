@@ -96,7 +96,8 @@ input[readonly][data-locked-support-alert="1"] {
 body.pagina-home .site-header,
 body.pagina-blog .site-header,
 body.pagina-agenda .site-header,
-body.pagina-auth .site-header {
+body.pagina-auth .site-header,
+body.pagina-error .site-header {
     width: min(1180px, calc(100% - 32px));
     margin: 16px auto 0 auto;
     padding: 20px 24px;
@@ -109,7 +110,8 @@ body.pagina-auth .site-header {
 body.pagina-home .site-header::after,
 body.pagina-blog .site-header::after,
 body.pagina-agenda .site-header::after,
-body.pagina-auth .site-header::after {
+body.pagina-auth .site-header::after,
+body.pagina-error .site-header::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -122,13 +124,15 @@ body.pagina-auth .site-header::after {
 body.pagina-home .site-header,
 body.pagina-blog .site-header,
 body.pagina-agenda .site-header,
-body.pagina-auth .site-header {
+body.pagina-auth .site-header,
+body.pagina-error .site-header {
     position: relative;
 }
 body.pagina-home .brand-text,
 body.pagina-blog .brand-text,
 body.pagina-agenda .brand-text,
-body.pagina-auth .brand-text {
+body.pagina-auth .brand-text,
+body.pagina-error .brand-text {
     color: #123c4d;
 }
 body.pagina-home .site-nav > a,
@@ -138,7 +142,9 @@ body.pagina-blog .site-nav > .inline-form .link-button,
 body.pagina-agenda .site-nav > a,
 body.pagina-agenda .site-nav > .inline-form .link-button,
 body.pagina-auth .site-nav > a,
-body.pagina-auth .site-nav > .inline-form .link-button {
+body.pagina-auth .site-nav > .inline-form .link-button,
+body.pagina-error .site-nav > a,
+body.pagina-error .site-nav > .inline-form .link-button {
     display: inline-flex;
     align-items: center;
     min-height: 38px;
@@ -154,34 +160,40 @@ body.pagina-blog .site-nav > .inline-form .link-button:hover,
 body.pagina-agenda .site-nav > a:hover,
 body.pagina-agenda .site-nav > .inline-form .link-button:hover,
 body.pagina-auth .site-nav > a:hover,
-body.pagina-auth .site-nav > .inline-form .link-button:hover {
+body.pagina-auth .site-nav > .inline-form .link-button:hover,
+body.pagina-error .site-nav > a:hover,
+body.pagina-error .site-nav > .inline-form .link-button:hover {
     transform: translateY(-1px);
 }
 body.pagina-home .site-nav > a:nth-child(1),
 body.pagina-blog .site-nav > a:nth-child(1),
 body.pagina-agenda .site-nav > a:nth-child(1),
-body.pagina-auth .site-nav > a:nth-child(1) {
+body.pagina-auth .site-nav > a:nth-child(1),
+body.pagina-error .site-nav > a:nth-child(1) {
     color: #1767c4;
     background: rgba(40, 122, 221, 0.10);
 }
 body.pagina-home .site-nav > a:nth-child(2),
 body.pagina-blog .site-nav > a:nth-child(2),
 body.pagina-agenda .site-nav > a:nth-child(2),
-body.pagina-auth .site-nav > a:nth-child(2) {
+body.pagina-auth .site-nav > a:nth-child(2),
+body.pagina-error .site-nav > a:nth-child(2) {
     color: #cb6d00;
     background: rgba(245, 139, 0, 0.10);
 }
 body.pagina-home .site-nav > a:nth-child(3),
 body.pagina-blog .site-nav > a:nth-child(3),
 body.pagina-agenda .site-nav > a:nth-child(3),
-body.pagina-auth .site-nav > a:nth-child(3) {
+body.pagina-auth .site-nav > a:nth-child(3),
+body.pagina-error .site-nav > a:nth-child(3) {
     color: #1e8a4b;
     background: rgba(37, 164, 91, 0.11);
 }
 body.pagina-home .site-nav > a:nth-child(4),
 body.pagina-blog .site-nav > a:nth-child(4),
 body.pagina-agenda .site-nav > a:nth-child(4),
-body.pagina-auth .site-nav > a:nth-child(4) {
+body.pagina-auth .site-nav > a:nth-child(4),
+body.pagina-error .site-nav > a:nth-child(4) {
     color: #c04a31;
     background: rgba(221, 70, 70, 0.10);
 }
@@ -192,14 +204,17 @@ body.pagina-blog .site-nav > .inline-form .link-button,
 body.pagina-agenda .site-nav > a:nth-child(5),
 body.pagina-agenda .site-nav > .inline-form .link-button,
 body.pagina-auth .site-nav > a:nth-child(5),
-body.pagina-auth .site-nav > .inline-form .link-button {
+body.pagina-auth .site-nav > .inline-form .link-button,
+body.pagina-error .site-nav > a:nth-child(5),
+body.pagina-error .site-nav > .inline-form .link-button {
     color: #0d5870;
     background: rgba(58, 167, 184, 0.14);
 }
 body.pagina-home .site-nav .nav-cta,
 body.pagina-blog .site-nav .nav-cta,
 body.pagina-agenda .site-nav .nav-cta,
-body.pagina-auth .site-nav .nav-cta {
+body.pagina-auth .site-nav .nav-cta,
+body.pagina-error .site-nav .nav-cta {
     background: linear-gradient(135deg, #1767c4, #3aa7b8);
     color: #fff;
     box-shadow: 0 14px 24px rgba(23, 103, 196, 0.20);
@@ -533,7 +548,8 @@ label span {
 body.pagina-home label span,
 body.pagina-blog label span,
 body.pagina-agenda label span,
-body.pagina-auth label span {
+body.pagina-auth label span,
+body.pagina-error label span {
     color: #18495d;
     position: relative;
     width: fit-content;
@@ -552,14 +568,18 @@ body.pagina-agenda .grid-three label:nth-child(3n + 2) span,
 body.pagina-agenda .stack-form > label:nth-of-type(2n) span,
 body.pagina-auth .grid-two label:nth-child(2n) span,
 body.pagina-auth .grid-three label:nth-child(3n + 2) span,
-body.pagina-auth .stack-form > label:nth-of-type(2n) span {
+body.pagina-auth .stack-form > label:nth-of-type(2n) span,
+body.pagina-error .grid-two label:nth-child(2n) span,
+body.pagina-error .grid-three label:nth-child(3n + 2) span,
+body.pagina-error .stack-form > label:nth-of-type(2n) span {
     color: var(--accent-orange);
     background: linear-gradient(135deg, rgba(245, 139, 0, 0.14) 0%, rgba(255, 247, 236, 0.96) 100%);
 }
 body.pagina-home .grid-three label:nth-child(3n) span,
 body.pagina-blog .grid-three label:nth-child(3n) span,
 body.pagina-agenda .grid-three label:nth-child(3n) span,
-body.pagina-auth .grid-three label:nth-child(3n) span {
+body.pagina-auth .grid-three label:nth-child(3n) span,
+body.pagina-error .grid-three label:nth-child(3n) span {
     color: var(--accent-green);
     background: linear-gradient(135deg, rgba(37, 164, 91, 0.14) 0%, rgba(247, 255, 248, 0.96) 100%);
 }

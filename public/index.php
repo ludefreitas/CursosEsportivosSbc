@@ -46,6 +46,11 @@ spl_autoload_register(function ($class) {
     }
 });
 
+set_exception_handler(function (\Throwable $e): void {
+    error_log('[CursosEsportivosSbc] ' . $e->getMessage() . ' em ' . $e->getFile() . ':' . $e->getLine());
+    render_error_page(500);
+});
+
 $routes = require ROOT_PATH . '/config/routes.php';
 $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $currentPath = current_path();
@@ -61,6 +66,4 @@ foreach ($routes as [$method, $path, $handler]) {
     exit;
 }
 
-http_response_code(404);
-header('Content-Type: text/html; charset=utf-8');
-echo 'Pagina nao encontrada.';
+render_error_page(404);

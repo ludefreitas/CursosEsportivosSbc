@@ -6,11 +6,13 @@ use App\Controllers\BlogController;
 use App\Controllers\CepController;
 use App\Controllers\AuthController;
 use App\Controllers\DashboardController;
+use App\Controllers\ErrorController;
 use App\Controllers\HomeController;
 use App\Controllers\ProfileController;
 
 return [
     ['GET', '/', [HomeController::class, 'index']],
+    ['GET', '/teste-erros', [ErrorController::class, 'testCenter']],
     ['GET', '/blog', [BlogController::class, 'index']],
     ['GET', '/blog/post', [BlogController::class, 'post']],
     ['GET', '/login', [AuthController::class, 'showLogin']],

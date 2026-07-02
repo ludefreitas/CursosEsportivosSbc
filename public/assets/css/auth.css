@@ -6,6 +6,14 @@
         linear-gradient(180deg, #fbfaf7 0%, #eef4f2 100%);
 }
 
+.pagina-error {
+    background:
+        radial-gradient(circle at top left, rgba(23, 103, 196, 0.14), transparent 24%),
+        radial-gradient(circle at 82% 10%, rgba(245, 139, 0, 0.11), transparent 20%),
+        radial-gradient(circle at bottom right, rgba(37, 164, 91, 0.12), transparent 25%),
+        linear-gradient(180deg, #fbfaf7 0%, #eef4f2 100%);
+}
+
 .auth-wrap { display: flex; justify-content: center; margin-top: 20px; }
 .auth-card { max-width: 760px; padding: 30px; }
 .auth-card-wide { max-width: 900px; }
@@ -97,4 +105,120 @@
 
 .pagina-auth .alert-inline {
     background: linear-gradient(135deg, rgba(255, 243, 212, 0.98) 0%, rgba(255, 250, 241, 0.98) 100%);
+}
+
+.error-shell {
+    display: flex;
+    justify-content: center;
+    margin-top: 22px;
+}
+
+.error-card {
+    width: min(920px, 100%);
+    display: grid;
+    gap: 18px;
+    padding: 34px;
+    border-radius: 30px;
+    border: 1px solid rgba(18, 69, 89, 0.16);
+    box-shadow: 0 28px 60px rgba(18, 69, 89, 0.16);
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at top right, rgba(23, 103, 196, 0.10), transparent 28%),
+        radial-gradient(circle at bottom left, rgba(245, 139, 0, 0.08), transparent 24%),
+        linear-gradient(180deg, rgba(255, 252, 248, 0.98) 0%, rgba(255, 255, 255, 0.99) 100%);
+}
+
+.error-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    height: 6px;
+    background: linear-gradient(90deg, #1767c4 0 30%, #f58b00 30% 56%, #25a45b 56% 80%, #dd4646 80% 100%);
+}
+
+.error-code-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    padding: 9px 14px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #1767c4, #3aa7b8);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.error-card h1,
+.error-test-item h2 {
+    margin: 0;
+    color: #173040;
+}
+
+.error-title {
+    margin: -8px 0 0 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #cb6d00;
+}
+
+.error-message {
+    margin: 0;
+    max-width: 72ch;
+    color: #415d69;
+    line-height: 1.65;
+}
+
+.error-hint {
+    max-width: 74ch;
+}
+
+.error-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.error-help-text {
+    margin: 0;
+}
+
+.error-test-card {
+    gap: 24px;
+}
+
+.error-test-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.error-test-item {
+    display: grid;
+    gap: 12px;
+    padding: 20px;
+    border-radius: 22px;
+    border: 1px solid rgba(18, 69, 89, 0.10);
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 251, 255, 0.96) 100%);
+    box-shadow: 0 16px 34px rgba(18, 69, 89, 0.08);
+}
+
+.error-test-item p {
+    margin: 0;
+    color: #415d69;
+}
+
+@media (max-width: 640px) {
+    .error-card {
+        padding: 24px 18px;
+    }
+
+    .error-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
 }
