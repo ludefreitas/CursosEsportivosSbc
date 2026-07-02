@@ -7,6 +7,57 @@ body.pagina-home {
         linear-gradient(180deg, #fbfcff 0%, #f2f7fb 38%, #f7f4ee 100%);
 }
 
+.home-banner-visual {
+    margin: 6px 0 10px 0;
+    border-radius: 28px;
+    overflow: hidden;
+    border: 1px solid rgba(31, 118, 181, 0.14);
+    background:
+        radial-gradient(circle at top right, rgba(31, 118, 181, 0.12), transparent 30%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 252, 255, 0.98) 100%);
+    box-shadow: 0 20px 42px rgba(15, 74, 119, 0.10);
+}
+
+.img-fluid {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.img-eventos {
+    min-height: 180px;
+    max-height: 360px;
+    object-fit: cover;
+    object-position: center;
+}
+
+.animate-on-scroll {
+    opacity: 0;
+    transform: scale(0.92) translateY(24px);
+    transition: opacity 0.75s ease, transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
+}
+
+.animate-on-scroll.animated {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+.animate-on-scroll.animate__zoomIn.animated {
+    animation: homeZoomInReveal 0.78s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes homeZoomInReveal {
+    0% {
+        opacity: 0;
+        transform: scale(0.88) translateY(28px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
 .home-whatsapp-row {
     display: flex;
     align-items: center;

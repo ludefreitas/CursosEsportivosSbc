@@ -1,5 +1,13 @@
 <?php $whatsappHomeUrl = 'https://wa.me/551126307421'; ?>
 
+<div class="home-banner-visual">
+    <img
+        src="<?php echo e(asset_url('img/cursosesportivossbc.jpg')); ?>"
+        alt="Cursos Esportivos SBC"
+        class="img-fluid img-eventos animate-on-scroll animate__animated animate__zoomIn"
+    >
+</div>
+
 <div class="home-whatsapp-row">
     <span class="home-whatsapp-label">Duvidas, sugestoes e reclamacoes:</span>
     <a href="<?php echo e($whatsappHomeUrl); ?>" class="home-whatsapp-icon-link" target="_blank" rel="noopener noreferrer" aria-label="Abrir WhatsApp dos Cursos Esportivos SBC">
