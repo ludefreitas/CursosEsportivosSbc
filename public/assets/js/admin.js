@@ -198,8 +198,8 @@
                         if (props.is_special === true) {
                             let details = ''
                                 + '<strong>Horario especial:</strong> ' + App.core.escapeHtml(String(info.event.title || 'Horario especial'))
-                                + '<br><strong>Periodo:</strong> ' + App.core.escapeHtml(String(info.event.startStr || ''))
-                                + ' ate ' + App.core.escapeHtml(String(info.event.endStr || ''))
+                                + '<br><strong>Periodo:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.startStr || '')))
+                                + ' ate ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.endStr || '')))
                                 + '<br><strong>Local:</strong> ' + App.core.escapeHtml(String(props.local || 'A definir'))
                                 + '<br><strong>Espaco:</strong> ' + App.core.escapeHtml(String(props.espaco || 'A definir'))
                                 + '<br><strong>Modalidade:</strong> ' + App.core.escapeHtml(String(props.modalidade || 'Sem modalidade'))
@@ -207,15 +207,15 @@
                                 + ' | PCD ' + App.core.escapeHtml(String(props.vagas_pcd || 0))
                                 + ' | PVS ' + App.core.escapeHtml(String(props.vagas_pvs || 0))
                                 + ' | PLM ' + App.core.escapeHtml(String(props.vagas_plm || 0))
-                                + '<br><strong>Publicacao:</strong> ' + App.core.escapeHtml(String(props.data_publicacao_inicio || '-'))
-                                + ' ate ' + App.core.escapeHtml(String(props.data_publicacao_fim || '-'))
+                                + '<br><strong>Publicacao:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_inicio || '')))
+                                + ' ate ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_fim || '')))
                                 + '<br><strong>Status:</strong> ' + (Number(props.ativo || 0) === 1 ? 'Ativo' : 'Inativo');
 
                             if (String(props.special_description || '').trim() !== '') {
                                 details += '<br><strong>Descricao:</strong> ' + App.core.escapeHtml(String(props.special_description || ''));
                             }
 
-                            App.core.abrirPopup('info', details);
+                            App.core.abrirPopupHtml('info', details);
                             return;
                         }
 
@@ -256,6 +256,28 @@
             function getCurrentAdminName() {
                 const $panel = $('[data-admin-section="agenda"]').first();
                 return String($panel.data('adminCurrentCaller') || '').trim();
+            }
+
+            function formatCalendarDateTime(value) {
+                const raw = String(value || '').trim();
+
+                if (raw === '') {
+                    return '-';
+                }
+
+                const date = new Date(raw);
+
+                if (Number.isNaN(date.getTime())) {
+                    return raw;
+                }
+
+                return date.toLocaleString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
             }
 
             function getStatusMeta(status) {

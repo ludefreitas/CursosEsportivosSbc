@@ -42,6 +42,20 @@
             $texto.text(mensagem || 'Operacao concluida.');
         },
 
+        abrirPopupHtml: function (tipo, html, onClose) {
+            const $popup = $('#popup-mensagem');
+            const $titulo = $('#popup-titulo');
+            const $texto = $('#popup-texto');
+            const titulo = tipo === 'erro' ? 'Erro no formulario' : 'Mensagem do sistema';
+
+            App.state.popupCloseCallback = typeof onClose === 'function' ? onClose : null;
+
+            $popup.removeClass('popup-erro popup-sucesso hidden').addClass(tipo === 'erro' ? 'popup-erro' : 'popup-sucesso');
+            $popup.attr('aria-hidden', 'false');
+            $titulo.text(titulo);
+            $texto.html(String(html || 'Operacao concluida.'));
+        },
+
         abrirPopupCustomizado: function (selector) {
             $(selector).removeClass('hidden').attr('aria-hidden', 'false');
         },
