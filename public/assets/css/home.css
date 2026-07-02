@@ -1,4 +1,11 @@
-body.pagina-home { background-attachment: fixed; }
+body.pagina-home {
+    background-attachment: fixed;
+    background:
+        radial-gradient(circle at top left, rgba(30, 118, 182, 0.16), transparent 22%),
+        radial-gradient(circle at 82% 18%, rgba(230, 110, 28, 0.14), transparent 20%),
+        radial-gradient(circle at 18% 78%, rgba(28, 167, 70, 0.11), transparent 24%),
+        linear-gradient(180deg, #fbfcff 0%, #f2f7fb 38%, #f7f4ee 100%);
+}
 
 .home-whatsapp-row {
     display: flex;
@@ -7,13 +14,18 @@ body.pagina-home { background-attachment: fixed; }
     gap: 8px;
     flex-wrap: wrap;
     width: 100%;
-    margin: 6px 0 4px 0;
-    padding-left: 18px;
+    margin: 10px 0 8px 0;
+    padding: 10px 16px;
     font-size: 15px;
+    border-left: 4px solid #1f76b5;
+    border-radius: 18px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.94) 0%, rgba(246, 250, 255, 0.88) 100%);
+    box-shadow: 0 12px 26px rgba(31, 118, 181, 0.08);
 }
 
 .home-whatsapp-label {
-    color: var(--text);
+    color: #193649;
+    font-weight: 700;
 }
 
 .home-whatsapp-icon-link {
@@ -60,17 +72,70 @@ body.pagina-home { background-attachment: fixed; }
     display: flex;
     flex-direction: column;
     justify-content: center;
+    position: relative;
+    overflow: hidden;
+    background:
+        linear-gradient(140deg, rgba(255, 255, 255, 0.97) 0%, rgba(246, 250, 255, 0.97) 42%, rgba(255, 247, 238, 0.98) 100%);
+    border: 1px solid rgba(31, 118, 181, 0.12);
+    box-shadow: 0 26px 54px rgba(15, 74, 119, 0.12);
+}
+.hero-copy::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 180px;
+    height: 180px;
+    background: radial-gradient(circle, rgba(31, 118, 181, 0.18) 0%, transparent 72%);
+    pointer-events: none;
+}
+.hero-copy::after {
+    content: "";
+    position: absolute;
+    right: -34px;
+    bottom: -40px;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle, rgba(230, 110, 28, 0.16) 0%, transparent 70%);
+    pointer-events: none;
 }
 .hero-copy h1 {
     margin: 12px 0 18px 0;
     font-size: clamp(36px, 5vw, 62px);
     line-height: 0.98;
+    color: #173040;
+    max-width: 10ch;
+}
+.hero-copy p {
+    max-width: 62ch;
+    color: #415d69;
 }
 .hero-actions {
     display: grid;
     gap: 16px;
     margin-top: 24px;
     grid-template-columns: repeat(2, max-content);
+}
+.pagina-home .hero-actions .btn {
+    min-width: 210px;
+    justify-content: center;
+    border: none;
+    box-shadow: 0 14px 30px rgba(17, 47, 67, 0.16);
+}
+.pagina-home .hero-actions .btn-primary {
+    background: linear-gradient(135deg, #1f76b5 0%, #0d5f98 100%);
+}
+.pagina-home .hero-actions .btn-secondary {
+    color: #fff;
+    background: linear-gradient(135deg, #d96b1f 0%, #bf5412 100%);
+}
+.hero-card {
+    background:
+        linear-gradient(180deg, rgba(255, 252, 248, 0.98) 0%, rgba(255, 247, 236, 0.98) 100%);
+    border: 1px solid rgba(217, 107, 31, 0.18);
+    box-shadow: 0 24px 46px rgba(191, 84, 18, 0.11);
+}
+.hero-card h2 {
+    color: #135c8e;
 }
 .home-info-list {
     display: grid;
@@ -89,6 +154,7 @@ body.pagina-home { background-attachment: fixed; }
     justify-content: center;
     font-size: 16px;
     line-height: 1.2;
+    color: #d96b1f;
 }
 .home-info-text {
     display: -webkit-box;
@@ -98,10 +164,22 @@ body.pagina-home { background-attachment: fixed; }
 }
 .home-info-link {
     margin-left: 6px;
-    color: var(--brand-900);
+    color: #1f76b5;
     font-weight: 700;
     text-decoration: underline;
     text-underline-offset: 2px;
+}
+
+.pagina-home .eyebrow {
+    color: #12537f;
+    background: linear-gradient(135deg, #d8eef9 0%, #f9f0df 100%);
+    border: 1px solid rgba(31, 118, 181, 0.16);
+}
+
+.pagina-home .eyebrow-soft {
+    color: #fff;
+    border: none;
+    background: linear-gradient(135deg, #1f76b5 0%, #0f679f 100%);
 }
 
 .home-official-card {
@@ -137,10 +215,21 @@ body.pagina-home { background-attachment: fixed; }
     display: grid;
     grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
     gap: 16px;
-    border: 1px solid var(--line);
+    border: 1px solid rgba(31, 118, 181, 0.14);
     border-radius: 22px;
     padding: 16px;
     background: linear-gradient(180deg, #fffef8 0%, #ffffff 100%);
+    box-shadow: 0 18px 34px rgba(16, 65, 103, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+.special-event-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 7px;
+    background: linear-gradient(180deg, #1f76b5 0%, #d96b1f 100%);
 }
 
 .special-event-card-image {
@@ -156,15 +245,131 @@ body.pagina-home { background-attachment: fixed; }
 
 .special-event-card-body h3 {
     margin: 8px 0 10px 0;
+    color: #173040;
 }
 
 .post-card-special-event {
-    border-color: #d8c081;
-    background: linear-gradient(180deg, #fffaf0 0%, #ffffff 100%);
+    border-color: rgba(36, 154, 69, 0.24);
+    background: linear-gradient(180deg, #f7fff7 0%, #ffffff 100%);
+    box-shadow: 0 16px 28px rgba(27, 134, 59, 0.08);
+}
+
+.pagina-home .content-card,
+.pagina-home .info-card,
+.pagina-home .post-card {
+    border: 1px solid rgba(18, 69, 89, 0.08);
+    box-shadow: 0 20px 36px rgba(18, 69, 89, 0.08);
+}
+
+.pagina-home .section-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.pagina-home .info-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.pagina-home .info-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    height: 6px;
+    background: #1f76b5;
+}
+
+.pagina-home .info-card:nth-child(2)::before {
+    background: #d96b1f;
+}
+
+.pagina-home .info-card:nth-child(3)::before {
+    background: #1ca746;
+}
+
+.pagina-home .split-card {
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.97) 0%, rgba(245, 250, 255, 0.98) 100%);
+    border: 1px solid rgba(31, 118, 181, 0.12);
+}
+
+.pagina-home .chip {
+    border: 1px solid transparent;
+    color: #fff;
+    box-shadow: 0 10px 20px rgba(20, 48, 67, 0.12);
+}
+
+.pagina-home .chip:nth-child(4n + 1) {
+    background: linear-gradient(135deg, #1f76b5 0%, #0e5e95 100%);
+}
+
+.pagina-home .chip:nth-child(4n + 2) {
+    background: linear-gradient(135deg, #d96b1f 0%, #bf5412 100%);
+}
+
+.pagina-home .chip:nth-child(4n + 3) {
+    background: linear-gradient(135deg, #1ca746 0%, #108739 100%);
+}
+
+.pagina-home .chip:nth-child(4n + 4) {
+    background: linear-gradient(135deg, #d62b45 0%, #b21d37 100%);
+}
+
+.pagina-home .section-head .btn-secondary,
+.pagina-home .post-card .btn-primary,
+.pagina-home .special-event-card .btn-primary {
+    border: none;
+    color: #fff;
+}
+
+.pagina-home .section-head .btn-secondary {
+    background: linear-gradient(135deg, #1f76b5 0%, #0d5f98 100%);
+}
+
+.pagina-home .special-event-card .btn-primary {
+    background: linear-gradient(135deg, #1ca746 0%, #108739 100%);
+}
+
+.pagina-home .post-card .btn-primary {
+    background: linear-gradient(135deg, #d96b1f 0%, #bf5412 100%);
+}
+
+.pagina-home .special-event-card:nth-child(3n + 2)::before {
+    background: linear-gradient(180deg, #1ca746 0%, #d96b1f 100%);
+}
+
+.pagina-home .special-event-card:nth-child(3n + 3)::before {
+    background: linear-gradient(180deg, #d62b45 0%, #1f76b5 100%);
+}
+
+.pagina-home .post-card-special-event:nth-child(3n + 1) {
+    background: linear-gradient(180deg, #eef7ff 0%, #ffffff 100%);
+    border-color: rgba(31, 118, 181, 0.22);
+}
+
+.pagina-home .post-card-special-event:nth-child(3n + 2) {
+    background: linear-gradient(180deg, #fff6ec 0%, #ffffff 100%);
+    border-color: rgba(217, 107, 31, 0.22);
+}
+
+.pagina-home .post-card-special-event:nth-child(3n + 3) {
+    background: linear-gradient(180deg, #effbef 0%, #ffffff 100%);
+    border-color: rgba(28, 167, 70, 0.22);
+}
+
+.pagina-home .post-card h3,
+.pagina-home .content-card h2,
+.pagina-home .info-card h3 {
+    color: #193649;
 }
 
 @media (max-width: 980px) {
     .hero {
+        grid-template-columns: 1fr;
+    }
+    .pagina-home .section-grid {
         grid-template-columns: 1fr;
     }
     .home-whatsapp-row {
@@ -172,11 +377,14 @@ body.pagina-home { background-attachment: fixed; }
         width: 100%;
         margin-right: 0;
         margin-bottom: 10px;
-        padding-left: 0;
-        padding-right: 0;
+        padding-left: 14px;
+        padding-right: 14px;
     }
     .hero-actions {
         grid-template-columns: 1fr;
+    }
+    .pagina-home .hero-actions .btn {
+        min-width: 0;
     }
     .home-official-card {
         grid-template-columns: 1fr;
