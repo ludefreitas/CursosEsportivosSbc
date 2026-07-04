@@ -13,6 +13,7 @@ use App\Controllers\ProfileController;
 return [
     ['GET', '/', [HomeController::class, 'index']],
     ['GET', '/teste-erros', [ErrorController::class, 'testCenter']],
+    ['GET', '/teste_erros', [ErrorController::class, 'testCenter']],
     ['GET', '/blog', [BlogController::class, 'index']],
     ['GET', '/blog/post', [BlogController::class, 'post']],
     ['GET', '/login', [AuthController::class, 'showLogin']],
