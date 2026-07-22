@@ -92,7 +92,18 @@ function url(string $path = '/'): string
  */
 function asset_url(string $path): string
 {
-    return url('/assets/' . ltrim($path, '/'));
+    $normalizedPath = ltrim($path, '/');
+    $assetUrl = url('/assets/' . $normalizedPath);
+
+    if (defined('ROOT_PATH')) {
+        $assetFile = ROOT_PATH . '/public/assets/' . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $normalizedPath);
+
+        if (is_file($assetFile)) {
+            $assetUrl .= '?v=' . (string) filemtime($assetFile);
+        }
+    }
+
+    return $assetUrl;
 }
 
 /**

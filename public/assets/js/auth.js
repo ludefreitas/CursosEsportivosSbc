@@ -10,14 +10,16 @@
                 return;
             }
 
+            $('.header-login-form').remove();
+
             $nav.html([
-                '<a href="' + App.core.buildUrl('/') + '">Inicio</a>',
-                '<a href="' + App.core.buildUrl('/agenda') + '">Agenda</a>',
-                '<a href="' + App.core.buildUrl('/blog') + '">Blog</a>',
-                '<a href="' + App.core.buildUrl('/dashboard') + '" data-profile-completion-link="' + profileCompletionRequired + '">Meu painel</a>',
-                '<a href="' + App.core.buildUrl('/admin') + '" data-profile-completion-link="' + profileCompletionRequired + '">Admin</a>',
+                '<a href="' + App.core.buildUrl('/') + '" class="nav-color-orange">Início</a>',
+                '<a href="' + App.core.buildUrl('/agenda') + '" class="nav-color-green">Agenda</a>',
+                '<a href="' + App.core.buildUrl('/blog') + '" class="nav-color-red">Blog</a>',
+                '<a href="' + App.core.buildUrl('/dashboard') + '" class="nav-color-teal" data-profile-completion-link="' + profileCompletionRequired + '">Meu painel</a>',
+                '<a href="' + App.core.buildUrl('/admin') + '" class="nav-color-orange" data-profile-completion-link="' + profileCompletionRequired + '">Admin</a>',
                 '<form method="POST" action="' + App.core.buildUrl('/logout') + '" class="inline-form">',
-                '<button type="submit" class="link-button">Sair</button>',
+                '<button type="submit" class="link-button nav-color-green">Sair</button>',
                 '</form>'
             ].join(''));
 

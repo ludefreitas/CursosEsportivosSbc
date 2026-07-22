@@ -26,36 +26,56 @@
     <?php $isAuthenticated = \App\Core\Auth::check(); ?>
     <div class="page-shell">
         <header class="site-header">
-            <div>
-                <a class="brand" href="<?php echo e(url('/')); ?>">
-                    <img
-                        src="<?php echo e(asset_url('img/cursosesportivossbc.jpg')); ?>"
-                        alt="Cursos Esportivos SBC"
-                        class="brand-logo"
-                    >
-                    <span class="brand-text">Cursos Esportivos SBC</span>
+            <div class="site-header-access">
+                <a class="site-header-home" href="<?php echo e(url('/')); ?>" aria-label="Ir para o início" title="Início">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M3 10.9 12 3l9 7.9v9.6a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5v-9.6Z" fill="currentColor"/>
+                    </svg>
                 </a>
-                <p class="brand-subtitle">Agendamento para treinos e inscrições para cursos esportivos para você e seus dependentes em uma só experiência.</p>
+                <?php if (!$isAuthenticated) { ?>
+                    <form
+                        method="POST"
+                        action="<?php echo e(url('/login')); ?>"
+                        class="header-login-form"
+                        data-ajax-form="1"
+                        data-follow-redirect="1"
+                    >
+                        <input type="hidden" name="return_to" value="<?php echo e(current_path()); ?>">
+                        <span class="header-login-title">Entrar:</span>
+                        <label>
+                            <span class="sr-only">CPF</span>
+                            <input type="text" name="cpf" placeholder="CPF" inputmode="numeric" autocomplete="username" required>
+                        </label>
+                        <label>
+                            <span class="sr-only">Senha</span>
+                            <input type="password" name="password" placeholder="Senha" autocomplete="current-password" required>
+                        </label>
+                        <button type="submit" class="header-login-submit" aria-label="Entrar">Ir <span aria-hidden="true">➜</span></button>
+                        <a href="<?php echo e(url('/login')); ?>" class="header-login-recovery">Recuperar senha</a>
+                    </form>
+                <?php } ?>
             </div>
             <nav class="site-nav">
-                <a href="<?php echo e(url('/')); ?>">Início</a>
-                <a href="<?php echo e(url('/agenda')); ?>">Agenda</a>
-                <a href="<?php echo e(url('/blog')); ?>">Blog</a>
+                <a href="<?php echo e(url('/')); ?>" class="nav-color-orange">Início</a>
+                <a href="<?php echo e(url('/agenda')); ?>" class="nav-color-green">Agenda</a>
+                <a href="<?php echo e(url('/blog')); ?>" class="nav-color-red">Blog</a>
                 <?php if ($isAuthenticated) { ?>
                     <a
                         href="<?php echo e(url('/dashboard')); ?>"
+                        class="nav-color-teal"
                         data-profile-completion-link="<?php echo !empty($profileCompletionRequired) ? '1' : '0'; ?>"
                     >Meu painel</a>
                     <a
                         href="<?php echo e(url('/admin')); ?>"
+                        class="nav-color-orange"
                         data-profile-completion-link="<?php echo !empty($profileCompletionRequired) ? '1' : '0'; ?>"
                     >Admin</a>
                     <form method="POST" action="<?php echo e(url('/logout')); ?>" class="inline-form">
-                        <button type="submit" class="link-button">Sair</button>
+                        <button type="submit" class="link-button nav-color-green">Sair</button>
                     </form>
                 <?php } else { ?>
-                    <a href="<?php echo e(url('/login?return_to=' . rawurlencode(current_path()))); ?>">Entrar</a>
-                    <a href="<?php echo e(url('/cadastro')); ?>" class="nav-cta">Cadastrar</a>
+                    <a href="<?php echo e(url('/login?return_to=' . rawurlencode(current_path()))); ?>" class="nav-color-teal">Entrar</a>
+                    <a href="<?php echo e(url('/cadastro')); ?>" class="nav-cta nav-color-orange">Cadastrar</a>
                 <?php } ?>
             </nav>
         </header>
