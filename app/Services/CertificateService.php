@@ -37,7 +37,7 @@ class CertificateService
     }
 
     /**
-     * Carrega os dados do modal de documentacao para uma pessoa vinculada ao usuario autenticado.
+     * Carrega os dados do modal de documentação para uma pessoa vinculada ao usuário autenticado.
      */
     public function getManagementData(int $personId): array
     {
@@ -69,7 +69,7 @@ class CertificateService
     }
 
     /**
-     * Salva a documentacao de uma condicao, substituindo os arquivos anteriores dessa mesma condicao.
+     * Salva a documentação de uma condicao, substituindo os arquivos anteriores dessa mesma condicao.
      */
     public function saveConditionDocuments(int $personId, string $conditionSlug, array $data, array $files): array
     {
@@ -84,7 +84,7 @@ class CertificateService
         $conditionField = $conditionMap[$conditionSlug]['field'];
 
         if ((int) ($person[$conditionField] ?? 0) !== 1) {
-            throw new RuntimeException('Essa condicao nao esta marcada no cadastro da pessoa e nao pode receber documentacao.');
+            throw new RuntimeException('Essa condicao não está marcada no cadastro da pessoa e não pode receber documentação.');
         }
 
         $normalizedFiles = $this->normalizeUploadedFiles($files);
@@ -104,7 +104,7 @@ class CertificateService
         $nisNumber = $this->normalizeNisNumber((string) ($data['numero_nis'] ?? ''));
 
         if ($description === '') {
-            throw new RuntimeException('Informe um resumo da documentacao enviada.');
+            throw new RuntimeException('Informe um resumo da documentação enviada.');
         }
 
         if ($issuedAt !== '' && !$this->isValidDate($issuedAt)) {
@@ -243,7 +243,7 @@ class CertificateService
                 $relativePath = $relativeBase . '/' . $safeName;
 
                 if (!move_uploaded_file((string) $file['tmp_name'], $absolutePath)) {
-                    throw new RuntimeException('Nao foi possivel salvar um dos arquivos enviados. Tente novamente.');
+                    throw new RuntimeException('Não foi possível salvar um dos arquivos enviados. Tente novamente.');
                 }
 
                 $movedAbsolutePaths[] = $absolutePath;
@@ -326,7 +326,7 @@ class CertificateService
         $document = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$document) {
-            throw new RuntimeException('Documento nao encontrado para a sua conta.');
+            throw new RuntimeException('Documento não encontrado para a sua conta.');
         }
 
         return $document;
@@ -338,11 +338,11 @@ class CertificateService
     private function findManagedPerson(int $personId): array
     {
         if (!Auth::check()) {
-            throw new RuntimeException('Faca login para gerenciar a documentacao.');
+            throw new RuntimeException('Faca login para gerenciar a documentação.');
         }
 
         if ($personId <= 0) {
-            throw new RuntimeException('Pessoa invalida para gerenciar documentacao.');
+            throw new RuntimeException('Pessoa invalida para gerenciar documentação.');
         }
 
         $pdo = Database::connection();
@@ -363,7 +363,7 @@ class CertificateService
         $person = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$person) {
-            throw new RuntimeException('A pessoa selecionada nao esta vinculada a sua conta.');
+            throw new RuntimeException('A pessoa selecionada não está vinculada a sua conta.');
         }
 
         return $person;
@@ -432,7 +432,7 @@ class CertificateService
         $typeId = $stmt->fetchColumn();
 
         if (!$typeId) {
-            throw new RuntimeException('Tipo de certificado nao encontrado para a condicao informada.');
+            throw new RuntimeException('Tipo de certificado não encontrado para a condicao informada.');
         }
 
         return (int) $typeId;
@@ -510,20 +510,20 @@ class CertificateService
             $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
 
             if ($error !== UPLOAD_ERR_OK) {
-                throw new RuntimeException('Um dos arquivos enviados apresentou erro e nao pode ser processado.');
+                throw new RuntimeException('Um dos arquivos enviados apresentou erro e não pode ser processado.');
             }
 
             $tmpName = (string) ($file['tmp_name'] ?? '');
 
             if ($tmpName === '' || !is_uploaded_file($tmpName)) {
-                throw new RuntimeException('Nao foi possivel validar um dos arquivos enviados.');
+                throw new RuntimeException('Não foi possível validar um dos arquivos enviados.');
             }
 
             $mime = (string) $finfo->file($tmpName);
             $extension = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
 
             if (!in_array($mime, $allowedMimeTypes, true) || $extension !== 'pdf') {
-                throw new RuntimeException('Somente arquivos PDF podem ser enviados para validacao.');
+                throw new RuntimeException('Somente arquivos PDF podem ser enviados para validação.');
             }
 
             $validated[] = [
@@ -544,7 +544,7 @@ class CertificateService
         $directory = ROOT_PATH . '/public/uploads/certificados/' . $personId . '/' . $conditionSlug;
 
         if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
-            throw new RuntimeException('Nao foi possivel preparar a pasta de armazenamento da documentacao.');
+            throw new RuntimeException('Não foi possível preparar a pasta de armazenamento da documentação.');
         }
 
         return $directory;
@@ -568,7 +568,7 @@ class CertificateService
     private function formatCertificateStatusLabel(?array $certificate): string
     {
         if ($certificate === null) {
-            return 'Sem documentacao enviada';
+            return 'Sem documentação enviada';
         }
 
         $status = (string) ($certificate['status'] ?? '');

@@ -22,16 +22,16 @@ foreach ($selectedDisabilityTypes as $selectedType) {
 <div class="popup-head admin-popup-head">
     <div>
         <h3 id="admin-condition-validation-title">Validar condicao especial</h3>
-        <p class="muted">Analise a documentacao de <?php echo e((string) ($person['nome_completo'] ?? '')); ?> sem sair desta pagina.</p>
+        <p class="muted">Analise a documentação de <?php echo e((string) ($person['nome_completo'] ?? '')); ?> sem sair desta página.</p>
     </div>
-    <button type="button" class="popup-close-icon" id="admin-condition-validation-close" aria-label="Fechar validacao">&times;</button>
+    <button type="button" class="popup-close-icon" id="admin-condition-validation-close" aria-label="Fechar validação">&times;</button>
 </div>
 
 <div class="popup-body admin-popup-body admin-condition-validation-body">
     <div class="popup-meta-list">
         <p><strong>Nome:</strong> <?php echo e((string) ($person['nome_completo'] ?? '-')); ?></p>
         <p><strong>CPF:</strong> <?php echo e(format_cpf((string) ($person['cpf'] ?? ''))); ?></p>
-        <p><strong>Responsavel:</strong> <?php echo e((string) (($person['nome_responsavel'] ?? '') !== '' ? $person['nome_responsavel'] : '-')); ?></p>
+        <p><strong>Responsável:</strong> <?php echo e((string) (($person['nome_responsavel'] ?? '') !== '' ? $person['nome_responsavel'] : '-')); ?></p>
         <p><strong>Condicao:</strong> <?php echo e((string) ($condition['label'] ?? '-')); ?></p>
         <p><strong>Status atual:</strong> <?php echo e((string) ($certificate['status'] ?? 'Sem certificado enviado')); ?></p>
         <p><strong>Resumo informado pela pessoa:</strong> <?php echo e((string) ($certificate['descricao_resumida'] ?? '-')); ?></p>
@@ -50,7 +50,7 @@ foreach ($selectedDisabilityTypes as $selectedType) {
     <div class="admin-condition-validation-documents">
         <strong>Documentos enviados</strong>
         <?php if ($documents === []) { ?>
-            <p class="muted">Nenhum PDF foi enviado para esta condicao ainda.</p>
+            <p class="muted">Nenhum PDF foi enviado para esta condição ainda.</p>
         <?php } else { ?>
             <div class="admin-document-links">
                 <?php foreach ($documents as $document) { ?>
@@ -98,18 +98,18 @@ foreach ($selectedDisabilityTypes as $selectedType) {
         <?php } ?>
 
         <label>
-            <span>Observacao da validacao</span>
-            <textarea name="observacao_validacao" id="admin-condition-validation-note" rows="4" placeholder="Explique a decisao tomada nesta validacao." <?php echo $documents === [] ? 'disabled' : ''; ?>><?php echo e($currentValidationNote); ?></textarea>
-            <small class="muted">Ao marcar como validado parcial, esta observacao passa a ser obrigatoria.</small>
+            <span>Observação da validação</span>
+            <textarea name="observacao_validacao" id="admin-condition-validation-note" rows="4" placeholder="Explique a decisao tomada nesta validação." <?php echo $documents === [] ? 'disabled' : ''; ?>><?php echo e($currentValidationNote); ?></textarea>
+            <small class="muted">Ao marcar como validado parcial, esta observação passa a ser obrigatoria.</small>
         </label>
 
         <?php if ($documents === []) { ?>
-            <p class="muted">Enquanto nao houver PDF enviado para esta condicao, nao ha como concluir a validacao administrativa.</p>
+            <p class="muted">Enquanto não houver PDF enviado para esta condição, não há como concluir a validação administrativa.</p>
         <?php } ?>
 
         <div class="popup-builder-actions">
             <button type="button" class="btn btn-secondary" id="admin-condition-validation-cancel">Fechar/Cancelar</button>
-            <button type="submit" class="btn btn-primary" <?php echo $documents === [] ? 'disabled' : ''; ?>>Salvar validacao</button>
+            <button type="submit" class="btn btn-primary" <?php echo $documents === [] ? 'disabled' : ''; ?>>Salvar validação</button>
         </div>
     </form>
 </div>

@@ -17,7 +17,7 @@ $currentAdminName = (string) ($currentAdminName ?? '');
 </div>
 
 <?php if ($bookings === []) { ?>
-    <p class="muted">Nenhum agendamento foi encontrado para esta ocorrencia.</p>
+    <p class="muted">Nenhum agendamento foi encontrado para esta ocorrência.</p>
 <?php } else { ?>
     <div class="table-wrap">
         <table class="data-table">
@@ -72,7 +72,7 @@ $currentAdminName = (string) ($currentAdminName ?? '');
                                     </label>
                                 </div>
                                 <?php if (!$canManageAttendance) { ?>
-                                    <small class="muted">Liberado somente a partir do horario agendado.</small>
+                                    <small class="muted">Liberado somente a partir do horário agendado.</small>
                                 <?php } ?>
                             <?php } ?>
                         </td>

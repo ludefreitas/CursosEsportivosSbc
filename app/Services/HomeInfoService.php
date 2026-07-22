@@ -32,7 +32,7 @@ class HomeInfoService
 
         if (!$row) {
             return [
-                'titulo' => 'O que voce precisa saber:',
+                'titulo' => 'O que você precisa saber:',
                 'paragrafos' => [],
             ];
         }

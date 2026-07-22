@@ -34,6 +34,7 @@ class ProfileController extends Controller
         $person = $this->profileService->getAuthenticatedPerson();
         $this->view('profile/complete', [
             'title' => 'Completar Cadastro',
+            'pageClass' => 'pagina-auth',
             'person' => $person,
             'registrationBlock' => $this->profileService->getRegistrationBlockForAuthenticatedPerson(),
             'dependents' => $this->profileService->listDependents(),
@@ -42,7 +43,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Salva o cadastro principal do usuario.
+     * Salva o cadastro principal do usuário.
      */
     public function complete(): void
     {
@@ -89,7 +90,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Cria ou atualiza um dependente do responsavel atual.
+     * Cria ou atualiza um dependente do responsável atual.
      */
     public function saveDependent(): void
     {
@@ -135,7 +136,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Retorna o modal de consulta e edicao de um dependente.
+     * Retorna o modal de consulta e edição de um dependente.
      */
     public function dependentDetails(): void
     {
@@ -220,12 +221,12 @@ class ProfileController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Responsavel alterado com sucesso. Esta acao fica registrada e nao pode ser desfeita pelo sistema.',
+                    'message' => 'Responsável alterado com sucesso. Esta ação fica registrada e não pode ser desfeita pelo sistema.',
                     'redirect' => url('/dashboard'),
                 ]);
             }
 
-            flash('success', 'Responsavel alterado com sucesso. Esta acao fica registrada e nao pode ser desfeita pelo sistema.');
+            flash('success', 'Responsável alterado com sucesso. Esta ação fica registrada e não pode ser desfeita pelo sistema.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -241,7 +242,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Retorna o conteudo HTML do modal de documentacao por pessoa.
+     * Retorna o conteudo HTML do modal de documentação por pessoa.
      */
     public function certificateModal(): void
     {
@@ -286,7 +287,7 @@ class ProfileController extends Controller
 
             if ($relativePath === '' || !is_file($absolutePath)) {
                 http_response_code(404);
-                echo 'Arquivo nao encontrado.';
+                echo 'Arquivo não encontrado.';
                 exit;
             }
 
@@ -305,13 +306,13 @@ class ProfileController extends Controller
             exit;
         } catch (\Throwable $e) {
             http_response_code(404);
-            echo 'Arquivo nao encontrado.';
+            echo 'Arquivo não encontrado.';
             exit;
         }
     }
 
     /**
-     * Salva ou substitui a documentacao de uma condicao especial.
+     * Salva ou substitui a documentação de uma condicao especial.
      */
     public function saveCertificateDocuments(): void
     {
@@ -338,7 +339,7 @@ class ProfileController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Documentacao atualizada com sucesso. Os arquivos anteriores desta condicao foram substituidos pelos novos PDFs enviados.',
+                    'message' => 'Documentacao atualizada com sucesso. Os arquivos anteriores desta condição foram substituidos pelos novos PDFs enviados.',
                     'html' => $this->renderCertificateModalHtml($modalData),
                     'header_alerts_html' => $this->renderHeaderCertificateAlertsHtml(),
                 ]);
@@ -360,7 +361,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Retorna o modal de atestados clinico e dermatologico do dependente.
+     * Retorna o modal de atestados clínico e dermatológico do dependente.
      */
     public function healthCertificatesModal(): void
     {

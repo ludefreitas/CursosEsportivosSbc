@@ -6,37 +6,37 @@ INSERT IGNORE INTO papeis (id, slug, nome) VALUES
     (3, 'supervisor', 'Supervisor'),
     (4, 'coordinator', 'Coordenador'),
     (5, 'teacher', 'Professor'),
-    (6, 'intern', 'Estagiario');
+    (6, 'intern', 'Estagiário');
 
 INSERT IGNORE INTO niveis_modalidade (id, slug, nome) VALUES
     (1, 'iniciante', 'Iniciante'),
-    (2, 'intermediario', 'Intermediario'),
-    (3, 'avancado', 'Avancado'),
+    (2, 'intermediario', 'Intermediário'),
+    (3, 'avancado', 'Avançado'),
     (4, 'treinamento', 'Treinamento'),
     (5, 'profissional', 'Profissional');
 
 INSERT IGNORE INTO modalidades (id, nome, slug, tipo_ambiente, ativo) VALUES
-    (1, 'Musculacao', 'musculacao', 'terrestre', 1),
-    (2, 'Natacao', 'natacao', 'aquatica', 1),
-    (3, 'Hidroginastica', 'hidroginastica', 'aquatica', 1),
+    (1, 'Musculação', 'musculacao', 'terrestre', 1),
+    (2, 'Natação', 'natacao', 'aquatica', 1),
+    (3, 'Hidroginástica', 'hidroginastica', 'aquatica', 1),
     (4, 'Voleibol', 'voleibol', 'terrestre', 1),
     (5, 'Pilates', 'pilates', 'terrestre', 1),
     (6, 'Futsal', 'futsal', 'terrestre', 1);
 
 INSERT IGNORE INTO tipos_certificados (id, slug, nome, categoria) VALUES
-    (1, 'pcd', 'Pessoa com Deficiencia', 'condicao'),
-    (2, 'plm', 'Pessoa com Laudo Medico de Doenca', 'condicao'),
-    (3, 'pvs', 'Pessoa em Situacao de Vulnerabilidade Social', 'condicao');
+    (1, 'pcd', 'Pessoa com Deficiência', 'condicao'),
+    (2, 'plm', 'Pessoa com Laudo Médico de Doença', 'condicao'),
+    (3, 'pvs', 'Pessoa em Situação de Vulnerabilidade Social', 'condicao');
 
 INSERT IGNORE INTO locais_treino (id, nome, slug, endereco_completo, cidade, uf, latitude, longitude, ativo) VALUES
-    (1, 'Centro Esportivo Baeta', 'centro-esportivo-baeta', 'Rua do Esporte, 120 - Centro', 'Sao Bernardo do Campo', 'SP', -23.6917710, -46.5647240, 1),
-    (2, 'Parque Aquatico Riacho', 'parque-aquatico-riacho', 'Avenida das Piscinas, 250 - Riacho Grande', 'Sao Bernardo do Campo', 'SP', -23.7478820, -46.5083350, 1),
-    (3, 'Complexo Alvarenga', 'complexo-alvarenga', 'Rua das Quadras, 890 - Alvarenga', 'Sao Bernardo do Campo', 'SP', -23.7422120, -46.6049200, 1);
+    (1, 'Centro Esportivo Baeta', 'centro-esportivo-baeta', 'Rua do Esporte, 120 - Centro', 'São Bernardo do Campo', 'SP', -23.6917710, -46.5647240, 1),
+    (2, 'Parque Aquático Riacho', 'parque-aquatico-riacho', 'Avenida das Piscinas, 250 - Riacho Grande', 'São Bernardo do Campo', 'SP', -23.7478820, -46.5083350, 1),
+    (3, 'Complexo Alvarenga', 'complexo-alvarenga', 'Rua das Quadras, 890 - Alvarenga', 'São Bernardo do Campo', 'SP', -23.7422120, -46.6049200, 1);
 
 INSERT IGNORE INTO espacos_treino (id, local_treino_id, nome, tipo_espaco, capacidade_base, ativo) VALUES
-    (1, 1, 'Sala de Musculacao A', 'sala', 25, 1),
+    (1, 1, 'Sala de Musculação A', 'sala', 25, 1),
     (2, 1, 'Quadra Poliesportiva 1', 'quadra', 30, 1),
-    (3, 2, 'Piscina Semi Olimpica', 'piscina', 20, 1),
+    (3, 2, 'Piscina Semiolímpica', 'piscina', 20, 1),
     (4, 2, 'Piscina Infantil', 'piscina', 12, 1),
     (5, 3, 'Sala Multiuso', 'sala', 18, 1),
     (6, 3, 'Quadra Coberta', 'quadra', 24, 1);
@@ -113,27 +113,27 @@ INSERT IGNORE INTO turmas (
     id, temporada_id, modalidade_id, local_treino_id, espaco_treino_id, nivel_modalidade_id, nome,
     idade_minima, idade_maxima, vagas_totais, vagas_geral, vagas_pcd, vagas_plm, vagas_pvs, ativo
 ) VALUES
-    (1, 1, 1, 1, 1, 2, 'Musculacao Intermediaria - Noite', 18, 70, 18, 12, 2, 2, 2, 1),
-    (2, 2, 2, 2, 3, 1, 'Natacao Iniciante - Manha', 16, 65, 14, 10, 2, 1, 1, 1);
+    (1, 1, 1, 1, 1, 2, 'Musculação Intermediária - Noite', 18, 70, 18, 12, 2, 2, 2, 1),
+    (2, 2, 2, 2, 3, 1, 'Natação Iniciante - Manhã', 16, 65, 14, 10, 2, 1, 1, 1);
 
 INSERT IGNORE INTO postagens_blog (
     id, titulo, slug, resumo, conteudo, criado_por_conta_id, ativo
 ) VALUES
-    (1, 'Abertura da temporada de inverno', 'abertura-temporada-inverno', 'Inscricoes e horarios iniciais da temporada de inverno 2026.', 'A temporada de inverno ja esta em preparacao com vagas organizadas por publico, local e modalidade.', 1, 1),
-    (2, 'Documentos para modalidades aquaticas', 'documentos-modalidades-aquaticas', 'Lembrete sobre atestado clinico e dermatologico.', 'Para natacao e hidroginastica, o aluno precisa manter atestado clinico e dermatologico dentro da validade.', 1, 1);
+    (1, 'Abertura da temporada de inverno', 'abertura-temporada-inverno', 'Inscrições e horários iniciais da temporada de inverno 2026.', 'A temporada de inverno já está em preparação com vagas organizadas por público, local e modalidade.', 1, 1),
+    (2, 'Documentos para modalidades aquáticas', 'documentos-modalidades-aquaticas', 'Lembrete sobre atestado clínico e dermatológico.', 'Para natação e hidroginástica, o aluno precisa manter atestado clínico e dermatológico dentro da validade.', 1, 1);
 
 INSERT IGNORE INTO agenda_horarios_especiais (
     id, local_treino_id, espaco_treino_id, modalidade_id, titulo, descricao, data_inicio, data_fim,
     idade_minima, idade_maxima, criterio_faixa_etaria, vagas_geral, vagas_pcd, vagas_plm, vagas_pvs, data_publicacao_inicio, data_publicacao_fim,
     publicar_pagina_inicial, publicar_blog, imagem_url, url_destino, rotulo_acao, ativo
 ) VALUES
-    (1, 2, 3, 2, 'Avaliacao Especial de Natacao Avancada', 'Horario especial de avaliacao tecnica para alunos que desejam ingressar nas turmas avancadas e de aperfeicoamento em natacao. Leve documento com foto e compareca com 20 minutos de antecedencia.', '2026-07-12 08:00:00', '2026-07-12 11:00:00', 15, 65, 'idade_exata', 40, 5, 5, 5, '2026-06-15 08:00:00', '2026-07-11 18:00:00', 1, 1, '/assets/img/cursosesportivossbc.jpg', '/agenda', 'Ver detalhes e se inscrever', 1);
+    (1, 2, 3, 2, 'Avaliação Especial de Natação Avançada', 'Horário especial de avaliação técnica para alunos que desejam ingressar nas turmas avançadas e de aperfeiçoamento em natação. Leve documento com foto e compareça com 20 minutos de antecedência.', '2026-07-12 08:00:00', '2026-07-12 11:00:00', 15, 65, 'idade_exata', 40, 5, 5, 5, '2026-06-15 08:00:00', '2026-07-11 18:00:00', 1, 1, '/assets/img/cursosesportivossbc.jpg', '/agenda', 'Ver detalhes e se inscrever', 1);
 
 INSERT IGNORE INTO site_popups (
     id, titulo, texto_principal, texto_secundario, imagem_url, rotulo_acao, url_acao,
     caminhos_paginas, mostrar_todas_paginas, data_inicio, data_fim, status, criado_por_conta_id
 ) VALUES
-    (1, 'Boas-vindas a temporada', 'As agendas e inscricoes da temporada estao abertas para moradores de Sao Bernardo do Campo.', 'Consulte a agenda, verifique os documentos e acompanhe os avisos oficiais da Secretaria.', NULL, 'Ver agenda', '/agenda', '/,/agenda', 0, '2026-05-01 00:00:00', '2026-12-31 23:59:59', 'ativo', 1);
+    (1, 'Boas-vindas à temporada', 'As agendas e inscrições da temporada estão abertas para moradores de São Bernardo do Campo.', 'Consulte a agenda, verifique os documentos e acompanhe os avisos oficiais da Secretaria.', NULL, 'Ver agenda', '/agenda', '/,/agenda', 0, '2026-05-01 00:00:00', '2026-12-31 23:59:59', 'ativo', 1);
 
 INSERT IGNORE INTO home_quadros_informativos (
     id, slug, titulo, paragrafo_1, paragrafo_1_link_rotulo, paragrafo_1_link_url,
@@ -143,15 +143,15 @@ INSERT IGNORE INTO home_quadros_informativos (
     paragrafo_5, paragrafo_5_link_rotulo, paragrafo_5_link_url,
     atualizado_por_conta_id, updated_at
 ) VALUES
-    (1, 'home-o-que-precisa-saber', 'O que voce precisa saber:', 'O cadastro no sistema so pode ser feito por um responsavel maior de idade.', NULL, NULL, 'Agendamentos de treinos e inscricoes para cursos esportivos sao gratuitos.', NULL, NULL, 'Dependentes podem ter transferencia definitiva de responsavel registrada no sistema.', NULL, NULL, 'As vagas para treinos e turmas sao limitadas e seguem disponibilidade.', NULL, NULL, 'A base do sistema ja esta pronta para certificados, atestados e inscricoes por temporada.', NULL, NULL, 1, NOW());
+    (1, 'home-o-que-precisa-saber', 'O que você precisa saber:', 'O cadastro no sistema só pode ser feito por um responsável maior de idade.', NULL, NULL, 'Agendamentos de treinos e inscrições para cursos esportivos são gratuitos.', NULL, NULL, 'Dependentes podem ter transferência definitiva de responsável registrada no sistema.', NULL, NULL, 'As vagas para treinos e turmas são limitadas e seguem disponibilidade.', NULL, NULL, 'A base do sistema já está pronta para certificados, atestados e inscrições por temporada.', NULL, NULL, 1, NOW());
 
 INSERT IGNORE INTO ceps_excecao (
     id, cep, observacoes, criado_por_conta_id, ativo
 ) VALUES
-    (1, '09901000', 'Excecao administrativa de teste para validacao de cadastro.', 1, 1);
+    (1, '09901000', 'Exceção administrativa de teste para validação de cadastro.', 1, 1);
 
 INSERT IGNORE INTO ceps_intervalo_aceito (
     id, cep_inicio, cep_fim, observacoes, criado_por_conta_id, ativo
 ) VALUES
-    (1, '09600000', '09899999', 'Faixa padrao aceita para moradores de Sao Bernardo do Campo.', 1, 1),
-    (2, '09920000', '09920999', 'Intervalo adicional de excecao para testes administrativos.', 1, 1);
+    (1, '09600000', '09899999', 'Faixa padrão aceita para moradores de São Bernardo do Campo.', 1, 1),
+    (2, '09920000', '09920999', 'Intervalo adicional de exceção para testes administrativos.', 1, 1);

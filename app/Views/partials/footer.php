@@ -1,7 +1,7 @@
         </main>
     </div>
     <div style="text-align: center; margin-bottom: 30px;">
-        Secretaria de Esportes e Lazer de Sao Bernardo do Campo
+        Secretaria de Esportes e Lazer de São Bernardo do Campo
     </div>
     <div id="popup-mensagem" class="popup-overlay hidden" aria-hidden="true">
         <div class="popup-card" role="dialog" aria-modal="true" aria-labelledby="popup-titulo">
@@ -47,7 +47,7 @@
     </div>
     <div id="popup-preview-site" class="popup-overlay popup-site-overlay hidden" aria-hidden="true">
         <div class="popup-card popup-site-card" role="dialog" aria-modal="true" aria-labelledby="popup-preview-titulo">
-            <button type="button" class="popup-close-icon" id="popup-preview-site-close" data-close-popup="#popup-preview-site" aria-label="Fechar pre-visualizacao">&times;</button>
+            <button type="button" class="popup-close-icon" id="popup-preview-site-close" data-close-popup="#popup-preview-site" aria-label="Fechar pré-visualização">&times;</button>
             <div class="popup-site-media hidden" id="popup-preview-media">
                 <img id="popup-preview-imagem" src="" alt="Imagem do pop-up">
             </div>
@@ -78,11 +78,11 @@
             </div>
             <div class="popup-body">
                 <p id="popup-profile-completion-texto">
-                    Antes de acessar esta area, voce precisa completar seu cadastro.
+                    Antes de acessar esta área, você precisa completar seu cadastro.
                 </p>
             </div>
             <div class="popup-actions">
-                <button type="button" class="btn btn-secondary" data-close-popup="#popup-profile-completion-confirm">Agora nao</button>
+                <button type="button" class="btn btn-secondary" data-close-popup="#popup-profile-completion-confirm">Agora não</button>
                 <button type="button" class="btn btn-primary" id="popup-profile-completion-open">Completar cadastro</button>
             </div>
         </div>

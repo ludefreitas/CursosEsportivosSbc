@@ -54,7 +54,7 @@ class BlogController extends Controller
         if ($post === null) {
             http_response_code(404);
             $this->view('blog/not_found', [
-                'title' => 'Postagem nao encontrada',
+                'title' => 'Postagem não encontrada',
                 'pageClass' => 'pagina-blog',
                 'categories' => $blogService->listPublicCategories(),
                 'archiveMonths' => $blogService->listArchiveMonths(),

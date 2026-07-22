@@ -27,7 +27,7 @@
         <div class="section-head">
             <div>
                 <h2>Meus dependentes</h2>
-                <p class="muted">Voce pode cadastrar dependentes maiores ou menores de idade, sempre sem duplicar CPF.</p>
+                <p class="muted">Você pode cadastrar dependentes maiores ou menores de idade, sempre sem duplicar CPF.</p>
             </div>
             <div class="chips-wrap">
                 <button type="button" class="btn btn-primary" data-open-dependent-create-modal="1">Novo dependente</button>
@@ -42,8 +42,8 @@
                         <th>CPF</th>
                         <th>Data de nascimento</th>
                         <th>Dados</th>
-                        <th>Atestado clinico</th>
-                        <th>Atestado dermatologico</th>
+                        <th>Atestado clínico</th>
+                        <th>Atestado dermatológico</th>
                         <th>Documentacao por condicao</th>
                     </tr>
                 </thead>
@@ -86,7 +86,7 @@
 <section class="grid-two dashboard-secondary-grid">
     <article class="content-card">
         <h2>Transferir dependente</h2>
-        <p class="muted">A troca de responsavel fica registrada no sistema, com motivo e trilha de auditoria.</p>
+        <p class="muted">A troca de responsável fica registrada no sistema, com motivo e trilha de auditoria.</p>
         <form method="POST" action="<?php echo e(url('/dependentes/transferir')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1">
             <label>
                 <span>Dependente</span>
@@ -97,8 +97,8 @@
                     <?php } ?>
                 </select>
             </label>
-            <label><span>CPF do novo responsavel</span><input type="text" name="new_responsible_cpf" placeholder="000.000.000-00" required></label>
-            <label><span>Motivo da alteracao</span><textarea name="reason" rows="4" required></textarea></label>
+            <label><span>CPF do novo responsável</span><input type="text" name="new_responsible_cpf" placeholder="000.000.000-00" required></label>
+            <label><span>Motivo da alteração</span><textarea name="reason" rows="4" required></textarea></label>
             <button type="submit" class="btn btn-secondary">Transferir responsabilidade</button>
         </form>
     </article>

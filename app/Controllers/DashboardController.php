@@ -38,7 +38,7 @@ class DashboardController extends Controller
         $user = $userService->currentAccountWithRoles();
 
         $this->view('dashboard/index', [
-            'title' => 'Painel do Usuario',
+            'title' => 'Painel do Usuário',
             'user' => $user,
             'person' => $person,
             'dependents' => $profileService->listDependents(),

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Carrega uma configuracao geral da aplicacao.
+ * Carrega uma configuração geral da aplicacao.
  */
 function app_config(string $key, $default = null)
 {
@@ -15,7 +15,7 @@ function app_config(string $key, $default = null)
 }
 
 /**
- * Carrega uma configuracao de banco de dados.
+ * Carrega uma configuração de banco de dados.
  */
 function db_config(string $key, $default = null)
 {
@@ -96,7 +96,7 @@ function asset_url(string $path): string
 }
 
 /**
- * Redireciona a requisicao atual.
+ * Redireciona a requisição atual.
  */
 function redirect(string $path): void
 {
@@ -181,7 +181,7 @@ function login_modal_url(?string $returnTo = null): string
 }
 
 /**
- * Redireciona para uma pagina publica ja preparada para abrir o login em modal.
+ * Redireciona para uma pagina pública ja preparada para abrir o login em modal.
  */
 function redirect_to_login_modal(?string $returnTo = null): void
 {
@@ -201,7 +201,7 @@ function profile_completion_modal_url(?string $returnTo = null, ?string $originP
 }
 
 /**
- * Redireciona para a pagina de origem pedindo abertura do modal de completar cadastro.
+ * Redireciona para a página de origem pedindo abertura do modal de completar cadastro.
  */
 function redirect_to_profile_completion_modal(?string $returnTo = null, ?string $originPath = null): void
 {
@@ -210,7 +210,7 @@ function redirect_to_profile_completion_modal(?string $returnTo = null, ?string 
 }
 
 /**
- * Identifica se a requisicao atual foi feita via AJAX.
+ * Identifica se a requisição atual foi feita via AJAX.
  */
 function is_ajax_request(): bool
 {
@@ -236,44 +236,44 @@ function json_response(array $payload, int $statusCode = 200): void
 }
 
 /**
- * Configuracao amigavel para paginas de erro HTTP.
+ * Configuração amigavel para paginas de erro HTTP.
  */
 function error_page_defaults(int $statusCode): array
 {
     $defaults = [
         400 => [
             'title' => 'Solicitacao invalida',
-            'headline' => 'Nao conseguimos entender esta solicitacao.',
-            'message' => 'Revise os dados enviados e tente novamente. Se o problema continuar, volte para a pagina anterior e refaca a acao.',
-            'hint' => 'Esse erro costuma acontecer quando algum dado obrigatorio nao foi enviado corretamente.',
+            'headline' => 'Nao conseguimos entender esta solicitação.',
+            'message' => 'Revise os dados enviados e tente novamente. Se o problema continuar, volte para a página anterior e refaca a ação.',
+            'hint' => 'Esse erro costuma acontecer quando algum dado obrigatório nao foi enviado corretamente.',
         ],
         401 => [
             'title' => 'Login necessario',
-            'headline' => 'Voce precisa entrar na sua conta para continuar.',
-            'message' => 'A pagina ou acao solicitada exige autenticacao. Faca login e tente novamente.',
+            'headline' => 'Você precisa entrar na sua conta para continuar.',
+            'message' => 'A pagina ou ação solicitada exige autenticacao. Faca login e tente novamente.',
             'hint' => 'Se voce ja estava logado, talvez sua sessao tenha expirado.',
         ],
         403 => [
             'title' => 'Acesso nao permitido',
-            'headline' => 'Esta area nao esta liberada para sua conta agora.',
-            'message' => 'Pode ser uma restricao de permissao, perfil de acesso ou etapa de cadastro ainda pendente.',
+            'headline' => 'Esta area não está liberada para sua conta agora.',
+            'message' => 'Pode ser uma restrição de permissao, perfil de acesso ou etapa de cadastro ainda pendente.',
             'hint' => 'Se acredita que deveria ter acesso, fale com a administracao do sistema.',
         ],
         404 => [
-            'title' => 'Pagina nao encontrada',
-            'headline' => 'A pagina que voce tentou abrir nao esta disponivel.',
+            'title' => 'Pagina não encontrada',
+            'headline' => 'A pagina que voce tentou abrir não está disponível.',
             'message' => 'Ela pode ter sido movida, removida ou o endereco pode ter sido digitado com algum detalhe diferente.',
-            'hint' => 'Voce pode voltar para a home, abrir a agenda publica ou acessar o blog.',
+            'hint' => 'Você pode voltar para a home, abrir a agenda pública ou acessar o blog.',
         ],
         405 => [
             'title' => 'Metodo nao permitido',
-            'headline' => 'Esta acao nao pode ser usada desta forma.',
-            'message' => 'O endereco existe, mas o tipo de requisicao enviado nao e aceito aqui.',
-            'hint' => 'Tente repetir a operacao pelo botao ou formulario original do sistema.',
+            'headline' => 'Esta ação não pode ser usada desta forma.',
+            'message' => 'O endereco existe, mas o tipo de requisição enviado nao e aceito aqui.',
+            'hint' => 'Tente repetir a operação pelo botao ou formulario original do sistema.',
         ],
         422 => [
             'title' => 'Dados pendentes ou invalidos',
-            'headline' => 'Algumas informacoes precisam de ajuste antes de continuar.',
+            'headline' => 'Algumas informações precisam de ajuste antes de continuar.',
             'message' => 'Revise os campos destacados e tente novamente com os dados corrigidos.',
             'hint' => 'Esse retorno e comum quando o formulario foi preenchido parcialmente ou com formato invalido.',
         ],
@@ -281,25 +281,25 @@ function error_page_defaults(int $statusCode): array
             'title' => 'Muitas tentativas em pouco tempo',
             'headline' => 'O sistema recebeu tentativas demais em sequencia.',
             'message' => 'Para proteger o acesso, pedimos um pequeno intervalo antes de tentar novamente.',
-            'hint' => 'Aguarde alguns instantes e repita a operacao sem atualizar varias vezes seguidas.',
+            'hint' => 'Aguarde alguns instantes e repita a operação sem atualizar varias vezes seguidas.',
         ],
         500 => [
             'title' => 'Erro interno do sistema',
-            'headline' => 'Ocorreu um problema inesperado ao carregar esta pagina.',
-            'message' => 'Nosso sistema nao conseguiu concluir esta operacao agora. Tente novamente em alguns instantes.',
-            'hint' => 'Se o erro persistir, registre o horario e a acao realizada para facilitar a verificacao tecnica.',
+            'headline' => 'Ocorreu um problema inesperado ao carregar esta página.',
+            'message' => 'Nosso sistema nao conseguiu concluir esta operação agora. Tente novamente em alguns instantes.',
+            'hint' => 'Se o erro persistir, registre o horário e a ação realizada para facilitar a verificação tecnica.',
         ],
         502 => [
             'title' => 'Falha temporaria de comunicacao',
-            'headline' => 'Houve uma falha entre servicos ao processar sua solicitacao.',
+            'headline' => 'Houve uma falha entre servicos ao processar sua solicitação.',
             'message' => 'Isso costuma ser temporario. Aguarde um pouco e tente novamente.',
-            'hint' => 'Se estava enviando um formulario, confira depois se a operacao foi concluida apenas uma vez.',
+            'hint' => 'Se estava enviando um formulario, confira depois se a operação foi concluída apenas uma vez.',
         ],
         503 => [
-            'title' => 'Servico temporariamente indisponivel',
-            'headline' => 'Esta area esta indisponivel no momento.',
+            'title' => 'Servico temporariamente indisponível',
+            'headline' => 'Esta area esta indisponível no momento.',
             'message' => 'O sistema pode estar em manutencao ou enfrentando instabilidade temporaria.',
-            'hint' => 'Tente novamente mais tarde. Enquanto isso, outras areas publicas podem continuar funcionando.',
+            'hint' => 'Tente novamente mais tarde. Enquanto isso, outras areas públicas podem continuar funcionando.',
         ],
     ];
 
@@ -317,7 +317,7 @@ function render_error_page(int $statusCode, array $overrides = []): void
     if (is_ajax_request()) {
         json_response([
             'success' => false,
-            'message' => (string) ($error['message'] ?? 'Ocorreu um erro ao processar a solicitacao.'),
+            'message' => (string) ($error['message'] ?? 'Ocorreu um erro ao processar a solicitação.'),
             'error' => [
                 'status_code' => $statusCode,
                 'title' => (string) ($error['title'] ?? 'Erro'),
@@ -526,7 +526,7 @@ function is_minor_by_birth_date(?string $birthDate): ?bool
 }
 
 /**
- * Normaliza o modo de validacao etaria.
+ * Normaliza o modo de validação etaria.
  */
 function normalize_age_rule_mode(?string $mode): string
 {
@@ -623,7 +623,7 @@ function describe_age_rule(int $minAge, int $maxAge, ?string $mode, ?DateTimeImm
 }
 
 /**
- * Retorna o IP da requisicao atual.
+ * Retorna o IP da requisição atual.
  */
 function request_ip(): string
 {

@@ -17,7 +17,7 @@ class ErrorController extends Controller
             }
 
             render_error_page($statusCode, [
-                'message' => 'Esta e uma simulacao controlada para revisar a pagina de erro no navegador.',
+                'message' => 'Esta e uma simulacao controlada para revisar a página de erro no navegador.',
                 'hint' => 'Use a central de testes para navegar entre os cenarios mais comuns do sistema.',
             ]);
         }

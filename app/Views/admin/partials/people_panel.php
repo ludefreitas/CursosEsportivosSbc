@@ -1,7 +1,7 @@
 <div id="admin-people-panel-shell">
 <article class="content-card" id="admin-people-panel">
     <h2>Usuarios e dependentes</h2>
-    <p class="muted">Clique no nome para consultar os dados da pessoa e, se precisar, abrir a edicao sem redirecionamento. A lista mostra primeiro os cadastros mais recentes.</p>
+    <p class="muted">Clique no nome para consultar os dados da pessoa e, se precisar, abrir a edição sem redirecionamento. A lista mostra primeiro os cadastros mais recentes.</p>
     <form method="GET" action="<?php echo e(url('/admin/pessoas/lista')); ?>" class="stack-form admin-people-filter-form" id="admin-people-filter-form" data-manual-submit="1" data-admin-people-filter="1">
         <div class="grid-two admin-people-filter-grid">
             <label>
@@ -15,7 +15,7 @@
                     placeholder="Digite um nome ou CPF"
                     autocomplete="off"
                 >
-                <small class="muted">A lista vai sendo atualizada enquanto voce digita.</small>
+                <small class="muted">A lista vai sendo atualizada enquanto você digita.</small>
             </label>
             <label>
                 <span>Quantidade de nomes para listar</span>
@@ -36,8 +36,8 @@
                     <th>Faixa</th>
                     <th>Cadastro</th>
                     <th>Condicao</th>
-                    <th>Atestado clinico</th>
-                    <th>Atestado dermatologico</th>
+                    <th>Atestado clínico</th>
+                    <th>Atestado dermatológico</th>
                     <th>Responsavel</th>
                 </tr>
             </thead>
@@ -112,7 +112,7 @@
                         <td>
                             <?php $indicator = $healthIndicators['clinico'] ?? null; ?>
                             <?php if ($indicator === null) { ?>
-                                <span class="muted">Nao enviado</span>
+                                <span class="muted">Não enviado</span>
                             <?php } else { ?>
                                 <div class="admin-condition-indicator-item">
                                     <button
@@ -121,7 +121,7 @@
                                         data-open-health-certificate-validation="1"
                                         data-person-id="<?php echo e((string) $person['id']); ?>"
                                         data-certificate-type="clinico"
-                                    ><?php echo e((string) ($indicator['label'] ?? 'Atestado clinico')); ?></button>
+                                    ><?php echo e((string) ($indicator['label'] ?? 'Atestado clínico')); ?></button>
                                     <span class="muted"><?php echo e((string) ($indicator['status_label'] ?? '')); ?></span>
                                     <?php if (($indicator['icon_type'] ?? '') === 'warning') { ?>
                                         <button
@@ -130,8 +130,8 @@
                                             data-certificate-status-alert="1"
                                             data-alert-level="erro"
                                             data-alert-message="<?php echo e((string) ($indicator['icon_message'] ?? '')); ?>"
-                                            aria-label="Atestado clinico pendente ou a vencer"
-                                            title="Atestado clinico pendente ou a vencer"
+                                            aria-label="Atestado clínico pendente ou a vencer"
+                                            title="Atestado clínico pendente ou a vencer"
                                         ><span class="admin-status-icon-triangle" aria-hidden="true">!</span></button>
                                     <?php } elseif (($indicator['icon_type'] ?? '') === 'expired') { ?>
                                         <button
@@ -140,11 +140,11 @@
                                             data-certificate-status-alert="1"
                                             data-alert-level="erro"
                                             data-alert-message="<?php echo e((string) ($indicator['icon_message'] ?? '')); ?>"
-                                            aria-label="Atestado clinico vencido ou reprovado"
-                                            title="Atestado clinico vencido ou reprovado"
+                                            aria-label="Atestado clínico vencido ou reprovado"
+                                            title="Atestado clínico vencido ou reprovado"
                                         ><span class="admin-status-icon-circle" aria-hidden="true">!</span></button>
                                     <?php } elseif (($indicator['icon_type'] ?? '') === 'ok') { ?>
-                                        <span class="admin-status-icon-ok" aria-label="Atestado clinico em dia" title="Atestado clinico em dia">OK</span>
+                                        <span class="admin-status-icon-ok" aria-label="Atestado clínico em dia" title="Atestado clínico em dia">OK</span>
                                     <?php } ?>
                                 </div>
                             <?php } ?>
@@ -152,7 +152,7 @@
                         <td>
                             <?php $indicator = $healthIndicators['dermatologico'] ?? null; ?>
                             <?php if ($indicator === null) { ?>
-                                <span class="muted">Nao enviado</span>
+                                <span class="muted">Não enviado</span>
                             <?php } else { ?>
                                 <div class="admin-condition-indicator-item">
                                     <button
@@ -161,7 +161,7 @@
                                         data-open-health-certificate-validation="1"
                                         data-person-id="<?php echo e((string) $person['id']); ?>"
                                         data-certificate-type="dermatologico"
-                                    ><?php echo e((string) ($indicator['label'] ?? 'Atestado dermatologico')); ?></button>
+                                    ><?php echo e((string) ($indicator['label'] ?? 'Atestado dermatológico')); ?></button>
                                     <span class="muted"><?php echo e((string) ($indicator['status_label'] ?? '')); ?></span>
                                     <?php if (($indicator['icon_type'] ?? '') === 'warning') { ?>
                                         <button
@@ -170,8 +170,8 @@
                                             data-certificate-status-alert="1"
                                             data-alert-level="erro"
                                             data-alert-message="<?php echo e((string) ($indicator['icon_message'] ?? '')); ?>"
-                                            aria-label="Atestado dermatologico pendente ou a vencer"
-                                            title="Atestado dermatologico pendente ou a vencer"
+                                            aria-label="Atestado dermatológico pendente ou a vencer"
+                                            title="Atestado dermatológico pendente ou a vencer"
                                         ><span class="admin-status-icon-triangle" aria-hidden="true">!</span></button>
                                     <?php } elseif (($indicator['icon_type'] ?? '') === 'expired') { ?>
                                         <button
@@ -180,11 +180,11 @@
                                             data-certificate-status-alert="1"
                                             data-alert-level="erro"
                                             data-alert-message="<?php echo e((string) ($indicator['icon_message'] ?? '')); ?>"
-                                            aria-label="Atestado dermatologico vencido ou reprovado"
-                                            title="Atestado dermatologico vencido ou reprovado"
+                                            aria-label="Atestado dermatológico vencido ou reprovado"
+                                            title="Atestado dermatológico vencido ou reprovado"
                                         ><span class="admin-status-icon-circle" aria-hidden="true">!</span></button>
                                     <?php } elseif (($indicator['icon_type'] ?? '') === 'ok') { ?>
-                                        <span class="admin-status-icon-ok" aria-label="Atestado dermatologico em dia" title="Atestado dermatologico em dia">OK</span>
+                                        <span class="admin-status-icon-ok" aria-label="Atestado dermatológico em dia" title="Atestado dermatológico em dia">OK</span>
                                     <?php } ?>
                                 </div>
                             <?php } ?>
@@ -215,12 +215,12 @@
                     <p><strong>Cadastro:</strong> <span id="admin-person-details-registration">-</span></p>
                     <p><strong>Conta:</strong> <span id="admin-person-details-account">-</span></p>
                     <p><strong>Condicoes declaradas:</strong> <span id="admin-person-details-conditions">-</span></p>
-                    <p><strong>Situacao dos certificados:</strong> <span id="admin-person-details-certificates">-</span></p>
+                    <p><strong>Situação dos certificados:</strong> <span id="admin-person-details-certificates">-</span></p>
                     <p><strong>Responsavel atual:</strong> <span id="admin-person-details-responsible">-</span></p>
                     <p><strong>WhatsApp:</strong> <span id="admin-person-details-phone">-</span></p>
                     <p><strong>E-mail:</strong> <span id="admin-person-details-email">-</span></p>
                     <p><strong>Cartao SUS:</strong> <span id="admin-person-details-sus-card">-</span></p>
-                    <p><strong>Endereco:</strong> <span id="admin-person-details-address">-</span></p>
+                    <p><strong>Endereço:</strong> <span id="admin-person-details-address">-</span></p>
                     <p><strong>Contato de emergencia:</strong> <span id="admin-person-details-emergency">-</span></p>
                     <p><strong>Responsavel 1:</strong> <span id="admin-person-details-parent1">-</span></p>
                     <p><strong>Responsavel 2:</strong> <span id="admin-person-details-parent2">-</span></p>
@@ -238,10 +238,10 @@
         <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-person-editor-title">
             <div class="popup-head admin-popup-head">
                 <div>
-                    <h3 id="admin-person-editor-title">Editar pessoa e usuario</h3>
+                    <h3 id="admin-person-editor-title">Editar pessoa e usuário</h3>
                     <p class="muted" id="admin-person-editor-subtitle">Selecione um nome na lista para carregar os dados.</p>
                 </div>
-                <button type="button" class="popup-close-icon" id="admin-person-editor-close" aria-label="Fechar edicao de pessoa">&times;</button>
+                <button type="button" class="popup-close-icon" id="admin-person-editor-close" aria-label="Fechar edição de pessoa">&times;</button>
             </div>
 
             <div class="popup-body admin-popup-body">
@@ -266,7 +266,7 @@
                                 <option value="">Selecione</option>
                                 <option value="masculino">Masculino</option>
                                 <option value="feminino">Feminino</option>
-                                <option value="Sexo não declarado">Nao declarar</option>
+                                <option value="Sexo não declarado">Não declarar</option>
                             </select>
                             <small class="sexo-helper muted hidden" data-sexo-warning="1">Ao não declarar o sexo, a pessoa não poderá se inscrever em turmas ou agendar treinos de modalidades específicas para determinado gênero</small>
                         </label>
@@ -282,12 +282,12 @@
                             </select>
                         </label>
                         <label>
-                            <span>Conta do usuario</span>
+                            <span>Conta do usuário</span>
                             <select name="conta_ativa" id="admin-person-conta-ativa">
                                 <option value="1">Ativa</option>
                                 <option value="0">Inativa</option>
                             </select>
-                            <small class="muted" id="admin-person-account-hint">Se nao houver conta vinculada, este campo ficara apenas informativo.</small>
+                            <small class="muted" id="admin-person-account-hint">Se não houver conta vinculada, este campo ficará apenas informativo.</small>
                         </label>
                     </div>
 
@@ -379,7 +379,7 @@
                             <input type="text" name="responsavel1_nome" id="admin-person-responsavel1-nome" required>
                         </label>
                         <label>
-                            <span>CPF do responsavel 1</span>
+                            <span>CPF do responsável 1</span>
                             <input type="text" name="responsavel1_cpf" id="admin-person-responsavel1-cpf" required>
                         </label>
                     </div>
@@ -390,19 +390,19 @@
                             <input type="text" name="responsavel2_nome" id="admin-person-responsavel2-nome">
                         </label>
                         <label>
-                            <span>CPF do responsavel 2</span>
+                            <span>CPF do responsável 2</span>
                             <input type="text" name="responsavel2_cpf" id="admin-person-responsavel2-cpf">
                         </label>
                     </div>
 
                     <label>
-                        <span>Motivo da alteracao</span>
+                        <span>Motivo da alteração</span>
                         <textarea name="reason" id="admin-person-reason" rows="3" placeholder="Explique por que este cadastro esta sendo alterado." required></textarea>
                     </label>
 
                     <div class="popup-builder-actions">
                         <button type="button" class="btn btn-secondary" id="admin-person-editor-cancel">Fechar</button>
-                        <button type="submit" class="btn btn-primary">Salvar alteracoes</button>
+                        <button type="submit" class="btn btn-primary">Salvar alterações</button>
                     </div>
                 </form>
             </div>
@@ -412,7 +412,7 @@
 
 <article class="content-card top-gap" id="admin-users-panel">
     <h2>Lista somente de usuarios</h2>
-    <p class="muted">Esta lista mostra apenas quem ja possui conta criada. Use os links para verificar os dados do usuario ou abrir a relacao de dependentes em pop-up.</p>
+    <p class="muted">Esta lista mostra apenas quem já possui conta criada. Use os links para verificar os dados do usuário ou abrir a relação de dependentes em pop-up.</p>
     <form method="GET" action="<?php echo e(url('/admin/pessoas/lista')); ?>" class="stack-form admin-people-filter-form" id="admin-users-filter-form" data-manual-submit="1" data-admin-people-filter="1">
         <div class="grid-two admin-people-filter-grid">
             <label>
@@ -425,7 +425,7 @@
                     placeholder="Digite um nome ou CPF"
                     autocomplete="off"
                 >
-                <small class="muted">A lista vai sendo atualizada enquanto voce digita.</small>
+                <small class="muted">A lista vai sendo atualizada enquanto você digita.</small>
             </label>
             <label>
                 <span>Quantidade de nomes para listar</span>
@@ -455,7 +455,7 @@
             <tbody>
                 <?php if (empty($usersOnly)) { ?>
                     <tr>
-                        <td colspan="9" class="muted">Nenhum usuario encontrado para este filtro.</td>
+                        <td colspan="9" class="muted">Nenhum usuário encontrado para este filtro.</td>
                     </tr>
                 <?php } ?>
                 <?php foreach (($usersOnly ?? []) as $userRow) { ?>
@@ -522,10 +522,10 @@
     <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-user-details-title">
         <div class="popup-head admin-popup-head">
             <div>
-                <h3 id="admin-user-details-title">Dados do usuario</h3>
-                <p class="muted" id="admin-user-details-subtitle">Selecione um usuario na lista para carregar os dados.</p>
+                <h3 id="admin-user-details-title">Dados do usuário</h3>
+                <p class="muted" id="admin-user-details-subtitle">Selecione um usuário na lista para carregar os dados.</p>
             </div>
-            <button type="button" class="popup-close-icon" id="admin-user-details-close" aria-label="Fechar dados do usuario">&times;</button>
+            <button type="button" class="popup-close-icon" id="admin-user-details-close" aria-label="Fechar dados do usuário">&times;</button>
         </div>
 
         <div class="popup-body admin-popup-body">
@@ -556,15 +556,15 @@
     <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-user-dependents-title">
         <div class="popup-head admin-popup-head">
             <div>
-                <h3 id="admin-user-dependents-title">Dependentes do usuario</h3>
-                <p class="muted" id="admin-user-dependents-subtitle">Selecione um usuario na lista para carregar os dependentes.</p>
+                <h3 id="admin-user-dependents-title">Dependentes do usuário</h3>
+                <p class="muted" id="admin-user-dependents-subtitle">Selecione um usuário na lista para carregar os dependentes.</p>
             </div>
-            <button type="button" class="popup-close-icon" id="admin-user-dependents-close" aria-label="Fechar lista de dependentes do usuario">&times;</button>
+            <button type="button" class="popup-close-icon" id="admin-user-dependents-close" aria-label="Fechar lista de dependentes do usuário">&times;</button>
         </div>
 
         <div class="popup-body admin-popup-body">
             <div id="admin-user-dependents-content">
-                <p class="muted">Nenhum usuario selecionado.</p>
+                <p class="muted">Nenhum usuário selecionado.</p>
             </div>
 
             <div class="popup-actions">
@@ -578,8 +578,8 @@
     <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-user-roles-title">
         <div class="popup-head admin-popup-head">
             <div>
-                <h3 id="admin-user-roles-title">Gerenciar papeis do usuario</h3>
-                <p class="muted" id="admin-user-roles-subtitle">Selecione os papeis ativos para este usuario.</p>
+                <h3 id="admin-user-roles-title">Gerenciar papeis do usuário</h3>
+                <p class="muted" id="admin-user-roles-subtitle">Selecione os papéis ativos para este usuário.</p>
             </div>
             <button type="button" class="popup-close-icon" id="admin-user-roles-close" aria-label="Fechar gerenciador de papeis">&times;</button>
         </div>
@@ -589,9 +589,9 @@
                 <input type="hidden" name="conta_id" id="admin-user-roles-account-id" value="">
 
                 <div class="admin-user-role-meta">
-                    <p><strong>Usuario:</strong> <span id="admin-user-roles-account-name">-</span></p>
+                    <p><strong>Usuário:</strong> <span id="admin-user-roles-account-name">-</span></p>
                     <p><strong>Ultimo acesso conhecido:</strong> <span id="admin-user-roles-last-access">-</span></p>
-                    <p><strong>Situacao para atribuicao:</strong> <span id="admin-user-roles-status">-</span></p>
+                    <p><strong>Situação para atribuicao:</strong> <span id="admin-user-roles-status">-</span></p>
                 </div>
 
                 <div class="admin-role-checkbox-grid">
@@ -608,11 +608,11 @@
                         </label>
                     <?php } ?>
                 </div>
-                <small class="muted">Voce pode selecionar mais de um papel ao mesmo tempo. O sistema registra atribuicoes manuais, remocoes manuais e remocoes automaticas por inatividade.</small>
+                <small class="muted">Você pode selecionar mais de um papel ao mesmo tempo. O sistema registra atribuicoes manuais, remocoes manuais e remocoes automaticas por inatividade.</small>
 
                 <label>
-                    <span>Motivo da alteracao</span>
-                    <textarea name="reason" id="admin-user-roles-reason" rows="3" placeholder="Explique por que os papeis deste usuario estao sendo alterados." required></textarea>
+                    <span>Motivo da alteração</span>
+                    <textarea name="reason" id="admin-user-roles-reason" rows="3" placeholder="Explique por que os papéis deste usuário estao sendo alterados." required></textarea>
                 </label>
 
                 <div class="popup-actions">

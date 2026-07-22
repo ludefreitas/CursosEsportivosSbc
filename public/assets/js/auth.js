@@ -202,7 +202,7 @@
                     }
                 }).done(function (response) {
                     if (response && response.success === false) {
-                        const mensagemErro = String(response.message || 'Nao foi possivel concluir a operacao agora.');
+                        const mensagemErro = String(response.message || 'Não foi possível concluir a operação agora.');
                         const redirectErro = String(response.redirect || '');
 
                         App.core.abrirPopup('erro', mensagemErro, function () {
@@ -234,7 +234,7 @@
                         if ($agendaHelper.length > 0) {
                             $agendaHelper.text(
                                 authenticationNeedsProfileCompletion
-                                    ? 'Complete seu cadastro para liberar os nomes disponiveis para agendamento.'
+                                    ? 'Complete seu cadastro para liberar os nomes disponíveis para agendamento.'
                                     : 'Selecione a pessoa que deseja agendar.'
                             );
                             $agendaHelper.toggleClass('hidden', !authenticationNeedsProfileCompletion);
@@ -243,7 +243,7 @@
                         if (authenticationNeedsProfileCompletion) {
                             $('#agenda-access-warning')
                                 .removeClass('hidden')
-                                .text('Para agendar um horario, voce precisa completar seu cadastro.');
+                                .text('Para agendar um horário, você precisa completar seu cadastro.');
                         }
 
                         App.core.fecharPopupCustomizado('#agenda-login-reminder');
@@ -265,7 +265,7 @@
 
                             if ($form.attr('id') === 'form-agendamento') {
                                 $form.addClass('hidden');
-                                $('#painel-evento').html('<p class="muted">Clique em um horario no calendario para ver local, vagas e regras.</p>');
+                                $('#painel-evento').html('<p class="muted">Clique em um horário no calendário para ver local, vagas e regras.</p>');
                             }
 
                             if ($form.attr('id') === 'form-site-popup') {

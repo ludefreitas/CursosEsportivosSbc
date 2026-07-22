@@ -89,11 +89,11 @@
                 const $content = getOccurrenceModalContent();
 
                 if ($content.length === 0) {
-                    App.core.abrirPopup('erro', 'O modal da chamada administrativa nao esta disponivel nesta tela.');
+                    App.core.abrirPopup('erro', 'O modal da chamada administrativa não está disponível nesta tela.');
                     return;
                 }
 
-                $content.html('<p class="muted">Carregando chamada da ocorrencia...</p>');
+                $content.html('<p class="muted">Carregando chamada da ocorrência...</p>');
                 openOccurrenceModal();
 
                 $.ajax({
@@ -107,7 +107,7 @@
                     suppressGlobalLoading: true
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar a chamada desta ocorrencia.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar a chamada desta ocorrência.'));
                         closeOccurrenceModal();
                         return;
                     }
@@ -199,7 +199,7 @@
                             let details = ''
                                 + '<strong>Horario especial:</strong> ' + App.core.escapeHtml(String(info.event.title || 'Horario especial'))
                                 + '<br><strong>Periodo:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.startStr || '')))
-                                + ' ate ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.endStr || '')))
+                                + ' até ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.endStr || '')))
                                 + '<br><strong>Local:</strong> ' + App.core.escapeHtml(String(props.local || 'A definir'))
                                 + '<br><strong>Espaco:</strong> ' + App.core.escapeHtml(String(props.espaco || 'A definir'))
                                 + '<br><strong>Modalidade:</strong> ' + App.core.escapeHtml(String(props.modalidade || 'Sem modalidade'))
@@ -208,11 +208,11 @@
                                 + ' | PVS ' + App.core.escapeHtml(String(props.vagas_pvs || 0))
                                 + ' | PLM ' + App.core.escapeHtml(String(props.vagas_plm || 0))
                                 + '<br><strong>Publicacao:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_inicio || '')))
-                                + ' ate ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_fim || '')))
+                                + ' até ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_fim || '')))
                                 + '<br><strong>Status:</strong> ' + (Number(props.ativo || 0) === 1 ? 'Ativo' : 'Inativo');
 
                             if (String(props.special_description || '').trim() !== '') {
-                                details += '<br><strong>Descricao:</strong> ' + App.core.escapeHtml(String(props.special_description || ''));
+                                details += '<br><strong>Descrição:</strong> ' + App.core.escapeHtml(String(props.special_description || ''));
                             }
 
                             App.core.abrirPopupHtml('info', details);
@@ -396,7 +396,7 @@
                 const $form = getJustificationForm();
 
                 if ($modal.length === 0 || $form.length === 0) {
-                    App.core.abrirPopup('erro', 'O modal de justificativa nao esta disponivel nesta tela.');
+                    App.core.abrirPopup('erro', 'O modal de justificativa não está disponível nesta tela.');
                     return;
                 }
 
@@ -436,7 +436,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel atualizar a chamada.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar a chamada.'));
                         return;
                     }
 
@@ -472,7 +472,7 @@
                 })
                     .done(function (response) {
                         if (!response || response.success === false || !response.html) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar esta secao agora.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar esta seção agora.'));
                             return;
                         }
 
@@ -779,12 +779,12 @@
                 const $detailsPanel = getDetailsPanel();
 
                 if ($detailsPanel.length === 0) {
-                    App.core.abrirPopup('erro', 'O modal de consulta de pessoa nao esta disponivel nesta tela.');
+                    App.core.abrirPopup('erro', 'O modal de consulta de pessoa não está disponível nesta tela.');
                     return;
                 }
 
                 currentPerson = person;
-                $('#admin-person-details-subtitle').text('Consultando ' + String(person.nome_completo || '') + ' sem sair desta pagina.');
+                $('#admin-person-details-subtitle').text('Consultando ' + String(person.nome_completo || '') + ' sem sair desta página.');
                 $('#admin-person-details-full-name').text(String(person.nome_completo || '-'));
                 $('#admin-person-details-cpf').text(person.cpf ? String(person.cpf).replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '-');
                 $('#admin-person-details-sex').text(formatSex(person.sexo));
@@ -818,7 +818,7 @@
                 const $panel = getPanel();
 
                 if ($panel.length === 0) {
-                    App.core.abrirPopup('erro', 'O formulario de edicao de pessoa nao esta disponivel nesta tela.');
+                    App.core.abrirPopup('erro', 'O formulario de edição de pessoa não está disponível nesta tela.');
                     return;
                 }
 
@@ -857,14 +857,14 @@
                 if (hasAccount) {
                     setValue('#admin-person-conta-ativa', Number(person.conta_ativa || 0) === 1 ? '1' : '0');
                     $contaAtiva.prop('disabled', false);
-                    $accountHint.text('Conta vinculada encontrada. Voce pode ativar ou inativar este usuario aqui.');
+                    $accountHint.text('Conta vinculada encontrada. Você pode ativar ou inativar este usuário aqui.');
                 } else {
                     setValue('#admin-person-conta-ativa', '0');
                     $contaAtiva.prop('disabled', true);
-                    $accountHint.text('Esta pessoa ainda nao possui conta de usuario vinculada.');
+                    $accountHint.text('Esta pessoa ainda não possui conta de usuário vinculada.');
                 }
 
-                $('#admin-person-editor-subtitle').text('Editando ' + String(person.nome_completo || '') + ' sem sair desta pagina.');
+                $('#admin-person-editor-subtitle').text('Editando ' + String(person.nome_completo || '') + ' sem sair desta página.');
                 $panel.removeClass('hidden').attr('aria-hidden', 'false');
                 $('#admin-person-sexo').trigger('change');
             }
@@ -873,14 +873,14 @@
                 const personId = Number($(this).data('personId') || 0);
 
                 if (!personId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar a pessoa selecionada.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar a pessoa selecionada.');
                     return;
                 }
 
                 $.getJSON(App.core.buildUrl('/admin/pessoas/detalhe'), { id: personId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.person) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar os dados desta pessoa.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar os dados desta pessoa.'));
                             return;
                         }
 
@@ -904,7 +904,7 @@
 
             $(document).on('click', '#admin-person-details-edit', function () {
                 if (!currentPerson) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel localizar os dados desta pessoa para edicao.');
+                    App.core.abrirPopup('erro', 'Não foi possível localizar os dados desta pessoa para edição.');
                     return;
                 }
 
@@ -963,7 +963,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false || !response.person) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel salvar as alteracoes.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar as alterações.'));
                         return;
                     }
 
@@ -996,7 +996,7 @@
 
                 App.core.abrirPopup(
                     String($(this).data('alertLevel') || 'erro'),
-                    String($(this).data('alertMessage') || 'Nao foi possivel carregar o aviso deste certificado.')
+                    String($(this).data('alertMessage') || 'Não foi possível carregar o aviso deste certificado.')
                 );
             });
         },
@@ -1084,7 +1084,7 @@
             }
 
             function fillDetails(user) {
-                $('#admin-user-details-subtitle').text('Consultando os dados de ' + String(user.nome_completo || '') + ' sem sair desta pagina.');
+                $('#admin-user-details-subtitle').text('Consultando os dados de ' + String(user.nome_completo || '') + ' sem sair desta página.');
                 $('#admin-user-details-name').text(String(user.nome_completo || '-'));
                 $('#admin-user-details-cpf').text(formatCpf(user.cpf));
                 $('#admin-user-details-email').text(String(user.email || '-'));
@@ -1105,10 +1105,10 @@
                 const dependents = Array.isArray(payload && payload.dependents) ? payload.dependents : [];
                 const $content = $('#admin-user-dependents-content');
 
-                $('#admin-user-dependents-subtitle').text('Dependentes vinculados a ' + String(user.nome_completo || 'este usuario') + '.');
+                $('#admin-user-dependents-subtitle').text('Dependentes vinculados a ' + String(user.nome_completo || 'este usuário') + '.');
 
                 if (dependents.length === 0) {
-                    $content.html('<p class="muted">Este usuario nao possui dependentes vinculados no momento.</p>');
+                    $content.html('<p class="muted">Este usuário não possui dependentes vinculados no momento.</p>');
                     return;
                 }
 
@@ -1130,7 +1130,7 @@
 
                 $content.html('' +
                     '<div class="admin-user-dependent-summary">' +
-                        '<p><strong>Usuario:</strong> ' + App.core.escapeHtml(String(user.nome_completo || '-')) + '</p>' +
+                        '<p><strong>Usuário:</strong> ' + App.core.escapeHtml(String(user.nome_completo || '-')) + '</p>' +
                         '<p><strong>Total de dependentes:</strong> ' + App.core.escapeHtml(String(dependents.length)) + '</p>' +
                     '</div>' +
                     '<div class="table-wrap">' +
@@ -1154,14 +1154,14 @@
                 const accountId = Number($(this).data('accountId') || 0);
 
                 if (!accountId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o usuario selecionado.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar o usuário selecionado.');
                     return;
                 }
 
                 $.getJSON(App.core.buildUrl('/admin/usuarios/detalhe'), { id: accountId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.user) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar os dados deste usuario.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar os dados deste usuário.'));
                             return;
                         }
 
@@ -1178,7 +1178,7 @@
                 const accountId = Number($(this).data('accountId') || 0);
 
                 if (!accountId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o usuario selecionado.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar o usuário selecionado.');
                     return;
                 }
 
@@ -1188,7 +1188,7 @@
                 $.getJSON(App.core.buildUrl('/admin/usuarios/dependentes'), { conta_id: accountId })
                     .done(function (response) {
                         if (!response || response.success === false) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar os dependentes deste usuario.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar os dependentes deste usuário.'));
                             closeDependentsModal();
                             return;
                         }
@@ -1287,7 +1287,7 @@
                 $('#admin-user-roles-account-id').val(String(user.conta_id || ''));
                 $('#admin-user-roles-account-name').text(String(user.nome_completo || '-'));
                 $('#admin-user-roles-last-access').text(formatDateTime(user.ultimo_acesso_em));
-                $('#admin-user-roles-subtitle').text('Defina os papeis ativos de ' + String(user.nome_completo || 'este usuario') + '.');
+                $('#admin-user-roles-subtitle').text('Defina os papéis ativos de ' + String(user.nome_completo || 'este usuário') + '.');
                 $('#admin-user-roles-status').text(blockReason !== '' ? 'Bloqueado: ' + blockReason : 'Liberado para atribuicao');
                 $('#admin-user-roles-reason').val('');
 
@@ -1319,21 +1319,21 @@
                 const accountId = Number($(this).data('accountId') || 0);
 
                 if (!accountId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o usuario selecionado para gerenciar os papeis.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar o usuário selecionado para gerenciar os papéis.');
                     return;
                 }
 
                 $.getJSON(App.core.buildUrl('/admin/usuarios/detalhe'), { id: accountId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.user) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar os papeis deste usuario.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar os papéis deste usuário.'));
                             return;
                         }
 
                         if (Number(response.user.role_assignment_allowed || 0) !== 1) {
                             App.core.abrirPopup(
                                 'erro',
-                                String(response.user.role_assignment_block_reason || 'Este usuario nao pode receber papeis no momento.')
+                                String(response.user.role_assignment_block_reason || 'Este usuário não pode receber papeis no momento.')
                             );
                             return;
                         }
@@ -1378,13 +1378,13 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false || !response.user) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel salvar os papeis deste usuario.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar os papéis deste usuário.'));
                         return;
                     }
 
                     updateUserRow(response.user);
                     closeModal();
-                    App.core.abrirPopup('sucesso', String(response.message || 'Papeis do usuario atualizados com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Papéis do usuário atualizados com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
@@ -1414,7 +1414,7 @@
                 })
                     .done(function (response) {
                         if (!response || response.success === false || !response.html) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel atualizar a lista agora.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar a lista agora.'));
                             return;
                         }
 
@@ -1620,14 +1620,14 @@
                 const scheduleId = Number($(this).data('weeklyScheduleId') || 0);
 
                 if (!scheduleId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o horario selecionado.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar o horário selecionado.');
                     return;
                 }
 
                 $.getJSON(App.core.buildUrl('/admin/horarios-semanais/detalhe'), { id: scheduleId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.schedule) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar este horario.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar este horário.'));
                             return;
                         }
 
@@ -1681,7 +1681,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel criar o horario semanal.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível criar o horário semanal.'));
                         return;
                     }
 
@@ -1717,7 +1717,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel atualizar o horario semanal.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar o horário semanal.'));
                         return;
                     }
 
@@ -1753,7 +1753,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel inativar o horario semanal.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível inativar o horário semanal.'));
                         return;
                     }
 
@@ -1788,7 +1788,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel ativar o horario semanal.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível ativar o horário semanal.'));
                         return;
                     }
 
@@ -1900,14 +1900,14 @@
                 const eventId = Number($(this).data('specialScheduleId') || 0);
 
                 if (!eventId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o horario especial selecionado.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar o horário especial selecionado.');
                     return;
                 }
 
                 $.getJSON(App.core.buildUrl('/admin/agenda-horarios-especiais/detalhe'), { id: eventId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.event) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar este horario especial.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar este horário especial.'));
                             return;
                         }
 
@@ -1951,7 +1951,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel atualizar o horario especial.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar o horário especial.'));
                         return;
                     }
 
@@ -2014,7 +2014,7 @@
                 const conditionSlug = String($(this).data('conditionSlug') || '').trim();
 
                 if (!personId || conditionSlug === '') {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar a condicao selecionada para validacao.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar a condicao selecionada para validação.');
                     return;
                 }
 
@@ -2023,7 +2023,7 @@
                     condition_slug: conditionSlug
                 }).done(function (response) {
                     if (!response || response.success === false || !response.html) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel abrir a validacao deste certificado.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível abrir a validação deste certificado.'));
                         return;
                     }
 
@@ -2071,7 +2071,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel salvar a validacao do certificado.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar a validação do certificado.'));
                         return;
                     }
 
@@ -2089,7 +2089,7 @@
                     }
 
                     closeModal();
-                    App.core.abrirPopup('sucesso', String(response.message || 'Validacao atualizada com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Validação atualizada com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
@@ -2145,7 +2145,7 @@
                 const certificateType = String($(this).data('certificateType') || '').trim().toLowerCase();
 
                 if (!personId || certificateType === '') {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o atestado selecionado para validacao.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar o atestado selecionado para validação.');
                     return;
                 }
 
@@ -2154,7 +2154,7 @@
                     certificate_type: certificateType
                 }).done(function (response) {
                     if (!response || response.success === false || !response.html) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel abrir a validacao deste atestado.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível abrir a validação deste atestado.'));
                         return;
                     }
 
@@ -2202,7 +2202,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel salvar a validacao do atestado.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar a validação do atestado.'));
                         return;
                     }
 
@@ -2215,7 +2215,7 @@
                     }
 
                     closeModal();
-                    App.core.abrirPopup('sucesso', String(response.message || 'Validacao do atestado atualizada com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Validação do atestado atualizada com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
@@ -2338,7 +2338,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel remover a postagem.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível remover a postagem.'));
                         return;
                     }
 
@@ -2400,7 +2400,7 @@
                 }
 
                 $('#admin-blog-post-modal-title').text('Editar postagem do blog');
-                $('#admin-blog-post-submit').text('Salvar alteracoes');
+                $('#admin-blog-post-submit').text('Salvar alterações');
                 syncShareOptions();
             }
 
@@ -2413,14 +2413,14 @@
                 const postId = Number($(this).data('postId') || 0);
 
                 if (!postId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar a postagem selecionada.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar a postagem selecionada.');
                     return;
                 }
 
                 $.getJSON(App.core.buildUrl('/admin/postagens/detalhe'), { id: postId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.post) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar a postagem.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar a postagem.'));
                             return;
                         }
 
@@ -2511,7 +2511,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel salvar a postagem.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar a postagem.'));
                         return;
                     }
 
@@ -2539,7 +2539,7 @@
 
             function openModal() {
                 if ($('#admin-official-communication-modal').length === 0) {
-                    App.core.abrirPopup('erro', 'O editor de comunicacao oficial nao esta disponivel nesta tela.');
+                    App.core.abrirPopup('erro', 'O editor de comunicacao oficial não está disponível nesta tela.');
                     return;
                 }
 
@@ -2596,7 +2596,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel salvar a comunicacao oficial.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar a comunicacao oficial.'));
                         return;
                     }
 

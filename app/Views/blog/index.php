@@ -125,7 +125,7 @@ $search = trim((string) ($search ?? ''));
                 <h3>Navegacao rapida</h3>
                 <ul class="blog-sidebar-list">
                     <li><a href="<?php echo e(url('/')); ?>">Pagina inicial do portal</a></li>
-                    <li><a href="<?php echo e(url('/agenda')); ?>">Agenda publica</a></li>
+                    <li><a href="<?php echo e(url('/agenda')); ?>">Agenda pública</a></li>
                     <li><a href="<?php echo e(url('/blog')); ?>">Todas as postagens</a></li>
                 </ul>
             </section>
@@ -154,7 +154,7 @@ $search = trim((string) ($search ?? ''));
 
             <?php if (!empty($blogSpecialEvents)) { ?>
                 <section class="blog-section-card">
-                    <h3>Horarios especiais</h3>
+                    <h3>Horários especiais</h3>
                     <div class="blog-sidebar-events">
                         <?php foreach ($blogSpecialEvents as $event) { ?>
                             <article class="blog-mini-event">

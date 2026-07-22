@@ -1,17 +1,17 @@
 <div class="popup-head admin-popup-head">
     <div>
         <h3>Novo dependente</h3>
-        <p class="muted">Cadastre um dependente sem sair desta pagina.</p>
+        <p class="muted">Cadastre um dependente sem sair desta página.</p>
     </div>
     <button type="button" class="popup-close-icon" id="dashboard-dependent-create-modal-close" aria-label="Fechar cadastro de dependente">&times;</button>
 </div>
 <div class="popup-body admin-popup-body dashboard-dependent-modal-body">
     <div class="alert-inline">
-        Cadastro restrito a moradores de Sao Bernardo do Campo. O sistema aceita CEPs de `09600000` a `09899999`, salvo excecoes cadastradas pela administracao.
-        O comprovante de endereco sera exigido na matricula e no dia do agendamento.
+        Cadastro restrito a moradores de São Bernardo do Campo. O sistema aceita CEPs de `09600000` a `09899999`, salvo exceções cadastradas pela administração.
+        O comprovante de endereço será exigido na matrícula e no dia do agendamento.
     </div>
     <div class="alert-inline dashboard-dependent-attention">
-        Preencha CPF e data de nascimento com muita atencao. Esses dados identificam a pessoa no sistema e, se precisarem de correcao depois, sera necessario acionar o suporte.
+        Preencha CPF e data de nascimento com muita atencao. Esses dados identificam a pessoa no sistema e, se precisarem de correcao depois, será necessario acionar o suporte.
     </div>
 
     <form method="POST" action="<?php echo e(url('/dependentes/salvar')); ?>" class="stack-form dashboard-dependent-create-form" id="dashboard-dependent-create-form" data-manual-submit="1">
@@ -26,10 +26,9 @@
                 <option value="">Selecione</option>
                 <option value="masculino">Masculino</option>
                 <option value="feminino">Feminino</option>
-                <option value="Sexo nao declarado">Nao declarar</option>
-                <option value="Sexo nÃ£o declarado">Nao declarar</option>
+                <option value="Sexo nao declarado">Não declarar</option>
             </select>
-            <small class="sexo-helper muted hidden" data-sexo-warning="1">Ao nao declarar o sexo, a pessoa nao podera se inscrever em turmas ou agendar treinos de modalidades especificas para determinado genero</small>
+            <small class="sexo-helper muted hidden" data-sexo-warning="1">Ao não declarar o sexo, a pessoa não poderá se inscrever em turmas ou agendar treinos de modalidades específicas para determinado gênero</small>
         </label>
         <div class="grid-two">
             <label><span>WhatsApp</span><input type="text" name="phone_whatsapp" required></label>
@@ -56,15 +55,15 @@
         </div>
         <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condicao pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>
         <div class="alert-inline">
-            Se alguma dessas condicoes for marcada, a pessoa precisara manter a documentacao correspondente e o certificado validado para liberar agendamentos e inscricoes em qualquer tipo de vaga.
+            Se alguma dessas condicoes for marcada, a pessoa precisara manter a documentação correspondente e o certificado validado para liberar agendamentos e inscrições em qualquer tipo de vaga.
         </div>
         <div class="grid-two">
             <label><span>Responsavel 1</span><input type="text" name="responsavel1_nome" required></label>
-            <label><span>CPF do responsavel 1</span><input type="text" name="responsavel1_cpf" required></label>
+            <label><span>CPF do responsável 1</span><input type="text" name="responsavel1_cpf" required></label>
         </div>
         <div class="grid-two">
             <label><span>Responsavel 2</span><input type="text" name="responsavel2_nome"></label>
-            <label><span>CPF do responsavel 2</span><input type="text" name="responsavel2_cpf"></label>
+            <label><span>CPF do responsável 2</span><input type="text" name="responsavel2_cpf"></label>
         </div>
         <div class="grid-two">
             <label><span>CEP</span><input type="text" name="zip_code" data-cep-sbc="1" required></label>

@@ -154,7 +154,7 @@
         },
 
         resetarDetalhesAgenda: function () {
-            $('#painel-evento').html('<p class="muted">Clique em um horario no calendario para ver local, vagas e regras.</p>');
+            $('#painel-evento').html('<p class="muted">Clique em um horário no calendário para ver local, vagas e regras.</p>');
             $('#horario_id').val('');
             $('#data_hora_inicio').val('');
             $('#form-agendamento').addClass('hidden');
@@ -204,7 +204,7 @@
                     $calendar.attr('data-agenda-needs-profile-completion', needsProfileCompletion ? '1' : '0');
 
                     if ($helper.length > 0) {
-                        $helper.text(String((response && response.message) || 'Complete seu cadastro para liberar os nomes disponiveis para agendamento.'));
+                        $helper.text(String((response && response.message) || 'Complete seu cadastro para liberar os nomes disponíveis para agendamento.'));
                         $helper.toggleClass('hidden', !needsProfileCompletion);
                     }
 
@@ -277,7 +277,7 @@
                 return;
             }
 
-            $container.html('<p class="muted">Validando pessoas para este horario...</p>').removeClass('hidden');
+            $container.html('<p class="muted">Validando pessoas para este horário...</p>').removeClass('hidden');
             $helper.addClass('hidden');
 
             $.getJSON(App.core.buildUrl('/agenda/elegibilidade'), {
@@ -358,7 +358,7 @@
 
                 bookingStatusHtml = ''
                     + '<div class="agenda-booking-status-panel">'
-                    + '<p><strong>Situacao deste horario na sua conta:</strong></p>'
+                    + '<p><strong>Situação deste horário na sua conta:</strong></p>'
                     + '<ul class="agenda-booking-status-list">' + itemsHtml + '</ul>'
                     + '</div>';
             }
@@ -371,7 +371,7 @@
                 painelEvento.html(
                     '<div class="event-card">'
                     + '<h3>' + eventInfo.event.title + '</h3>'
-                    + '<p><strong>Horario:</strong> ' + App.agenda.formatarHoraAgenda(eventInfo.event.start) + ' as ' + App.agenda.formatarHoraAgenda(eventInfo.event.end) + '</p>'
+                    + '<p><strong>Horário:</strong> ' + App.agenda.formatarHoraAgenda(eventInfo.event.start) + ' as ' + App.agenda.formatarHoraAgenda(eventInfo.event.end) + '</p>'
                     + '<p><strong>Local:</strong> ' + (props.local || 'A definir') + '</p>'
                     + '<p><strong>Espaco:</strong> ' + (props.espaco || 'A definir') + '</p>'
                     + '<p><strong>Modalidade:</strong> ' + (props.modalidade || 'Horario especial') + '</p>'
@@ -380,9 +380,9 @@
                         ? '<p><strong>Faixa permitida:</strong> ( para ' + String(props.ano_nascimento_intervalo).replace('Nascidos entre ', 'nascidos entre ') + ' )</p>'
                         : '<p><strong>Faixa etaria:</strong> ( para ' + String(props.special_age_min || 0) + ' a ' + String(props.special_age_max || 120) + ' anos de idade )</p>')
                     + '<p><strong>Vagas:</strong> Geral ' + String(props.vagas_geral || 0) + ' | PCD ' + String(props.vagas_pcd || 0) + ' | PVS ' + String(props.vagas_pvs || 0) + ' | PLM ' + String(props.vagas_plm || 0) + '</p>'
-                    + '<p><strong>Inscricoes:</strong> ' + String(props.vagas_ocupadas || 0) + ' de ' + String(props.vagas_total || 0) + '</p>'
+                    + '<p><strong>Inscrições:</strong> ' + String(props.vagas_ocupadas || 0) + ' de ' + String(props.vagas_total || 0) + '</p>'
                     + (String(props.special_image_url || '').trim() !== '' ? '<p><img src="' + App.agenda.escapeHtml(String(props.special_image_url || '')) + '" alt="' + App.agenda.escapeHtml(eventInfo.event.title) + '" class="agenda-special-event-image"></p>' : '')
-                    + (specialDescription !== '' ? '<p><strong>Descricao:</strong> ' + App.agenda.escapeHtml(specialDescription) + '</p>' : '')
+                    + (specialDescription !== '' ? '<p><strong>Descrição:</strong> ' + App.agenda.escapeHtml(specialDescription) + '</p>' : '')
                     + (specialUrl !== '' ? '<p><a class="btn btn-primary" href="' + App.agenda.escapeHtml(specialUrl) + '">' + App.agenda.escapeHtml(specialLabel) + '</a></p>' : '')
                     + '</div>'
                 );
@@ -401,7 +401,7 @@
             painelEvento.html(
                 '<div class="event-card">'
                 + '<h3>' + eventInfo.event.title + '</h3>'
-                + '<p><strong>Horario:</strong> ' + App.agenda.formatarHoraAgenda(eventInfo.event.start) + ' ás ' + App.agenda.formatarHoraAgenda(eventInfo.event.end) + '</p>'
+                + '<p><strong>Horário:</strong> ' + App.agenda.formatarHoraAgenda(eventInfo.event.start) + ' ás ' + App.agenda.formatarHoraAgenda(eventInfo.event.end) + '</p>'
                 + '<p><strong>Local:</strong> ' + props.local + '</p>'
                 + '<p><strong>Espaco:</strong> ' + props.espaco + '</p>'
                 + '<p><strong>Modalidade:</strong> ' + props.modalidade + '</p>'
@@ -410,9 +410,9 @@
                     ? '<p><strong>Ano de nascimento permitido:</strong> ( para ' + String(props.ano_nascimento_intervalo).replace('Nascidos entre ', 'nascidos entre ') + ' )</p>'
                     : '<p><strong>Faixa etaria:</strong> ( para ' + props.idade_minima + ' a ' + props.idade_maxima + ' anos de idade )</p>')
                 + '<p><strong>Sexo permitido:</strong> ' + App.agenda.formatarSexoHorario(props.sexo) + '</p>'
-                + '<p><strong>Vagas:</strong> ' + App.agenda.formatarVagasAgenda(props.vagas_disponiveis, props.vagas_total) + ' disponiveis</p>'
+                + '<p><strong>Vagas:</strong> ' + App.agenda.formatarVagasAgenda(props.vagas_disponiveis, props.vagas_total) + ' disponíveis</p>'
                 + '<p><strong>Ocupacao:</strong> ' + String(props.vagas_ocupadas || 0).padStart(2, '0') + ' agendamento(s) de ' + String(props.vagas_total || 0).padStart(2, '0') + ' vaga(s)</p>'
-                + (isPast ? '<p><strong>Aviso:</strong> Nao e possivel agendar para data passada.</p>' : '')
+                + (isPast ? '<p><strong>Aviso:</strong> Não é possível agendar para data passada.</p>' : '')
                 + bookingStatusHtml
                 + '</div>'
             );
@@ -428,7 +428,7 @@
                 formAgendamento.addClass('hidden');
 
                 if (isPast) {
-                    accessWarning.removeClass('hidden').text('Nao e possivel agendar para uma data passada.');
+                    accessWarning.removeClass('hidden').text('Não é possível agendar para uma data passada.');
                     personOptions.addClass('hidden').html('');
                 } else {
                     accessWarning.removeClass('hidden');
@@ -654,7 +654,7 @@
                     suppressGlobalLoading: true
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel cancelar o agendamento.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível cancelar o agendamento.'));
                         return;
                     }
 

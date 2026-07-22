@@ -2,19 +2,19 @@
     <div class="section-head">
         <div>
             <span class="eyebrow">FullCalendar</span>
-            <h1>Agenda de treinos e avaliacoes</h1>
-            <p class="muted">A agenda fica visivel sem login. Para concluir um agendamento, o usuario precisa estar autenticado e com cadastro completo.</p>
+            <h1>Agenda de treinos e avaliações</h1>
+            <p class="muted">A agenda fica visível sem login. Para concluir um agendamento, o usuário precisa estar autenticado e com cadastro completo.</p>
             <div class="alert-inline">
-                As inscricoes para os cursos esportivos e os agendamentos para treinos sao exclusivos para moradores de Sao Bernardo do Campo.
-                Sera exigido comprovante de endereco ao se matricular e tambem no dia do agendamento.
+                As inscrições para os cursos esportivos e os agendamentos para treinos são exclusivos para moradores de São Bernardo do Campo.
+                Será exigido comprovante de endereço ao se matricular e também no dia do agendamento.
             </div>
             <?php if (empty($profile)) { ?>
                 <div class="alert-inline">
-                    Faca login para liberar os nomes disponiveis para agendamento nesta agenda.
+                    Faca login para liberar os nomes disponíveis para agendamento nesta agenda.
                 </div>
             <?php } elseif (!empty($needsProfileCompletion)) { ?>
                 <div class="alert-inline">
-                    <?php echo e($registrationBlock['mensagem'] ?? 'Seu cadastro ainda nao esta completo. Complete-o para liberar os nomes disponiveis para agendamento nesta agenda.'); ?>
+                    <?php echo e($registrationBlock['mensagem'] ?? 'Seu cadastro ainda não esta completo. Complete-o para liberar os nomes disponíveis para agendamento nesta agenda.'); ?>
                 </div>
             <?php } ?>
         </div>
@@ -29,14 +29,14 @@
 
                 <div class="agenda-tab-filter">
                     <div class="agenda-tab-filter-head">
-                        <span>Filtrar horarios</span>
-                        <small class="muted">Comece por todos os horarios ou navegue pelas fichas de local e modalidade.</small>
+                        <span>Filtrar horários</span>
+                        <small class="muted">Comece por todos os horários ou navegue pelas fichas de local e modalidade.</small>
                     </div>
 
                     <div class="agenda-primary-tabs" role="tablist" aria-label="Tipo de filtro da agenda">
-                        <button type="button" class="agenda-primary-tab is-active" data-agenda-filter-mode="todos">Todos os horarios</button>
-                        <button type="button" class="agenda-primary-tab" data-agenda-filter-mode="local">Horarios por local</button>
-                        <button type="button" class="agenda-primary-tab" data-agenda-filter-mode="modalidade">Horarios por modalidade</button>
+                        <button type="button" class="agenda-primary-tab is-active" data-agenda-filter-mode="todos">Todos os horários</button>
+                        <button type="button" class="agenda-primary-tab" data-agenda-filter-mode="local">Horários por local</button>
+                        <button type="button" class="agenda-primary-tab" data-agenda-filter-mode="modalidade">Horários por modalidade</button>
                     </div>
 
                     <div class="agenda-secondary-panel hidden" data-agenda-filter-panel="local">
@@ -77,18 +77,18 @@
 <div id="agenda-details-modal" class="popup-overlay hidden" aria-hidden="true">
     <div class="popup-card popup-agenda-details-card" role="dialog" aria-modal="true" aria-labelledby="agenda-details-modal-title">
         <div class="popup-head">
-            <h3 id="agenda-details-modal-title">Detalhes do horario</h3>
-            <button type="button" class="popup-close-icon" id="agenda-details-modal-close" aria-label="Fechar detalhes do horario">&times;</button>
+            <h3 id="agenda-details-modal-title">Detalhes do horário</h3>
+            <button type="button" class="popup-close-icon" id="agenda-details-modal-close" aria-label="Fechar detalhes do horário">&times;</button>
         </div>
         <div class="popup-body agenda-details-modal-body">
             <div id="painel-evento" class="stack-form">
-                <p class="muted">Clique em um horario no calendario para ver local, vagas e regras.</p>
+                <p class="muted">Clique em um horário no calendário para ver local, vagas e regras.</p>
             </div>
             <div id="agenda-access-warning" class="<?php echo empty($schedulablePeople) ? 'alert-inline' : 'alert-inline hidden'; ?>">
                 <?php if (empty($profile)) { ?>
-                    Para agendar um horario, voce precisa fazer login na sua conta.
+                    Para agendar um horário, você precisa fazer login na sua conta.
                 <?php } else { ?>
-                    <?php echo e($registrationBlock['mensagem'] ?? 'Para agendar um horario, voce precisa completar seu cadastro.'); ?>
+                    <?php echo e($registrationBlock['mensagem'] ?? 'Para agendar um horário, você precisa completar seu cadastro.'); ?>
                 <?php } ?>
             </div>
 
@@ -142,12 +142,12 @@
                         <span>Termos</span>
                         <label class="checkbox-line">
                             <input type="checkbox" name="aceite_termos" value="1" required>
-                            <span>Li e aceito os termos para esta inscricao.</span>
+                            <span>Li e aceito os termos para esta inscrição.</span>
                         </label>
                     </label>
                 </div>
-                <small class="muted">Se a idade da pessoa estiver fora da faixa etaria do horario, a inscricao sera recusada automaticamente.</small>
-                <button type="submit" class="btn btn-primary">Confirmar inscricao</button>
+                <small class="muted">Se a idade da pessoa estiver fora da faixa etaria do horario, a inscrição será recusada automaticamente.</small>
+                <button type="submit" class="btn btn-primary">Confirmar inscrição</button>
             </form>
 
             <form method="POST" action="<?php echo e(url('/agenda/agendar')); ?>" id="form-agendamento" class="stack-form hidden" data-ajax-form="1" data-success-reset="1">
@@ -166,15 +166,15 @@
                                     <input type="radio" name="person_id" disabled>
                                     <span class="agenda-person-main"><?php echo e($person['nome_completo']); ?></span>
                                 </span>
-                                <small class="agenda-person-reason">Clique em um horario para validar esta pessoa.</small>
+                                <small class="agenda-person-reason">Clique em um horário para validar esta pessoa.</small>
                             </label>
                         <?php } ?>
                     </div>
                     <small class="muted<?php echo empty($schedulablePeople) ? '' : ' hidden'; ?>" id="agenda-person-helper" data-agenda-person-helper="1">
                         <?php if (empty($profile)) { ?>
-                            Faca login para liberar os nomes disponiveis para agendamento.
+                            Faca login para liberar os nomes disponíveis para agendamento.
                         <?php } else { ?>
-                            <?php echo e($registrationBlock['mensagem'] ?? 'Complete seu cadastro para liberar os nomes disponiveis para agendamento.'); ?>
+                            <?php echo e($registrationBlock['mensagem'] ?? 'Complete seu cadastro para liberar os nomes disponíveis para agendamento.'); ?>
                         <?php } ?>
                     </small>
                 </div>
@@ -187,7 +187,7 @@
                         <option value="pvs">PVS</option>
                     </select>
                 </label>
-                <button type="submit" class="btn btn-primary">Agendar horario</button>
+                <button type="submit" class="btn btn-primary">Agendar horário</button>
             </form>
         </div>
     </div>
@@ -200,7 +200,7 @@
                 <h3 id="agenda-login-reminder-title">Faca login para agendar</h3>
             </div>
             <div class="popup-body">
-                <p>Para concluir um agendamento nesta agenda, voce precisa entrar com sua conta. Depois do login, os nomes disponiveis para agendamento serao liberados aqui.</p>
+                <p>Para concluir um agendamento nesta agenda, você precisa entrar com sua conta. Depois do login, os nomes disponíveis para agendamento serão liberados aqui.</p>
             </div>
             <div class="popup-actions">
                 <button type="button" class="btn btn-secondary" data-close-popup="#agenda-login-reminder">Fechar</button>

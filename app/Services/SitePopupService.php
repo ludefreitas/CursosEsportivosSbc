@@ -10,7 +10,7 @@ use RuntimeException;
 class SitePopupService
 {
     /**
-     * Lista todos os pop-ups cadastrados para a area administrativa.
+     * Lista todos os pop-ups cadastrados para a área administrativa.
      */
     public function listAll(): array
     {
@@ -163,18 +163,18 @@ class SitePopupService
     }
 
     /**
-     * Retorna as paginas disponiveis para exibicao do pop-up.
+     * Retorna as paginas disponíveis para exibicao do pop-up.
      */
     public function availablePages(): array
     {
         return [
             '/' => 'Home',
-            '/agenda' => 'Agenda publica',
+            '/agenda' => 'Agenda pública',
             '/login' => 'Login',
             '/cadastro' => 'Cadastro',
             '/perfil/completar' => 'Completar cadastro',
-            '/dashboard' => 'Painel do usuario',
-            '/admin' => 'Area administrativa',
+            '/dashboard' => 'Painel do usuário',
+            '/admin' => 'Área administrativa',
         ];
     }
 
@@ -194,7 +194,7 @@ class SitePopupService
     }
 
     /**
-     * Verifica se o pop-up atende a pagina atual.
+     * Verifica se o pop-up atende a página atual.
      */
     private function popupAtendePagina(array $row, string $path): bool
     {
@@ -255,7 +255,7 @@ class SitePopupService
         }
 
         if (strtotime((string) $payload['data_fim']) < strtotime((string) $payload['data_inicio'])) {
-            throw new RuntimeException('A data final do pop-up nao pode ser anterior a data inicial.');
+            throw new RuntimeException('A data final do pop-up não pode ser anterior a data inicial.');
         }
 
         if (!in_array($payload['status'], ['ativo', 'arquivado'], true)) {

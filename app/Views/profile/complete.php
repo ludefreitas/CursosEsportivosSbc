@@ -2,20 +2,20 @@
     <div class="content-card modal-page-card modal-page-card-wide">
         <h1>Completar Cadastro Obrigatorio</h1>
         <p class="muted">
-            Para acessar agendas, inscricoes, perfis e demais areas autenticadas, complete agora seu cadastro.
-            Nesta etapa voce tambem passa a existir como seu proprio dependente dentro do sistema.
+            Para acessar agendas, inscrições, perfis e demais áreas autenticadas, complete agora seu cadastro.
+            Nesta etapa você também passa a existir como seu próprio dependente dentro do sistema.
         </p>
         <?php if (!empty($registrationBlock)) { ?>
             <div class="alert-inline" style="margin-bottom: 16px;">
                 <?php echo e($registrationBlock['mensagem']); ?>
             </div>
             <p class="muted">
-                Assim que a transferencia de responsabilidade for concluida para o seu CPF, voce podera voltar e continuar seu cadastro normalmente.
+                Assim que a transferencia de responsabilidade for concluída para o seu CPF, você poderá voltar e continuar seu cadastro normalmente.
             </p>
         <?php } ?>
         <div class="alert-inline">
-            As inscricoes para os cursos esportivos e os agendamentos para treinos sao exclusivos para moradores de Sao Bernardo do Campo.
-            Sera exigido comprovante de endereco ao se matricular nos cursos esportivos e no dia do agendamento.
+            As inscrições para os cursos esportivos e os agendamentos para treinos são exclusivos para moradores de São Bernardo do Campo.
+            Será exigido comprovante de endereço ao se matricular nos cursos esportivos e no dia do agendamento.
         </div>
         <?php if (empty($registrationBlock)) { ?>
         <form method="POST" action="<?php echo e(url('/perfil/completar')); ?>" class="stack-form" data-ajax-form="1" data-follow-redirect="1">
@@ -81,7 +81,7 @@
         <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condicao pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>
 
         <div class="alert-inline">
-            Se alguma dessas condicoes for marcada, a pessoa precisara manter a documentacao correspondente e o certificado validado para liberar agendamentos e inscricoes em qualquer tipo de vaga.
+            Se alguma dessas condicoes for marcada, a pessoa precisara manter a documentação correspondente e o certificado validado para liberar agendamentos e inscrições em qualquer tipo de vaga.
         </div>
 
         <div class="grid-five">
@@ -129,22 +129,22 @@
 
         <div class="grid-two">
             <label>
-                <span>Nome do responsavel 1</span>
+                <span>Nome do responsável 1</span>
                 <input type="text" name="parent1_name" value="<?php echo old('parent1_name', $person['responsavel1_nome'] ?? ''); ?>">
             </label>
             <label>
-                <span>CPF do responsavel 1</span>
+                <span>CPF do responsável 1</span>
                 <input type="text" name="parent1_cpf" value="<?php echo old('parent1_cpf', $person['responsavel1_cpf'] ?? ''); ?>">
             </label>
         </div>
 
         <div class="grid-two">
             <label>
-                <span>Nome do responsavel 2</span>
+                <span>Nome do responsável 2</span>
                 <input type="text" name="parent2_name" value="<?php echo old('parent2_name', $person['responsavel2_nome'] ?? ''); ?>">
             </label>
             <label>
-                <span>CPF do responsavel 2</span>
+                <span>CPF do responsável 2</span>
                 <input type="text" name="parent2_cpf" value="<?php echo old('parent2_cpf', $person['responsavel2_cpf'] ?? ''); ?>">
             </label>
         </div>

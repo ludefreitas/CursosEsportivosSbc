@@ -20,7 +20,7 @@ class AgendaController extends Controller
     }
 
     /**
-     * Exibe a agenda publica com FullCalendar.
+     * Exibe a agenda pública com FullCalendar.
      */
     public function index(): void
     {
@@ -52,6 +52,7 @@ class AgendaController extends Controller
 
         $this->view('agenda/index', [
             'title' => 'Agenda de Treinos',
+            'pageClass' => 'pagina-agenda',
             'locations' => $this->agendaService->listLocations(),
             'modalities' => $this->agendaService->listModalities(),
             'schedulablePeople' => $schedulablePeople,
@@ -73,7 +74,7 @@ class AgendaController extends Controller
         if (!Auth::check()) {
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'Faca login para carregar as pessoas disponiveis para agendamento.',
+                'message' => 'Faca login para carregar as pessoas disponíveis para agendamento.',
                 'redirect' => login_modal_url('/agenda'),
             ], 401);
         }
@@ -87,19 +88,19 @@ class AgendaController extends Controller
             'success' => true,
             'people' => $needsProfileCompletion ? [] : $this->agendaService->listSchedulablePeople(),
             'needs_profile_completion' => $needsProfileCompletion,
-            'message' => $registrationBlock['mensagem'] ?? 'Complete seu cadastro para liberar os nomes disponiveis para agendamento.',
+            'message' => $registrationBlock['mensagem'] ?? 'Complete seu cadastro para liberar os nomes disponíveis para agendamento.',
         ]);
     }
 
     /**
-     * Retorna em JSON a elegibilidade das pessoas vinculadas para um horario especifico.
+     * Retorna em JSON a elegibilidade das pessoas vinculadas para um horário especifico.
      */
     public function scheduleEligibility(): void
     {
         if (!Auth::check()) {
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'Faca login para consultar as pessoas disponiveis para este horario.',
+                'message' => 'Faca login para consultar as pessoas disponíveis para este horário.',
                 'redirect' => login_modal_url('/agenda'),
             ], 401);
         }
@@ -115,7 +116,7 @@ class AgendaController extends Controller
                 : url('/perfil/completar?return_to=/agenda');
             $this->jsonResponse([
                 'success' => false,
-                'message' => $registrationBlock['mensagem'] ?? 'Complete seu cadastro para liberar os nomes disponiveis para agendamento.',
+                'message' => $registrationBlock['mensagem'] ?? 'Complete seu cadastro para liberar os nomes disponíveis para agendamento.',
                 'redirect' => $redirect,
                 'needs_profile_completion' => true,
             ], 403);
@@ -140,7 +141,7 @@ class AgendaController extends Controller
     }
 
     /**
-     * Entrega eventos em JSON para o calendario.
+     * Entrega eventos em JSON para o calendário.
      */
     public function events(): void
     {
@@ -157,7 +158,7 @@ class AgendaController extends Controller
     }
 
     /**
-     * Cria um agendamento de avaliacao ou treino.
+     * Cria um agendamento de avaliação ou treino.
      */
     public function book(): void
     {
@@ -262,7 +263,7 @@ class AgendaController extends Controller
     }
 
     /**
-     * Realiza inscricao em horario especial com ou sem autenticacao.
+     * Realiza inscrição em horário especial com ou sem autenticacao.
      */
     public function registerSpecialSchedule(): void
     {
@@ -272,11 +273,11 @@ class AgendaController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Inscricao realizada com sucesso.',
+                    'message' => 'Inscrição realizada com sucesso.',
                 ]);
             }
 
-            flash('success', 'Inscricao realizada com sucesso.');
+            flash('success', 'Inscrição realizada com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([

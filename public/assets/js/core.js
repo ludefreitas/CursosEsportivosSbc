@@ -39,7 +39,7 @@
             $popup.removeClass('popup-erro popup-sucesso hidden').addClass(tipo === 'erro' ? 'popup-erro' : 'popup-sucesso');
             $popup.attr('aria-hidden', 'false');
             $titulo.text(titulo);
-            $texto.text(mensagem || 'Operacao concluida.');
+            $texto.text(mensagem || 'Operacao concluída.');
         },
 
         abrirPopupHtml: function (tipo, html, onClose) {
@@ -53,7 +53,7 @@
             $popup.removeClass('popup-erro popup-sucesso hidden').addClass(tipo === 'erro' ? 'popup-erro' : 'popup-sucesso');
             $popup.attr('aria-hidden', 'false');
             $titulo.text(titulo);
-            $texto.html(String(html || 'Operacao concluida.'));
+            $texto.html(String(html || 'Operacao concluída.'));
         },
 
         abrirPopupCustomizado: function (selector) {
@@ -189,7 +189,7 @@
         },
 
         profileCompletionMessage: function () {
-            return String($('body').attr('data-profile-completion-message') || 'Antes de acessar esta area, voce precisa completar seu cadastro.');
+            return String($('body').attr('data-profile-completion-message') || 'Antes de acessar esta área, você precisa completar seu cadastro.');
         },
 
         abrirConfirmacaoCompletarCadastro: function (returnTo) {
@@ -300,7 +300,7 @@
         },
 
         extrairMensagemErroAjax: function (xhr) {
-            const mensagemPadrao = 'Nao foi possivel concluir a operacao agora.';
+            const mensagemPadrao = 'Não foi possível concluir a operação agora.';
             let mensagem = mensagemPadrao;
             let redirectUrl = '';
 
@@ -463,7 +463,7 @@
                     return;
                 }
 
-                App.core.showLoading('Carregando pagina...');
+                App.core.showLoading('Carregando página...');
             });
 
             $(document).on('submit', 'form:not([data-ajax-form="1"]):not([data-manual-submit="1"])', function (event) {
@@ -494,7 +494,7 @@
                 const $message = obterMensagem($(this));
 
                 if (rawValue.length === 0) {
-                    $message.text('Aceito automaticamente para o intervalo de CEPs de Sao Bernardo do Campo: 09600000 a 09899999. Excecoes dependem de cadastro administrativo.');
+                    $message.text('Aceito automaticamente para o intervalo de CEPs de São Bernardo do Campo: 09600000 a 09899999. Exceções dependem de cadastro administrativo.');
                     return;
                 }
 
@@ -508,14 +508,14 @@
                 $.getJSON(App.core.buildUrl('/api/ceps/validar'), { cep: rawValue })
                     .done(function (response) {
                         if (!response || typeof response.mensagem === 'undefined') {
-                            $message.text('Nao foi possivel validar o CEP neste momento.');
+                            $message.text('Não foi possível validar o CEP neste momento.');
                             return;
                         }
 
                         $message.text(response.mensagem);
                     })
                     .fail(function () {
-                        $message.text('Nao foi possivel validar o CEP neste momento.');
+                        $message.text('Não foi possível validar o CEP neste momento.');
                     });
             });
         },
@@ -539,7 +539,7 @@
                 if (rawValue.length === 0) {
                     $input.data('cpfCadastroPermitido', false);
                     $input.data('cpfCadastroStatus', '');
-                    $message.text('Ao informar o CPF, o sistema avisara imediatamente se a conta ja existe, se o CPF pertence a um dependente ou se a criacao da conta esta liberada.');
+                    $message.text('Ao informar o CPF, o sistema avisará imediatamente se a conta já existe, se o CPF pertence a um dependente ou se a criação da conta está liberada.');
                     return;
                 }
 
@@ -550,13 +550,13 @@
                     return;
                 }
 
-                $message.text('Consultando a situacao deste CPF no sistema...');
+                $message.text('Consultando a situação deste CPF no sistema...');
 
                 $.getJSON(App.core.buildUrl('/api/cpf/cadastro-status'), { cpf: rawValue })
                     .done(function (response) {
                         if (!response || typeof response.status === 'undefined') {
                             $input.data('cpfCadastroPermitido', false);
-                            $message.text('Nao foi possivel validar este CPF agora.');
+                            $message.text('Não foi possível validar este CPF agora.');
                             return;
                         }
 
@@ -569,7 +569,7 @@
 
                         $input.data('cpfCadastroPermitido', podeCriarConta);
                         $input.data('cpfCadastroStatus', status);
-                        $message.text(mensagemHelper || 'Situacao do CPF atualizada.');
+                        $message.text(mensagemHelper || 'Situação do CPF atualizada.');
 
                         if (mensagemPopup !== '' && lastAlertKey !== alertKey && status !== 'disponivel') {
                             App.core.abrirPopup(podeCriarConta ? 'sucesso' : 'erro', mensagemPopup);
@@ -578,7 +578,7 @@
                     })
                     .fail(function () {
                         $input.data('cpfCadastroPermitido', false);
-                        $message.text('Nao foi possivel validar este CPF agora.');
+                        $message.text('Não foi possível validar este CPF agora.');
                     });
             }
 
@@ -606,7 +606,7 @@
 
                 if (status === 'cpf_invalido' || status === 'dependente_menor_sem_conta' || status === 'conta_existente') {
                     event.preventDefault();
-                    App.core.abrirPopup('erro', 'Nao e possivel concluir a criacao da conta com este CPF. Confira o aviso exibido pelo sistema.');
+                    App.core.abrirPopup('erro', 'Não é possível concluir a criacao da conta com este CPF. Confira o aviso exibido pelo sistema.');
                 }
             });
         },
@@ -620,7 +620,7 @@
                     return;
                 }
 
-                $warning.toggleClass('hidden', value !== 'Sexo nÃ£o declarado');
+                $warning.toggleClass('hidden', value !== 'Sexo nao declarado');
             }
 
             $(document).on('change', selector, function () {

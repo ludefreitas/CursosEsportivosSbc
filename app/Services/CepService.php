@@ -42,7 +42,7 @@ class CepService
         return [
             'aceito' => false,
             'tipo' => 'fora_intervalo',
-            'mensagem' => 'As inscricoes para os cursos esportivos e os agendamentos para treinos sao exclusivos para moradores de Sao Bernardo do Campo. Sera exigido comprovante de endereco na matricula e no dia do agendamento.',
+            'mensagem' => 'As inscrições para os cursos esportivos e os agendamentos para treinos sao exclusivos para moradores de Sao Bernardo do Campo. Sera exigido comprovante de endereco na matricula e no dia do agendamento.',
         ];
     }
 
@@ -154,7 +154,7 @@ class CepService
         }
 
         if ((int) $cepInicio > (int) $cepFim) {
-            throw new RuntimeException('O CEP inicial nao pode ser maior que o CEP final.');
+            throw new RuntimeException('O CEP inicial não pode ser maior que o CEP final.');
         }
 
         $pdo = Database::connection();

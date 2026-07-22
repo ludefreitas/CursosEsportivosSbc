@@ -26,7 +26,7 @@ class AdminController extends Controller
     private OfficialCommunicationService $officialCommunicationService;
 
     /**
-     * Inicializa servicos da area administrativa.
+     * Inicializa servicos da área administrativa.
      */
     public function __construct()
     {
@@ -40,7 +40,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Exibe a area administrativa inicial.
+     * Exibe a área administrativa inicial.
      */
     public function index(): void
     {
@@ -53,7 +53,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna o HTML de uma secao especifica da area administrativa.
+     * Retorna o HTML de uma seção especifica da área administrativa.
      */
     public function section(): void
     {
@@ -73,7 +73,7 @@ class AdminController extends Controller
             ];
 
             if (!in_array($sectionName, $allowedSections, true)) {
-                throw new \RuntimeException('A secao administrativa solicitada nao existe.');
+                throw new \RuntimeException('A seção administrativa solicitada não existe.');
             }
 
             $sectionData = $this->buildSectionData($sectionName, $user);
@@ -100,7 +100,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Salva o quadro "o que voce precisa saber" da home.
+     * Salva o quadro "o que você precisa saber" da home.
      */
     public function saveHomeInfoBox(): void
     {
@@ -167,7 +167,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna os dados completos de uma pessoa para edicao inline.
+     * Retorna os dados completos de uma pessoa para edição inline.
      */
     public function personDetails(): void
     {
@@ -210,7 +210,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna os dependentes do usuario selecionado para consulta em modal.
+     * Retorna os dependentes do usuário selecionado para consulta em modal.
      */
     public function userDependents(): void
     {
@@ -233,7 +233,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Atualiza os papeis ativos do usuario selecionado.
+     * Atualiza os papéis ativos do usuário selecionado.
      */
     public function updateUserRoles(): void
     {
@@ -249,12 +249,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Papeis do usuario atualizados com sucesso.',
+                    'message' => 'Papéis do usuário atualizados com sucesso.',
                     'user' => $updatedUser,
                 ]);
             }
 
-            flash('success', 'Papeis do usuario atualizados com sucesso.');
+            flash('success', 'Papéis do usuário atualizados com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -270,7 +270,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna os dados completos de um horario semanal para edicao em modal.
+     * Retorna os dados completos de um horário semanal para edição em modal.
      */
     public function weeklyScheduleDetails(): void
     {
@@ -291,7 +291,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna os dados completos de um horario especial para edicao em modal.
+     * Retorna os dados completos de um horário especial para edição em modal.
      */
     public function specialScheduleDetails(): void
     {
@@ -312,7 +312,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna os eventos do calendario administrativo da agenda.
+     * Retorna os eventos do calendário administrativo da agenda.
      */
     public function calendarEvents(): void
     {
@@ -336,7 +336,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna a lista de chamada de uma ocorrencia especifica da agenda administrativa.
+     * Retorna a lista de chamada de uma ocorrência especifica da agenda administrativa.
      */
     public function bookingOccurrence(): void
     {
@@ -350,7 +350,7 @@ class AdminController extends Controller
             try {
                 $occurrenceDate = new DateTimeImmutable($startDateTime);
             } catch (\Throwable $e) {
-                throw new \RuntimeException('Data e horario da ocorrencia sao invalidos.');
+                throw new \RuntimeException('Data e horário da ocorrência sao invalidos.');
             }
 
             $occurrence = [
@@ -394,7 +394,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna apenas o quadro de pessoas da area administrativa.
+     * Retorna apenas o quadro de pessoas da área administrativa.
      */
     public function peoplePanel(): void
     {
@@ -434,7 +434,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Entrega um PDF de certificado para consulta na area administrativa.
+     * Entrega um PDF de certificado para consulta na área administrativa.
      */
     public function certificateDocument(): void
     {
@@ -447,7 +447,7 @@ class AdminController extends Controller
 
             if ($relativePath === '' || !is_file($absolutePath)) {
                 http_response_code(404);
-                echo 'Arquivo nao encontrado.';
+                echo 'Arquivo não encontrado.';
                 exit;
             }
 
@@ -466,13 +466,13 @@ class AdminController extends Controller
             exit;
         } catch (\Throwable $e) {
             http_response_code(404);
-            echo 'Arquivo nao encontrado.';
+            echo 'Arquivo não encontrado.';
             exit;
         }
     }
 
     /**
-     * Retorna o modal de validacao administrativa de um certificado de condicao.
+     * Retorna o modal de validação administrativa de um certificado de condicao.
      */
     public function conditionValidationModal(): void
     {
@@ -497,7 +497,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Salva a validacao administrativa de um certificado de condicao.
+     * Salva a validação administrativa de um certificado de condicao.
      */
     public function saveConditionValidation(): void
     {
@@ -516,7 +516,7 @@ class AdminController extends Controller
 
             $this->jsonResponse([
                 'success' => true,
-                'message' => 'Validacao do certificado atualizada com sucesso.',
+                'message' => 'Validação do certificado atualizada com sucesso.',
                 'html' => $this->renderConditionValidationModalHtml($modalData),
                 'panel_html' => $html,
             ]);
@@ -529,7 +529,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna o modal de validacao administrativa de um atestado de saude.
+     * Retorna o modal de validação administrativa de um atestado de saude.
      */
     public function healthCertificateValidationModal(): void
     {
@@ -554,7 +554,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Salva a validacao administrativa de um atestado de saude.
+     * Salva a validação administrativa de um atestado de saude.
      */
     public function saveHealthCertificateValidation(): void
     {
@@ -574,7 +574,7 @@ class AdminController extends Controller
 
             $this->jsonResponse([
                 'success' => true,
-                'message' => 'Validacao do atestado atualizada com sucesso.',
+                'message' => 'Validação do atestado atualizada com sucesso.',
                 'html' => $this->renderHealthCertificateValidationModalHtml($modalData),
                 'panel_html' => $panelHtml,
             ]);
@@ -587,7 +587,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Atualiza pessoa e usuario diretamente pela area administrativa.
+     * Atualiza pessoa e usuário diretamente pela área administrativa.
      */
     public function updatePerson(): void
     {
@@ -829,7 +829,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna os dados de uma postagem para edicao em modal.
+     * Retorna os dados de uma postagem para edição em modal.
      */
     public function postDetails(): void
     {
@@ -850,7 +850,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Salva uma nova suspensao temporaria de espaco.
+     * Salva uma nova suspensão temporaria de espaco.
      */
     public function storeSpaceSuspension(): void
     {
@@ -883,7 +883,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Inativa uma suspensao temporaria de espaco.
+     * Inativa uma suspensão temporaria de espaco.
      */
     public function deactivateSpaceSuspension(): void
     {
@@ -916,7 +916,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Salva um novo horario semanal.
+     * Salva um novo horário semanal.
      */
     public function storeWeeklySchedule(): void
     {
@@ -949,7 +949,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Atualiza um horario semanal existente.
+     * Atualiza um horário semanal existente.
      */
     public function updateWeeklySchedule(): void
     {
@@ -986,7 +986,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Inativa um horario semanal existente.
+     * Inativa um horário semanal existente.
      */
     public function deactivateWeeklySchedule(): void
     {
@@ -1019,7 +1019,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Ativa novamente um horario semanal existente.
+     * Ativa novamente um horário semanal existente.
      */
     public function activateWeeklySchedule(): void
     {
@@ -1052,7 +1052,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Salva um novo horario especial para a agenda publica.
+     * Salva um novo horário especial para a agenda pública.
      */
     public function storeSpecialSchedule(): void
     {
@@ -1085,7 +1085,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Inativa um horario especial da agenda publica.
+     * Inativa um horário especial da agenda pública.
      */
     public function deactivateSpecialSchedule(): void
     {
@@ -1118,7 +1118,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Atualiza um horario especial existente.
+     * Atualiza um horário especial existente.
      */
     public function updateSpecialSchedule(): void
     {
@@ -1296,7 +1296,7 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => false,
-                    'message' => 'Faca login para acessar a area administrativa.',
+                    'message' => 'Faca login para acessar a área administrativa.',
                     'redirect' => login_modal_url('/admin'),
                 ], 401);
             }
@@ -1325,12 +1325,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => false,
-                    'message' => 'Complete primeiro seu cadastro para acessar a area administrativa.',
+                    'message' => 'Complete primeiro seu cadastro para acessar a área administrativa.',
                     'redirect' => profile_completion_modal_url('/admin'),
                 ], 403);
             }
 
-            flash('error', 'Complete primeiro seu cadastro para acessar a area administrativa.');
+            flash('error', 'Complete primeiro seu cadastro para acessar a área administrativa.');
             redirect_to_profile_completion_modal('/admin');
         }
 
@@ -1346,12 +1346,12 @@ class AdminController extends Controller
         if ($this->isAjaxRequest()) {
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'Seu nivel de acesso nao permite abrir a area administrativa.',
+                'message' => 'Seu nivel de acesso nao permite abrir a área administrativa.',
                 'redirect' => url('/dashboard'),
             ], 403);
         }
 
-        flash('error', 'Seu nivel de acesso nao permite abrir a area administrativa.');
+        flash('error', 'Seu nivel de acesso nao permite abrir a área administrativa.');
         redirect('/dashboard');
     }
 
@@ -1418,7 +1418,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Monta apenas os dados necessarios para a secao solicitada.
+     * Monta apenas os dados necessarios para a seção solicitada.
      */
     private function buildSectionData(string $sectionName, array $user): array
     {
@@ -1503,7 +1503,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Renderiza o modal de validacao administrativa de condicao.
+     * Renderiza o modal de validação administrativa de condicao.
      */
     private function renderConditionValidationModalHtml(array $modalData): string
     {
@@ -1524,7 +1524,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Renderiza o modal de validacao administrativa de atestado de saude.
+     * Renderiza o modal de validação administrativa de atestado de saude.
      */
     private function renderHealthCertificateValidationModalHtml(array $modalData): string
     {

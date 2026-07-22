@@ -40,9 +40,9 @@
             }
 
             navigator.geolocation.getCurrentPosition(function () {
-                $('.location-status').text('Localizacao autorizada. Futuras sugestoes por proximidade poderao ser aplicadas aqui.');
+                $('.location-status').text('Localizacao autorizada. Futuras sugestoes por proximidade poderão ser aplicadas aqui.');
             }, function () {
-                $('.location-status').text('Localizacao nao autorizada. O sistema continua funcionando normalmente.');
+                $('.location-status').text('Localização não autorizada. O sistema continua funcionando normalmente.');
             });
         },
 

@@ -4,10 +4,10 @@ $conditions = $conditions ?? [];
 ?>
 <div class="popup-head admin-popup-head">
     <div>
-        <h3>Condicoes e documentacao</h3>
-        <p class="muted">Gerencie a documentacao de <?php echo e((string) ($person['nome_completo'] ?? '')); ?> sem sair desta pagina.</p>
+        <h3>Condições e documentação</h3>
+        <p class="muted">Gerencie a documentação de <?php echo e((string) ($person['nome_completo'] ?? '')); ?> sem sair desta página.</p>
     </div>
-    <button type="button" class="popup-close-icon" id="dashboard-certificates-modal-close" aria-label="Fechar documentacao">&times;</button>
+    <button type="button" class="popup-close-icon" id="dashboard-certificates-modal-close" aria-label="Fechar documentação">&times;</button>
 </div>
 <div class="popup-body admin-popup-body dashboard-certificates-modal-body">
     <div class="dashboard-certificate-sections">
@@ -19,12 +19,12 @@ $conditions = $conditions ?? [];
                         <h4><?php echo e((string) ($condition['label'] ?? 'Condicao')); ?></h4>
                         <p class="muted"><?php echo e((string) ($condition['status_label'] ?? 'Sem status')); ?></p>
                     </div>
-                    <span class="chip"><?php echo !empty($condition['declared']) ? 'Declarada' : 'Nao declarada'; ?></span>
+                    <span class="chip"><?php echo !empty($condition['declared']) ? 'Declarada' : 'Não declarada'; ?></span>
                 </div>
 
                 <?php if (empty($condition['declared'])) { ?>
                     <div class="alert-inline">
-                        Esta condicao nao esta marcada no cadastro da pessoa. Para enviar documentacao, primeiro edite o cadastro e marque a condicao correspondente.
+                        Esta condição não está marcada no cadastro da pessoa. Para enviar documentação, primeiro edite o cadastro e marque a condição correspondente.
                     </div>
                 <?php } else { ?>
                     <div class="dashboard-certificate-meta">
@@ -50,7 +50,7 @@ $conditions = $conditions ?? [];
                             <p><strong>Deficiencias marcadas:</strong> <?php echo e($typeLabels !== [] ? implode(', ', $typeLabels) : '-'); ?></p>
                         <?php } ?>
                         <p><strong>Data de emissao:</strong> <?php echo e(!empty($certificate['data_emissao']) ? date('d/m/Y', strtotime((string) $certificate['data_emissao'])) : '-'); ?></p>
-                        <p><strong>Validade:</strong> <?php echo e(!empty($certificate['validade_certificado']) ? date('d/m/Y', strtotime((string) $certificate['validade_certificado'])) : 'Definida na validacao pelo professor ou administrador'); ?></p>
+                        <p><strong>Validade:</strong> <?php echo e(!empty($certificate['validade_certificado']) ? date('d/m/Y', strtotime((string) $certificate['validade_certificado'])) : 'Definida na validação pelo professor ou administrador'); ?></p>
                     </div>
 
                     <?php if (!empty($condition['documents'])) { ?>
@@ -69,11 +69,11 @@ $conditions = $conditions ?? [];
                             </ul>
                         </div>
                     <?php } else { ?>
-                        <p class="muted">Nenhum PDF enviado ainda para esta condicao.</p>
+                        <p class="muted">Nenhum PDF enviado ainda para esta condição.</p>
                     <?php } ?>
 
                     <div class="alert-inline dashboard-certificate-warning">
-                        Ao atualizar esta condicao com novos documentos, o sistema removera os PDFs que ja existem para <?php echo e((string) ($condition['label'] ?? 'esta condicao')); ?> e guardara apenas os arquivos selecionados agora.
+                        Ao atualizar esta condição com novos documentos, o sistema removerá os PDFs que já existem para <?php echo e((string) ($condition['label'] ?? 'esta condição')); ?> e guardará apenas os arquivos selecionados agora.
                     </div>
 
                     <form
@@ -88,7 +88,7 @@ $conditions = $conditions ?? [];
 
                         <label>
                             <span>
-                                Resumo da documentacao
+                                Resumo da documentação
                                 <?php if (!empty($certificate['descricao_resumida'])) { ?>
                                     <small class="muted">(o resumo atual foi carregado para esta atualizacao)</small>
                                 <?php } ?>
@@ -100,7 +100,7 @@ $conditions = $conditions ?? [];
                             <label>
                                 <span>CID declarado</span>
                                 <input type="text" name="codigo_cid_declarado" data-cid-code="1" maxlength="5" placeholder="A00.0" value="<?php echo e((string) ($certificate['codigo_cid_declarado'] ?? '')); ?>" required>
-                                <small class="muted">Campo obrigatorio para <?php echo e(strtoupper((string) ($condition['slug'] ?? ''))); ?> no formato A00.0.</small>
+                                <small class="muted">Campo obrigatório para <?php echo e(strtoupper((string) ($condition['slug'] ?? ''))); ?> no formato A00.0.</small>
                             </label>
 
                             <label>
@@ -152,7 +152,7 @@ $conditions = $conditions ?? [];
                         <label>
                             <span>Data de emissao do documento</span>
                             <input type="date" name="data_emissao" value="<?php echo e((string) ($certificate['data_emissao'] ?? '')); ?>">
-                            <small class="muted">A validade nao e preenchida por voce neste envio. Ela sera definida no processo de validacao.</small>
+                            <small class="muted">A validade não é preenchida por você neste envio. Ela será definida no processo de validação.</small>
                         </label>
 
                         <label>
@@ -168,14 +168,14 @@ $conditions = $conditions ?? [];
                         <label class="dashboard-certificate-upload-highlight">
                             <span>Arquivos PDF da condicao</span>
                             <input type="file" name="documents[]" accept="application/pdf,.pdf" multiple required>
-                            <small>Voce pode selecionar mais de um arquivo em PDF neste envio.</small>
-                            <small>Todos os arquivos atuais desta condicao serao substituidos pelos PDFs selecionados agora.</small>
+                            <small>Você pode selecionar mais de um arquivo em PDF neste envio.</small>
+                            <small>Todos os arquivos atuais desta condição serão substituidos pelos PDFs selecionados agora.</small>
                         </label>
 
                         <div class="popup-actions">
                             <button type="button" class="btn btn-secondary" id="dashboard-certificates-modal-close-footer">Fechar/Cancelar</button>
                             <button type="submit" class="btn btn-primary">
-                                <?php echo $certificate ? 'Atualizar documentacao' : 'Enviar documentacao'; ?>
+                                <?php echo $certificate ? 'Atualizar documentação' : 'Enviar documentação'; ?>
                             </button>
                         </div>
                     </form>

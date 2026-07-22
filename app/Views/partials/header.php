@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo e(($title ?? '') . ' | ' . app_config('name')); ?></title>
@@ -21,7 +21,7 @@
 <body
     class="<?php echo e($pageClass ?? ''); ?>"
     data-profile-completion-required="<?php echo !empty($profileCompletionRequired) ? '1' : '0'; ?>"
-    data-profile-completion-message="<?php echo e($profileCompletionBlockMessage ?: 'Antes de acessar esta area, voce precisa completar seu cadastro.'); ?>"
+    data-profile-completion-message="<?php echo e($profileCompletionBlockMessage ?: 'Antes de acessar esta área, você precisa completar seu cadastro.'); ?>"
 >
     <?php $isAuthenticated = \App\Core\Auth::check(); ?>
     <div class="page-shell">
@@ -38,7 +38,7 @@
                 <p class="brand-subtitle">Agendamento para treinos e inscrições para cursos esportivos para você e seus dependentes em uma só experiência.</p>
             </div>
             <nav class="site-nav">
-                <a href="<?php echo e(url('/')); ?>">Inicio</a>
+                <a href="<?php echo e(url('/')); ?>">Início</a>
                 <a href="<?php echo e(url('/agenda')); ?>">Agenda</a>
                 <a href="<?php echo e(url('/blog')); ?>">Blog</a>
                 <?php if ($isAuthenticated) { ?>

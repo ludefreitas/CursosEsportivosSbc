@@ -35,12 +35,13 @@ class AuthController extends Controller
 
         $this->view('auth/login', [
             'title' => 'Entrar',
+            'pageClass' => 'pagina-auth',
             'returnTo' => safe_internal_path((string) ($_GET['return_to'] ?? '/dashboard'), '/dashboard'),
         ]);
     }
 
     /**
-     * Efetua o login do usuario.
+     * Efetua o login do usuário.
      */
     public function login(): void
     {
@@ -92,7 +93,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Exibe a tela de cadastro do responsavel.
+     * Exibe a tela de cadastro do responsável.
      */
     public function showRegister(): void
     {
@@ -100,11 +101,14 @@ class AuthController extends Controller
             redirect('/dashboard');
         }
 
-        $this->view('auth/register', ['title' => 'Cadastro do Responsavel']);
+        $this->view('auth/register', [
+            'title' => 'Cadastro do Responsável',
+            'pageClass' => 'pagina-auth',
+        ]);
     }
 
     /**
-     * Cria uma nova conta de responsavel maior de idade.
+     * Cria uma nova conta de responsável maior de idade.
      */
     public function register(): void
     {
@@ -123,11 +127,11 @@ class AuthController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => false,
-                    'message' => 'Confirme que voce e uma pessoa maior de 18 anos. Se nao for uma pessoa maior de 18 anos, peca para o seu responsavel cadastrar voce. Somente pessoas maiores de 18 anos podem se cadastrar neste formulario.',
+                    'message' => 'Confirme que você é uma pessoa maior de 18 anos. Se nao for uma pessoa maior de 18 anos, peca para o seu responsável cadastrar voce. Somente pessoas maiores de 18 anos podem se cadastrar neste formulario.',
                 ]);
             }
 
-            flash('error', 'Confirme que voce e uma pessoa maior de 18 anos. Se nao for uma pessoa maior de 18 anos, peca para o seu responsavel cadastrar voce. Somente pessoas maiores de 18 anos podem se cadastrar neste formulario.');
+            flash('error', 'Confirme que você é uma pessoa maior de 18 anos. Se nao for uma pessoa maior de 18 anos, peca para o seu responsável cadastrar voce. Somente pessoas maiores de 18 anos podem se cadastrar neste formulario.');
             redirect('/cadastro');
         }
 
@@ -135,11 +139,11 @@ class AuthController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => false,
-                    'message' => 'Voce precisa aceitar as politicas de privacidade e os termos de uso para prosseguir.',
+                    'message' => 'Você precisa aceitar as politicas de privacidade e os termos de uso para prosseguir.',
                 ]);
             }
 
-            flash('error', 'Voce precisa aceitar as politicas de privacidade e os termos de uso para prosseguir.');
+            flash('error', 'Você precisa aceitar as politicas de privacidade e os termos de uso para prosseguir.');
             redirect('/cadastro');
         }
 
@@ -188,12 +192,12 @@ class AuthController extends Controller
                 if ($this->isAjaxRequest()) {
                     $this->jsonResponse([
                         'success' => true,
-                        'message' => 'Cadastro criado. Complete agora seu perfil obrigatorio.',
+                        'message' => 'Cadastro criado. Complete agora seu perfil obrigatório.',
                         'redirect' => url('/perfil/completar'),
                     ]);
                 }
 
-                flash('success', 'Cadastro criado. Complete agora seu perfil obrigatorio.');
+                flash('success', 'Cadastro criado. Complete agora seu perfil obrigatório.');
                 redirect('/perfil/completar');
             }
         } catch (\Throwable $e) {
@@ -210,7 +214,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Retorna em JSON a situacao do CPF para criacao de conta.
+     * Retorna em JSON a situação do CPF para criacao de conta.
      */
     public function checkRegisterCpf(): void
     {

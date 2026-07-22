@@ -106,7 +106,7 @@ class OfficialCommunicationService
             'slug' => self::SLUG_BLOG,
             'nome_quadro' => 'Comunicacao oficial',
             'titulo' => 'Blog dos Cursos Esportivos SBC',
-            'texto_breve' => 'Noticias, campanhas, avisos e conteudos institucionais em uma pagina inspirada em blog classico, mas adaptada ao nosso portal e ao nosso fluxo administrativo.',
+            'texto_breve' => 'Notícias, campanhas, avisos e conteudos institucionais em uma pagina inspirada em blog classico, mas adaptada ao nosso portal e ao nosso fluxo administrativo.',
             'link_url' => '',
             'link_titulo' => '',
             'updated_at' => '',

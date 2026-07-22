@@ -60,9 +60,9 @@ class View
             self::renderError([
                 'status_code' => 500,
                 'title' => 'Erro interno do sistema',
-                'headline' => 'Nao foi possivel carregar a tela solicitada.',
-                'message' => 'Um dos arquivos de visualizacao do sistema nao foi encontrado corretamente.',
-                'hint' => 'Tente novamente e, se o problema continuar, avise a equipe tecnica informando a pagina acessada.',
+                'headline' => 'Não foi possível carregar a tela solicitada.',
+                'message' => 'Um dos arquivos de visualização do sistema não foi encontrado corretamente.',
+                'hint' => 'Tente novamente e, se o problema continuar, avise a equipe técnica informando a página acessada.',
             ]);
             return;
         }
@@ -85,7 +85,7 @@ class View
         if (!is_file($viewFile)) {
             http_response_code((int) ($error['status_code'] ?? 500));
             echo '<h1>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</h1>';
-            echo '<p>' . htmlspecialchars((string) ($error['message'] ?? 'Ocorreu um erro ao carregar a pagina.'), ENT_QUOTES, 'UTF-8') . '</p>';
+            echo '<p>' . htmlspecialchars((string) ($error['message'] ?? 'Ocorreu um erro ao carregar a página.'), ENT_QUOTES, 'UTF-8') . '</p>';
             return;
         }
 

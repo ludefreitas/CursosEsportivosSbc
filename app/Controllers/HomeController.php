@@ -11,7 +11,7 @@ use App\Services\HomeInfoService;
 class HomeController extends Controller
 {
     /**
-     * Exibe a home publica do sistema.
+     * Exibe a home pública do sistema.
      */
     public function index(): void
     {

@@ -12,17 +12,17 @@ $currentValidationNote = (string) ($certificate['observacao_validacao'] ?? '');
 ?>
 <div class="popup-head admin-popup-head">
     <div>
-        <h3 id="admin-health-certificate-validation-title">Validar atestado de saude</h3>
-        <p class="muted">Analise o <?php echo e(strtolower((string) ($certificateType['label'] ?? 'atestado'))); ?> de <?php echo e((string) ($person['nome_completo'] ?? '')); ?> sem sair desta pagina.</p>
+        <h3 id="admin-health-certificate-validation-title">Validar atestado de saúde</h3>
+        <p class="muted">Analise o <?php echo e(strtolower((string) ($certificateType['label'] ?? 'atestado'))); ?> de <?php echo e((string) ($person['nome_completo'] ?? '')); ?> sem sair desta página.</p>
     </div>
-    <button type="button" class="popup-close-icon" id="admin-health-certificate-validation-close" aria-label="Fechar validacao do atestado">&times;</button>
+    <button type="button" class="popup-close-icon" id="admin-health-certificate-validation-close" aria-label="Fechar validação do atestado">&times;</button>
 </div>
 
 <div class="popup-body admin-popup-body admin-condition-validation-body">
     <div class="popup-meta-list">
         <p><strong>Nome:</strong> <?php echo e((string) ($person['nome_completo'] ?? '-')); ?></p>
         <p><strong>CPF:</strong> <?php echo e(format_cpf((string) ($person['cpf'] ?? ''))); ?></p>
-        <p><strong>Responsavel:</strong> <?php echo e((string) (($person['nome_responsavel'] ?? '') !== '' ? $person['nome_responsavel'] : '-')); ?></p>
+        <p><strong>Responsável:</strong> <?php echo e((string) (($person['nome_responsavel'] ?? '') !== '' ? $person['nome_responsavel'] : '-')); ?></p>
         <p><strong>Tipo de atestado:</strong> <?php echo e((string) ($certificateType['label'] ?? '-')); ?></p>
         <p><strong>Status atual:</strong> <?php echo e(ucfirst((string) ($certificate['status_validacao'] ?? 'pendente'))); ?></p>
         <p><strong>Data de emissao declarada:</strong> <?php echo e(!empty($certificate['data_emissao']) ? date('d/m/Y', strtotime((string) $certificate['data_emissao'])) : '-'); ?></p>
@@ -60,7 +60,7 @@ $currentValidationNote = (string) ($certificate['observacao_validacao'] ?? '');
             <label>
                 <span>Data de emissao validada</span>
                 <input type="date" name="data_emissao_validada" id="admin-health-certificate-validation-issued-at" value="<?php echo e($currentValidatedIssueDate); ?>">
-                <small class="muted">Essa data sera usada para calcular a validade final do atestado.</small>
+                <small class="muted">Essa data será usada para calcular a validade final do atestado.</small>
             </label>
         </div>
 
@@ -74,18 +74,18 @@ $currentValidationNote = (string) ($certificate['observacao_validacao'] ?? '');
                     </option>
                 <?php } ?>
             </select>
-            <small class="muted">Opcoes disponiveis: 6, 12, 18 ou 24 meses.</small>
+            <small class="muted">Opcoes disponíveis: 6, 12, 18 ou 24 meses.</small>
         </label>
 
         <label>
-            <span>Observacao da validacao</span>
-            <textarea name="observacao_validacao" id="admin-health-certificate-validation-note" rows="4" placeholder="Explique a decisao tomada nesta validacao."><?php echo e($currentValidationNote); ?></textarea>
+            <span>Observação da validação</span>
+            <textarea name="observacao_validacao" id="admin-health-certificate-validation-note" rows="4" placeholder="Explique a decisao tomada nesta validação."><?php echo e($currentValidationNote); ?></textarea>
             <small class="muted">Ao reprovar um atestado, informe o motivo para orientar o novo envio.</small>
         </label>
 
         <div class="popup-builder-actions">
             <button type="button" class="btn btn-secondary" id="admin-health-certificate-validation-cancel">Fechar/Cancelar</button>
-            <button type="submit" class="btn btn-primary">Salvar validacao</button>
+            <button type="submit" class="btn btn-primary">Salvar validação</button>
         </div>
     </form>
 </div>

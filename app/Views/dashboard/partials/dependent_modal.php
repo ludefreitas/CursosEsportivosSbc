@@ -2,7 +2,7 @@
 <div class="popup-head admin-popup-head">
     <div>
         <h3>Dados da pessoa</h3>
-        <p class="muted">Consulte os dados cadastrados e, se precisar, abra a edicao sem sair desta pagina.</p>
+        <p class="muted">Consulte os dados cadastrados e, se precisar, abra a edição sem sair desta página.</p>
     </div>
     <button type="button" class="popup-close-icon" id="dashboard-dependent-modal-close" aria-label="Fechar dados da pessoa">&times;</button>
 </div>
@@ -20,7 +20,7 @@
             <div><strong>E-mail:</strong><span><?php echo e((string) ($dependent['email'] ?? '-')); ?></span></div>
             <div><strong>Cartao SUS:</strong><span><?php echo e((string) (($dependent['numero_cartao_sus'] ?? '') !== '' ? $dependent['numero_cartao_sus'] : '-')); ?></span></div>
             <div><strong>CEP:</strong><span><?php echo e(format_cep((string) ($dependent['cep'] ?? ''))); ?></span></div>
-            <div><strong>Endereco:</strong><span><?php echo e(trim((string) (($dependent['logradouro'] ?? '') . ', ' . ($dependent['numero_endereco'] ?? '')))); ?></span></div>
+            <div><strong>Endereço:</strong><span><?php echo e(trim((string) (($dependent['logradouro'] ?? '') . ', ' . ($dependent['numero_endereco'] ?? '')))); ?></span></div>
             <div><strong>Complemento:</strong><span><?php echo e((string) (($dependent['complemento'] ?? '') !== '' ? $dependent['complemento'] : '-')); ?></span></div>
             <div><strong>Bairro:</strong><span><?php echo e((string) ($dependent['bairro'] ?? '-')); ?></span></div>
             <div><strong>Cidade/UF:</strong><span><?php echo e(trim((string) (($dependent['cidade'] ?? '') . '/' . ($dependent['uf'] ?? '')))); ?></span></div>
@@ -40,7 +40,7 @@
 
     <div class="dashboard-dependent-panel hidden" data-dependent-modal-panel="edit">
         <div class="alert-inline dashboard-dependent-attention">
-            CPF e data de nascimento ficam bloqueados nesta edicao. Se precisar corrigir esses dados, fale com o suporte antes de seguir.
+            CPF e data de nascimento ficam bloqueados nesta edição. Se precisar corrigir esses dados, fale com o suporte antes de seguir.
         </div>
         <form method="POST" action="<?php echo e(url('/dependentes/atualizar')); ?>" class="stack-form dashboard-dependent-edit-form" id="dashboard-dependent-edit-form" data-manual-submit="1">
             <input type="hidden" name="person_id" value="<?php echo e((string) ($dependent['id'] ?? '0')); ?>">
@@ -78,10 +78,9 @@
                             <option value="">Selecione</option>
                             <option value="masculino" <?php echo (string) ($dependent['sexo'] ?? '') === 'masculino' ? 'selected' : ''; ?>>Masculino</option>
                             <option value="feminino" <?php echo (string) ($dependent['sexo'] ?? '') === 'feminino' ? 'selected' : ''; ?>>Feminino</option>
-                            <option value="Sexo nao declarado" <?php echo (string) ($dependent['sexo'] ?? '') === 'Sexo nao declarado' ? 'selected' : ''; ?>>Nao declarar</option>
-                            <option value="Sexo nÃ£o declarado" <?php echo (string) ($dependent['sexo'] ?? '') === 'Sexo nÃ£o declarado' ? 'selected' : ''; ?>>Nao declarar</option>
+                            <option value="Sexo nao declarado" <?php echo (string) ($dependent['sexo'] ?? '') === 'Sexo nao declarado' ? 'selected' : ''; ?>>Não declarar</option>
                         </select>
-                        <small class="sexo-helper muted <?php echo in_array((string) ($dependent['sexo'] ?? ''), ['Sexo nao declarado', 'Sexo nÃ£o declarado'], true) ? '' : 'hidden'; ?>" data-sexo-warning="1">Ao nao declarar o sexo, a pessoa nao podera se inscrever em turmas ou agendar treinos de modalidades especificas para determinado genero</small>
+                        <small class="sexo-helper muted <?php echo (string) ($dependent['sexo'] ?? '') === 'Sexo nao declarado' ? '' : 'hidden'; ?>" data-sexo-warning="1">Ao não declarar o sexo, a pessoa não poderá se inscrever em turmas ou agendar treinos de modalidades específicas para determinado gênero.</small>
                     </label>
                 </div>
             </section>
@@ -170,19 +169,19 @@
                 <h4>Responsaveis</h4>
                 <div class="dashboard-dependent-edit-grid dashboard-dependent-edit-grid-2">
                     <label>
-                        <span>Nome do responsavel 1</span>
+                        <span>Nome do responsável 1</span>
                         <input type="text" name="responsavel1_nome" value="<?php echo e((string) ($dependent['responsavel1_nome'] ?? '')); ?>">
                     </label>
                     <label>
-                        <span>CPF do responsavel 1</span>
+                        <span>CPF do responsável 1</span>
                         <input type="text" name="responsavel1_cpf" value="<?php echo e((string) ($dependent['responsavel1_cpf'] ?? '')); ?>">
                     </label>
                     <label>
-                        <span>Nome do responsavel 2</span>
+                        <span>Nome do responsável 2</span>
                         <input type="text" name="responsavel2_nome" value="<?php echo e((string) ($dependent['responsavel2_nome'] ?? '')); ?>">
                     </label>
                     <label>
-                        <span>CPF do responsavel 2</span>
+                        <span>CPF do responsável 2</span>
                         <input type="text" name="responsavel2_cpf" value="<?php echo e((string) ($dependent['responsavel2_cpf'] ?? '')); ?>">
                     </label>
                 </div>
@@ -194,5 +193,5 @@
 <div class="popup-actions">
     <button type="button" class="btn btn-secondary" id="dashboard-dependent-modal-close-footer">Fechar</button>
     <button type="button" class="btn btn-primary" data-show-dependent-edit="1">Editar</button>
-    <button type="submit" class="btn btn-primary hidden" id="dashboard-dependent-save-footer" form="dashboard-dependent-edit-form">Salvar alteracoes</button>
+    <button type="submit" class="btn btn-primary hidden" id="dashboard-dependent-save-footer" form="dashboard-dependent-edit-form">Salvar alterações</button>
 </div>

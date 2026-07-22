@@ -8,7 +8,7 @@ use App\Core\Database;
 class AuditLogService
 {
     /**
-     * Registra uma trilha de auditoria para alteracoes sensiveis.
+     * Registra uma trilha de auditoria para alterações sensiveis.
      */
     public static function record(string $eventType, string $entityType, ?int $entityId = null, array $payload = []): void
     {

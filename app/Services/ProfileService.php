@@ -11,8 +11,8 @@ class ProfileService
 {
     private CepService $cepService;
     private const HEALTH_CERTIFICATE_TYPES = [
-        'clinico' => 'Atestado clinico',
-        'dermatologico' => 'Atestado dermatologico',
+        'clinico' => 'Atestado clínico',
+        'dermatologico' => 'Atestado dermatológico',
     ];
     private const HEALTH_CERTIFICATE_SERVICE_LOCATIONS = [
         'servico_publico' => 'Servico publico',
@@ -49,14 +49,14 @@ class ProfileService
     }
 
     /**
-     * Completa o cadastro principal do proprio responsavel.
+     * Completa o cadastro principal do próprio responsavel.
      */
     public function completeOwnProfile(array $data): void
     {
         $person = $this->getAuthenticatedPerson();
 
         if (!$person) {
-            throw new RuntimeException('Usuario nao autenticado.');
+            throw new RuntimeException('Usuário não autenticado.');
         }
 
         $bloqueio = $this->getRegistrationBlockForPerson((int) $person['id']);
@@ -116,7 +116,7 @@ class ProfileService
             ');
             $stmt->execute($this->mapearDadosPessoa($data, (int) $person['id'], false));
 
-            $this->vincularResponsavel($pdo, (int) $person['id'], (int) $person['id'], 'Vinculo inicial do proprio usuario como seu dependente.');
+            $this->vincularResponsavel($pdo, (int) $person['id'], (int) $person['id'], 'Vinculo inicial do próprio usuario como seu dependente.');
 
             $pdo->commit();
 
@@ -130,7 +130,7 @@ class ProfileService
     }
 
     /**
-     * Lista dependentes do responsavel logado.
+     * Lista dependentes do responsável logado.
      */
     public function listDependents(): array
     {
@@ -156,14 +156,14 @@ class ProfileService
     }
 
     /**
-     * Cria ou atualiza um dependente do responsavel logado.
+     * Cria ou atualiza um dependente do responsável logado.
      */
     public function saveDependent(array $data): array
     {
         $responsible = $this->getAuthenticatedPerson();
 
         if (!$responsible || (int) $responsible['cadastro_completo'] !== 1) {
-            throw new RuntimeException('Complete seu proprio cadastro antes de cadastrar dependentes.');
+            throw new RuntimeException('Complete seu próprio cadastro antes de cadastrar dependentes.');
         }
 
         $bloqueio = $this->getRegistrationBlockForPerson((int) $responsible['id']);
@@ -214,7 +214,7 @@ class ProfileService
                 $linkedResponsibleId = $stmtCurrentLink->fetchColumn();
 
                 if ($linkedResponsibleId && (int) $linkedResponsibleId !== (int) $responsible['id']) {
-                    throw new RuntimeException('Este CPF ja pertence a um dependente vinculado a outro responsavel e nao pode ser alterado por esta conta.');
+                    throw new RuntimeException('Este CPF ja pertence a um dependente vinculado a outro responsavel e não pode ser alterado por esta conta.');
                 }
 
                 $stmtUpdate = $pdo->prepare('
@@ -288,7 +288,7 @@ class ProfileService
         $responsible = $this->getAuthenticatedPerson();
 
         if (!$responsible) {
-            throw new RuntimeException('Usuario nao autenticado.');
+            throw new RuntimeException('Usuário não autenticado.');
         }
 
         if ($personId <= 0) {
@@ -311,27 +311,27 @@ class ProfileService
         $dependent = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$dependent) {
-            throw new RuntimeException('A pessoa selecionada nao esta vinculada a sua conta.');
+            throw new RuntimeException('A pessoa selecionada não está vinculada a sua conta.');
         }
 
         $dependents = $this->attachHealthCertificatesSummary([$dependent]);
 
         if (!isset($dependents[0])) {
-            throw new RuntimeException('Nao foi possivel carregar os atestados deste dependente.');
+            throw new RuntimeException('Não foi possível carregar os atestados deste dependente.');
         }
 
         return $dependents[0];
     }
 
     /**
-     * Atualiza um dependente sem permitir alteracao de CPF ou data de nascimento.
+     * Atualiza um dependente sem permitir alteração de CPF ou data de nascimento.
      */
     public function updateManagedDependent(int $personId, array $data): array
     {
         $responsible = $this->getAuthenticatedPerson();
 
         if (!$responsible || (int) $responsible['cadastro_completo'] !== 1) {
-            throw new RuntimeException('Complete seu proprio cadastro antes de editar dependentes.');
+            throw new RuntimeException('Complete seu próprio cadastro antes de editar dependentes.');
         }
 
         $bloqueio = $this->getRegistrationBlockForPerson((int) $responsible['id']);
@@ -420,7 +420,7 @@ class ProfileService
         $currentResponsible = $this->getAuthenticatedPerson();
 
         if (!$currentResponsible) {
-            throw new RuntimeException('Usuario nao autenticado.');
+            throw new RuntimeException('Usuário não autenticado.');
         }
 
         $bloqueio = $this->getRegistrationBlockForPerson((int) $currentResponsible['id']);
@@ -434,7 +434,7 @@ class ProfileService
         $reason = trim((string) ($data['reason'] ?? ''));
 
         if ($dependentId <= 0 || !validar_cpf($newResponsibleCpf) || $reason === '') {
-            throw new RuntimeException('Informe dependente, CPF do novo responsavel e motivo da alteracao.');
+            throw new RuntimeException('Informe dependente, CPF do novo responsável e motivo da alteração.');
         }
 
         $pdo = Database::connection();
@@ -456,7 +456,7 @@ class ProfileService
             }
 
             if ((int) $link['dependente_pessoa_id'] === (int) $currentResponsible['id']) {
-                throw new RuntimeException('O proprio usuario responsavel nao pode transferir sua auto responsabilidade por este formulario.');
+                throw new RuntimeException('O próprio usuário responsável não pode transferir sua auto responsabilidade por este formulario.');
             }
 
             $stmtNewResponsible = $pdo->prepare('
@@ -470,11 +470,11 @@ class ProfileService
             $newResponsible = $stmtNewResponsible->fetch(PDO::FETCH_ASSOC);
 
             if (!$newResponsible) {
-                throw new RuntimeException('O novo responsavel precisa estar cadastrado no sistema.');
+                throw new RuntimeException('O novo responsável precisa estar cadastrado no sistema.');
             }
 
             if (is_minor_by_birth_date($newResponsible['data_nascimento'] ?? null) === true) {
-                throw new RuntimeException('O novo responsavel nao pode ser menor de idade.');
+                throw new RuntimeException('O novo responsável não pode ser menor de idade.');
             }
 
             $stmtUpdate = $pdo->prepare('
@@ -644,7 +644,7 @@ class ProfileService
                 $relativePath = '/uploads/atestados/' . (int) $person['id'] . '/' . $slug . '/' . $storedFileName;
 
                 if (!move_uploaded_file((string) $validated['tmp_name'], $absolutePath)) {
-                    throw new RuntimeException('Nao foi possivel salvar o arquivo de ' . strtolower($label) . '.');
+                    throw new RuntimeException('Não foi possível salvar o arquivo de ' . strtolower($label) . '.');
                 }
 
                 $movedFiles[] = $absolutePath;
@@ -823,7 +823,7 @@ class ProfileService
     }
 
     /**
-     * Retorna eventual bloqueio do usuario autenticado.
+     * Retorna eventual bloqueio do usuário autenticado.
      */
     public function getRegistrationBlockForAuthenticatedPerson(): ?array
     {
@@ -850,7 +850,7 @@ class ProfileService
         if ((int) ($person['cadastro_completo'] ?? 0) !== 1) {
             return [
                 'tipo' => 'proprio_cadastro_incompleto',
-                'mensagem' => 'O cadastro de ' . $person['nome_completo'] . ' ainda nao esta completo. Complete-o antes de fazer agendamentos ou inscricoes.',
+                'mensagem' => 'O cadastro de ' . $person['nome_completo'] . ' ainda não esta completo. Complete-o antes de fazer agendamentos ou inscrições.',
                 'person_id' => (int) $person['id'],
                 'nome_pessoa' => (string) $person['nome_completo'],
             ];
@@ -879,8 +879,8 @@ class ProfileService
             return [
                 'tipo' => $isSelf ? 'proprio_cadastro_incompleto' : 'dependente_cadastro_incompleto',
                 'mensagem' => $isSelf
-                    ? 'O cadastro de ' . $linkedPerson['nome_completo'] . ' ainda nao esta completo. Complete-o antes de fazer agendamentos ou inscricoes.'
-                    : 'O cadastro de ' . $linkedPerson['nome_completo'] . ' ainda nao esta completo. Complete os dados dessa pessoa no seu painel antes de fazer agendamentos ou inscricoes.',
+                    ? 'O cadastro de ' . $linkedPerson['nome_completo'] . ' ainda não esta completo. Complete-o antes de fazer agendamentos ou inscrições.'
+                    : 'O cadastro de ' . $linkedPerson['nome_completo'] . ' ainda não esta completo. Complete os dados dessa pessoa no seu painel antes de fazer agendamentos ou inscrições.',
                 'person_id' => (int) $linkedPerson['id'],
                 'nome_pessoa' => (string) $linkedPerson['nome_completo'],
             ];
@@ -922,7 +922,7 @@ class ProfileService
 
         return [
             'tipo' => 'dependente_de_outro_responsavel',
-            'mensagem' => 'Seu CPF esta cadastrado como dependente de ' . $row['nome_responsavel'] . '. Antes de continuar, esta pessoa precisa transferir a responsabilidade para o seu CPF pelo formulario proprio do sistema.',
+            'mensagem' => 'Seu CPF esta cadastrado como dependente de ' . $row['nome_responsavel'] . '. Antes de continuar, esta pessoa precisa transferir a responsabilidade para o seu CPF pelo formulario próprio do sistema.',
             'nome_responsavel' => $row['nome_responsavel'],
             'cpf_responsavel' => $row['cpf_responsavel'],
         ];
@@ -1039,7 +1039,7 @@ class ProfileService
         }
 
         if ($error !== UPLOAD_ERR_OK) {
-            throw new RuntimeException('Um dos arquivos enviados apresentou erro e nao pode ser processado.');
+            throw new RuntimeException('Um dos arquivos enviados apresentou erro e não pode ser processado.');
         }
 
         return $file;
@@ -1053,7 +1053,7 @@ class ProfileService
         $tmpName = (string) ($file['tmp_name'] ?? '');
 
         if ($tmpName === '' || !is_uploaded_file($tmpName)) {
-            throw new RuntimeException('Nao foi possivel validar o arquivo de ' . strtolower($label) . '.');
+            throw new RuntimeException('Não foi possível validar o arquivo de ' . strtolower($label) . '.');
         }
 
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
@@ -1086,7 +1086,7 @@ class ProfileService
         $directory = ROOT_PATH . '/public/uploads/atestados/' . $personId . '/' . $type;
 
         if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
-            throw new RuntimeException('Nao foi possivel preparar a pasta de armazenamento dos atestados.');
+            throw new RuntimeException('Não foi possível preparar a pasta de armazenamento dos atestados.');
         }
 
         return $directory;
@@ -1250,7 +1250,7 @@ class ProfileService
                 'key' => 'nao-enviado',
                 'class' => 'is-nao-enviado',
                 'icon' => '--',
-                'label' => 'Nao enviado',
+                'label' => 'Não enviado',
                 'type_label' => $label ?? 'Atestado',
             ];
         }

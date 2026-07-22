@@ -10,7 +10,7 @@ $serviceLocationOptions = $service_location_options ?? [];
 <div class="popup-body admin-popup-body dashboard-certificates-modal-body">
     <div class="dashboard-certificate-sections">
         <div class="alert-inline dashboard-certificate-warning">
-            Envie aqui os atestados clinico e dermatologico de <?php echo e((string) ($person['nome_completo'] ?? '')); ?>. Ao enviar um novo PDF do mesmo tipo, o arquivo anterior sera substituido e voltara para status pendente.
+            Envie aqui os atestados clínico e dermatológico de <?php echo e((string) ($person['nome_completo'] ?? '')); ?>. Ao enviar um novo PDF do mesmo tipo, o arquivo anterior será substituído e voltara para status pendente.
         </div>
         <form
             method="POST"
@@ -77,13 +77,13 @@ $serviceLocationOptions = $service_location_options ?? [];
 
                     <label>
                         <span>Observacoes</span>
-                        <textarea name="<?php echo e((string) ($certificate['slug'] ?? '')); ?>_observacoes" rows="3" placeholder="Informacoes complementares do atestado"><?php echo e((string) ($record['observacoes'] ?? '')); ?></textarea>
+                        <textarea name="<?php echo e((string) ($certificate['slug'] ?? '')); ?>_observacoes" rows="3" placeholder="Informações complementares do atestado"><?php echo e((string) ($record['observacoes'] ?? '')); ?></textarea>
                     </label>
 
                     <label class="dashboard-certificate-upload-highlight">
                         <span>Enviar novo PDF de <?php echo e(strtolower((string) ($certificate['label'] ?? 'atestado'))); ?></span>
                         <input type="file" name="<?php echo e((string) ($certificate['slug'] ?? '')); ?>_arquivo" accept="application/pdf,.pdf">
-                        <small>Somente PDF. Se enviar um novo arquivo, o anterior desse tipo sera substituido.</small>
+                        <small>Somente PDF. Se enviar um novo arquivo, o anterior desse tipo será substituído.</small>
                     </label>
                 </section>
             <?php } ?>

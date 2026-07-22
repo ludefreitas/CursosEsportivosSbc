@@ -1,10 +1,10 @@
 <?php $whatsappHomeUrl = 'https://wa.me/551126307421'; ?>
 
 <div class="home-banner-visual">
-    <img
+    <img style="width: 40%"
         src="<?php echo e(asset_url('img/cursosesportivossbc.jpg')); ?>"
         alt="Cursos Esportivos SBC"
-        class="img-fluid img-eventos animate-on-scroll animate__animated animate__zoomIn"
+        class="img-fluid img-eventos animate-on-scroll animate__animated animate__zoomIn" 
     >
 </div>
 
@@ -23,8 +23,8 @@
         <span class="eyebrow">Primeira fase funcional !!!</span>
         <h1>Um sistema esportivo pensado para crescer sem excesso de redirecionamentos e reloads.</h1>
         <p>
-            Esta entrega ja organiza cadastro por CPF, autenticacao segura, dependentes, area administrativa inicial,
-            blog institucional e agenda visual com FullCalendar para avaliacoes, treinos e aulas.
+            Esta entrega já organiza cadastro por CPF, autenticação segura, dependentes, área administrativa inicial,
+            blog institucional e agenda visual com FullCalendar para avaliações, treinos e aulas.
         </p>
         <div class="hero-actions">
             <?php if (\App\Core\Auth::check()) { ?>
@@ -32,11 +32,11 @@
             <?php } else { ?>
                 <a href="<?php echo e(url('/cadastro')); ?>" class="btn btn-primary">Criar conta</a>
             <?php } ?>
-            <a href="<?php echo e(url('/agenda')); ?>" class="btn btn-secondary">Ver agenda publica</a>
+            <a href="<?php echo e(url('/agenda')); ?>" class="btn btn-secondary">Ver agenda pública</a>
         </div>
     </div>
     <div class="hero-card">
-        <h2><?php echo e($homeInfoBox['titulo'] ?? 'O que voce precisa saber:'); ?></h2>
+        <h2><?php echo e($homeInfoBox['titulo'] ?? 'O que você precisa saber:'); ?></h2>
         <div class="home-info-list">
             <?php foreach (($homeInfoBox['paragrafos'] ?? []) as $paragraph) { ?>
                 <p class="home-info-item">
@@ -60,18 +60,18 @@
     </article>
     <article class="info-card">
         <h3>Perfis de acesso</h3>
-        <p>Administrador Master, Administrador, Supervisor, Coordenador, Professor, Estagiario e usuario comum podem coexistir na mesma conta.</p>
+        <p>Administrador Master, Administrador, Supervisor, Coordenador, Professor, Estagiário e usuário comum podem coexistir na mesma conta.</p>
     </article>
     <article class="info-card">
-        <h3>Fluxo centrado no usuario</h3>
-        <p>A agenda publica continua visivel sem login. O acesso autenticado entra apenas quando a pessoa decide agendar ou administrar dados.</p>
+        <h3>Fluxo centrado no usuário</h3>
+        <p>A agenda pública continua visivel sem login. O acesso autenticado entra apenas quando a pessoa decide agendar ou administrar dados.</p>
     </article>
 </section>
 
 <section class="content-card split-card">
     <div>
         <h2>Locais sugeridos no sistema</h2>
-        <p class="muted">A etapa seguinte pode usar geolocalizacao do navegador para ordenar esta lista por proximidade do aluno.</p>
+        <p class="muted">A etapa seguinte pode usar geolocalização do navegador para ordenar esta lista por proximidade do aluno.</p>
         <p class="location-status muted">Se o navegador permitir, o sistema pode usar sua localizacao apenas para sugerir locais mais proximos.</p>
     </div>
     <div class="chips-wrap">
@@ -85,8 +85,8 @@
 <section class="content-card">
     <div class="section-head">
         <div>
-            <h2>Horarios especiais em destaque</h2>
-            <p class="muted">Inscricoes e avaliacoes especiais em evidencia na pagina inicial.</p>
+            <h2>Horários especiais em destaque</h2>
+            <p class="muted">Inscrições e avaliações especiais em evidência na página inicial.</p>
         </div>
         <a href="<?php echo e(url('/agenda')); ?>" class="btn btn-secondary">Abrir agenda</a>
     </div>
@@ -100,7 +100,7 @@
                     <span class="eyebrow eyebrow-soft">Horario especial</span>
                     <h3><?php echo e((string) $event['titulo']); ?></h3>
                     <p><?php echo e((string) ($event['descricao'] ?? '')); ?></p>
-                    <small><?php echo e(date('d/m/Y H:i', strtotime((string) $event['data_inicio']))); ?> ate <?php echo e(date('d/m/Y H:i', strtotime((string) $event['data_fim']))); ?></small>
+                    <small><?php echo e(date('d/m/Y H:i', strtotime((string) $event['data_inicio']))); ?> até <?php echo e(date('d/m/Y H:i', strtotime((string) $event['data_fim']))); ?></small>
                     <div class="hero-actions top-gap">
                         <a href="<?php echo e((string) (!empty($event['url_destino']) ? $event['url_destino'] : url('/agenda'))); ?>" class="btn btn-primary"><?php echo e((string) (!empty($event['rotulo_acao']) ? $event['rotulo_acao'] : 'Ver detalhes')); ?></a>
                     </div>
@@ -115,7 +115,7 @@
     <div class="section-head">
         <div>
             <h2>Blog institucional</h2>
-            <p class="muted">Noticias, campanhas, destaques esportivos e informacoes institucionais organizadas em uma pagina propria do blog.</p>
+            <p class="muted">Notícias, campanhas, destaques esportivos e informações institucionais organizadas em uma página própria do blog.</p>
         </div>
         <a href="<?php echo e(url('/blog')); ?>" class="btn btn-secondary">Abrir blog</a>
     </div>

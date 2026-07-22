@@ -14,7 +14,7 @@ class BlogService
     private const BLOG_GALLERY_UPLOAD_DIR = '/assets/img/blog/galeria';
 
     /**
-     * Lista postagens publicadas para a area publica.
+     * Lista postagens publicadas para a area pública.
      */
     public function listPublishedPosts(array $filters = []): array
     {
@@ -131,7 +131,7 @@ class BlogService
         $post = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$post) {
-            throw new RuntimeException('Postagem nao encontrada.');
+            throw new RuntimeException('Postagem não encontrada.');
         }
 
         $post['tags_array'] = $this->parseTags($post['tags'] ?? '');
@@ -143,7 +143,7 @@ class BlogService
     }
 
     /**
-     * Retorna uma postagem publica pelo slug.
+     * Retorna uma postagem pública pelo slug.
      */
     public function findPublishedPostBySlug(string $slug): ?array
     {
@@ -408,7 +408,7 @@ class BlogService
     }
 
     /**
-     * Lista categorias publicas com contagem.
+     * Lista categorias públicas com contagem.
      */
     public function listPublicCategories(): array
     {
@@ -543,7 +543,7 @@ class BlogService
     }
 
     /**
-     * Hidrata uma postagem publica com dados de visualizacao.
+     * Hidrata uma postagem pública com dados de visualizacao.
      */
     private function hydratePublicPost(array $post): array
     {
@@ -707,7 +707,7 @@ class BlogService
         }
 
         if ($error !== UPLOAD_ERR_OK) {
-            throw new RuntimeException('Nao foi possivel concluir o upload da imagem selecionada.');
+            throw new RuntimeException('Não foi possível concluir o upload da imagem selecionada.');
         }
 
         return $file;
@@ -721,7 +721,7 @@ class BlogService
         $tmpPath = (string) ($file['tmp_name'] ?? '');
 
         if ($tmpPath === '' || !is_file($tmpPath)) {
-            throw new RuntimeException('A imagem enviada nao esta disponivel para processamento.');
+            throw new RuntimeException('A imagem enviada não está disponível para processamento.');
         }
 
         $imageInfo = @getimagesize($tmpPath);
@@ -747,7 +747,7 @@ class BlogService
         $absoluteDirectory = ROOT_PATH . $relativeDirectory;
 
         if (!is_dir($absoluteDirectory) && !mkdir($absoluteDirectory, 0775, true) && !is_dir($absoluteDirectory)) {
-            throw new RuntimeException('Nao foi possivel preparar a pasta de imagens do blog.');
+            throw new RuntimeException('Não foi possível preparar a pasta de imagens do blog.');
         }
 
         $safeBaseName = slugify($baseName !== '' ? $baseName : pathinfo((string) ($file['name'] ?? 'imagem'), PATHINFO_FILENAME));
@@ -755,7 +755,7 @@ class BlogService
         $absolutePath = $absoluteDirectory . '/' . $fileName;
 
         if (!move_uploaded_file($tmpPath, $absolutePath)) {
-            throw new RuntimeException('Nao foi possivel salvar a imagem enviada.');
+            throw new RuntimeException('Não foi possível salvar a imagem enviada.');
         }
 
         return $publicDirectory . '/' . $fileName;
@@ -832,7 +832,7 @@ class BlogService
     }
 
     /**
-     * Normaliza a data de publicacao vinda do formulario.
+     * Normaliza a data de públicação vinda do formulario.
      */
     private function normalizePublicationDate(string $value): ?string
     {
@@ -851,7 +851,7 @@ class BlogService
         $timestamp = strtotime($normalized);
 
         if ($timestamp === false) {
-            throw new RuntimeException('A data de publicacao informada e invalida.');
+            throw new RuntimeException('A data de públicação informada e invalida.');
         }
 
         return date('Y-m-d H:i:s', $timestamp);
