@@ -20,7 +20,7 @@
             <label>
                 <span>Quantidade de nomes para listar</span>
                 <input type="number" name="people_limit" min="1" max="<?php echo e((string) $peopleLimitMax); ?>" value="<?php echo e((string) $peopleLimit); ?>" required>
-                <small class="muted">Limite maximo aplicado nesta tela: <?php echo e((string) $peopleLimitMax); ?> nomes por consulta.</small>
+                <small class="muted">Limite máximo aplicado nesta tela: <?php echo e((string) $peopleLimitMax); ?> nomes por consulta.</small>
             </label>
             <div class="admin-filter-actions">
                 <button type="submit" class="btn btn-secondary">Atualizar lista</button>
@@ -322,7 +322,7 @@
                             <span>E pessoa com laudo medico de doenca (PLM)</span>
                         </label>
                     </div>
-                    <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condicao pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>
+                    <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condição pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>
 
                     <div class="grid-five">
                         <label>
@@ -397,7 +397,7 @@
 
                     <label>
                         <span>Motivo da alteração</span>
-                        <textarea name="reason" id="admin-person-reason" rows="3" placeholder="Explique por que este cadastro esta sendo alterado." required></textarea>
+                        <textarea name="reason" id="admin-person-reason" rows="3" placeholder="Explique por que este cadastro está sendo alterado." required></textarea>
                     </label>
 
                     <div class="popup-builder-actions">
@@ -430,7 +430,7 @@
             <label>
                 <span>Quantidade de nomes para listar</span>
                 <input type="number" name="people_limit" min="1" max="<?php echo e((string) $peopleLimitMax); ?>" value="<?php echo e((string) $peopleLimit); ?>" required>
-                <small class="muted">Limite maximo aplicado nesta tela: <?php echo e((string) $peopleLimitMax); ?> nomes por consulta.</small>
+                <small class="muted">Limite máximo aplicado nesta tela: <?php echo e((string) $peopleLimitMax); ?> nomes por consulta.</small>
             </label>
             <div class="admin-filter-actions">
                 <button type="submit" class="btn btn-secondary">Atualizar lista</button>

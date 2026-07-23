@@ -6,7 +6,7 @@ $search = trim((string) ($search ?? ''));
 <section class="blog-shell">
     <div class="blog-hero">
         <div class="blog-hero-copy">
-            <span class="eyebrow"><?php echo e((string) (($officialCommunication['nome_quadro'] ?? 'Comunicacao oficial'))); ?></span>
+            <span class="eyebrow"><?php echo e((string) (($officialCommunication['nome_quadro'] ?? 'Comunicação oficial'))); ?></span>
             <h1><?php echo e((string) (($officialCommunication['titulo'] ?? 'Blog dos Cursos Esportivos SBC'))); ?></h1>
             <p><?php echo e((string) (($officialCommunication['texto_breve'] ?? ''))); ?></p>
             <?php if (!empty($officialCommunication['link_url']) && !empty($officialCommunication['link_titulo'])) { ?>
@@ -51,7 +51,7 @@ $search = trim((string) ($search ?? ''));
     <?php } ?>
 
     <nav class="blog-category-tabs" aria-label="Categorias do blog">
-        <a href="<?php echo e(url('/blog')); ?>" class="blog-category-tab<?php echo $selectedCategory === '' ? ' is-active' : ''; ?>">Pagina inicial</a>
+        <a href="<?php echo e(url('/blog')); ?>" class="blog-category-tab<?php echo $selectedCategory === '' ? ' is-active' : ''; ?>">Página inicial</a>
         <?php foreach (($categories ?? []) as $category) { ?>
             <?php $categoryName = (string) ($category['categoria'] ?? ''); ?>
             <a
@@ -124,7 +124,7 @@ $search = trim((string) ($search ?? ''));
             <section class="blog-section-card">
                 <h3>Navegacao rapida</h3>
                 <ul class="blog-sidebar-list">
-                    <li><a href="<?php echo e(url('/')); ?>">Pagina inicial do portal</a></li>
+                    <li><a href="<?php echo e(url('/')); ?>">Página inicial do portal</a></li>
                     <li><a href="<?php echo e(url('/agenda')); ?>">Agenda pública</a></li>
                     <li><a href="<?php echo e(url('/blog')); ?>">Todas as postagens</a></li>
                 </ul>

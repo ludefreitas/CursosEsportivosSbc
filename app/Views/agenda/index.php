@@ -14,7 +14,7 @@
                 </div>
             <?php } elseif (!empty($needsProfileCompletion)) { ?>
                 <div class="alert-inline">
-                    <?php echo e($registrationBlock['mensagem'] ?? 'Seu cadastro ainda não esta completo. Complete-o para liberar os nomes disponíveis para agendamento nesta agenda.'); ?>
+                    <?php echo e($registrationBlock['mensagem'] ?? 'Seu cadastro ainda não está completo. Complete-o para liberar os nomes disponíveis para agendamento nesta agenda.'); ?>
                 </div>
             <?php } ?>
         </div>
@@ -146,7 +146,7 @@
                         </label>
                     </label>
                 </div>
-                <small class="muted">Se a idade da pessoa estiver fora da faixa etaria do horario, a inscrição será recusada automaticamente.</small>
+                <small class="muted">Se a idade da pessoa estiver fora da faixa etária do horário, a inscrição será recusada automaticamente.</small>
                 <button type="submit" class="btn btn-primary">Confirmar inscrição</button>
             </form>
 

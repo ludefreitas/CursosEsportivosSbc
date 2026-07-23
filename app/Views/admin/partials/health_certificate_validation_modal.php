@@ -30,7 +30,7 @@ $currentValidationNote = (string) ($certificate['observacao_validacao'] ?? '');
         <p><strong>Local do atendimento:</strong> <?php echo e((string) $serviceLocationLabel); ?></p>
         <p><strong>Arquivo enviado:</strong> <?php echo e((string) (($certificate['nome_arquivo'] ?? '') !== '' ? $certificate['nome_arquivo'] : '-')); ?></p>
         <p><strong>Pendencia atual:</strong> <?php echo e((string) ($pendingReason !== '' ? $pendingReason : 'Nenhuma')); ?></p>
-        <p><strong>Observacoes da pessoa:</strong> <?php echo e((string) (($certificate['observacoes'] ?? '') !== '' ? $certificate['observacoes'] : '-')); ?></p>
+        <p><strong>Observações da pessoa:</strong> <?php echo e((string) (($certificate['observacoes'] ?? '') !== '' ? $certificate['observacoes'] : '-')); ?></p>
     </div>
 
     <div class="admin-condition-validation-documents">

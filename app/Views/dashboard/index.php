@@ -2,7 +2,7 @@
     <div class="content-card">
         <span class="eyebrow">Painel autenticado</span>
         <h1><?php echo e($user['nome_completo'] ?? ''); ?></h1>
-        <p class="muted">CPF <?php echo e(format_cpf($user['cpf'] ?? '')); ?>. Seu cadastro completo libera agenda, dependentes e demais modulos autenticados.</p>
+        <p class="muted">CPF <?php echo e(format_cpf($user['cpf'] ?? '')); ?>. Seu cadastro completo libera agenda, dependentes e demais módulos autenticados.</p>
         <div class="chips-wrap">
             <?php if (!empty($user['roles'])) { ?>
                 <?php foreach ($user['roles'] as $role) { ?>
@@ -44,7 +44,7 @@
                         <th>Dados</th>
                         <th>Atestado clínico</th>
                         <th>Atestado dermatológico</th>
-                        <th>Documentacao por condicao</th>
+                        <th>Documentação por condição</th>
                     </tr>
                 </thead>
                 <tbody>

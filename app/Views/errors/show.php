@@ -10,7 +10,7 @@ $hint = trim((string) ($error['hint'] ?? ''));
 <section class="error-shell">
     <article class="error-card">
         <div class="error-code-badge">Erro <?php echo e((string) $statusCode); ?></div>
-        <span class="eyebrow">Pagina de suporte</span>
+        <span class="eyebrow">Página de suporte</span>
         <h1><?php echo e($headline); ?></h1>
         <p class="error-title"><?php echo e($titleText); ?></p>
         <p class="error-message"><?php echo e($message); ?></p>

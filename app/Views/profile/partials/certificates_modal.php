@@ -16,7 +16,7 @@ $conditions = $conditions ?? [];
             <section class="content-card compact dashboard-certificate-card" data-condition-section="<?php echo e((string) ($condition['slug'] ?? '')); ?>">
                 <div class="section-head dashboard-certificate-head">
                     <div>
-                        <h4><?php echo e((string) ($condition['label'] ?? 'Condicao')); ?></h4>
+                        <h4><?php echo e((string) ($condition['label'] ?? 'Condição')); ?></h4>
                         <p class="muted"><?php echo e((string) ($condition['status_label'] ?? 'Sem status')); ?></p>
                     </div>
                     <span class="chip"><?php echo !empty($condition['declared']) ? 'Declarada' : 'Não declarada'; ?></span>
@@ -31,10 +31,10 @@ $conditions = $conditions ?? [];
                         <p><strong>Resumo atual:</strong> <?php echo e((string) ($certificate['descricao_resumida'] ?? 'Nenhum resumo enviado.')); ?></p>
                         <?php if (in_array((string) ($condition['slug'] ?? ''), ['pcd', 'plm'], true)) { ?>
                             <p><strong>CID declarado:</strong> <?php echo e((string) ($certificate['codigo_cid_declarado'] ?? '-')); ?></p>
-                            <p><strong>Doenca declarada:</strong> <?php echo e((string) ($certificate['doenca_declarada'] ?? '-')); ?></p>
+                            <p><strong>Doença declarada:</strong> <?php echo e((string) ($certificate['doenca_declarada'] ?? '-')); ?></p>
                         <?php } ?>
                         <?php if ((string) ($condition['slug'] ?? '') === 'pvs') { ?>
-                            <p><strong>Numero do CadUnico (NIS):</strong> <?php echo e((string) ($certificate['numero_nis'] ?? '-')); ?></p>
+                            <p><strong>Número do CadÚnico (NIS):</strong> <?php echo e((string) ($certificate['numero_nis'] ?? '-')); ?></p>
                         <?php } ?>
                         <?php if ((string) ($condition['slug'] ?? '') === 'pcd') { ?>
                             <?php
@@ -90,7 +90,7 @@ $conditions = $conditions ?? [];
                             <span>
                                 Resumo da documentação
                                 <?php if (!empty($certificate['descricao_resumida'])) { ?>
-                                    <small class="muted">(o resumo atual foi carregado para esta atualizacao)</small>
+                                    <small class="muted">(o resumo atual foi carregado para esta atualização)</small>
                                 <?php } ?>
                             </span>
                             <input type="text" name="descricao_resumida" value="<?php echo e((string) ($certificate['descricao_resumida'] ?? '')); ?>" required>
@@ -104,14 +104,14 @@ $conditions = $conditions ?? [];
                             </label>
 
                             <label>
-                                <span>Doenca declarada</span>
+                                <span>Doença declarada</span>
                                 <input type="text" name="doenca_declarada" value="<?php echo e((string) ($certificate['doenca_declarada'] ?? '')); ?>" required>
                             </label>
                         <?php } ?>
 
                         <?php if ((string) ($condition['slug'] ?? '') === 'pvs') { ?>
                             <label>
-                                <span>Numero do CadUnico (NIS)</span>
+                                <span>Número do CadÚnico (NIS)</span>
                                 <input
                                     type="text"
                                     name="numero_nis"
@@ -159,14 +159,14 @@ $conditions = $conditions ?? [];
                             <span>
                                 Observacoes
                                 <?php if (!empty($certificate['observacoes'])) { ?>
-                                    <small class="muted">(as observacoes atuais foram carregadas para esta atualizacao)</small>
+                                    <small class="muted">(as observações atuais foram carregadas para esta atualização)</small>
                                 <?php } ?>
                             </span>
-                            <textarea name="observacoes" rows="3" placeholder="Informe detalhes uteis para a analise."><?php echo e((string) ($certificate['observacoes'] ?? '')); ?></textarea>
+                            <textarea name="observacoes" rows="3" placeholder="Informe detalhes úteis para a análise."><?php echo e((string) ($certificate['observacoes'] ?? '')); ?></textarea>
                         </label>
 
                         <label class="dashboard-certificate-upload-highlight">
-                            <span>Arquivos PDF da condicao</span>
+                            <span>Arquivos PDF da condição</span>
                             <input type="file" name="documents[]" accept="application/pdf,.pdf" multiple required>
                             <small>Você pode selecionar mais de um arquivo em PDF neste envio.</small>
                             <small>Todos os arquivos atuais desta condição serão substituidos pelos PDFs selecionados agora.</small>

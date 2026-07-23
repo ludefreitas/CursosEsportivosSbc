@@ -19,7 +19,7 @@ class CepService
             return [
                 'aceito' => false,
                 'tipo' => 'invalido',
-                'mensagem' => 'Informe um CEP valido com 8 digitos.',
+                'mensagem' => 'Informe um CEP válido com 8 dígitos.',
             ];
         }
 
@@ -35,14 +35,14 @@ class CepService
             return [
                 'aceito' => true,
                 'tipo' => 'intervalo',
-                'mensagem' => 'CEP dentro de uma faixa aceita para moradores de Sao Bernardo do Campo.',
+                'mensagem' => 'CEP dentro de uma faixa aceita para moradores de São Bernardo do Campo.',
             ];
         }
 
         return [
             'aceito' => false,
             'tipo' => 'fora_intervalo',
-            'mensagem' => 'As inscrições para os cursos esportivos e os agendamentos para treinos sao exclusivos para moradores de Sao Bernardo do Campo. Sera exigido comprovante de endereco na matricula e no dia do agendamento.',
+            'mensagem' => 'As inscrições para os cursos esportivos e os agendamentos para treinos são exclusivos para moradores de São Bernardo do Campo. Será exigido comprovante de endereço na matrícula e no dia do agendamento.',
         ];
     }
 

@@ -26,9 +26,9 @@
             <div><strong>Cidade/UF:</strong><span><?php echo e(trim((string) (($dependent['cidade'] ?? '') . '/' . ($dependent['uf'] ?? '')))); ?></span></div>
             <div><strong>Contato de emergencia:</strong><span><?php echo e((string) ($dependent['contato_emergencia_nome'] ?? '-')); ?></span></div>
             <div><strong>Telefone de emergencia:</strong><span><?php echo e((string) ($dependent['contato_emergencia_telefone'] ?? '-')); ?></span></div>
-            <div><strong>Responsavel 1:</strong><span><?php echo e((string) ($dependent['responsavel1_nome'] ?? '-')); ?><?php echo !empty($dependent['responsavel1_cpf']) ? ' (' . e(format_cpf((string) $dependent['responsavel1_cpf'])) . ')' : ''; ?></span></div>
-            <div><strong>Responsavel 2:</strong><span><?php echo e((string) (($dependent['responsavel2_nome'] ?? '') !== '' ? $dependent['responsavel2_nome'] : '-')); ?><?php echo !empty($dependent['responsavel2_cpf']) ? ' (' . e(format_cpf((string) $dependent['responsavel2_cpf'])) . ')' : ''; ?></span></div>
-            <div><strong>Condicao declarada:</strong><span><?php
+            <div><strong>Responsável 1:</strong><span><?php echo e((string) ($dependent['responsavel1_nome'] ?? '-')); ?><?php echo !empty($dependent['responsavel1_cpf']) ? ' (' . e(format_cpf((string) $dependent['responsavel1_cpf'])) . ')' : ''; ?></span></div>
+            <div><strong>Responsável 2:</strong><span><?php echo e((string) (($dependent['responsavel2_nome'] ?? '') !== '' ? $dependent['responsavel2_nome'] : '-')); ?><?php echo !empty($dependent['responsavel2_cpf']) ? ' (' . e(format_cpf((string) $dependent['responsavel2_cpf'])) . ')' : ''; ?></span></div>
+            <div><strong>Condição declarada:</strong><span><?php
                 $conditions = [];
                 if ((int) ($dependent['eh_pcd'] ?? 0) === 1) { $conditions[] = 'PCD'; }
                 if ((int) ($dependent['eh_pvs'] ?? 0) === 1) { $conditions[] = 'PVS'; }
@@ -97,7 +97,7 @@
                         <input type="email" name="email" value="<?php echo e((string) ($dependent['email'] ?? '')); ?>" required>
                     </label>
                     <label>
-                        <span>Numero do cartao SUS</span>
+                        <span>Número do cartão SUS</span>
                         <input type="text" name="numero_cartao_sus" data-sus-card="1" maxlength="19" value="<?php echo e((string) ($dependent['numero_cartao_sus'] ?? '')); ?>">
                         <small class="muted">Campo opcional. Se informado, deve conter exatamente 16 numeros.</small>
                     </label>
@@ -113,7 +113,7 @@
             </section>
 
             <section class="dashboard-dependent-edit-section">
-                <h4>Condicao</h4>
+                <h4>Condição</h4>
                 <div class="dashboard-dependent-edit-grid dashboard-dependent-edit-grid-3">
                     <label class="checkbox-chip">
                         <input type="checkbox" name="eh_pcd" value="1" data-condition-exclusive="1" <?php echo (int) ($dependent['eh_pcd'] ?? 0) === 1 ? 'checked' : ''; ?>>
@@ -128,7 +128,7 @@
                         <span>E pessoa com laudo medico de doenca (PLM)</span>
                     </label>
                 </div>
-                <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condicao pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>
+                <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condição pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>
             </section>
 
             <section class="dashboard-dependent-edit-section">
@@ -143,7 +143,7 @@
                         <input type="text" name="street" value="<?php echo e((string) ($dependent['logradouro'] ?? '')); ?>" required>
                     </label>
                     <label>
-                        <span>Numero</span>
+                        <span>Número</span>
                         <input type="text" name="address_number" value="<?php echo e((string) ($dependent['numero_endereco'] ?? '')); ?>" required>
                     </label>
                     <label>

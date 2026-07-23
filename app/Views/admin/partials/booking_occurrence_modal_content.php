@@ -5,7 +5,7 @@ $currentAdminName = (string) ($currentAdminName ?? '');
 ?>
 <div class="admin-popup-head">
     <div>
-        <h2 id="admin-booking-occurrence-title"><?php echo e((string) ($occurrence['title'] ?? 'Chamada da ocorrencia')); ?></h2>
+        <h2 id="admin-booking-occurrence-title"><?php echo e((string) ($occurrence['title'] ?? 'Chamada da ocorrência')); ?></h2>
         <p class="muted">
             <?php echo e((string) ($occurrence['subtitle'] ?? '')); ?>
             <?php if (!empty($occurrence['data_label']) || !empty($occurrence['hora_label'])) { ?>
@@ -13,7 +13,7 @@ $currentAdminName = (string) ($currentAdminName ?? '');
             <?php } ?>
         </p>
     </div>
-    <button type="button" class="popup-close-icon" id="admin-booking-occurrence-close" aria-label="Fechar chamada da ocorrencia">&times;</button>
+    <button type="button" class="popup-close-icon" id="admin-booking-occurrence-close" aria-label="Fechar chamada da ocorrência">&times;</button>
 </div>
 
 <?php if ($bookings === []) { ?>

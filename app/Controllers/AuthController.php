@@ -228,12 +228,12 @@ class AuthController extends Controller
     }
 
     /**
-     * Encerra a sessao autenticada.
+     * Encerra a sessão autenticada.
      */
     public function logout(): void
     {
         Auth::logout();
-        flash('success', 'Sessao encerrada.');
+        flash('success', 'Sessão encerrada.');
         redirect('/');
     }
 }

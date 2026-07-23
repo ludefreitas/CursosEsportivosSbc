@@ -116,7 +116,7 @@ class BlogService
         $this->ensureSchema();
 
         if ($postId <= 0) {
-            throw new RuntimeException('Postagem invalida.');
+            throw new RuntimeException('Postagem inválida.');
         }
 
         $pdo = Database::connection();
@@ -212,23 +212,23 @@ class BlogService
         $shareX = $allowShare ? $this->checkboxValue($data, 'compartilhar_x') : 0;
 
         if ($title === '' || $summary === '' || $content === '') {
-            throw new RuntimeException('Preencha titulo, resumo e conteudo da postagem.');
+            throw new RuntimeException('Preencha título, resumo e conteúdo da postagem.');
         }
 
         if (!in_array($status, ['rascunho', 'publicado'], true)) {
-            throw new RuntimeException('Selecione um status valido para a postagem.');
+            throw new RuntimeException('Selecione um status válido para a postagem.');
         }
 
         if (mb_strlen($title, 'UTF-8') > 180) {
-            throw new RuntimeException('O titulo pode ter no maximo 180 caracteres.');
+            throw new RuntimeException('O título pode ter no máximo 180 caracteres.');
         }
 
         if (mb_strlen($category, 'UTF-8') > 120) {
-            throw new RuntimeException('A categoria pode ter no maximo 120 caracteres.');
+            throw new RuntimeException('A categoria pode ter no máximo 120 caracteres.');
         }
 
         if (mb_strlen($shareText, 'UTF-8') > 255) {
-            throw new RuntimeException('O texto de compartilhamento pode ter no maximo 255 caracteres.');
+            throw new RuntimeException('O texto de compartilhamento pode ter no máximo 255 caracteres.');
         }
 
         if ($imageUrl === '') {
@@ -393,7 +393,7 @@ class BlogService
         $this->ensureSchema();
 
         if ($postId <= 0) {
-            throw new RuntimeException('Postagem invalida.');
+            throw new RuntimeException('Postagem inválida.');
         }
 
         $pdo = Database::connection();
@@ -727,7 +727,7 @@ class BlogService
         $imageInfo = @getimagesize($tmpPath);
 
         if ($imageInfo === false) {
-            throw new RuntimeException('O arquivo enviado nao e uma imagem valida.');
+            throw new RuntimeException('O arquivo enviado não é uma imagem válida.');
         }
 
         $mimeType = (string) ($imageInfo['mime'] ?? '');
@@ -851,7 +851,7 @@ class BlogService
         $timestamp = strtotime($normalized);
 
         if ($timestamp === false) {
-            throw new RuntimeException('A data de públicação informada e invalida.');
+            throw new RuntimeException('A data de publicação informada é inválida.');
         }
 
         return date('Y-m-d H:i:s', $timestamp);

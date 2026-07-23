@@ -21,7 +21,7 @@
         <form method="POST" action="<?php echo e(url('/perfil/completar')); ?>" class="stack-form" data-ajax-form="1" data-follow-redirect="1">
         <input type="hidden" name="return_to" value="<?php echo e($returnTo ?? '/dashboard'); ?>">
         <div class="alert-inline dashboard-dependent-attention">
-            Confira com atencao o CPF e a data de nascimento ao concluir este cadastro. Esses dados identificam a pessoa no sistema e eventuais correcoes posteriores podem depender do suporte.
+            Confira com atenção o CPF e a data de nascimento ao concluir este cadastro. Esses dados identificam a pessoa no sistema e eventuais correções posteriores podem depender do suporte.
         </div>
         <div class="grid-two">
             <label>
@@ -58,7 +58,7 @@
                 <input type="email" name="email" value="<?php echo old('email', $person['email'] ?? ''); ?>" required>
             </label>
             <label>
-                <span>Numero do cartao SUS</span>
+                <span>Número do cartão SUS</span>
                 <input type="text" name="numero_cartao_sus" data-sus-card="1" maxlength="19" value="<?php echo old('numero_cartao_sus', $person['numero_cartao_sus'] ?? ''); ?>">
                 <small class="muted">Campo opcional. Se informado, deve conter exatamente 16 numeros.</small>
             </label>
@@ -75,10 +75,10 @@
             </label>
             <label class="checkbox-chip">
                 <input type="checkbox" name="eh_plm" value="1" data-condition-exclusive="1" <?php echo (string) old('eh_plm', $person['eh_plm'] ?? '0') === '1' ? 'checked' : ''; ?>>
-                <span>E pessoa com laudo medico de doenca (PLM)</span>
+                <span>É pessoa com laudo médico de doença (PLM)</span>
             </label>
         </div>
-        <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condicao pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>
+        <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condição pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>
 
         <div class="alert-inline">
             Se alguma dessas condicoes for marcada, a pessoa precisara manter a documentação correspondente e o certificado validado para liberar agendamentos e inscrições em qualquer tipo de vaga.
@@ -94,7 +94,7 @@
                 <input type="text" name="street" value="<?php echo old('street', $person['logradouro'] ?? ''); ?>" required>
             </label>
             <label>
-                <span>Numero</span>
+                <span>Número</span>
                 <input type="text" name="address_number" value="<?php echo old('address_number', $person['numero_endereco'] ?? ''); ?>" required>
             </label>
             <label>
@@ -117,13 +117,13 @@
                 <input type="text" name="state" value="<?php echo old('state', $person['uf'] ?? ''); ?>" maxlength="2" required>
             </label>
             <label>
-                <span>Contato de emergencia</span>
+                <span>Contato de emergência</span>
                 <input type="text" name="emergency_contact_name" value="<?php echo old('emergency_contact_name', $person['contato_emergencia_nome'] ?? ''); ?>" required>
             </label>
         </div>
 
         <label>
-            <span>Telefone do contato de emergencia</span>
+            <span>Telefone do contato de emergência</span>
             <input type="text" name="emergency_contact_phone" value="<?php echo old('emergency_contact_phone', $person['contato_emergencia_telefone'] ?? ''); ?>" required>
         </label>
 

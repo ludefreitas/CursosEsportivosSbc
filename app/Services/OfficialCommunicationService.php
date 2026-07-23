@@ -36,7 +36,7 @@ class OfficialCommunicationService
 
         return [
             'slug' => (string) ($row['slug'] ?? self::SLUG_BLOG),
-            'nome_quadro' => trim((string) ($row['nome_quadro'] ?? '')) ?: 'Comunicacao oficial',
+            'nome_quadro' => trim((string) ($row['nome_quadro'] ?? '')) ?: 'Comunicação oficial',
             'titulo' => trim((string) ($row['titulo'] ?? '')),
             'texto_breve' => trim((string) ($row['texto_breve'] ?? '')),
             'link_url' => trim((string) ($row['link_url'] ?? '')),
@@ -104,9 +104,9 @@ class OfficialCommunicationService
     {
         return [
             'slug' => self::SLUG_BLOG,
-            'nome_quadro' => 'Comunicacao oficial',
+            'nome_quadro' => 'Comunicação oficial',
             'titulo' => 'Blog dos Cursos Esportivos SBC',
-            'texto_breve' => 'Notícias, campanhas, avisos e conteudos institucionais em uma pagina inspirada em blog classico, mas adaptada ao nosso portal e ao nosso fluxo administrativo.',
+            'texto_breve' => 'Notícias, campanhas, avisos e conteúdos institucionais em uma página inspirada em blog clássico, mas adaptada ao nosso portal e ao nosso fluxo administrativo.',
             'link_url' => '',
             'link_titulo' => '',
             'updated_at' => '',
@@ -122,39 +122,39 @@ class OfficialCommunicationService
         $linkTitle = trim((string) ($data['link_titulo'] ?? ''));
 
         if ($label === '') {
-            throw new RuntimeException('Informe o nome do quadro de comunicacao oficial.');
+            throw new RuntimeException('Informe o nome do quadro de comunicação oficial.');
         }
 
         if ($title === '') {
-            throw new RuntimeException('Informe o titulo da comunicacao oficial.');
+            throw new RuntimeException('Informe o título da comunicação oficial.');
         }
 
         if ($text === '') {
-            throw new RuntimeException('Informe o texto breve da comunicacao oficial.');
+            throw new RuntimeException('Informe o texto breve da comunicação oficial.');
         }
 
         if (mb_strlen($label, 'UTF-8') > self::MAX_LABEL_LENGTH) {
-            throw new RuntimeException('O nome do quadro deve ter no maximo ' . self::MAX_LABEL_LENGTH . ' caracteres.');
+            throw new RuntimeException('O nome do quadro deve ter no máximo ' . self::MAX_LABEL_LENGTH . ' caracteres.');
         }
 
         if (mb_strlen($title, 'UTF-8') > self::MAX_TITLE_LENGTH) {
-            throw new RuntimeException('O titulo deve ter no maximo ' . self::MAX_TITLE_LENGTH . ' caracteres.');
+            throw new RuntimeException('O título deve ter no máximo ' . self::MAX_TITLE_LENGTH . ' caracteres.');
         }
 
         if (mb_strlen($text, 'UTF-8') > self::MAX_TEXT_LENGTH) {
-            throw new RuntimeException('O texto breve deve ter no maximo ' . self::MAX_TEXT_LENGTH . ' caracteres.');
+            throw new RuntimeException('O texto breve deve ter no máximo ' . self::MAX_TEXT_LENGTH . ' caracteres.');
         }
 
         if ($linkTitle !== '' && mb_strlen($linkTitle, 'UTF-8') > self::MAX_LINK_TITLE_LENGTH) {
-            throw new RuntimeException('O titulo do link deve ter no maximo ' . self::MAX_LINK_TITLE_LENGTH . ' caracteres.');
+            throw new RuntimeException('O título do link deve ter no máximo ' . self::MAX_LINK_TITLE_LENGTH . ' caracteres.');
         }
 
         if ($linkUrl !== '' && mb_strlen($linkUrl, 'UTF-8') > self::MAX_LINK_URL_LENGTH) {
-            throw new RuntimeException('A URL do link deve ter no maximo ' . self::MAX_LINK_URL_LENGTH . ' caracteres.');
+            throw new RuntimeException('A URL do link deve ter no máximo ' . self::MAX_LINK_URL_LENGTH . ' caracteres.');
         }
 
         if (($linkTitle === '') !== ($linkUrl === '')) {
-            throw new RuntimeException('Preencha o titulo e a URL do link juntos, ou deixe ambos em branco.');
+            throw new RuntimeException('Preencha o título e a URL do link juntos, ou deixe ambos em branco.');
         }
 
         if ($linkUrl !== '') {
@@ -177,7 +177,7 @@ class OfficialCommunicationService
         }
 
         if (filter_var($url, FILTER_VALIDATE_URL) === false) {
-            throw new RuntimeException('Informe uma URL valida para a comunicacao oficial.');
+            throw new RuntimeException('Informe uma URL válida para a comunicação oficial.');
         }
 
         return $url;

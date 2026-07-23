@@ -4,7 +4,7 @@ $healthCertificateValidationRows = $healthCertificateValidationRows ?? [];
 
 <article class="content-card top-gap" id="admin-health-certificate-validation-panel">
     <h2>Atestados de saúde para validar</h2>
-    <p class="muted">Esta fila mostra os atestados clinicos e dermatologicos enviados pelos usuarios e dependentes que ainda aguardam analise administrativa.</p>
+    <p class="muted">Esta fila mostra os atestados clínicos e dermatológicos enviados pelos usuários e dependentes que ainda aguardam análise administrativa.</p>
 
     <div class="table-wrap">
         <table class="data-table">

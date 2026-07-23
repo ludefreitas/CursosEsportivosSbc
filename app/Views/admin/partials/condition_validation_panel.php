@@ -18,17 +18,17 @@ $buildWhatsappLink = static function (?string $phone): ?string {
 
 <article class="content-card" id="admin-condition-validation-panel">
     <h2>Condições que precisam de validação</h2>
-    <p class="muted">Esta relacao destaca cada condicao declarada que ainda depende de envio de PDF ou de analise da documentação.</p>
+    <p class="muted">Esta relação destaca cada condição declarada que ainda depende de envio de PDF ou de análise da documentação.</p>
 
     <div class="table-wrap">
         <table class="data-table">
             <thead>
                 <tr>
                     <th>Nome</th>
-                    <th>Responsavel</th>
+                    <th>Responsável</th>
                     <th>Idade</th>
                     <th>WhatsApp</th>
-                    <th>Condicao</th>
+                    <th>Condição</th>
                     <th>Documentos em PDF</th>
                     <th>Falta para validar</th>
                     <th>Acao</th>
@@ -37,7 +37,7 @@ $buildWhatsappLink = static function (?string $phone): ?string {
             <tbody>
                 <?php if ($conditionValidationRows === []) { ?>
                     <tr>
-                        <td colspan="8" class="muted">Nenhuma condicao pendente de documentação ou validação neste momento.</td>
+                        <td colspan="8" class="muted">Nenhuma condição pendente de documentação ou validação neste momento.</td>
                     </tr>
                 <?php } ?>
 

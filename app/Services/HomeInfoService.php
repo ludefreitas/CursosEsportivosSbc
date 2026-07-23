@@ -70,11 +70,11 @@ class HomeInfoService
         $linkUrls = [];
 
         if ($title === '') {
-            throw new RuntimeException('Informe o titulo do quadro da home.');
+            throw new RuntimeException('Informe o título do quadro da home.');
         }
 
         if (mb_strlen($title, 'UTF-8') > self::MAX_TITLE_LENGTH) {
-            throw new RuntimeException('O titulo do quadro da home deve ter no maximo ' . self::MAX_TITLE_LENGTH . ' caracteres.');
+            throw new RuntimeException('O título do quadro da home deve ter no máximo ' . self::MAX_TITLE_LENGTH . ' caracteres.');
         }
 
         for ($i = 1; $i <= self::MAX_PARAGRAPHS; $i++) {
@@ -83,15 +83,15 @@ class HomeInfoService
             $linkUrl = trim((string) ($data['paragrafo_' . $i . '_link_url'] ?? ''));
 
             if ($value !== '' && mb_strlen($value, 'UTF-8') > self::MAX_PARAGRAPH_LENGTH) {
-                throw new RuntimeException('Cada paragrafo do quadro da home deve ter no maximo ' . self::MAX_PARAGRAPH_LENGTH . ' caracteres.');
+                throw new RuntimeException('Cada parágrafo do quadro da home deve ter no máximo ' . self::MAX_PARAGRAPH_LENGTH . ' caracteres.');
             }
 
             if ($linkLabel !== '' && mb_strlen($linkLabel, 'UTF-8') > self::MAX_LINK_LABEL_LENGTH) {
-                throw new RuntimeException('O texto do link do quadro da home deve ter no maximo ' . self::MAX_LINK_LABEL_LENGTH . ' caracteres.');
+                throw new RuntimeException('O texto do link do quadro da home deve ter no máximo ' . self::MAX_LINK_LABEL_LENGTH . ' caracteres.');
             }
 
             if ($linkUrl !== '' && mb_strlen($linkUrl, 'UTF-8') > self::MAX_LINK_URL_LENGTH) {
-                throw new RuntimeException('A URL do link do quadro da home deve ter no maximo ' . self::MAX_LINK_URL_LENGTH . ' caracteres.');
+                throw new RuntimeException('A URL do link do quadro da home deve ter no máximo ' . self::MAX_LINK_URL_LENGTH . ' caracteres.');
             }
 
             if ($linkLabel !== '' && $linkUrl === '') {
@@ -108,7 +108,7 @@ class HomeInfoService
         }
 
         if (count(array_filter($paragraphs)) === 0) {
-            throw new RuntimeException('Informe pelo menos um paragrafo para o quadro da home.');
+            throw new RuntimeException('Informe pelo menos um parágrafo para o quadro da home.');
         }
 
         $pdo = Database::connection();
@@ -188,7 +188,7 @@ class HomeInfoService
         }
 
         if (filter_var($url, FILTER_VALIDATE_URL) === false) {
-            throw new RuntimeException('Informe uma URL valida para o link do quadro da home.');
+            throw new RuntimeException('Informe uma URL válida para o link do quadro da home.');
         }
 
         return $url;

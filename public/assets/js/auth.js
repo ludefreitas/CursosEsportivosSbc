@@ -229,6 +229,7 @@
 
                         $('body').attr('data-profile-completion-required', authenticationNeedsProfileCompletion ? '1' : '0');
                         App.auth.sincronizarCabecalhoAutenticado();
+                        $('main.page-content > .flash').remove();
                         $personOptions.data('agendaAuthenticated', '1');
                         $calendar.attr('data-agenda-authenticated', '1');
                         $calendar.attr('data-agenda-needs-profile-completion', authenticationNeedsProfileCompletion ? '1' : '0');

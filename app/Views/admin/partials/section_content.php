@@ -100,7 +100,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 <span class="chip">Agenda</span>
                 <span class="chip">Página home</span>
                 <span class="chip">Blog</span>
-                <span class="chip">Locais e espacos</span>
+                <span class="chip">Locais e espaços</span>
                 <span class="chip">Configuracoes</span>
             </div>
         </article>
@@ -195,7 +195,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 
         <article class="content-card">
             <h2>Calendario administrativo de chamadas</h2>
-            <p class="muted">Clique em um horário cadastrado no calendário para abrir a lista de chamada da ocorrencia, sem remover a lista diária atual.</p>
+            <p class="muted">Clique em um horário cadastrado no calendário para abrir a lista de chamada da ocorrência, sem remover a lista diária atual.</p>
             <div class="agenda-calendar-composite">
                 <form class="agenda-calendar-filter-form" id="admin-agenda-calendar-filter-form">
                     <input type="hidden" name="local_treino_id" id="admin-agenda-calendar-local-filter" value="0">
@@ -267,7 +267,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <label>
                             <span>Espaco</span>
                             <select name="agendamento_espaco_treino_id">
-                                <option value="0">Todos os espacos</option>
+                                <option value="0">Todos os espaços</option>
                                 <?php foreach ($dailyBookingSpaces as $space) { ?>
                                     <option value="<?php echo e((string) $space['id']); ?>" <?php echo (int) ($selectedDailySpaceId ?? 0) === (int) $space['id'] ? 'selected' : ''; ?>>
                                         <?php echo e($space['local_nome'] . ' - ' . $space['nome']); ?>
@@ -319,7 +319,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 <table class="data-table">
                                     <thead>
                                         <tr>
-                                            <th>Horario</th>
+                                            <th>Horário</th>
                                             <th>Pessoa</th>
                                             <th>Idade</th>
                                             <th>Condicoes</th>
@@ -535,7 +535,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             <select name="janela_agendamento_tipo">
                                 <option value="semana_atual_proxima">Semana atual e proxima</option>
                                 <option value="janela_semanal_fixa">Abre e fecha em dias fixos da semana</option>
-                                <option value="antecedência">Abre por antecedência da ocorrencia</option>
+                                <option value="antecedencia">Abre por antecedência da ocorrência</option>
                             </select>
                         </label>
                         <label>
@@ -829,7 +829,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 <select name="janela_agendamento_tipo" id="admin-weekly-schedule-window-type">
                                     <option value="semana_atual_proxima">Semana atual e proxima</option>
                                     <option value="janela_semanal_fixa">Abre e fecha em dias fixos da semana</option>
-                                    <option value="antecedência">Abre por antecedência da ocorrencia</option>
+                                    <option value="antecedencia">Abre por antecedência da ocorrência</option>
                                 </select>
                             </label>
                             <label>
@@ -885,10 +885,10 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 
         <section class="grid-two top-gap">
             <article class="content-card">
-                <h2>Horario especial ou avaliação especial</h2>
+                <h2>Horário especial ou avaliação especial</h2>
                 <p class="muted">Use este bloco para datas específicas do ano que não seguem recorrencia semanal. Elas aparecem na agenda pública como horário clicável com inscrição e controle de vagas por público.</p>
                 <form method="POST" action="<?php echo e(url('/admin/agenda-horarios-especiais')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1" enctype="multipart/form-data">
-                    <label><span>Titulo</span><input type="text" name="titulo" maxlength="180" required></label>
+                    <label><span>Título</span><input type="text" name="titulo" maxlength="180" required></label>
                     <label><span>Descrição</span><textarea name="descricao" rows="4" placeholder="Texto livre para orientar o usuário sobre a avaliação, inscrição ou critério especial."></textarea></label>
                     <div class="grid-two">
                         <label><span>Inicio</span><input type="datetime-local" name="data_inicio" required></label>
@@ -990,7 +990,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             <?php foreach (($specialSchedules ?? []) as $specialEvent) { ?>
                                 <tr>
                                     <td>
-                                        <strong><?php echo e((string) ($specialEvent['titulo'] ?? 'Horario especial')); ?></strong><br>
+                                        <strong><?php echo e((string) ($specialEvent['titulo'] ?? 'Horário especial')); ?></strong><br>
                                         <small><?php echo e(trim((string) ($specialEvent['descricao'] ?? '')) !== '' ? substr((string) $specialEvent['descricao'], 0, 90) . (strlen((string) $specialEvent['descricao']) > 90 ? '...' : '') : 'Sem descricao'); ?></small>
                                     </td>
                                     <td><?php echo e(date('d/m/Y H:i', strtotime((string) $specialEvent['data_inicio']))); ?> até <?php echo e(date('d/m/Y H:i', strtotime((string) $specialEvent['data_fim']))); ?></td>
@@ -1039,7 +1039,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 <div class="popup-body admin-popup-body">
                     <form method="POST" action="<?php echo e(url('/admin/agenda-horarios-especiais/atualizar')); ?>" class="stack-form" id="admin-special-schedule-form" enctype="multipart/form-data" data-manual-submit="1">
                         <input type="hidden" name="agenda_horario_especial_id" id="admin-special-schedule-id">
-                        <label><span>Titulo</span><input type="text" name="titulo" id="admin-special-schedule-title" maxlength="180" required></label>
+                        <label><span>Título</span><input type="text" name="titulo" id="admin-special-schedule-title" maxlength="180" required></label>
                         <label><span>Descrição</span><textarea name="descricao" id="admin-special-schedule-description" rows="4"></textarea></label>
                         <div class="grid-two">
                             <label><span>Inicio</span><input type="datetime-local" name="data_inicio" id="admin-special-schedule-start" required></label>
@@ -1135,7 +1135,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     <p class="muted">Todos os campos do pop-up são opcionais, exceto o período de exibição e a escolha das páginas.</p>
                     <form method="POST" action="<?php echo e(url('/admin/site-popups')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1" id="form-site-popup">
                         <div class="grid-two">
-                            <label><span>Titulo</span><input type="text" name="titulo" maxlength="180" placeholder="Ex.: Inscrições abertas"></label>
+                            <label><span>Título</span><input type="text" name="titulo" maxlength="180" placeholder="Ex.: Inscrições abertas"></label>
                             <label><span>Status inicial</span>
                                 <select name="status">
                                     <option value="ativo">Ativo</option>
@@ -1219,7 +1219,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                         data-url-acao="<?php echo e((string) ($popupPreview['url_acao'] ?? '')); ?>"
                                     >Visualizar</button>
                                 </div>
-                                <h3><?php echo e($popup['titulo'] ?: 'Pop-up sem titulo'); ?></h3>
+                                <h3><?php echo e($popup['titulo'] ?: 'Pop-up sem título'); ?></h3>
                                 <p><?php echo e($popup['texto_principal'] ?: 'Sem texto principal informado.'); ?></p>
                                 <p class="muted"><?php echo e($popup['texto_secundario'] ?: 'Sem texto secundario.'); ?></p>
                                 <div class="popup-meta-list">
@@ -1273,11 +1273,11 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         </label>
                         <div class="grid-two">
                             <label>
-                                <span>Texto do link do paragrafo <?php echo e((string) $i); ?></span>
+                                <span>Texto do link do parágrafo <?php echo e((string) $i); ?></span>
                                 <input type="text" name="paragrafo_<?php echo e((string) $i); ?>_link_rotulo" maxlength="40" value="<?php echo e((string) (($homeInfoBox['paragrafos'][$i - 1]['link_rotulo'] ?? ''))); ?>" placeholder="Ex.: clique aqui">
                             </label>
                             <label>
-                                <span>URL do link do paragrafo <?php echo e((string) $i); ?></span>
+                                <span>URL do link do parágrafo <?php echo e((string) $i); ?></span>
                                 <input type="text" name="paragrafo_<?php echo e((string) $i); ?>_link_url" maxlength="255" value="<?php echo e((string) (($homeInfoBox['paragrafos'][$i - 1]['link_url'] ?? ''))); ?>" placeholder="/agenda ou https://...">
                             </label>
                         </div>
@@ -1347,10 +1347,10 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-official-communication-title">
                 <div class="popup-head admin-popup-head">
                     <div>
-                        <h3 id="admin-official-communication-title">Editar comunicacao oficial do blog</h3>
+                        <h3 id="admin-official-communication-title">Editar comunicação oficial do blog</h3>
                         <p class="muted">Atualize o quadro público do topo do blog sem recarregar a página.</p>
                     </div>
-                    <button type="button" class="popup-close-icon" id="admin-official-communication-close" aria-label="Fechar editor de comunicacao oficial">&times;</button>
+                    <button type="button" class="popup-close-icon" id="admin-official-communication-close" aria-label="Fechar editor de comunicação oficial">&times;</button>
                 </div>
                 <div class="popup-body admin-popup-body">
                     <form method="POST" action="<?php echo e(url('/admin/comunicacao-oficial')); ?>" id="admin-official-communication-form" class="stack-form" data-manual-submit="1">
@@ -1382,7 +1382,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 
                         <div class="popup-actions">
                             <button type="button" class="btn btn-secondary" id="admin-official-communication-cancel">Cancelar</button>
-                            <button type="submit" class="btn btn-primary" id="admin-official-communication-submit">Salvar comunicacao oficial</button>
+                            <button type="submit" class="btn btn-primary" id="admin-official-communication-submit">Salvar comunicação oficial</button>
                         </div>
                     </form>
                 </div>
@@ -1451,12 +1451,12 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             </div>
             <div class="post-grid">
                 <?php if (empty($blogSpecialEvents ?? [])) { ?>
-                    <p class="muted">Nenhum horário especial esta marcado para o blog.</p>
+                    <p class="muted">Nenhum horário especial está marcado para o blog.</p>
                 <?php } ?>
                 <?php foreach (($blogSpecialEvents ?? []) as $specialEvent) { ?>
                     <article class="post-card">
-                        <span class="eyebrow eyebrow-soft">Horario especial</span>
-                        <h3><?php echo e((string) ($specialEvent['titulo'] ?? 'Horario especial')); ?></h3>
+                        <span class="eyebrow eyebrow-soft">Horário especial</span>
+                        <h3><?php echo e((string) ($specialEvent['titulo'] ?? 'Horário especial')); ?></h3>
                         <p><?php echo e(trim((string) ($specialEvent['descricao'] ?? '')) !== '' ? (string) $specialEvent['descricao'] : 'Sem descricao.'); ?></p>
                         <small><?php echo e(date('d/m/Y H:i', strtotime((string) ($specialEvent['data_inicio'] ?? 'now')))); ?></small>
                     </article>
@@ -1498,7 +1498,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <div class="grid-two">
                             <label>
                                 <span>Categoria</span>
-                                <input type="text" name="categoria" id="admin-blog-post-category" maxlength="120" placeholder="Ex.: Noticias, Campanhas, Avisos">
+                                <input type="text" name="categoria" id="admin-blog-post-category" maxlength="120" placeholder="Ex.: Notícias, Campanhas, Avisos">
                             </label>
                             <label>
                                 <span>Tags</span>
@@ -1618,8 +1618,8 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
     <section class="admin-section-panel" data-admin-section="locais-espacos">
         <div class="section-head admin-section-head">
             <div>
-                <h2>Locais e espacos</h2>
-                <p class="muted">Indisponibilidades temporarias e base visual para futuras rotinas de cadastro de locais e espacos.</p>
+                <h2>Locais e espaços</h2>
+                <p class="muted">Indisponibilidades temporárias e base visual para futuras rotinas de cadastro de locais e espaços.</p>
             </div>
         </div>
 
@@ -1727,7 +1727,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 <h2>Próximas evoluções desta área</h2>
                 <div class="chips-wrap">
                     <span class="chip">Cadastro de locais</span>
-                    <span class="chip">Cadastro de espacos</span>
+                    <span class="chip">Cadastro de espaços</span>
                     <span class="chip">Capacidade base</span>
                     <span class="chip">Vinculo local/modalidade</span>
                     <span class="chip">Historico de manutencao</span>
@@ -1754,7 +1754,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     <div class="grid-three">
                         <label><span>CEP inicial</span><input type="text" name="cep_inicio" data-cep-sbc="1" required></label>
                         <label><span>CEP final</span><input type="text" name="cep_fim" data-cep-sbc="1" required></label>
-                        <label><span>Observacoes</span><input type="text" name="observacoes" placeholder="Motivo do intervalo"></label>
+                        <label><span>Observações</span><input type="text" name="observacoes" placeholder="Motivo do intervalo"></label>
                     </div>
                     <button type="submit" class="btn btn-primary">Salvar intervalo aceito</button>
                 </form>
@@ -1796,14 +1796,14 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 
         <section class="grid-two">
             <article class="content-card">
-                <h2>CEPs de excecao</h2>
-                <p class="muted">Cadastre aqui CEPs fora do intervalo padrao aceitos como excecao administrativa.</p>
+                <h2>CEPs de exceção</h2>
+                <p class="muted">Cadastre aqui CEPs fora do intervalo padrão aceitos como exceção administrativa.</p>
                 <form method="POST" action="<?php echo e(url('/admin/ceps-excecao')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1">
                     <div class="grid-two">
-                        <label><span>CEP de excecao</span><input type="text" name="cep" data-cep-sbc="1" required></label>
-                        <label><span>Observacoes</span><input type="text" name="observacoes" placeholder="Motivo da excecao"></label>
+                        <label><span>CEP de exceção</span><input type="text" name="cep" data-cep-sbc="1" required></label>
+                        <label><span>Observações</span><input type="text" name="observacoes" placeholder="Motivo da exceção"></label>
                     </div>
-                    <button type="submit" class="btn btn-primary">Salvar CEP de excecao</button>
+                    <button type="submit" class="btn btn-primary">Salvar CEP de exceção</button>
                 </form>
             </article>
 
@@ -1846,7 +1846,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         <div class="section-head admin-section-head">
             <div>
                 <h2>Outras areas</h2>
-                <p class="muted">Reservado para os proximos modulos administrativos que forem surgindo com o desenvolvimento do sistema.</p>
+                <p class="muted">Reservado para os próximos módulos administrativos que forem surgindo com o desenvolvimento do sistema.</p>
             </div>
         </div>
 

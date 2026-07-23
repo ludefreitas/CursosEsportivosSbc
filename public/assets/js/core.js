@@ -32,7 +32,7 @@
             const $popup = $('#popup-mensagem');
             const $titulo = $('#popup-titulo');
             const $texto = $('#popup-texto');
-            const titulo = tipo === 'erro' ? 'Erro no formulario' : 'Mensagem do sistema';
+            const titulo = tipo === 'erro' ? 'Erro no formulário' : 'Mensagem do sistema';
 
             App.state.popupCloseCallback = typeof onClose === 'function' ? onClose : null;
 
@@ -46,7 +46,7 @@
             const $popup = $('#popup-mensagem');
             const $titulo = $('#popup-titulo');
             const $texto = $('#popup-texto');
-            const titulo = tipo === 'erro' ? 'Erro no formulario' : 'Mensagem do sistema';
+            const titulo = tipo === 'erro' ? 'Erro no formulário' : 'Mensagem do sistema';
 
             App.state.popupCloseCallback = typeof onClose === 'function' ? onClose : null;
 
@@ -499,7 +499,7 @@
                 }
 
                 if (rawValue.length < 8) {
-                    $message.text('Complete os 8 digitos do CEP.');
+                    $message.text('Complete os 8 dígitos do CEP.');
                     return;
                 }
 
@@ -546,7 +546,7 @@
                 if (rawValue.length < 11) {
                     $input.data('cpfCadastroPermitido', false);
                     $input.data('cpfCadastroStatus', '');
-                    $message.text('Digite os 11 numeros do CPF para validar o cadastro.');
+                    $message.text('Digite os 11 números do CPF para validar o cadastro.');
                     return;
                 }
 
@@ -643,7 +643,7 @@
                 }
 
                 if ($helper.length > 0) {
-                    $helper.text('Somente uma condicao pode ser selecionada por pessoa: PCD, PVS ou PLM.');
+                    $helper.text('Somente uma condição pode ser selecionada por pessoa: PCD, PVS ou PLM.');
                 }
             }
 

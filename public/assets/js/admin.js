@@ -197,17 +197,17 @@
 
                         if (props.is_special === true) {
                             let details = ''
-                                + '<strong>Horario especial:</strong> ' + App.core.escapeHtml(String(info.event.title || 'Horario especial'))
+                                + '<strong>Horário especial:</strong> ' + App.core.escapeHtml(String(info.event.title || 'Horário especial'))
                                 + '<br><strong>Periodo:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.startStr || '')))
                                 + ' até ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.endStr || '')))
                                 + '<br><strong>Local:</strong> ' + App.core.escapeHtml(String(props.local || 'A definir'))
-                                + '<br><strong>Espaco:</strong> ' + App.core.escapeHtml(String(props.espaco || 'A definir'))
+                                + '<br><strong>Espaço:</strong> ' + App.core.escapeHtml(String(props.espaco || 'A definir'))
                                 + '<br><strong>Modalidade:</strong> ' + App.core.escapeHtml(String(props.modalidade || 'Sem modalidade'))
                                 + '<br><strong>Vagas:</strong> Geral ' + App.core.escapeHtml(String(props.vagas_geral || 0))
                                 + ' | PCD ' + App.core.escapeHtml(String(props.vagas_pcd || 0))
                                 + ' | PVS ' + App.core.escapeHtml(String(props.vagas_pvs || 0))
                                 + ' | PLM ' + App.core.escapeHtml(String(props.vagas_plm || 0))
-                                + '<br><strong>Publicacao:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_inicio || '')))
+                                + '<br><strong>Publicação:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_inicio || '')))
                                 + ' até ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_fim || '')))
                                 + '<br><strong>Status:</strong> ' + (Number(props.ativo || 0) === 1 ? 'Ativo' : 'Inativo');
 
@@ -461,7 +461,7 @@
                 }
 
                 syncActiveButton(normalizedTarget);
-                $host.attr('data-admin-loading', '1').html('<section class="admin-section-panel"><article class="content-card"><p class="muted">Carregando conteudo...</p></article></section>');
+                $host.attr('data-admin-loading', '1').html('<section class="admin-section-panel"><article class="content-card"><p class="muted">Carregando conteúdo...</p></article></section>');
 
                 $.ajax({
                     url: sectionsUrl,
@@ -1687,7 +1687,7 @@
 
                     $createForm[0].reset();
                     App.admin.activateSection('agenda', currentAgendaFilters());
-                    App.core.abrirPopup('sucesso', String(response.message || 'Horario semanal criado com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Horário semanal criado com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
@@ -1723,7 +1723,7 @@
 
                     closeEditor();
                     App.admin.activateSection('agenda', currentAgendaFilters());
-                    App.core.abrirPopup('sucesso', String(response.message || 'Horario semanal atualizado com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Horário semanal atualizado com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
@@ -1758,7 +1758,7 @@
                     }
 
                     App.admin.activateSection('agenda', currentAgendaFilters());
-                    App.core.abrirPopup('sucesso', String(response.message || 'Horario semanal inativado com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Horário semanal inativado com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
@@ -1793,7 +1793,7 @@
                     }
 
                     App.admin.activateSection('agenda', currentAgendaFilters());
-                    App.core.abrirPopup('sucesso', String(response.message || 'Horario semanal ativado com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Horário semanal ativado com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
@@ -1892,7 +1892,7 @@
                 $('#admin-special-schedule-blog').prop('checked', Number(eventData.publicar_blog || 0) === 1);
 
                 $('#admin-special-schedule-editor-subtitle').text(
-                    'Editando ' + String(eventData.titulo || 'horario especial') + ' sem sair da agenda administrativa.'
+                    'Editando ' + String(eventData.titulo || 'horário especial') + ' sem sair da agenda administrativa.'
                 );
             }
 
@@ -1957,7 +1957,7 @@
 
                     closeEditor();
                     App.admin.activateSection('agenda', currentAgendaFilters());
-                    App.core.abrirPopup('sucesso', String(response.message || 'Horario especial atualizado com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Horário especial atualizado com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
@@ -2014,7 +2014,7 @@
                 const conditionSlug = String($(this).data('conditionSlug') || '').trim();
 
                 if (!personId || conditionSlug === '') {
-                    App.core.abrirPopup('erro', 'Não foi possível identificar a condicao selecionada para validação.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar a condição selecionada para validação.');
                     return;
                 }
 
@@ -2539,7 +2539,7 @@
 
             function openModal() {
                 if ($('#admin-official-communication-modal').length === 0) {
-                    App.core.abrirPopup('erro', 'O editor de comunicacao oficial não está disponível nesta tela.');
+                    App.core.abrirPopup('erro', 'O editor de comunicação oficial não está disponível nesta tela.');
                     return;
                 }
 
@@ -2596,7 +2596,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar a comunicacao oficial.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar a comunicação oficial.'));
                         return;
                     }
 
@@ -2609,7 +2609,7 @@
                     }
 
                     closeModal();
-                    App.core.abrirPopup('sucesso', String(response.message || 'Comunicacao oficial salva com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Comunicação oficial salva com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);

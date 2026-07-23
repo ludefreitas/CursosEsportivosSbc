@@ -16,7 +16,7 @@
             <button type="button" class="admin-nav-button" data-admin-nav-target="agenda">Agenda</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="pagina-home">Página home</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="blog">Blog</button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="locais-espacos">Locais e espacos</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="locais-espacos">Locais e espaços</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="configuracoes">Configuracoes</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="outras-areas">Outras areas</button>
         </div>

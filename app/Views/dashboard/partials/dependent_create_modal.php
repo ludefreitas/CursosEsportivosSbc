@@ -35,7 +35,7 @@
             <label><span>E-mail</span><input type="email" name="email" required></label>
         </div>
         <label>
-            <span>Numero do cartao SUS</span>
+            <span>Número do cartão SUS</span>
             <input type="text" name="numero_cartao_sus" data-sus-card="1" maxlength="19">
             <small class="muted">Campo opcional. Se informado, deve conter exatamente 16 numeros.</small>
         </label>
@@ -53,16 +53,16 @@
                 <span>E pessoa com laudo medico de doenca (PLM)</span>
             </label>
         </div>
-        <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condicao pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>
+        <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condição pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>
         <div class="alert-inline">
             Se alguma dessas condicoes for marcada, a pessoa precisara manter a documentação correspondente e o certificado validado para liberar agendamentos e inscrições em qualquer tipo de vaga.
         </div>
         <div class="grid-two">
-            <label><span>Responsavel 1</span><input type="text" name="responsavel1_nome" required></label>
+            <label><span>Responsável 1</span><input type="text" name="responsavel1_nome" required></label>
             <label><span>CPF do responsável 1</span><input type="text" name="responsavel1_cpf" required></label>
         </div>
         <div class="grid-two">
-            <label><span>Responsavel 2</span><input type="text" name="responsavel2_nome"></label>
+            <label><span>Responsável 2</span><input type="text" name="responsavel2_nome"></label>
             <label><span>CPF do responsável 2</span><input type="text" name="responsavel2_cpf"></label>
         </div>
         <div class="grid-two">
@@ -70,7 +70,7 @@
             <label><span>Endereco</span><input type="text" name="street" required></label>
         </div>
         <div class="grid-three">
-            <label><span>Numero</span><input type="text" name="address_number" required></label>
+            <label><span>Número</span><input type="text" name="address_number" required></label>
             <label><span>Bairro</span><input type="text" name="neighborhood" required></label>
             <label><span>Cidade</span><input type="text" name="city" required></label>
         </div>

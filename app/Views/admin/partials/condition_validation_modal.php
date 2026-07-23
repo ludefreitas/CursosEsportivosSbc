@@ -21,7 +21,7 @@ foreach ($selectedDisabilityTypes as $selectedType) {
 ?>
 <div class="popup-head admin-popup-head">
     <div>
-        <h3 id="admin-condition-validation-title">Validar condicao especial</h3>
+        <h3 id="admin-condition-validation-title">Validar condição especial</h3>
         <p class="muted">Analise a documentação de <?php echo e((string) ($person['nome_completo'] ?? '')); ?> sem sair desta página.</p>
     </div>
     <button type="button" class="popup-close-icon" id="admin-condition-validation-close" aria-label="Fechar validação">&times;</button>
@@ -42,7 +42,7 @@ foreach ($selectedDisabilityTypes as $selectedType) {
         <?php if ((string) ($condition['slug'] ?? '') === 'pcd') { ?>
             <p><strong>Deficiencias declaradas:</strong> <?php echo e($selectedDisabilityLabels !== [] ? implode(', ', $selectedDisabilityLabels) : '-'); ?></p>
         <?php } ?>
-        <p><strong>Observacoes informadas pela pessoa:</strong> <?php echo e((string) ($certificate['observacoes'] ?? '-')); ?></p>
+        <p><strong>Observações informadas pela pessoa:</strong> <?php echo e((string) ($certificate['observacoes'] ?? '-')); ?></p>
         <p><strong>Data de emissao:</strong> <?php echo e(!empty($certificate['data_emissao']) ? date('d/m/Y', strtotime((string) $certificate['data_emissao'])) : '-'); ?></p>
         <p><strong>Pendencia atual:</strong> <?php echo e((string) ($pendingReason ?? 'Nenhuma')); ?></p>
     </div>
@@ -81,7 +81,7 @@ foreach ($selectedDisabilityTypes as $selectedType) {
             <label>
                 <span>Validade do certificado</span>
                 <input type="date" name="validade_certificado" id="admin-condition-validation-validity" value="<?php echo e($currentValidityDate); ?>" <?php echo $documents === [] ? 'disabled' : ''; ?>>
-                <small class="muted">Preencha quando a analise resultar em certificado valido ou validado parcialmente.</small>
+                <small class="muted">Preencha quando a análise resultar em certificado válido ou validado parcialmente.</small>
             </label>
         </div>
 
@@ -100,7 +100,7 @@ foreach ($selectedDisabilityTypes as $selectedType) {
         <label>
             <span>Observação da validação</span>
             <textarea name="observacao_validacao" id="admin-condition-validation-note" rows="4" placeholder="Explique a decisao tomada nesta validação." <?php echo $documents === [] ? 'disabled' : ''; ?>><?php echo e($currentValidationNote); ?></textarea>
-            <small class="muted">Ao marcar como validado parcial, esta observação passa a ser obrigatoria.</small>
+            <small class="muted">Ao marcar como validado parcial, esta observação passa a ser obrigatória.</small>
         </label>
 
         <?php if ($documents === []) { ?>

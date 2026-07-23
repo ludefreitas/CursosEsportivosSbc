@@ -345,7 +345,7 @@
                 const fieldLabel = String($(this).data('lockedFieldLabel') || 'esse dado');
                 App.core.abrirPopup(
                     'erro',
-                    'Para alterar ' + fieldLabel + ', entre em contato com o suporte pelo whatsapp e envie uma imagem do documento da pessoa para validação da mudanca.'
+                    'Para alterar ' + fieldLabel + ', entre em contato com o suporte pelo WhatsApp e envie uma imagem do documento da pessoa para validação da mudança.'
                 );
             });
 
@@ -376,7 +376,7 @@
 
                     openModal(response.html);
                     replaceHeaderAlerts(response.header_alerts_html || '');
-                    App.core.abrirPopup('sucesso', String(response.message || 'Documentacao atualizada com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Documentação atualizada com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
