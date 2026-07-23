@@ -145,13 +145,13 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Comunicacao oficial salva com sucesso.',
+                    'message' => 'Comunicação oficial salva com sucesso.',
                     'communication' => $officialCommunication,
                     'card_html' => $this->renderOfficialCommunicationCardHtml($officialCommunication),
                 ]);
             }
 
-            flash('success', 'Comunicacao oficial salva com sucesso.');
+            flash('success', 'Comunicação oficial salva com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -350,7 +350,7 @@ class AdminController extends Controller
             try {
                 $occurrenceDate = new DateTimeImmutable($startDateTime);
             } catch (\Throwable $e) {
-                throw new \RuntimeException('Data e horário da ocorrência sao invalidos.');
+                throw new \RuntimeException('Data e horário da ocorrência são inválidos.');
             }
 
             $occurrence = [
@@ -862,12 +862,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Suspensao de espaco salva com sucesso.',
+                    'message' => 'Suspensão de espaço salva com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'Suspensao de espaco salva com sucesso.');
+            flash('success', 'Suspensão de espaço salva com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -895,12 +895,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Suspensao de espaco inativada com sucesso.',
+                    'message' => 'Suspensão de espaço inativada com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'Suspensao de espaco inativada com sucesso.');
+            flash('success', 'Suspensão de espaço inativada com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -928,12 +928,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Horario semanal criado com sucesso.',
+                    'message' => 'Horário semanal criado com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'Horario semanal criado com sucesso.');
+            flash('success', 'Horário semanal criado com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -965,12 +965,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Horario semanal atualizado com sucesso.',
+                    'message' => 'Horário semanal atualizado com sucesso.',
                     'schedule' => $schedule,
                 ]);
             }
 
-            flash('success', 'Horario semanal atualizado com sucesso.');
+            flash('success', 'Horário semanal atualizado com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -998,12 +998,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Horario semanal inativado com sucesso.',
+                    'message' => 'Horário semanal inativado com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'Horario semanal inativado com sucesso.');
+            flash('success', 'Horário semanal inativado com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1031,12 +1031,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Horario semanal ativado com sucesso.',
+                    'message' => 'Horário semanal ativado com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'Horario semanal ativado com sucesso.');
+            flash('success', 'Horário semanal ativado com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1064,12 +1064,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Horario especial salvo com sucesso.',
+                    'message' => 'Horário especial salvo com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'Horario especial salvo com sucesso.');
+            flash('success', 'Horário especial salvo com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1097,12 +1097,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Horario especial inativado com sucesso.',
+                    'message' => 'Horário especial inativado com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'Horario especial inativado com sucesso.');
+            flash('success', 'Horário especial inativado com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1135,12 +1135,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Horario especial atualizado com sucesso.',
+                    'message' => 'Horário especial atualizado com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'Horario especial atualizado com sucesso.');
+            flash('success', 'Horário especial atualizado com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1168,12 +1168,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'CEP de excecao salvo com sucesso.',
+                    'message' => 'CEP de exceção salvo com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'CEP de excecao salvo com sucesso.');
+            flash('success', 'CEP de exceção salvo com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1201,12 +1201,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'CEP de excecao removido com sucesso.',
+                    'message' => 'CEP de exceção removido com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'CEP de excecao removido com sucesso.');
+            flash('success', 'CEP de exceção removido com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1346,12 +1346,12 @@ class AdminController extends Controller
         if ($this->isAjaxRequest()) {
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'Seu nivel de acesso nao permite abrir a área administrativa.',
+                'message' => 'Seu nível de acesso não permite abrir a área administrativa.',
                 'redirect' => url('/dashboard'),
             ], 403);
         }
 
-        flash('error', 'Seu nivel de acesso nao permite abrir a área administrativa.');
+        flash('error', 'Seu nível de acesso não permite abrir a área administrativa.');
         redirect('/dashboard');
     }
 
@@ -1392,12 +1392,12 @@ class AdminController extends Controller
         if ($this->isAjaxRequest()) {
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'Somente Administrador Master e Administrador podem gerenciar papeis de usuario.',
+                'message' => 'Somente Administrador Master e Administrador podem gerenciar papéis de usuário.',
                 'redirect' => url('/admin'),
             ], 403);
         }
 
-        flash('error', 'Somente Administrador Master e Administrador podem gerenciar papeis de usuario.');
+        flash('error', 'Somente Administrador Master e Administrador podem gerenciar papéis de usuário.');
         redirect('/admin');
     }
 

@@ -198,7 +198,7 @@
                         if (props.is_special === true) {
                             let details = ''
                                 + '<strong>Horário especial:</strong> ' + App.core.escapeHtml(String(info.event.title || 'Horário especial'))
-                                + '<br><strong>Periodo:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.startStr || '')))
+                                + '<br><strong>Período:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.startStr || '')))
                                 + ' até ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.endStr || '')))
                                 + '<br><strong>Local:</strong> ' + App.core.escapeHtml(String(props.local || 'A definir'))
                                 + '<br><strong>Espaço:</strong> ' + App.core.escapeHtml(String(props.espaco || 'A definir'))
@@ -1333,7 +1333,7 @@
                         if (Number(response.user.role_assignment_allowed || 0) !== 1) {
                             App.core.abrirPopup(
                                 'erro',
-                                String(response.user.role_assignment_block_reason || 'Este usuário não pode receber papeis no momento.')
+                                String(response.user.role_assignment_block_reason || 'Este usuário não pode receber papéis no momento.')
                             );
                             return;
                         }
@@ -1511,7 +1511,7 @@
                 const birthYearTo = currentYear - minAge;
 
                 if ($agePreview.length > 0) {
-                    $agePreview.text('Faixa etaria: para ' + String(minAge) + ' a ' + String(maxAge) + ' anos de idade.');
+                    $agePreview.text('Faixa etária: para ' + String(minAge) + ' a ' + String(maxAge) + ' anos de idade.');
                 }
 
                 if ($birthYearPreview.length > 0) {
@@ -2245,7 +2245,7 @@
                 $('#admin-blog-post-image-current-text').text(
                     String(imageUrl || '').trim() !== ''
                         ? 'Imagem atual: ' + String(imageUrl)
-                        : 'Se nenhuma imagem for enviada, o sistema usa a imagem padrao da home como capa e fundo da postagem.'
+                        : 'Se nenhuma imagem for enviada, o sistema usa a imagem padrão da home como capa e fundo da postagem.'
                 );
             }
 

@@ -103,7 +103,7 @@ class CepService
         $observacoes = trim((string) ($data['observacoes'] ?? ''));
 
         if (strlen($cep) !== 8) {
-            throw new RuntimeException('Informe um CEP valido com 8 digitos para a excecao.');
+            throw new RuntimeException('Informe um CEP válido com 8 dígitos para a exceção.');
         }
 
         $pdo = Database::connection();
@@ -150,7 +150,7 @@ class CepService
         $observacoes = trim((string) ($data['observacoes'] ?? ''));
 
         if (strlen($cepInicio) !== 8 || strlen($cepFim) !== 8) {
-            throw new RuntimeException('Informe CEP inicial e CEP final validos com 8 digitos.');
+            throw new RuntimeException('Informe CEP inicial e CEP final válidos com 8 dígitos.');
         }
 
         if ((int) $cepInicio > (int) $cepFim) {

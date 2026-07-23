@@ -339,13 +339,13 @@ class ProfileController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Documentacao atualizada com sucesso. Os arquivos anteriores desta condição foram substituidos pelos novos PDFs enviados.',
+                    'message' => 'Documentação atualizada com sucesso. Os arquivos anteriores desta condição foram substituídos pelos novos PDFs enviados.',
                     'html' => $this->renderCertificateModalHtml($modalData),
                     'header_alerts_html' => $this->renderHeaderCertificateAlertsHtml(),
                 ]);
             }
 
-            flash('success', 'Documentacao atualizada com sucesso.');
+            flash('success', 'Documentação atualizada com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([

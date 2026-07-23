@@ -11,7 +11,7 @@
         O comprovante de endereço será exigido na matrícula e no dia do agendamento.
     </div>
     <div class="alert-inline dashboard-dependent-attention">
-        Preencha CPF e data de nascimento com muita atencao. Esses dados identificam a pessoa no sistema e, se precisarem de correcao depois, será necessario acionar o suporte.
+        Preencha CPF e data de nascimento com muita atenção. Esses dados identificam a pessoa no sistema e, se precisarem de correção depois, será necessário acionar o suporte.
     </div>
 
     <form method="POST" action="<?php echo e(url('/dependentes/salvar')); ?>" class="stack-form dashboard-dependent-create-form" id="dashboard-dependent-create-form" data-manual-submit="1">
@@ -37,7 +37,7 @@
         <label>
             <span>Número do cartão SUS</span>
             <input type="text" name="numero_cartao_sus" data-sus-card="1" maxlength="19">
-            <small class="muted">Campo opcional. Se informado, deve conter exatamente 16 numeros.</small>
+            <small class="muted">Campo opcional. Se informado, deve conter exatamente 16 números.</small>
         </label>
         <div class="grid-three">
             <label class="checkbox-chip">
@@ -50,7 +50,7 @@
             </label>
             <label class="checkbox-chip">
                 <input type="checkbox" name="eh_plm" value="1" data-condition-exclusive="1">
-                <span>E pessoa com laudo medico de doenca (PLM)</span>
+                <span>É pessoa com laudo médico de doença (PLM)</span>
             </label>
         </div>
         <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condição pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>
@@ -76,8 +76,8 @@
         </div>
         <div class="grid-three">
             <label><span>UF</span><input type="text" name="state" maxlength="2" required></label>
-            <label><span>Contato de emergencia</span><input type="text" name="emergency_contact_name" required></label>
-            <label><span>Telefone emergencia</span><input type="text" name="emergency_contact_phone" required></label>
+            <label><span>Contato de emergência</span><input type="text" name="emergency_contact_name" required></label>
+            <label><span>Telefone de emergência</span><input type="text" name="emergency_contact_phone" required></label>
         </div>
     </form>
 </div>

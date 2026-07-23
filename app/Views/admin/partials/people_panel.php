@@ -35,10 +35,10 @@
                     <th>CPF</th>
                     <th>Faixa</th>
                     <th>Cadastro</th>
-                    <th>Condicao</th>
+                    <th>Condição</th>
                     <th>Atestado clínico</th>
                     <th>Atestado dermatológico</th>
-                    <th>Responsavel</th>
+                    <th>Responsável</th>
                 </tr>
             </thead>
             <tbody>
@@ -73,7 +73,7 @@
                                                 data-open-condition-validation="1"
                                                 data-person-id="<?php echo e((string) $person['id']); ?>"
                                                 data-condition-slug="<?php echo e((string) ($indicator['slug'] ?? '')); ?>"
-                                            ><?php echo e((string) ($indicator['label'] ?? 'Condicao')); ?></button>
+                                            ><?php echo e((string) ($indicator['label'] ?? 'Condição')); ?></button>
                                             <span class="muted"><?php echo e((string) ($indicator['status_label'] ?? '')); ?></span>
                                             <?php if (($indicator['icon_type'] ?? '') === 'warning') { ?>
                                                 <button
@@ -216,14 +216,14 @@
                     <p><strong>Conta:</strong> <span id="admin-person-details-account">-</span></p>
                     <p><strong>Condicoes declaradas:</strong> <span id="admin-person-details-conditions">-</span></p>
                     <p><strong>Situação dos certificados:</strong> <span id="admin-person-details-certificates">-</span></p>
-                    <p><strong>Responsavel atual:</strong> <span id="admin-person-details-responsible">-</span></p>
+                    <p><strong>Responsável atual:</strong> <span id="admin-person-details-responsible">-</span></p>
                     <p><strong>WhatsApp:</strong> <span id="admin-person-details-phone">-</span></p>
                     <p><strong>E-mail:</strong> <span id="admin-person-details-email">-</span></p>
-                    <p><strong>Cartao SUS:</strong> <span id="admin-person-details-sus-card">-</span></p>
+                    <p><strong>Cartão SUS:</strong> <span id="admin-person-details-sus-card">-</span></p>
                     <p><strong>Endereço:</strong> <span id="admin-person-details-address">-</span></p>
-                    <p><strong>Contato de emergencia:</strong> <span id="admin-person-details-emergency">-</span></p>
-                    <p><strong>Responsavel 1:</strong> <span id="admin-person-details-parent1">-</span></p>
-                    <p><strong>Responsavel 2:</strong> <span id="admin-person-details-parent2">-</span></p>
+                    <p><strong>Contato de emergência:</strong> <span id="admin-person-details-emergency">-</span></p>
+                    <p><strong>Responsável 1:</strong> <span id="admin-person-details-parent1">-</span></p>
+                    <p><strong>Responsável 2:</strong> <span id="admin-person-details-parent2">-</span></p>
                 </div>
 
                 <div class="popup-actions">
@@ -303,9 +303,9 @@
                     </div>
 
                     <label>
-                        <span>Numero do cartao SUS</span>
+                        <span>Número do cartão SUS</span>
                         <input type="text" name="numero_cartao_sus" id="admin-person-numero-cartao-sus" data-sus-card="1" maxlength="19">
-                        <small class="muted">Campo opcional. Se informado, deve conter exatamente 16 numeros.</small>
+                        <small class="muted">Campo opcional. Se informado, deve conter exatamente 16 números.</small>
                     </label>
 
                     <div class="grid-three">
@@ -319,7 +319,7 @@
                         </label>
                         <label class="checkbox-chip">
                             <input type="checkbox" name="eh_plm" value="1" id="admin-person-eh-plm" data-condition-exclusive="1">
-                            <span>E pessoa com laudo medico de doenca (PLM)</span>
+                            <span>É pessoa com laudo médico de doença (PLM)</span>
                         </label>
                     </div>
                     <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condição pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>
@@ -334,7 +334,7 @@
                             <input type="text" name="street" id="admin-person-street" required>
                         </label>
                         <label>
-                            <span>Numero</span>
+                            <span>Número</span>
                             <input type="text" name="address_number" id="admin-person-address-number" required>
                         </label>
                         <label>
@@ -357,25 +357,25 @@
                             <input type="text" name="state" id="admin-person-state" maxlength="2" required>
                         </label>
                         <label>
-                            <span>Responsavel atual</span>
+                            <span>Responsável atual</span>
                             <input type="text" id="admin-person-current-responsible" disabled>
                         </label>
                     </div>
 
                     <div class="grid-two">
                         <label>
-                            <span>Contato de emergencia</span>
+                            <span>Contato de emergência</span>
                             <input type="text" name="emergency_contact_name" id="admin-person-emergency-contact-name" required>
                         </label>
                         <label>
-                            <span>Telefone de emergencia</span>
+                            <span>Telefone de emergência</span>
                             <input type="text" name="emergency_contact_phone" id="admin-person-emergency-contact-phone" required>
                         </label>
                     </div>
 
                     <div class="grid-two">
                         <label>
-                            <span>Responsavel 1</span>
+                            <span>Responsável 1</span>
                             <input type="text" name="responsavel1_nome" id="admin-person-responsavel1-nome" required>
                         </label>
                         <label>
@@ -386,7 +386,7 @@
 
                     <div class="grid-two">
                         <label>
-                            <span>Responsavel 2</span>
+                            <span>Responsável 2</span>
                             <input type="text" name="responsavel2_nome" id="admin-person-responsavel2-nome">
                         </label>
                         <label>
@@ -441,12 +441,12 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Usuario</th>
+                    <th>Usuário</th>
                     <th>CPF</th>
                     <th>E-mail</th>
                     <th>Cadastro</th>
                     <th>Conta</th>
-                    <th>Papeis</th>
+                    <th>Papéis</th>
                     <th>Ultima atribuicao</th>
                     <th>Dependentes</th>
                     <th>Acoes</th>
@@ -474,7 +474,7 @@
                                         class="link-button admin-person-link"
                                         data-admin-user-roles="1"
                                         data-account-id="<?php echo e((string) ($userRow['conta_id'] ?? '')); ?>"
-                                    >Atribuir ou excluir papeis</button>
+                                    >Atribuir ou excluir papéis</button>
                                 </div>
                             <?php } ?>
                         </td>
@@ -538,7 +538,7 @@
                 <p><strong>Data de nascimento:</strong> <span id="admin-user-details-birth-date">-</span></p>
                 <p><strong>Cadastro:</strong> <span id="admin-user-details-registration">-</span></p>
                 <p><strong>Status da conta:</strong> <span id="admin-user-details-account-status">-</span></p>
-                <p><strong>Papeis:</strong> <span id="admin-user-details-roles">-</span></p>
+                <p><strong>Papéis:</strong> <span id="admin-user-details-roles">-</span></p>
                 <p><strong>Dependentes vinculados:</strong> <span id="admin-user-details-dependents-count">0</span></p>
                 <p><strong>Conta criada em:</strong> <span id="admin-user-details-created-at">-</span></p>
                 <p><strong>Ultimo acesso:</strong> <span id="admin-user-details-last-access">-</span></p>
@@ -578,10 +578,10 @@
     <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-user-roles-title">
         <div class="popup-head admin-popup-head">
             <div>
-                <h3 id="admin-user-roles-title">Gerenciar papeis do usuário</h3>
+                <h3 id="admin-user-roles-title">Gerenciar papéis do usuário</h3>
                 <p class="muted" id="admin-user-roles-subtitle">Selecione os papéis ativos para este usuário.</p>
             </div>
-            <button type="button" class="popup-close-icon" id="admin-user-roles-close" aria-label="Fechar gerenciador de papeis">&times;</button>
+            <button type="button" class="popup-close-icon" id="admin-user-roles-close" aria-label="Fechar gerenciador de papéis">&times;</button>
         </div>
 
         <div class="popup-body admin-popup-body">
@@ -617,7 +617,7 @@
 
                 <div class="popup-actions">
                     <button type="button" class="btn btn-secondary" id="admin-user-roles-dismiss">Fechar</button>
-                    <button type="submit" class="btn btn-primary">Salvar papeis</button>
+                    <button type="submit" class="btn btn-primary">Salvar papéis</button>
                 </div>
             </form>
         </div>

@@ -189,7 +189,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         <div class="section-head admin-section-head">
             <div>
                 <h2>Agenda</h2>
-                <p class="muted">Gerencie horários semanais, visualize os agendamentos do dia por local e espaco e registre a chamada por AJAX com presenca, ausencia ou justificativa.</p>
+                <p class="muted">Gerencie horários semanais, visualize os agendamentos do dia por local e espaço e registre a chamada por AJAX com presença, ausência ou justificativa.</p>
             </div>
         </div>
 
@@ -246,7 +246,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         <section class="grid-two">
             <article class="content-card">
                 <h2>Agendamentos do dia</h2>
-                <p class="muted">A lista abaixo carrega todos os agendamentos do dia em ordem de horário e depois por nome, agrupados por local e espaco.</p>
+                <p class="muted">A lista abaixo carrega todos os agendamentos do dia em ordem de horário e depois por nome, agrupados por local e espaço.</p>
                 <form class="stack-form admin-daily-bookings-filter-form" id="admin-daily-bookings-filter-form" data-admin-section-filter="agenda" data-manual-submit="1">
                     <div class="admin-agenda-filter-row">
                         <label>
@@ -265,7 +265,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             </select>
                         </label>
                         <label>
-                            <span>Espaco</span>
+                            <span>Espaço</span>
                             <select name="agendamento_espaco_treino_id">
                                 <option value="0">Todos os espaços</option>
                                 <?php foreach ($dailyBookingSpaces as $space) { ?>
@@ -288,7 +288,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     </div>
                     <div class="admin-daily-booking-stat">
                         <strong><?php echo e((string) count($dailyBookingsGrouped)); ?></strong>
-                        <span>Grupos de local e espaco</span>
+                        <span>Grupos de local e espaço</span>
                     </div>
                     <div class="admin-daily-booking-stat">
                         <strong><?php echo e(date('d/m/Y', strtotime((string) ($selectedDailyDate ?? date('Y-m-d'))))); ?></strong>
@@ -299,7 +299,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         </section>
 
         <article class="content-card">
-            <h2>Lista diária por local e espaco</h2>
+            <h2>Lista diária por local e espaço</h2>
 
             <?php if (empty($dailyBookingsGrouped)) { ?>
                 <p class="muted">Nenhum agendamento encontrado para os filtros selecionados.</p>
@@ -392,7 +392,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             <div class="popup-card popup-admin-card admin-booking-justification-card" role="dialog" aria-modal="true" aria-labelledby="admin-booking-justification-title">
                 <div class="admin-popup-head">
                     <div>
-                        <h2 id="admin-booking-justification-title">Justificar ausencia</h2>
+                        <h2 id="admin-booking-justification-title">Justificar ausência</h2>
                         <p class="muted">Informe o motivo para registrar a chamada como justificada.</p>
                     </div>
                     <button type="button" class="popup-close-icon" id="admin-booking-justification-close" aria-label="Fechar justificativa">&times;</button>
@@ -421,7 +421,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         <section class="grid-two">
             <article class="content-card">
                 <h2>Criar horário semanal</h2>
-                <p class="muted">O local e inferido automaticamente a partir do espaco selecionado.</p>
+                <p class="muted">O local é inferido automaticamente a partir do espaço selecionado.</p>
                 <form method="POST" action="<?php echo e(url('/admin/horarios-semanais')); ?>" class="stack-form" id="admin-weekly-schedule-create-form" data-manual-submit="1">
                     <div class="grid-two">
                         <label>
@@ -499,7 +499,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             </label>
                         </div>
                         <div class="stack-form top-gap">
-                            <small class="muted" data-weekly-age-preview="1">Faixa etaria: para 0 a 120 anos de idade.</small>
+                            <small class="muted" data-weekly-age-preview="1">Faixa etária: para 0 a 120 anos de idade.</small>
                             <small class="muted" data-weekly-birth-year-preview="1">Ano de nascimento correspondente em <?php echo e((string) date('Y')); ?>: para nascidos entre <?php echo e((string) (date('Y') - 120)); ?> a <?php echo e((string) date('Y')); ?>.</small>
                         </div>
 
@@ -793,7 +793,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             </label>
                         </div>
                         <div class="stack-form top-gap">
-                            <small class="muted" id="admin-weekly-schedule-age-preview">Faixa etaria: para 0 a 120 anos de idade.</small>
+                            <small class="muted" id="admin-weekly-schedule-age-preview">Faixa etária: para 0 a 120 anos de idade.</small>
                             <small class="muted" id="admin-weekly-schedule-birth-year-preview">Ano de nascimento correspondente em <?php echo e((string) date('Y')); ?>: para nascidos entre <?php echo e((string) (date('Y') - 120)); ?> a <?php echo e((string) date('Y')); ?>.</small>
                         </div>
 
@@ -895,8 +895,8 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <label><span>Fim</span><input type="datetime-local" name="data_fim" required></label>
                     </div>
                     <div class="grid-two">
-                        <label><span>Publicacao: inicio</span><input type="datetime-local" name="data_publicacao_inicio" required></label>
-                        <label><span>Publicacao: fim</span><input type="datetime-local" name="data_publicacao_fim" required></label>
+                        <label><span>Publicação: início</span><input type="datetime-local" name="data_publicacao_inicio" required></label>
+                        <label><span>Publicação: fim</span><input type="datetime-local" name="data_publicacao_fim" required></label>
                     </div>
                     <div class="grid-two">
                         <label><span>Idade minima</span><input type="number" name="idade_minima" min="0" max="120" value="0" required></label>
@@ -972,10 +972,10 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <thead>
                             <tr>
                                 <th>Titulo</th>
-                                <th>Periodo</th>
-                                <th>Publicacao</th>
+                                <th>Período</th>
+                                <th>Publicação</th>
                                 <th>Canais</th>
-                                <th>Faixa etaria</th>
+                                <th>Faixa etária</th>
                                 <th>Vagas</th>
                                 <th>Local / modalidade</th>
                                 <th>Destino</th>
@@ -1046,8 +1046,8 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             <label><span>Fim</span><input type="datetime-local" name="data_fim" id="admin-special-schedule-end" required></label>
                         </div>
                         <div class="grid-two">
-                            <label><span>Publicacao: inicio</span><input type="datetime-local" name="data_publicacao_inicio" id="admin-special-schedule-publish-start" required></label>
-                            <label><span>Publicacao: fim</span><input type="datetime-local" name="data_publicacao_fim" id="admin-special-schedule-publish-end" required></label>
+                            <label><span>Publicação: início</span><input type="datetime-local" name="data_publicacao_inicio" id="admin-special-schedule-publish-start" required></label>
+                            <label><span>Publicação: fim</span><input type="datetime-local" name="data_publicacao_fim" id="admin-special-schedule-publish-end" required></label>
                         </div>
                         <div class="grid-two">
                             <label><span>Idade minima</span><input type="number" name="idade_minima" id="admin-special-schedule-age-min" min="0" max="120" required></label>
@@ -1224,7 +1224,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 <p class="muted"><?php echo e($popup['texto_secundario'] ?: 'Sem texto secundario.'); ?></p>
                                 <div class="popup-meta-list">
                                     <small><strong>Paginas:</strong> <?php echo e($formatarPaginasPopup($popup['caminhos_paginas'] ?? '', (int) ($popup['mostrar_todas_paginas'] ?? 0), $popupPages ?? [])); ?></small>
-                                    <small><strong>Periodo:</strong> <?php echo e(date('d/m/Y H:i', strtotime((string) $popup['data_inicio']))); ?> até <?php echo e(date('d/m/Y H:i', strtotime((string) $popup['data_fim']))); ?></small>
+                                    <small><strong>Período:</strong> <?php echo e(date('d/m/Y H:i', strtotime((string) $popup['data_inicio']))); ?> até <?php echo e(date('d/m/Y H:i', strtotime((string) $popup['data_fim']))); ?></small>
                                     <small><strong>Criado por:</strong> <?php echo e($popup['autor_nome'] ?? '-'); ?></small>
                                 </div>
                                 <div class="popup-card-actions">
@@ -1262,14 +1262,14 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     <label>
                         <span>Titulo do quadro</span>
                         <input type="text" name="titulo" maxlength="<?php echo e((string) ($homeInfoMaxTitleLength ?? 0)); ?>" value="<?php echo e((string) (($homeInfoBox['titulo'] ?? ''))); ?>" required>
-                        <small class="muted">Maximo de <?php echo e((string) ($homeInfoMaxTitleLength ?? 0)); ?> caracteres.</small>
+                        <small class="muted">Máximo de <?php echo e((string) ($homeInfoMaxTitleLength ?? 0)); ?> caracteres.</small>
                     </label>
 
                     <?php for ($i = 1; $i <= (int) ($homeInfoMaxParagraphs ?? 0); $i++) { ?>
                         <label>
                             <span>Paragrafo <?php echo e((string) $i); ?></span>
                             <textarea name="paragrafo_<?php echo e((string) $i); ?>" rows="2" maxlength="<?php echo e((string) ($homeInfoMaxParagraphLength ?? 0)); ?>" placeholder="Texto curto, direto e visualmente leve."><?php echo e((string) (($homeInfoBox['paragrafos'][$i - 1]['texto'] ?? ''))); ?></textarea>
-                            <small class="muted">Maximo de <?php echo e((string) ($homeInfoMaxParagraphLength ?? 0)); ?> caracteres.</small>
+                            <small class="muted">Máximo de <?php echo e((string) ($homeInfoMaxParagraphLength ?? 0)); ?> caracteres.</small>
                         </label>
                         <div class="grid-two">
                             <label>
@@ -1510,14 +1510,14 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             <textarea name="resumo" id="admin-blog-post-summary" rows="3" required></textarea>
                         </label>
                         <label>
-                            <span>Conteudo</span>
+                            <span>Conteúdo</span>
                             <textarea name="conteudo" id="admin-blog-post-content" rows="10" required></textarea>
                         </label>
                         <label>
                             <span>Imagem de capa</span>
                             <input type="hidden" name="capa_imagem_atual" id="admin-blog-post-image-current" value="">
                             <input type="file" name="capa_imagem_arquivo" id="admin-blog-post-image-file" accept="image/*">
-                            <small class="muted" id="admin-blog-post-image-current-text">Se nenhuma imagem for enviada, o sistema usa a imagem padrao da home como capa e fundo da postagem.</small>
+                            <small class="muted" id="admin-blog-post-image-current-text">Se nenhuma imagem for enviada, o sistema usa a imagem padrão da home como capa e fundo da postagem.</small>
                         </label>
                         <div class="admin-blog-gallery-panel">
                             <div class="section-head">
@@ -1625,8 +1625,8 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 
         <section class="grid-two">
             <article class="content-card">
-                <h2>Suspensao de espaco de treino</h2>
-                <p class="muted">Bloqueie temporariamente um espaco por manutencao, limpeza, reforma ou outra indisponibilidade.</p>
+                <h2>Suspensão de espaço de treino</h2>
+                <p class="muted">Bloqueie temporariamente um espaço por manutenção, limpeza, reforma ou outra indisponibilidade.</p>
                 <form method="POST" action="<?php echo e(url('/admin/espacos/suspensoes')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1" data-follow-redirect="1">
                     <label>
                         <span>Espaço de treino</span>
@@ -1643,7 +1643,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <label><span>Data inicial da suspensão</span><input type="date" name="data_inicio" required></label>
                         <label><span>Data final da suspensão</span><input type="date" name="data_fim" required></label>
                     </div>
-                    <label><span>Motivo</span><input type="text" name="motivo" maxlength="255" placeholder="Ex.: manutencao preventiva da piscina"></label>
+                    <label><span>Motivo</span><input type="text" name="motivo" maxlength="255" placeholder="Ex.: manutenção preventiva da piscina"></label>
                     <label>
                         <span>Status inicial</span>
                         <select name="ativo">
@@ -1656,13 +1656,13 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             </article>
 
             <article class="content-card">
-                <h2>Suspensoes de espaco cadastradas</h2>
+                <h2>Suspensões de espaço cadastradas</h2>
                 <div class="table-wrap">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Espaco</th>
-                                <th>Periodo</th>
+                                <th>Espaço</th>
+                                <th>Período</th>
                                 <th>Motivo</th>
                                 <th>Status</th>
                                 <th>Acao</th>
@@ -1704,7 +1704,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <thead>
                             <tr>
                                 <th>Local</th>
-                                <th>Espaco</th>
+                                <th>Espaço</th>
                                 <th>Tipo</th>
                                 <th>Status</th>
                             </tr>
@@ -1730,7 +1730,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     <span class="chip">Cadastro de espaços</span>
                     <span class="chip">Capacidade base</span>
                     <span class="chip">Vinculo local/modalidade</span>
-                    <span class="chip">Historico de manutencao</span>
+                    <span class="chip">Histórico de manutenção</span>
                 </div>
             </article>
         </section>
@@ -1855,7 +1855,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 <h2>Fila de proximas rotinas</h2>
                 <div class="chips-wrap">
                     <span class="chip">Area do professor</span>
-                    <span class="chip">Presenca e falta</span>
+                    <span class="chip">Presença e falta</span>
                     <span class="chip">Inscrições em turmas</span>
                     <span class="chip">Documentos e validacoes</span>
                     <span class="chip">Relatorios gerenciais</span>

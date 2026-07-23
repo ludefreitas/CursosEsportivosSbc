@@ -125,7 +125,7 @@ class SitePopupService
         $status = trim($status);
 
         if (!in_array($status, ['ativo', 'arquivado'], true)) {
-            throw new RuntimeException('Status de pop-up invalido.');
+            throw new RuntimeException('Status de pop-up inválido.');
         }
 
         $pdo = Database::connection();
@@ -243,7 +243,7 @@ class SitePopupService
             && $payload['imagem_url'] === null
             && $payload['rotulo_acao'] === null
         ) {
-            throw new RuntimeException('Preencha pelo menos um item do pop-up, como titulo, texto, imagem ou botao.');
+            throw new RuntimeException('Preencha pelo menos um item do pop-up, como título, texto, imagem ou botão.');
         }
 
         if (($payload['rotulo_acao'] === null) !== ($payload['url_acao'] === null)) {
@@ -259,11 +259,11 @@ class SitePopupService
         }
 
         if (!in_array($payload['status'], ['ativo', 'arquivado'], true)) {
-            throw new RuntimeException('Escolha um status valido para o pop-up.');
+            throw new RuntimeException('Escolha um status válido para o pop-up.');
         }
 
         if ((int) $payload['mostrar_todas_paginas'] !== 1 && empty($payload['paginas_alvo'])) {
-            throw new RuntimeException('Selecione ao menos uma pagina para exibir o pop-up ou marque a opcao de todas as paginas.');
+            throw new RuntimeException('Selecione ao menos uma página para exibir o pop-up ou marque a opção de todas as páginas.');
         }
     }
 

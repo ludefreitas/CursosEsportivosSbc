@@ -378,7 +378,7 @@
                     + '<p><strong>Tipo:</strong> Horário especial</p>'
                     + (String(props.criterio_faixa_etaria || '') === 'ano_nascimento' && String(props.ano_nascimento_intervalo || '').trim() !== ''
                         ? '<p><strong>Faixa permitida:</strong> ( para ' + String(props.ano_nascimento_intervalo).replace('Nascidos entre ', 'nascidos entre ') + ' )</p>'
-                        : '<p><strong>Faixa etaria:</strong> ( para ' + String(props.special_age_min || 0) + ' a ' + String(props.special_age_max || 120) + ' anos de idade )</p>')
+                        : '<p><strong>Faixa etária:</strong> ( para ' + String(props.special_age_min || 0) + ' a ' + String(props.special_age_max || 120) + ' anos de idade )</p>')
                     + '<p><strong>Vagas:</strong> Geral ' + String(props.vagas_geral || 0) + ' | PCD ' + String(props.vagas_pcd || 0) + ' | PVS ' + String(props.vagas_pvs || 0) + ' | PLM ' + String(props.vagas_plm || 0) + '</p>'
                     + '<p><strong>Inscrições:</strong> ' + String(props.vagas_ocupadas || 0) + ' de ' + String(props.vagas_total || 0) + '</p>'
                     + (String(props.special_image_url || '').trim() !== '' ? '<p><img src="' + App.agenda.escapeHtml(String(props.special_image_url || '')) + '" alt="' + App.agenda.escapeHtml(eventInfo.event.title) + '" class="agenda-special-event-image"></p>' : '')
@@ -408,7 +408,7 @@
                 + '<p><strong>Tipo:</strong> ' + props.tipo_horario + '</p>'
                 + (String(props.criterio_faixa_etaria || '') === 'ano_nascimento' && String(props.ano_nascimento_intervalo || '').trim() !== ''
                     ? '<p><strong>Ano de nascimento permitido:</strong> ( para ' + String(props.ano_nascimento_intervalo).replace('Nascidos entre ', 'nascidos entre ') + ' )</p>'
-                    : '<p><strong>Faixa etaria:</strong> ( para ' + props.idade_minima + ' a ' + props.idade_maxima + ' anos de idade )</p>')
+                    : '<p><strong>Faixa etária:</strong> ( para ' + props.idade_minima + ' a ' + props.idade_maxima + ' anos de idade )</p>')
                 + '<p><strong>Sexo permitido:</strong> ' + App.agenda.formatarSexoHorario(props.sexo) + '</p>'
                 + '<p><strong>Vagas:</strong> ' + App.agenda.formatarVagasAgenda(props.vagas_disponiveis, props.vagas_total) + ' disponíveis</p>'
                 + '<p><strong>Ocupacao:</strong> ' + String(props.vagas_ocupadas || 0).padStart(2, '0') + ' agendamento(s) de ' + String(props.vagas_total || 0).padStart(2, '0') + ' vaga(s)</p>'

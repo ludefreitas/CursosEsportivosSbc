@@ -290,7 +290,7 @@ class AgendaService
         $start = trim((string) ($data['data_hora_inicio'] ?? ''));
 
         if ($scheduleId <= 0 || $personId <= 0 || $start === '') {
-            throw new RuntimeException('Selecione horario, pessoa e publico alvo.');
+            throw new RuntimeException('Selecione horário, pessoa e público-alvo.');
         }
 
         $startDate = $this->parseScheduleStart($start);
@@ -312,7 +312,7 @@ class AgendaService
         $person = $stmtPerson->fetch(PDO::FETCH_ASSOC);
 
         if (!$person || (int) $person['cadastro_completo'] !== 1) {
-            throw new RuntimeException('A pessoa selecionada precisa estar vinculada ao responsavel logado e com cadastro completo.');
+            throw new RuntimeException('A pessoa selecionada precisa estar vinculada ao responsável logado e com cadastro completo.');
         }
 
         $schedule = $this->findScheduleById($scheduleId);
@@ -355,7 +355,7 @@ class AgendaService
         }
 
         if ($bookingId <= 0) {
-            throw new RuntimeException('Agendamento invalido para cancelamento.');
+            throw new RuntimeException('Agendamento inválido para cancelamento.');
         }
 
         $pdo = Database::connection();
@@ -388,7 +388,7 @@ class AgendaService
         $deadline = $bookingDate->modify('-2 hours');
 
         if (new DateTimeImmutable() > $deadline) {
-            throw new RuntimeException('O cancelamento so pode ser feito até 2 horas antes do horário.');
+            throw new RuntimeException('O cancelamento só pode ser feito até 2 horas antes do horário.');
         }
 
         $stmtUpdate = $pdo->prepare('
@@ -431,7 +431,7 @@ class AgendaService
             $publishStart = new DateTimeImmutable((string) $event['data_publicacao_inicio']);
             $publishEnd = new DateTimeImmutable((string) $event['data_publicacao_fim']);
         } catch (\Throwable $e) {
-            throw new RuntimeException('A janela de públicação deste horário especial esta invalida.');
+            throw new RuntimeException('A janela de publicação deste horário especial está inválida.');
         }
 
         if ($now < $publishStart || $now > $publishEnd) {
@@ -452,11 +452,11 @@ class AgendaService
         }
 
         if (!validar_nome_cadastro($fullName)) {
-            throw new RuntimeException('Informe um nome completo valido para a inscrição.');
+            throw new RuntimeException('Informe um nome completo válido para a inscrição.');
         }
 
         if (!validar_cpf($cpf)) {
-            throw new RuntimeException('Informe um CPF valido para a inscrição.');
+            throw new RuntimeException('Informe um CPF válido para a inscrição.');
         }
 
         if ($birthDate === '') {
@@ -466,7 +466,7 @@ class AgendaService
         try {
             $birth = new DateTimeImmutable($birthDate);
         } catch (\Throwable $e) {
-            throw new RuntimeException('A data de nascimento informada e invalida.');
+            throw new RuntimeException('A data de nascimento informada é inválida.');
         }
 
         $specialStart = new DateTimeImmutable((string) ($event['data_inicio'] ?? 'now'));
@@ -506,7 +506,7 @@ class AgendaService
             $this->validarRestricaoValidacaoParcial($pdo, (int) $linkedPerson['id'], $publico);
             $this->validarPublicoReservado($pdo, (int) $linkedPerson['id'], $publico);
         } elseif ($publico !== 'geral') {
-            throw new RuntimeException('As vagas reservadas exigem uma pessoa ja cadastrada e vinculada no sistema.');
+            throw new RuntimeException('As vagas reservadas exigem uma pessoa já cadastrada e vinculada no sistema.');
         }
 
         $this->validarVagasHorarioEspecial($pdo, $event, $publico);
@@ -525,7 +525,7 @@ class AgendaService
         ]);
 
         if ($stmtDuplicate->fetchColumn()) {
-            throw new RuntimeException('Ja existe uma inscrição ativa com este CPF para este horário especial.');
+            throw new RuntimeException('Já existe uma inscrição ativa com este CPF para este horário especial.');
         }
 
         $stmt = $pdo->prepare('
@@ -595,7 +595,7 @@ class AgendaService
         ]);
 
         if (!(bool) $stmtEval->fetchColumn()) {
-            throw new RuntimeException('Antes de treinar, a pessoa precisa ter uma avaliação fisica apta para esta modalidade.');
+            throw new RuntimeException('Antes de treinar, a pessoa precisa ter uma avaliação física apta para esta modalidade.');
         }
 
         if ($this->shouldRequireCertificate($schedule, 'clinico')) {
@@ -611,7 +611,7 @@ class AgendaService
             $stmtClinico->execute([':pessoa_id' => $personId]);
 
             if (!(bool) $stmtClinico->fetchColumn()) {
-                throw new RuntimeException('Sem atestado clínico validado nao e possivel agendar este horário.');
+                throw new RuntimeException('Sem atestado clínico validado não é possível agendar este horário.');
             }
         }
 
@@ -628,7 +628,7 @@ class AgendaService
             $stmtDermato->execute([':pessoa_id' => $personId]);
 
             if (!(bool) $stmtDermato->fetchColumn()) {
-                throw new RuntimeException('Sem atestado dermatológico validado nao e possivel agendar este horário.');
+                throw new RuntimeException('Sem atestado dermatológico validado não é possível agendar este horário.');
             }
         }
     }
@@ -688,7 +688,7 @@ class AgendaService
         $schedule = $stmtSchedule->fetch(PDO::FETCH_ASSOC);
 
         if (!$schedule) {
-            throw new RuntimeException('Horario não encontrado.');
+            throw new RuntimeException('Horário não encontrado.');
         }
 
         return $schedule;
@@ -702,13 +702,13 @@ class AgendaService
         $start = trim($start);
 
         if ($start === '') {
-            throw new RuntimeException('Horario não informado.');
+            throw new RuntimeException('Horário não informado.');
         }
 
         try {
             return new DateTimeImmutable($start);
         } catch (\Throwable $e) {
-            throw new RuntimeException('Data do horário invalida.');
+            throw new RuntimeException('Data do horário inválida.');
         }
     }
 
@@ -725,7 +725,7 @@ class AgendaService
         }
 
         if ($now > $window['close']) {
-            throw new RuntimeException('A agenda deste horário ja foi encerrada para agendamento.');
+            throw new RuntimeException('A agenda deste horário já foi encerrada para agendamento.');
         }
     }
 
@@ -739,17 +739,17 @@ class AgendaService
         $personName = trim((string) ($person['nome_completo'] ?? 'Pessoa'));
 
         if ((int) ($person['cadastro_completo'] ?? 0) !== 1) {
-            $reasons[] = 'O cadastro de ' . $personName . ' ainda não esta completo.';
+            $reasons[] = 'O cadastro de ' . $personName . ' ainda não está completo.';
         }
 
         $reasons = array_merge($reasons, $this->collectConditionCertificateBlockReasons($pdo, $person));
 
         if ((int) ($schedule['ativo'] ?? 0) !== 1) {
-            $reasons[] = 'Este horário semanal esta inativo no momento.';
+            $reasons[] = 'Este horário semanal está inativo no momento.';
         }
 
         if ((int) ($schedule['espaco_ativo'] ?? 0) !== 1 || (int) ($schedule['local_ativo'] ?? 0) !== 1) {
-            $reasons[] = 'O local ou espaco deste horário esta indisponível no momento.';
+            $reasons[] = 'O local ou espaço deste horário está indisponível no momento.';
         }
 
         $windowReason = $this->resolveScheduleWindowBlockReason($schedule, $startDate);
@@ -776,12 +776,12 @@ class AgendaService
 
             if ($ageRuleMode === 'ano_nascimento') {
                 $birthYear = birth_year_from_date($person['data_nascimento'] ?? null);
-                $yearLabel = $birthYear === null ? 'nao informado' : (string) $birthYear;
-                $reasons[] = 'Este horário esta reservado para ' . strtolower((string) $ageDescription['detailed']) . ', ' . $personName . ' tem ano de nascimento ' . $yearLabel . '.';
+                $yearLabel = $birthYear === null ? 'não informado' : (string) $birthYear;
+                $reasons[] = 'Este horário está reservado para ' . strtolower((string) $ageDescription['detailed']) . ', ' . $personName . ' tem ano de nascimento ' . $yearLabel . '.';
             } else {
                 $age = calculate_age($person['data_nascimento'] ?? null);
-                $ageLabel = $age === null ? 'nao informada' : (string) $age;
-                $reasons[] = 'Este horário esta reservado para pessoas de ' . (int) $schedule['idade_minima'] . ' a ' . (int) $schedule['idade_maxima'] . ' anos, ' . $personName . ' tem ' . $ageLabel . ' anos.';
+                $ageLabel = $age === null ? 'não informada' : (string) $age;
+                $reasons[] = 'Este horário está reservado para pessoas de ' . (int) $schedule['idade_minima'] . ' a ' . (int) $schedule['idade_maxima'] . ' anos, ' . $personName . ' tem ' . $ageLabel . ' anos.';
             }
         }
 
@@ -794,14 +794,14 @@ class AgendaService
             if ($personSexo === '') {
                 $reasons[] = 'Este horário de agendamento está reservado para pessoas do sexo ' . $sexoLabel . ', ' . $personName . ' não informou o sexo ao fazer o cadastro. Edite seu cadastro <a>clique aqui</a>';
             } elseif (!$sexoDeclarado) {
-                $reasons[] = 'Este horário de agendamento esta reservado para pessoas do sexo ' . $sexoLabel . ', ' . $personName . ' nao declarou o sexo.';
+                $reasons[] = 'Este horário de agendamento está reservado para pessoas do sexo ' . $sexoLabel . ', ' . $personName . ' não declarou o sexo.';
             } elseif ($personSexo !== $scheduleSexo) {
-                $reasons[] = 'Este horário de agendamento esta reservado para pessoas do sexo ' . $sexoLabel . ', ' . $personName . ' não pode agendar.';
+                $reasons[] = 'Este horário de agendamento está reservado para pessoas do sexo ' . $sexoLabel . ', ' . $personName . ' não pode agendar.';
             }
         }
 
         if ($this->isSingleSpaceSuspendedOnDate((int) ($schedule['espaco_treino_id'] ?? 0), $startDate->format('Y-m-d'))) {
-            $reasons[] = 'Este espaco de treino esta temporariamente suspenso por manutencao ou indisponibilidade no periodo selecionado.';
+            $reasons[] = 'Este espaço de treino está temporariamente suspenso por manutenção ou indisponibilidade no período selecionado.';
         }
 
         $stmtLastAbsence = $pdo->prepare('
@@ -829,7 +829,7 @@ class AgendaService
         $stmtFuture->execute([':pessoa_id' => $personId]);
 
         if ((int) $stmtFuture->fetchColumn() >= 2) {
-            $reasons[] = 'Ja possui 2 agendamentos futuros e precisa comparecer para liberar novos horários.';
+            $reasons[] = 'Já possui 2 agendamentos futuros e precisa comparecer para liberar novos horários.';
         }
 
         $stmtSameDay = $pdo->prepare('
@@ -845,7 +845,7 @@ class AgendaService
         ]);
 
         if ((int) $stmtSameDay->fetchColumn() >= 1) {
-            $reasons[] = 'Ja existe um agendamento ativo para este mesmo dia.';
+            $reasons[] = 'Já existe um agendamento ativo para este mesmo dia.';
         }
 
         try {
@@ -928,7 +928,7 @@ class AgendaService
             }
 
             if (($certificate['status'] ?? '') === 'pendente') {
-                $reasons[] = $personName . ' foi marcado como ' . $meta['label'] . ' e a documentação enviada ainda esta pendente de validação.';
+                $reasons[] = $personName . ' foi marcado como ' . $meta['label'] . ' e a documentação enviada ainda está pendente de validação.';
                 continue;
             }
 
@@ -1237,7 +1237,7 @@ class AgendaService
 
             $events[] = [
                 'id' => 'special-schedule-' . (string) ($row['id'] ?? ''),
-                'title' => (string) ($row['titulo'] ?? 'Horario especial'),
+                'title' => (string) ($row['titulo'] ?? 'Horário especial'),
                 'start' => str_replace(' ', 'T', (string) ($row['data_inicio'] ?? '')),
                 'end' => str_replace(' ', 'T', (string) ($row['data_fim'] ?? '')),
                 'classNames' => ['agenda-special-event'],
@@ -1247,7 +1247,7 @@ class AgendaService
                     'local' => (string) ($row['local_nome'] ?? ''),
                     'espaco' => (string) ($row['espaco_nome'] ?? ''),
                     'modalidade' => (string) ($row['modalidade_nome'] ?? ''),
-                    'tipo_horario' => 'horario especial',
+                    'tipo_horario' => 'horário especial',
                     'special_description' => (string) ($row['descricao'] ?? ''),
                     'special_cta_url' => (string) ($row['url_destino'] ?? ''),
                     'special_cta_label' => trim((string) ($row['rotulo_acao'] ?? '')) !== '' ? (string) $row['rotulo_acao'] : 'Abrir detalhes',
@@ -1368,7 +1368,7 @@ class AgendaService
     private function findSpecialScheduleById(int $eventId): array
     {
         if ($eventId <= 0) {
-            throw new RuntimeException('Horario especial invalido.');
+            throw new RuntimeException('Horário especial inválido.');
         }
 
         $pdo = Database::connection();
@@ -1383,7 +1383,7 @@ class AgendaService
         $event = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$event) {
-            throw new RuntimeException('Horario especial não encontrado.');
+            throw new RuntimeException('Horário especial não encontrado.');
         }
 
         return $event;
@@ -1797,7 +1797,7 @@ class AgendaService
         ]);
 
         if (!(bool) $stmt->fetchColumn()) {
-            throw new RuntimeException('A vaga reservada selecionada exige certificado validado da mesma condicao especial.');
+            throw new RuntimeException('A vaga reservada selecionada exige certificado validado da mesma condição especial.');
         }
     }
 
@@ -1831,11 +1831,11 @@ class AgendaService
         }
 
         if ($publico === 'geral') {
-            throw new RuntimeException('Com certificado validado parcialmente, a pessoa so pode agendar nas vagas destinadas a sua condicao especial enquanto a regularização nao for concluída.');
+            throw new RuntimeException('Com certificado validado parcialmente, a pessoa só pode agendar nas vagas destinadas à sua condição especial enquanto a regularização não for concluída.');
         }
 
         if (!in_array($publico, $partialSlugs, true)) {
-            throw new RuntimeException('Com certificado validado parcialmente, a pessoa so pode agendar nas vagas destinadas a sua própria condicao especial.');
+            throw new RuntimeException('Com certificado validado parcialmente, a pessoa só pode agendar nas vagas destinadas à sua própria condição especial.');
         }
     }
 

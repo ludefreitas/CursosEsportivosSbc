@@ -9,7 +9,7 @@
 <div class="popup-body admin-popup-body dashboard-dependent-modal-body">
     <div class="dashboard-dependent-panel" data-dependent-modal-panel="view">
         <div class="alert-inline dashboard-dependent-attention">
-            Confira com atencao o CPF e a data de nascimento. Para corrigir qualquer um desses dados, entre em contato com o suporte.
+            Confira com atenção o CPF e a data de nascimento. Para corrigir qualquer um desses dados, entre em contato com o suporte.
         </div>
         <div class="dashboard-dependent-details-grid">
             <div><strong>Nome completo:</strong><span><?php echo e((string) ($dependent['nome_completo'] ?? '')); ?></span></div>
@@ -18,14 +18,14 @@
             <div><strong>Sexo:</strong><span><?php echo e((string) ($dependent['sexo'] ?? '-')); ?></span></div>
             <div><strong>WhatsApp:</strong><span><?php echo e((string) ($dependent['telefone_whatsapp'] ?? '-')); ?></span></div>
             <div><strong>E-mail:</strong><span><?php echo e((string) ($dependent['email'] ?? '-')); ?></span></div>
-            <div><strong>Cartao SUS:</strong><span><?php echo e((string) (($dependent['numero_cartao_sus'] ?? '') !== '' ? $dependent['numero_cartao_sus'] : '-')); ?></span></div>
+            <div><strong>Cartão SUS:</strong><span><?php echo e((string) (($dependent['numero_cartao_sus'] ?? '') !== '' ? $dependent['numero_cartao_sus'] : '-')); ?></span></div>
             <div><strong>CEP:</strong><span><?php echo e(format_cep((string) ($dependent['cep'] ?? ''))); ?></span></div>
             <div><strong>Endereço:</strong><span><?php echo e(trim((string) (($dependent['logradouro'] ?? '') . ', ' . ($dependent['numero_endereco'] ?? '')))); ?></span></div>
             <div><strong>Complemento:</strong><span><?php echo e((string) (($dependent['complemento'] ?? '') !== '' ? $dependent['complemento'] : '-')); ?></span></div>
             <div><strong>Bairro:</strong><span><?php echo e((string) ($dependent['bairro'] ?? '-')); ?></span></div>
             <div><strong>Cidade/UF:</strong><span><?php echo e(trim((string) (($dependent['cidade'] ?? '') . '/' . ($dependent['uf'] ?? '')))); ?></span></div>
-            <div><strong>Contato de emergencia:</strong><span><?php echo e((string) ($dependent['contato_emergencia_nome'] ?? '-')); ?></span></div>
-            <div><strong>Telefone de emergencia:</strong><span><?php echo e((string) ($dependent['contato_emergencia_telefone'] ?? '-')); ?></span></div>
+            <div><strong>Contato de emergência:</strong><span><?php echo e((string) ($dependent['contato_emergencia_nome'] ?? '-')); ?></span></div>
+            <div><strong>Telefone de emergência:</strong><span><?php echo e((string) ($dependent['contato_emergencia_telefone'] ?? '-')); ?></span></div>
             <div><strong>Responsável 1:</strong><span><?php echo e((string) ($dependent['responsavel1_nome'] ?? '-')); ?><?php echo !empty($dependent['responsavel1_cpf']) ? ' (' . e(format_cpf((string) $dependent['responsavel1_cpf'])) . ')' : ''; ?></span></div>
             <div><strong>Responsável 2:</strong><span><?php echo e((string) (($dependent['responsavel2_nome'] ?? '') !== '' ? $dependent['responsavel2_nome'] : '-')); ?><?php echo !empty($dependent['responsavel2_cpf']) ? ' (' . e(format_cpf((string) $dependent['responsavel2_cpf'])) . ')' : ''; ?></span></div>
             <div><strong>Condição declarada:</strong><span><?php
@@ -99,14 +99,14 @@
                     <label>
                         <span>Número do cartão SUS</span>
                         <input type="text" name="numero_cartao_sus" data-sus-card="1" maxlength="19" value="<?php echo e((string) ($dependent['numero_cartao_sus'] ?? '')); ?>">
-                        <small class="muted">Campo opcional. Se informado, deve conter exatamente 16 numeros.</small>
+                        <small class="muted">Campo opcional. Se informado, deve conter exatamente 16 números.</small>
                     </label>
                     <label>
-                        <span>Contato de emergencia</span>
+                        <span>Contato de emergência</span>
                         <input type="text" name="emergency_contact_name" value="<?php echo e((string) ($dependent['contato_emergencia_nome'] ?? '')); ?>" required>
                     </label>
                     <label>
-                        <span>Telefone do contato de emergencia</span>
+                        <span>Telefone do contato de emergência</span>
                         <input type="text" name="emergency_contact_phone" value="<?php echo e((string) ($dependent['contato_emergencia_telefone'] ?? '')); ?>" required>
                     </label>
                 </div>
@@ -125,7 +125,7 @@
                     </label>
                     <label class="checkbox-chip">
                         <input type="checkbox" name="eh_plm" value="1" data-condition-exclusive="1" <?php echo (int) ($dependent['eh_plm'] ?? 0) === 1 ? 'checked' : ''; ?>>
-                        <span>E pessoa com laudo medico de doenca (PLM)</span>
+                        <span>É pessoa com laudo médico de doença (PLM)</span>
                     </label>
                 </div>
                 <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condição pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>

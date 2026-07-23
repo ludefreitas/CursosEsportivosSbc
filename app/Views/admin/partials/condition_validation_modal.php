@@ -32,12 +32,12 @@ foreach ($selectedDisabilityTypes as $selectedType) {
         <p><strong>Nome:</strong> <?php echo e((string) ($person['nome_completo'] ?? '-')); ?></p>
         <p><strong>CPF:</strong> <?php echo e(format_cpf((string) ($person['cpf'] ?? ''))); ?></p>
         <p><strong>Responsável:</strong> <?php echo e((string) (($person['nome_responsavel'] ?? '') !== '' ? $person['nome_responsavel'] : '-')); ?></p>
-        <p><strong>Condicao:</strong> <?php echo e((string) ($condition['label'] ?? '-')); ?></p>
+        <p><strong>Condição:</strong> <?php echo e((string) ($condition['label'] ?? '-')); ?></p>
         <p><strong>Status atual:</strong> <?php echo e((string) ($certificate['status'] ?? 'Sem certificado enviado')); ?></p>
         <p><strong>Resumo informado pela pessoa:</strong> <?php echo e((string) ($certificate['descricao_resumida'] ?? '-')); ?></p>
         <?php if (in_array((string) ($condition['slug'] ?? ''), ['pcd', 'plm'], true)) { ?>
             <p><strong>CID declarado:</strong> <?php echo e((string) ($certificate['codigo_cid_declarado'] ?? '-')); ?></p>
-            <p><strong>Doenca declarada:</strong> <?php echo e((string) ($certificate['doenca_declarada'] ?? '-')); ?></p>
+            <p><strong>Doença declarada:</strong> <?php echo e((string) ($certificate['doenca_declarada'] ?? '-')); ?></p>
         <?php } ?>
         <?php if ((string) ($condition['slug'] ?? '') === 'pcd') { ?>
             <p><strong>Deficiencias declaradas:</strong> <?php echo e($selectedDisabilityLabels !== [] ? implode(', ', $selectedDisabilityLabels) : '-'); ?></p>
@@ -92,7 +92,7 @@ foreach ($selectedDisabilityTypes as $selectedType) {
                 <small class="muted">Para PCD e PLM, informe o CID validado no formato A00.0 quando o status for validado ou validado parcial.</small>
             </label>
             <label>
-                <span>Doenca validada</span>
+                <span>Doença validada</span>
                 <input type="text" name="doenca_validada" value="<?php echo e($currentValidatedDisease); ?>" <?php echo $documents === [] ? 'disabled' : ''; ?>>
             </label>
         <?php } ?>

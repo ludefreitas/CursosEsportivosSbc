@@ -15,7 +15,7 @@ class ProfileService
         'dermatologico' => 'Atestado dermatológico',
     ];
     private const HEALTH_CERTIFICATE_SERVICE_LOCATIONS = [
-        'servico_publico' => 'Servico publico',
+        'servico_publico' => 'Serviço público',
         'clinica_particular' => 'Clinica particular',
         'clinica_convenio' => 'Clinica convenio medico',
     ];
@@ -177,11 +177,11 @@ class ProfileService
         $age = calculate_age($birthDate);
 
         if (!validar_cpf($cpf)) {
-            throw new RuntimeException('Informe um CPF valido para o dependente.');
+            throw new RuntimeException('Informe um CPF válido para o dependente.');
         }
 
         if ($age === null) {
-            throw new RuntimeException('Informe uma data de nascimento valida para o dependente.');
+            throw new RuntimeException('Informe uma data de nascimento válida para o dependente.');
         }
 
         if (!validar_nome_cadastro((string) ($data['full_name'] ?? ''))) {
@@ -214,7 +214,7 @@ class ProfileService
                 $linkedResponsibleId = $stmtCurrentLink->fetchColumn();
 
                 if ($linkedResponsibleId && (int) $linkedResponsibleId !== (int) $responsible['id']) {
-                    throw new RuntimeException('Este CPF ja pertence a um dependente vinculado a outro responsavel e não pode ser alterado por esta conta.');
+                    throw new RuntimeException('Este CPF já pertence a um dependente vinculado a outro responsável e não pode ser alterado por esta conta.');
                 }
 
                 $stmtUpdate = $pdo->prepare('
@@ -292,7 +292,7 @@ class ProfileService
         }
 
         if ($personId <= 0) {
-            throw new RuntimeException('Dependente invalido.');
+            throw new RuntimeException('Dependente inválido.');
         }
 
         $pdo = Database::connection();
@@ -452,7 +452,7 @@ class ProfileService
             $link = $stmtLink->fetch(PDO::FETCH_ASSOC);
 
             if (!$link || (int) $link['responsavel_pessoa_id'] !== (int) $currentResponsible['id']) {
-                throw new RuntimeException('Apenas o responsavel atual pode transferir este dependente.');
+                throw new RuntimeException('Apenas o responsável atual pode transferir este dependente.');
             }
 
             if ((int) $link['dependente_pessoa_id'] === (int) $currentResponsible['id']) {
@@ -584,15 +584,15 @@ class ProfileService
                 }
 
                 if ($issuedAt !== '' && !$this->isValidDate($issuedAt)) {
-                    throw new RuntimeException('Informe uma data de emissao valida para ' . strtolower($label) . '.');
+                    throw new RuntimeException('Informe uma data de emissão válida para ' . strtolower($label) . '.');
                 }
 
                 if ($crm !== '' && !$this->isValidMedicalCrm($crm)) {
-                    throw new RuntimeException('Informe um CRM valido para ' . strtolower($label) . '.');
+                    throw new RuntimeException('Informe um CRM válido para ' . strtolower($label) . '.');
                 }
 
                 if ($serviceLocation !== '' && !isset(self::HEALTH_CERTIFICATE_SERVICE_LOCATIONS[$serviceLocation])) {
-                    throw new RuntimeException('Selecione um local de atendimento valido para ' . strtolower($label) . '.');
+                    throw new RuntimeException('Selecione um local de atendimento válido para ' . strtolower($label) . '.');
                 }
 
                 $existingRecord = $existingRecords[$slug] ?? null;
@@ -778,7 +778,7 @@ class ProfileService
         $ok2 = $responsavel2Nome !== '' && validar_cpf($responsavel2Cpf);
 
         if (!$ok1 && !$ok2) {
-            throw new RuntimeException('Informe pelo menos um responsavel com nome e CPF validos.');
+            throw new RuntimeException('Informe pelo menos um responsável com nome e CPF válidos.');
         }
     }
 
@@ -796,7 +796,7 @@ class ProfileService
         }
 
         if ($selected > 1) {
-            throw new RuntimeException('Selecione somente uma condicao entre PCD, PVS e PLM para este cadastro.');
+            throw new RuntimeException('Selecione somente uma condição entre PCD, PVS e PLM para este cadastro.');
         }
     }
 
@@ -818,7 +818,7 @@ class ProfileService
         $normalized = $this->normalizeNumeroCartaoSus($value);
 
         if ($normalized !== '' && strlen($normalized) !== 16) {
-            throw new RuntimeException('Quando informado, o numero do cartao SUS deve conter exatamente 16 numeros.');
+            throw new RuntimeException('Quando informado, o número do cartão SUS deve conter exatamente 16 números.');
         }
     }
 

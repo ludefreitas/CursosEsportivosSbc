@@ -18,7 +18,7 @@ class CertificateService
             'auditiva' => 'Auditiva',
             'visual' => 'Visual',
             'intelectual' => 'Intelectual',
-            'fisica' => 'Fisica',
+            'fisica' => 'Física',
             'autismo' => 'Autismo',
             'tea' => 'TEA (Transtorno do Espectro Autista)',
         ];
@@ -32,7 +32,7 @@ class CertificateService
         return [
             'pcd' => ['field' => 'eh_pcd', 'label' => 'Pessoa com Deficiencia (PCD)'],
             'pvs' => ['field' => 'eh_pvs', 'label' => 'Pessoa em Vulnerabilidade Social (PVS)'],
-            'plm' => ['field' => 'eh_plm', 'label' => 'Pessoa com Laudo Medico de Doenca (PLM)'],
+            'plm' => ['field' => 'eh_plm', 'label' => 'Pessoa com Laudo Médico de Doença (PLM)'],
         ];
     }
 
@@ -77,14 +77,14 @@ class CertificateService
         $conditionMap = $this->conditionMap();
 
         if (!isset($conditionMap[$conditionSlug])) {
-            throw new RuntimeException('Condicao informada invalida.');
+            throw new RuntimeException('Condição informada inválida.');
         }
 
         $person = $this->findManagedPerson($personId);
         $conditionField = $conditionMap[$conditionSlug]['field'];
 
         if ((int) ($person[$conditionField] ?? 0) !== 1) {
-            throw new RuntimeException('Essa condicao não está marcada no cadastro da pessoa e não pode receber documentação.');
+            throw new RuntimeException('Essa condição não está marcada no cadastro da pessoa e não pode receber documentação.');
         }
 
         $normalizedFiles = $this->normalizeUploadedFiles($files);
@@ -108,11 +108,11 @@ class CertificateService
         }
 
         if ($issuedAt !== '' && !$this->isValidDate($issuedAt)) {
-            throw new RuntimeException('Informe uma data de emissao valida.');
+            throw new RuntimeException('Informe uma data de emissão válida.');
         }
 
         if (in_array($conditionSlug, ['pcd', 'plm'], true) && $declaredCidCode === '') {
-            throw new RuntimeException('Informe obrigatoriamente o codigo CID declarado para essa condicao.');
+            throw new RuntimeException('Informe obrigatoriamente o código CID declarado para essa condição.');
         }
 
         if (in_array($conditionSlug, ['pcd', 'plm'], true) && !$this->isValidCidCode($declaredCidCode)) {
@@ -120,7 +120,7 @@ class CertificateService
         }
 
         if (in_array($conditionSlug, ['pcd', 'plm'], true) && $declaredDisease === '') {
-            throw new RuntimeException('Informe obrigatoriamente o nome da doenca declarada para essa condicao.');
+            throw new RuntimeException('Informe obrigatoriamente o nome da doença declarada para essa condição.');
         }
 
         if ($conditionSlug === 'pcd' && $selectedDisabilityTypes === []) {
@@ -128,11 +128,11 @@ class CertificateService
         }
 
         if ($conditionSlug === 'pvs' && $nisNumber === '') {
-            throw new RuntimeException('Informe obrigatoriamente o numero do CadUnico (NIS) para PVS.');
+            throw new RuntimeException('Informe obrigatoriamente o número do CadÚnico (NIS) para PVS.');
         }
 
         if ($conditionSlug === 'pvs' && !$this->isValidNisNumber($nisNumber)) {
-            throw new RuntimeException('Informe o numero do CadUnico (NIS) com 11 digitos numericos.');
+            throw new RuntimeException('Informe o número do CadÚnico (NIS) com 11 dígitos numéricos.');
         }
 
         $pdo = Database::connection();
@@ -296,7 +296,7 @@ class CertificateService
         }
 
         if ($documentId <= 0) {
-            throw new RuntimeException('Documento invalido.');
+            throw new RuntimeException('Documento inválido.');
         }
 
         $pdo = Database::connection();
@@ -342,7 +342,7 @@ class CertificateService
         }
 
         if ($personId <= 0) {
-            throw new RuntimeException('Pessoa invalida para gerenciar documentação.');
+            throw new RuntimeException('Pessoa inválida para gerenciar documentação.');
         }
 
         $pdo = Database::connection();
@@ -432,7 +432,7 @@ class CertificateService
         $typeId = $stmt->fetchColumn();
 
         if (!$typeId) {
-            throw new RuntimeException('Tipo de certificado não encontrado para a condicao informada.');
+            throw new RuntimeException('Tipo de certificado não encontrado para a condição informada.');
         }
 
         return (int) $typeId;
@@ -575,11 +575,11 @@ class CertificateService
         $expiry = trim((string) ($certificate['validade_certificado'] ?? ''));
 
         if ($status === 'pendente') {
-            return 'Documentacao pendente de validacao';
+            return 'Documentação pendente de validação';
         }
 
         if ($status === 'reprovado') {
-            return 'Documentacao reprovada';
+            return 'Documentação reprovada';
         }
 
         if ($status === 'validado_parcial') {
@@ -607,7 +607,7 @@ class CertificateService
             return 'Certificado validado';
         }
 
-        return 'Documentacao enviada';
+        return 'Documentação enviada';
     }
 
     /**

@@ -127,11 +127,11 @@ class AuthController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => false,
-                    'message' => 'Confirme que você é uma pessoa maior de 18 anos. Se nao for uma pessoa maior de 18 anos, peca para o seu responsável cadastrar voce. Somente pessoas maiores de 18 anos podem se cadastrar neste formulario.',
+                    'message' => 'Confirme que você é uma pessoa maior de 18 anos. Se não for uma pessoa maior de 18 anos, peça para o seu responsável cadastrar você. Somente pessoas maiores de 18 anos podem se cadastrar neste formulário.',
                 ]);
             }
 
-            flash('error', 'Confirme que você é uma pessoa maior de 18 anos. Se nao for uma pessoa maior de 18 anos, peca para o seu responsável cadastrar voce. Somente pessoas maiores de 18 anos podem se cadastrar neste formulario.');
+            flash('error', 'Confirme que você é uma pessoa maior de 18 anos. Se não for uma pessoa maior de 18 anos, peça para o seu responsável cadastrar você. Somente pessoas maiores de 18 anos podem se cadastrar neste formulário.');
             redirect('/cadastro');
         }
 
@@ -168,12 +168,12 @@ class AuthController extends Controller
                 if ($this->isAjaxRequest()) {
                     $this->jsonResponse([
                         'success' => true,
-                        'message' => 'Conta criada com sucesso. O cadastro complementar esta temporariamente bloqueado porque este CPF ainda esta vinculado como dependente de outro responsavel. Solicite a transferencia de responsabilidade para o seu CPF.',
+                        'message' => 'Conta criada com sucesso. O cadastro complementar está temporariamente bloqueado porque este CPF ainda está vinculado como dependente de outro responsável. Solicite a transferência de responsabilidade para o seu CPF.',
                         'redirect' => url('/perfil/completar'),
                     ]);
                 }
 
-                flash('success', 'Conta criada com sucesso. O cadastro complementar esta temporariamente bloqueado porque este CPF ainda esta vinculado como dependente de outro responsavel. Solicite a transferencia de responsabilidade para o seu CPF.');
+                flash('success', 'Conta criada com sucesso. O cadastro complementar está temporariamente bloqueado porque este CPF ainda está vinculado como dependente de outro responsável. Solicite a transferência de responsabilidade para o seu CPF.');
                 redirect('/perfil/completar');
             }
 
@@ -181,12 +181,12 @@ class AuthController extends Controller
                 if ($this->isAjaxRequest()) {
                     $this->jsonResponse([
                         'success' => true,
-                        'message' => 'Conta criada com sucesso. Seu cadastro de pessoa ja estava completo e o acesso ao sistema foi liberado.',
+                        'message' => 'Conta criada com sucesso. Seu cadastro de pessoa já estava completo e o acesso ao sistema foi liberado.',
                         'redirect' => url('/dashboard'),
                     ]);
                 }
 
-                flash('success', 'Conta criada com sucesso. Seu cadastro de pessoa ja estava completo e o acesso ao sistema foi liberado.');
+                flash('success', 'Conta criada com sucesso. Seu cadastro de pessoa já estava completo e o acesso ao sistema foi liberado.');
                 redirect('/dashboard');
             } else {
                 if ($this->isAjaxRequest()) {

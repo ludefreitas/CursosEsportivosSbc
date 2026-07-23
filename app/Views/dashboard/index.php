@@ -9,7 +9,7 @@
                     <span class="chip"><?php echo e($role['nome']); ?></span>
                 <?php } ?>
             <?php } else { ?>
-                <span class="chip">Usuario comum</span>
+                <span class="chip">Usuário comum</span>
             <?php } ?>
         </div>
     </div>

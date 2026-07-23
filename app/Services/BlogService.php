@@ -555,7 +555,7 @@ class BlogService
         if ($post['gallery_images'] === []) {
             $post['gallery_images'] = [[
                 'imagem_url' => $post['capa_imagem_url'],
-                'legenda' => 'Imagem padrao da postagem',
+                'legenda' => 'Imagem padrão da postagem',
                 'ordem' => 1,
             ]];
         }

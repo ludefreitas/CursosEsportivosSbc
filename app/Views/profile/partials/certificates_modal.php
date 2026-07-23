@@ -121,7 +121,7 @@ $conditions = $conditions ?? [];
                                     value="<?php echo e((string) ($certificate['numero_nis'] ?? '')); ?>"
                                     required
                                 >
-                                <small class="muted">Informe obrigatoriamente 11 numeros do NIS.</small>
+                            <small class="muted">Informe obrigatoriamente 11 números do NIS.</small>
                             </label>
                         <?php } ?>
 

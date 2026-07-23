@@ -187,7 +187,7 @@ class UserService
                 if ($status === 'pendente') {
                     $alerts[] = [
                         'level' => 'warning',
-                        'message' => 'A documentação de ' . $person['nome_completo'] . ' para ' . $meta['label'] . ' foi enviada e ainda esta pendente de validação.',
+                        'message' => 'A documentação de ' . $person['nome_completo'] . ' para ' . $meta['label'] . ' foi enviada e ainda está pendente de validação.',
                     ];
                     continue;
                 }

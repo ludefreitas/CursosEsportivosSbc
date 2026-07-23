@@ -16,7 +16,7 @@ class AdminService
         'dermatologico' => 'Atestado dermatológico',
     ];
     private const HEALTH_CERTIFICATE_SERVICE_LOCATIONS = [
-        'servico_publico' => 'Servico publico',
+        'servico_publico' => 'Serviço público',
         'clinica_particular' => 'Clinica particular',
         'clinica_convenio' => 'Clinica convenio medico',
     ];
@@ -49,7 +49,7 @@ class AdminService
             'auditiva' => 'Auditiva',
             'visual' => 'Visual',
             'intelectual' => 'Intelectual',
-            'fisica' => 'Fisica',
+            'fisica' => 'Física',
             'autismo' => 'Autismo',
             'tea' => 'TEA (Transtorno do Espectro Autista)',
         ];
@@ -211,7 +211,7 @@ class AdminService
     public function getPersonDetails(int $personId): array
     {
         if ($personId <= 0) {
-            throw new RuntimeException('Pessoa invalida para edição.');
+            throw new RuntimeException('Pessoa inválida para edição.');
         }
 
         $pdo = Database::connection();
@@ -246,7 +246,7 @@ class AdminService
     public function getUserDetails(int $accountId): array
     {
         if ($accountId <= 0) {
-            throw new RuntimeException('Usuario invalido para consulta.');
+            throw new RuntimeException('Usuário inválido para consulta.');
         }
 
         $pdo = Database::connection();
@@ -371,11 +371,11 @@ class AdminService
         $reason = trim((string) ($data['reason'] ?? ''));
 
         if ($targetAccountId <= 0) {
-            throw new RuntimeException('Usuario invalido para atualizar os papéis.');
+            throw new RuntimeException('Usuário inválido para atualizar os papéis.');
         }
 
         if ($actorAccountId <= 0) {
-            throw new RuntimeException('Conta administrativa invalida para atualizar os papéis.');
+            throw new RuntimeException('Conta administrativa inválida para atualizar os papéis.');
         }
 
         if ($reason === '') {
@@ -385,7 +385,7 @@ class AdminService
         $roleAssignmentBlock = $this->resolveRoleAssignmentBlockForUser($targetUser = $this->getUserDetails($targetAccountId));
 
         if ($roleAssignmentBlock !== null) {
-            throw new RuntimeException('Este usuário não pode receber papeis agora. Motivo: ' . $roleAssignmentBlock);
+            throw new RuntimeException('Este usuário não pode receber papéis agora. Motivo: ' . $roleAssignmentBlock);
         }
 
         $selectedRoleIds = $data['roles'] ?? [];
@@ -488,7 +488,7 @@ class AdminService
             $masterCount = (int) $stmtMasterCount->fetchColumn();
 
             if ($masterCount <= 1) {
-                throw new RuntimeException('Nao e permitido remover o ultimo papel Administrador Master ativo do sistema.');
+                throw new RuntimeException('Não é permitido remover o último papel Administrador Master ativo do sistema.');
             }
         }
 
@@ -601,11 +601,11 @@ class AdminService
     private function resolveRoleAssignmentBlockForUser(array $user): ?string
     {
         if ((int) ($user['conta_ativa'] ?? 0) !== 1) {
-            return 'A conta do usuário esta inativa.';
+            return 'A conta do usuário está inativa.';
         }
 
         if ((int) ($user['cadastro_completo'] ?? 0) !== 1) {
-            return 'O cadastro da pessoa ainda esta pendente e precisa ser completado.';
+            return 'O cadastro da pessoa ainda está pendente e precisa ser completado.';
         }
 
         $personId = (int) ($user['pessoa_id'] ?? 0);
@@ -789,7 +789,7 @@ class AdminService
     public function getCertificateDocumentForAdmin(int $documentId): array
     {
         if ($documentId <= 0) {
-            throw new RuntimeException('Documento invalido.');
+            throw new RuntimeException('Documento inválido.');
         }
 
         $pdo = Database::connection();
@@ -828,7 +828,7 @@ class AdminService
         $conditionMap = $this->certificateConditionMap();
 
         if ($personId <= 0 || !isset($conditionMap[$conditionSlug])) {
-            throw new RuntimeException('Condicao invalida para validação.');
+            throw new RuntimeException('Condição inválida para validação.');
         }
 
         $pdo = Database::connection();
@@ -862,7 +862,7 @@ class AdminService
         }
 
         if ((int) ($person[$conditionMap[$conditionSlug]['field']] ?? 0) !== 1) {
-            throw new RuntimeException('Essa condicao não está declarada no cadastro desta pessoa.');
+            throw new RuntimeException('Essa condição não está declarada no cadastro desta pessoa.');
         }
 
         $certificate = $this->findLatestConditionCertificate($pdo, $personId, $conditionSlug);
@@ -894,11 +894,11 @@ class AdminService
         $documents = $details['documents'];
 
         if ($certificate === null) {
-            throw new RuntimeException('Não existe certificado enviado para essa condicao ainda.');
+            throw new RuntimeException('Não existe certificado enviado para essa condição ainda.');
         }
 
         if ($documents === []) {
-            throw new RuntimeException('Não existem documentos em PDF enviados para essa condicao.');
+            throw new RuntimeException('Não existem documentos em PDF enviados para essa condição.');
         }
 
         $status = trim((string) ($data['status'] ?? ''));
@@ -909,11 +909,11 @@ class AdminService
         $allowedStatuses = ['pendente', 'reprovado', 'validado', 'validado_parcial'];
 
         if (!in_array($status, $allowedStatuses, true)) {
-            throw new RuntimeException('Selecione um status valido para o certificado.');
+            throw new RuntimeException('Selecione um status válido para o certificado.');
         }
 
         if (in_array($status, ['validado', 'validado_parcial'], true) && $validityDate !== '' && !$this->isValidDate($validityDate)) {
-            throw new RuntimeException('Informe uma data de validade valida para o certificado.');
+            throw new RuntimeException('Informe uma data de validade válida para o certificado.');
         }
 
         if ($status === 'validado_parcial' && $validationNote === '') {
@@ -921,7 +921,7 @@ class AdminService
         }
 
         if (in_array($conditionSlug, ['pcd', 'plm'], true) && in_array($status, ['validado', 'validado_parcial'], true) && $validatedCidCode === '') {
-            throw new RuntimeException('Informe o codigo CID validado para concluir a validação de PCD ou PLM.');
+            throw new RuntimeException('Informe o código CID validado para concluir a validação de PCD ou PLM.');
         }
 
         if (in_array($conditionSlug, ['pcd', 'plm'], true) && in_array($status, ['validado', 'validado_parcial'], true) && !$this->isValidCidCode($validatedCidCode)) {
@@ -929,7 +929,7 @@ class AdminService
         }
 
         if (in_array($conditionSlug, ['pcd', 'plm'], true) && in_array($status, ['validado', 'validado_parcial'], true) && $validatedDisease === '') {
-            throw new RuntimeException('Informe a doenca validada para concluir a validação de PCD ou PLM.');
+            throw new RuntimeException('Informe a doença validada para concluir a validação de PCD ou PLM.');
         }
 
         $pdo = Database::connection();
@@ -1023,7 +1023,7 @@ class AdminService
         $certificateType = trim(strtolower($certificateType));
 
         if ($personId <= 0 || !isset(self::HEALTH_CERTIFICATE_TYPES[$certificateType])) {
-            throw new RuntimeException('Atestado invalido para validação.');
+            throw new RuntimeException('Atestado inválido para validação.');
         }
 
         $pdo = Database::connection();
@@ -1094,7 +1094,7 @@ class AdminService
         $allowedMonthOptions = [6, 12, 18, 24];
 
         if (!in_array($status, $allowedStatuses, true)) {
-            throw new RuntimeException('Selecione um status valido para o atestado.');
+            throw new RuntimeException('Selecione um status válido para o atestado.');
         }
 
         if ($status === 'validado' && !$this->isValidDate($validatedIssueDate)) {
@@ -1102,7 +1102,7 @@ class AdminService
         }
 
         if ($status === 'validado' && !in_array($validityMonths, $allowedMonthOptions, true)) {
-            throw new RuntimeException('Selecione um prazo de validade em meses valido para o atestado.');
+            throw new RuntimeException('Selecione um prazo de validade em meses válido para o atestado.');
         }
 
         if ($status === 'reprovado' && $validationNote === '') {
@@ -1194,7 +1194,7 @@ class AdminService
         }
 
         if (!validar_cpf($cpf)) {
-            throw new RuntimeException('Informe um CPF valido para a pessoa.');
+            throw new RuntimeException('Informe um CPF válido para a pessoa.');
         }
 
         if (!in_array($sexo, ['masculino', 'feminino', 'Sexo não declarado'], true)) {
@@ -1202,15 +1202,15 @@ class AdminService
         }
 
         if (calculate_age($birthDate) === null) {
-            throw new RuntimeException('Informe uma data de nascimento valida.');
+            throw new RuntimeException('Informe uma data de nascimento válida.');
         }
 
         if ($numeroCartaoSus !== '' && strlen($numeroCartaoSus) !== 16) {
-            throw new RuntimeException('Quando informado, o numero do cartao SUS deve conter exatamente 16 numeros.');
+            throw new RuntimeException('Quando informado, o número do cartão SUS deve conter exatamente 16 números.');
         }
 
         if ($zipCode !== '' && strlen($zipCode) !== 8) {
-            throw new RuntimeException('Informe um CEP valido com 8 digitos.');
+            throw new RuntimeException('Informe um CEP válido com 8 dígitos.');
         }
 
         if ($state !== '' && strlen($state) !== 2) {
@@ -1221,15 +1221,15 @@ class AdminService
         $responsavel2Valido = $parent2Name !== '' && validar_cpf($parent2Cpf);
 
         if (!$responsavel1Valido && !$responsavel2Valido) {
-            throw new RuntimeException('Informe pelo menos um responsavel com nome e CPF validos.');
+            throw new RuntimeException('Informe pelo menos um responsável com nome e CPF válidos.');
         }
 
         if ($parent1Name !== '' && !validar_cpf($parent1Cpf)) {
-            throw new RuntimeException('Informe um CPF valido para o responsavel 1.');
+            throw new RuntimeException('Informe um CPF válido para o responsável 1.');
         }
 
         if ($parent2Name !== '' && !validar_cpf($parent2Cpf)) {
-            throw new RuntimeException('Informe um CPF valido para o responsavel 2.');
+            throw new RuntimeException('Informe um CPF válido para o responsável 2.');
         }
 
         $pdo = Database::connection();
@@ -1245,7 +1245,7 @@ class AdminService
         ]);
 
         if ($stmtCpfCheck->fetchColumn()) {
-            throw new RuntimeException('Ja existe outra pessoa cadastrada com este CPF.');
+            throw new RuntimeException('Já existe outra pessoa cadastrada com este CPF.');
         }
 
         $before = [
@@ -1396,7 +1396,7 @@ class AdminService
             $message = $e->getMessage();
 
             if (str_contains($message, 'fk_contas_pessoa_cpf') && str_contains($message, 'Integrity constraint violation')) {
-                throw new RuntimeException('Não foi possível alterar o CPF porque o banco ainda esta com a chave estrangeira antiga entre contas e pessoas. Execute a migracao database/migracao_ajustar_fk_contas_cpf_on_update_cascade.sql e tente novamente.');
+                throw new RuntimeException('Não foi possível alterar o CPF porque o banco ainda está com a chave estrangeira antiga entre contas e pessoas. Execute a migração database/migracao_ajustar_fk_contas_cpf_on_update_cascade.sql e tente novamente.');
             }
 
             throw $e;
@@ -1644,7 +1644,7 @@ class AdminService
     public function getSpecialScheduleDetails(int $scheduleId): array
     {
         if ($scheduleId <= 0) {
-            throw new RuntimeException('Horario especial invalido.');
+            throw new RuntimeException('Horário especial inválido.');
         }
 
         $pdo = Database::connection();
@@ -1665,7 +1665,7 @@ class AdminService
         $schedule = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$schedule) {
-            throw new RuntimeException('Horario especial não encontrado.');
+            throw new RuntimeException('Horário especial não encontrado.');
         }
 
         return $schedule;
@@ -1746,7 +1746,7 @@ class AdminService
     public function listOccurrenceBookingsForManagement(int $scheduleId, string $startDateTime): array
     {
         if ($scheduleId <= 0) {
-            throw new RuntimeException('Horario semanal invalido para a chamada administrativa.');
+            throw new RuntimeException('Horário semanal inválido para a chamada administrativa.');
         }
 
         $startDateTime = trim($startDateTime);
@@ -1758,7 +1758,7 @@ class AdminService
         try {
             $occurrenceDate = new DateTimeImmutable($startDateTime);
         } catch (\Throwable $e) {
-            throw new RuntimeException('Data e horário da ocorrência sao invalidos.');
+            throw new RuntimeException('Data e horário da ocorrência são inválidos.');
         }
 
         $pdo = Database::connection();
@@ -1842,7 +1842,7 @@ class AdminService
     public function getWeeklyScheduleDetails(int $scheduleId): array
     {
         if ($scheduleId <= 0) {
-            throw new RuntimeException('Horario semanal invalido.');
+            throw new RuntimeException('Horário semanal inválido.');
         }
 
         $pdo = Database::connection();
@@ -1863,7 +1863,7 @@ class AdminService
         $schedule = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$schedule) {
-            throw new RuntimeException('Horario semanal não encontrado.');
+            throw new RuntimeException('Horário semanal não encontrado.');
         }
 
         return $schedule;
@@ -1880,7 +1880,7 @@ class AdminService
         $justificationReason = trim($justificationReason);
 
         if (!in_array($normalizedStatus, ['presente', 'falta', 'justificado'], true)) {
-            throw new RuntimeException('O status de chamada informado e invalido.');
+            throw new RuntimeException('O status de chamada informado é inválido.');
         }
 
         if ($currentStatus === 'cancelado') {
@@ -1888,7 +1888,7 @@ class AdminService
         }
 
         if (!$this->canManageBookingAttendance($booking)) {
-            throw new RuntimeException('A chamada so pode ser registrada a partir da data e horário agendados.');
+            throw new RuntimeException('A chamada só pode ser registrada a partir da data e horário agendados.');
         }
 
         if ($normalizedStatus === 'justificado' && $justificationReason === '') {
@@ -1935,11 +1935,11 @@ class AdminService
         $active = (int) ($data['ativo'] ?? 1) === 1 ? 1 : 0;
 
         if ($spaceId <= 0) {
-            throw new RuntimeException('Selecione o espaco de treino para a suspensão.');
+            throw new RuntimeException('Selecione o espaço de treino para a suspensão.');
         }
 
         if (!$this->isValidDate($startDate) || !$this->isValidDate($endDate)) {
-            throw new RuntimeException('Informe datas validas para o periodo de suspensão.');
+            throw new RuntimeException('Informe datas válidas para o período de suspensão.');
         }
 
         if ($startDate > $endDate) {
@@ -1965,7 +1965,7 @@ class AdminService
             ]);
 
             if ($stmtOverlap->fetchColumn()) {
-                throw new RuntimeException('Ja existe uma suspensão ativa que se sobrepoe a este periodo para o espaco selecionado.');
+                throw new RuntimeException('Já existe uma suspensão ativa que se sobrepõe a este período para o espaço selecionado.');
             }
         }
 
@@ -1999,7 +1999,7 @@ class AdminService
     public function deactivateSpaceSuspension(int $suspensionId): void
     {
         if ($suspensionId <= 0) {
-            throw new RuntimeException('Suspensao invalida.');
+            throw new RuntimeException('Suspensão inválida.');
         }
 
         $pdo = Database::connection();
@@ -2146,7 +2146,7 @@ class AdminService
     public function updateWeeklySchedule(int $scheduleId, int $accountId, array $data): array
     {
         if ($scheduleId <= 0) {
-            throw new RuntimeException('Horario semanal invalido.');
+            throw new RuntimeException('Horário semanal inválido.');
         }
 
         $existingSchedule = $this->getWeeklyScheduleDetails($scheduleId);
@@ -2264,7 +2264,7 @@ class AdminService
     public function deactivateWeeklySchedule(int $scheduleId): void
     {
         if ($scheduleId <= 0) {
-            throw new RuntimeException('Horario semanal invalido.');
+            throw new RuntimeException('Horário semanal inválido.');
         }
 
         $pdo = Database::connection();
@@ -2287,7 +2287,7 @@ class AdminService
     public function activateWeeklySchedule(int $scheduleId): void
     {
         if ($scheduleId <= 0) {
-            throw new RuntimeException('Horario semanal invalido.');
+            throw new RuntimeException('Horário semanal inválido.');
         }
 
         $pdo = Database::connection();
@@ -2411,7 +2411,7 @@ class AdminService
     public function updateSpecialSchedule(int $scheduleId, int $accountId, array $data, array $files = []): array
     {
         if ($scheduleId <= 0) {
-            throw new RuntimeException('Horario especial invalido.');
+            throw new RuntimeException('Horário especial inválido.');
         }
 
         $existingSchedule = $this->getSpecialScheduleDetails($scheduleId);
@@ -2497,7 +2497,7 @@ class AdminService
     public function deactivateSpecialSchedule(int $scheduleId): void
     {
         if ($scheduleId <= 0) {
-            throw new RuntimeException('Horario especial invalido.');
+            throw new RuntimeException('Horário especial inválido.');
         }
 
         $pdo = Database::connection();
@@ -2607,7 +2607,7 @@ class AdminService
         ];
 
         if ($payload['espaco_treino_id'] <= 0) {
-            throw new RuntimeException('Selecione o espaco de treino do horário semanal.');
+            throw new RuntimeException('Selecione o espaço de treino do horário semanal.');
         }
 
         if ($payload['modalidade_id'] <= 0) {
@@ -2615,15 +2615,15 @@ class AdminService
         }
 
         if (!in_array($payload['tipo_horario'], ['avaliacao', 'treino', 'aula'], true)) {
-            throw new RuntimeException('Selecione um tipo valido para o horário semanal.');
+            throw new RuntimeException('Selecione um tipo válido para o horário semanal.');
         }
 
         if ($payload['dia_semana'] < 1 || $payload['dia_semana'] > 7) {
-            throw new RuntimeException('Selecione um dia da semana valido para o horário semanal.');
+            throw new RuntimeException('Selecione um dia da semana válido para o horário semanal.');
         }
 
         if ($payload['hora_inicio'] === '' || $payload['hora_fim'] === '') {
-            throw new RuntimeException('Informe horário inicial e final validos.');
+            throw new RuntimeException('Informe horários inicial e final válidos.');
         }
 
         if ($payload['hora_inicio'] >= $payload['hora_fim']) {
@@ -2631,23 +2631,23 @@ class AdminService
         }
 
         if ($payload['idade_minima'] < 0 || $payload['idade_maxima'] < 0 || $payload['idade_minima'] > $payload['idade_maxima']) {
-            throw new RuntimeException('Informe uma faixa etaria valida para o horário semanal.');
+            throw new RuntimeException('Informe uma faixa etária válida para o horário semanal.');
         }
 
         if (!in_array($payload['criterio_faixa_etaria'], ['idade_exata', 'ano_nascimento'], true)) {
-            throw new RuntimeException('Selecione um criterio etario valido para o horário semanal.');
+            throw new RuntimeException('Selecione um critério etário válido para o horário semanal.');
         }
 
         if (!in_array($payload['regra_atestado_clinico'], ['global', 'exigir', 'dispensar'], true)) {
-            throw new RuntimeException('Selecione uma regra valida para o atestado clínico.');
+            throw new RuntimeException('Selecione uma regra válida para o atestado clínico.');
         }
 
         if (!in_array($payload['regra_atestado_dermatologico'], ['global', 'exigir', 'dispensar'], true)) {
-            throw new RuntimeException('Selecione uma regra valida para o atestado dermatológico.');
+            throw new RuntimeException('Selecione uma regra válida para o atestado dermatológico.');
         }
 
         if (!in_array($payload['sexo'], ['', 'masculino', 'feminino'], true)) {
-            throw new RuntimeException('Selecione um sexo valido para o horário semanal ou deixe livre.');
+            throw new RuntimeException('Selecione um sexo válido para o horário semanal ou deixe livre.');
         }
 
         foreach (['vagas_geral', 'vagas_pcd', 'vagas_plm', 'vagas_pvs'] as $field) {
@@ -2657,16 +2657,16 @@ class AdminService
         }
 
         if (!in_array($payload['janela_agendamento_tipo'], ['semana_atual_proxima', 'janela_semanal_fixa', 'antecedência'], true)) {
-            throw new RuntimeException('Selecione uma regra valida para a janela de agendamento.');
+            throw new RuntimeException('Selecione uma regra válida para a janela de agendamento.');
         }
 
         if ($payload['janela_agendamento_tipo'] === 'janela_semanal_fixa') {
             if ($payload['janela_abertura_dia_semana'] < 1 || $payload['janela_abertura_dia_semana'] > 7 || $payload['janela_abertura_hora'] === '') {
-                throw new RuntimeException('Informe dia e hora validos para a abertura semanal da agenda.');
+                throw new RuntimeException('Informe dia e hora válidos para a abertura semanal da agenda.');
             }
 
             if ($payload['janela_fechamento_dia_semana'] < 1 || $payload['janela_fechamento_dia_semana'] > 7 || $payload['janela_fechamento_hora'] === '') {
-                throw new RuntimeException('Informe dia e hora validos para o fechamento semanal da agenda.');
+                throw new RuntimeException('Informe dia e hora válidos para o fechamento semanal da agenda.');
             }
         }
 
@@ -2714,11 +2714,11 @@ class AdminService
         $uploadedImage = $files['imagem_arquivo'] ?? null;
 
         if ($payload['titulo'] === '') {
-            throw new RuntimeException('Informe o titulo do horário especial.');
+            throw new RuntimeException('Informe o título do horário especial.');
         }
 
         if ($payload['data_inicio'] === '' || $payload['data_fim'] === '') {
-            throw new RuntimeException('Informe inicio e fim validos para o horário especial.');
+            throw new RuntimeException('Informe início e fim válidos para o horário especial.');
         }
 
         if ($payload['data_publicacao_inicio'] === '' || $payload['data_publicacao_fim'] === '') {
@@ -2731,7 +2731,7 @@ class AdminService
             $publishStart = new DateTimeImmutable($payload['data_publicacao_inicio']);
             $publishEnd = new DateTimeImmutable($payload['data_publicacao_fim']);
         } catch (\Throwable $e) {
-            throw new RuntimeException('As datas do horário especial sao invalidas.');
+            throw new RuntimeException('As datas do horário especial são inválidas.');
         }
 
         if ($end <= $start) {
@@ -2743,7 +2743,7 @@ class AdminService
         }
 
         if ($payload['idade_minima'] < 0 || $payload['idade_maxima'] < 0 || $payload['idade_minima'] > $payload['idade_maxima']) {
-            throw new RuntimeException('Informe uma faixa etaria valida para o horário especial.');
+            throw new RuntimeException('Informe uma faixa etária válida para o horário especial.');
         }
 
         foreach (['vagas_geral', 'vagas_pcd', 'vagas_plm', 'vagas_pvs'] as $field) {
@@ -2762,7 +2762,7 @@ class AdminService
         }
 
         if ($payload['imagem_url'] !== '' && !filter_var($payload['imagem_url'], FILTER_VALIDATE_URL) && !str_starts_with($payload['imagem_url'], '/')) {
-            throw new RuntimeException('Informe uma URL de imagem valida ou use um caminho interno iniciado por "/".');
+            throw new RuntimeException('Informe uma URL de imagem válida ou use um caminho interno iniciado por "/".');
         }
 
         if (is_array($uploadedImage) && (int) ($uploadedImage['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
@@ -2787,7 +2787,7 @@ class AdminService
         $originalName = trim((string) ($file['name'] ?? 'imagem'));
 
         if ($tmpName === '' || !is_uploaded_file($tmpName)) {
-            throw new RuntimeException('Arquivo de imagem invalido.');
+            throw new RuntimeException('Arquivo de imagem inválido.');
         }
 
         $mime = mime_content_type($tmpName) ?: '';
@@ -2802,7 +2802,7 @@ class AdminService
         }
 
         if ((int) ($file['size'] ?? 0) > 5 * 1024 * 1024) {
-            throw new RuntimeException('A imagem do horário especial deve ter no maximo 5 MB.');
+            throw new RuntimeException('A imagem do horário especial deve ter no máximo 5 MB.');
         }
 
         $directory = ROOT_PATH . '/public/uploads/agenda-horarios-especiais';
@@ -2859,7 +2859,7 @@ class AdminService
         $stmtOverlap->execute($params);
 
         if ($stmtOverlap->fetchColumn()) {
-            throw new RuntimeException('Ja existe um horário semanal ativo neste espaco com sobreposicao de dia e horário.');
+            throw new RuntimeException('Já existe um horário semanal ativo neste espaço com sobreposição de dia e horário.');
         }
     }
 
@@ -2884,7 +2884,7 @@ class AdminService
         $status = trim((string) ($certificate['status_validacao'] ?? ''));
 
         if ($status === 'reprovado') {
-            return 'O atestado foi reprovado e aguarda novo envio ou nova analise.';
+            return 'O atestado foi reprovado e aguarda novo envio ou nova análise.';
         }
 
         return 'O atestado foi enviado e aguarda validação administrativa.';
@@ -2904,11 +2904,11 @@ class AdminService
     private function buildConditionValidationPendingReason(?array $certificate, array $documents): ?string
     {
         if ($certificate === null) {
-            return 'Declarou a condicao, mas ainda não enviou documentação.';
+            return 'Declarou a condição, mas ainda não enviou documentação.';
         }
 
         if ($documents === []) {
-            return 'Enviou ou iniciou o cadastro da condicao, mas ainda não ha PDF anexado.';
+            return 'Enviou ou iniciou o cadastro da condição, mas ainda não há PDF anexado.';
         }
 
         $status = trim((string) ($certificate['status'] ?? ''));
@@ -2929,7 +2929,7 @@ class AdminService
             return null;
         }
 
-        return 'A documentação desta condição ainda precisa de analise administrativa.';
+        return 'A documentação desta condição ainda precisa de análise administrativa.';
     }
 
     /**
@@ -3152,7 +3152,7 @@ class AdminService
             $certificate = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 
             if ($certificate === null || (int) ($certificate['documentos_enviados'] ?? 0) <= 0) {
-                $items[] = $meta['label'] . ': documentação nao enviada';
+                $items[] = $meta['label'] . ': documentação não enviada';
                 continue;
             }
 
@@ -3209,7 +3209,7 @@ class AdminService
             $items[] = $meta['label'] . ': situação indefinida';
         }
 
-        return $items !== [] ? implode(' | ', $items) : 'Nenhuma condicao declarada';
+        return $items !== [] ? implode(' | ', $items) : 'Nenhuma condição declarada';
     }
 
     /**
@@ -3328,7 +3328,7 @@ class AdminService
         $statusLabel = 'Declarada';
 
         if ($certificate === null || !$documentsSent) {
-            $statusLabel = 'Sem documentacao';
+            $statusLabel = 'Sem documentação';
         } elseif ($status === 'pendente') {
             $statusLabel = 'Validação pendente';
         } elseif ($status === 'reprovado') {
@@ -3407,7 +3407,7 @@ class AdminService
                     $iconMessage = $label . ' vence em ' . $expiryDate->format('d/m/Y') . '.';
                 } else {
                     $iconType = 'ok';
-                    $iconMessage = $label . ' valido até ' . $expiryDate->format('d/m/Y') . '.';
+                    $iconMessage = $label . ' válido até ' . $expiryDate->format('d/m/Y') . '.';
                 }
             } catch (\Throwable $e) {
                 $iconType = 'ok';
@@ -3441,7 +3441,7 @@ class AdminService
     private function findBookingForManagement(int $bookingId): array
     {
         if ($bookingId <= 0) {
-            throw new RuntimeException('Agendamento invalido para controle de presenca.');
+            throw new RuntimeException('Agendamento inválido para controle de presença.');
         }
 
         $pdo = Database::connection();
@@ -3722,7 +3722,7 @@ class AdminService
 
             $events[] = [
                 'id' => 'special-schedule-' . (string) ($row['id'] ?? ''),
-                'title' => (string) ($row['titulo'] ?? 'Horario especial'),
+                'title' => (string) ($row['titulo'] ?? 'Horário especial'),
                 'start' => str_replace(' ', 'T', (string) ($row['data_inicio'] ?? '')),
                 'end' => str_replace(' ', 'T', (string) ($row['data_fim'] ?? '')),
                 'classNames' => $classNames,
@@ -3733,7 +3733,7 @@ class AdminService
                     'local' => (string) ($row['local_nome'] ?? ''),
                     'espaco' => (string) ($row['espaco_nome'] ?? ''),
                     'modalidade' => (string) ($row['modalidade_nome'] ?? ''),
-                    'tipo_horario' => 'horario especial',
+                    'tipo_horario' => 'horário especial',
                     'idade_minima' => (int) ($row['idade_minima'] ?? 0),
                     'idade_maxima' => (int) ($row['idade_maxima'] ?? 120),
                     'criterio_faixa_etaria' => normalize_age_rule_mode((string) ($row['criterio_faixa_etaria'] ?? 'idade_exata')),
@@ -3950,7 +3950,7 @@ class AdminService
         $content = trim((string) ($data['conteudo'] ?? ''));
 
         if ($title === '' || $summary === '' || $content === '') {
-            throw new RuntimeException('Preencha titulo, resumo e conteudo da postagem.');
+            throw new RuntimeException('Preencha título, resumo e conteúdo da postagem.');
         }
 
         $pdo = Database::connection();
