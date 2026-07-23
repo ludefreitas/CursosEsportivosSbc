@@ -1619,9 +1619,96 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         <div class="section-head admin-section-head">
             <div>
                 <h2>Locais e espaços</h2>
-                <p class="muted">Indisponibilidades temporárias e base visual para futuras rotinas de cadastro de locais e espaços.</p>
+                <p class="muted">Cadastre os locais de treino, consulte o endereço pelo CEP e gerencie os espaços e suas indisponibilidades.</p>
             </div>
         </div>
+
+        <section class="grid-two">
+            <article class="content-card">
+                <h2>Cadastrar local de treino</h2>
+                <p class="muted">Digite o CEP completo e selecione o endereço apresentado na lista flutuante.</p>
+                <form method="POST" action="<?php echo e(url('/admin/locais')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1" data-follow-redirect="1" id="admin-training-location-form">
+                    <label>
+                        <span>Nome do local</span>
+                        <input type="text" name="nome" maxlength="150" required>
+                    </label>
+                    <label class="cep-autocomplete-field">
+                        <span>CEP</span>
+                        <input
+                            type="text"
+                            name="cep"
+                            maxlength="9"
+                            inputmode="numeric"
+                            autocomplete="postal-code"
+                            data-cep-address-search="1"
+                            aria-autocomplete="list"
+                            aria-expanded="false"
+                            aria-controls="admin-training-location-cep-results"
+                            required
+                        >
+                        <div class="cep-address-results hidden" id="admin-training-location-cep-results" role="listbox"></div>
+                        <small class="cep-address-status muted">Digite os 8 números do CEP.</small>
+                    </label>
+                    <label>
+                        <span>Logradouro</span>
+                        <input type="text" name="logradouro" maxlength="180" data-address-field="logradouro" readonly required>
+                    </label>
+                    <label>
+                        <span>Bairro</span>
+                        <input type="text" name="bairro" maxlength="120" data-address-field="bairro" readonly required>
+                    </label>
+                    <div class="grid-two">
+                        <label>
+                            <span>Cidade</span>
+                            <input type="text" name="cidade" maxlength="120" data-address-field="cidade" readonly required>
+                        </label>
+                        <label>
+                            <span>UF</span>
+                            <input type="text" name="uf" maxlength="2" data-address-field="uf" readonly required>
+                        </label>
+                    </div>
+                    <label>
+                        <span>Status inicial</span>
+                        <select name="ativo">
+                            <option value="1">Ativo</option>
+                            <option value="0">Inativo</option>
+                        </select>
+                    </label>
+                    <button type="submit" class="btn btn-primary">Cadastrar local</button>
+                </form>
+            </article>
+
+            <article class="content-card">
+                <h2>Locais cadastrados</h2>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Local</th>
+                                <th>CEP</th>
+                                <th>Endereço</th>
+                                <th>Cidade/UF</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($trainingLocations)) { ?>
+                                <tr><td colspan="5">Nenhum local cadastrado.</td></tr>
+                            <?php } ?>
+                            <?php foreach (($trainingLocations ?? []) as $location) { ?>
+                                <tr>
+                                    <td><?php echo e((string) $location['nome']); ?></td>
+                                    <td><?php echo e(!empty($location['cep']) ? format_cep((string) $location['cep']) : '-'); ?></td>
+                                    <td><?php echo e(trim((string) (($location['logradouro'] ?: $location['endereco_completo']) . (!empty($location['bairro']) ? ' - ' . $location['bairro'] : '')))); ?></td>
+                                    <td><?php echo e((string) ($location['cidade'] . '/' . $location['uf'])); ?></td>
+                                    <td><?php echo (int) $location['ativo'] === 1 ? 'Ativo' : 'Inativo'; ?></td>
+                                </tr>
+                            <?php } ?>
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
 
         <section class="grid-two">
             <article class="content-card">

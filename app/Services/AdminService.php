@@ -1464,6 +1464,85 @@ class AdminService
     }
 
     /**
+     * Lista os locais de treino cadastrados.
+     */
+    public function listTrainingLocationsForManagement(): array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->query('
+            SELECT id, nome, slug, cep, logradouro, bairro, endereco_completo, cidade, uf, ativo
+            FROM locais_treino
+            ORDER BY nome
+        ');
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Cadastra um local de treino com endereço estruturado.
+     */
+    public function createTrainingLocation(array $data): int
+    {
+        $name = trim((string) ($data['nome'] ?? ''));
+        $zipCode = normalize_cep((string) ($data['cep'] ?? ''));
+        $street = trim((string) ($data['logradouro'] ?? ''));
+        $district = trim((string) ($data['bairro'] ?? ''));
+        $city = trim((string) ($data['cidade'] ?? ''));
+        $state = strtoupper(trim((string) ($data['uf'] ?? '')));
+        $active = isset($data['ativo']) && (string) $data['ativo'] === '0' ? 0 : 1;
+
+        if ($name === '') {
+            throw new RuntimeException('Informe o nome do local de treino.');
+        }
+
+        if (strlen($zipCode) !== 8) {
+            throw new RuntimeException('Informe um CEP válido com 8 dígitos.');
+        }
+
+        if ($street === '' || $district === '' || $city === '' || strlen($state) !== 2) {
+            throw new RuntimeException('Selecione um endereço válido na lista de resultados do CEP.');
+        }
+
+        $pdo = Database::connection();
+        $slugBase = slugify($name);
+        $slug = $slugBase !== '' ? $slugBase : 'local-treino';
+        $suffix = 2;
+        $check = $pdo->prepare('SELECT COUNT(*) FROM locais_treino WHERE slug = :slug');
+
+        while (true) {
+            $check->execute([':slug' => $slug]);
+
+            if ((int) $check->fetchColumn() === 0) {
+                break;
+            }
+
+            $slug = $slugBase . '-' . $suffix;
+            $suffix++;
+        }
+
+        $stmt = $pdo->prepare('
+            INSERT INTO locais_treino (
+                nome, slug, cep, logradouro, bairro, endereco_completo, cidade, uf, ativo
+            ) VALUES (
+                :nome, :slug, :cep, :logradouro, :bairro, :endereco_completo, :cidade, :uf, :ativo
+            )
+        ');
+        $stmt->execute([
+            ':nome' => $name,
+            ':slug' => $slug,
+            ':cep' => $zipCode,
+            ':logradouro' => $street,
+            ':bairro' => $district,
+            ':endereco_completo' => $street . ' - ' . $district,
+            ':cidade' => $city,
+            ':uf' => $state,
+            ':ativo' => $active,
+        ]);
+
+        return (int) $pdo->lastInsertId();
+    }
+
+    /**
      * Lista modalidades para formularios administrativos.
      */
     public function listModalitiesForManagement(): array

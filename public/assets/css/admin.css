@@ -594,3 +594,38 @@
         grid-template-columns: 1fr;
     }
 }
+.cep-autocomplete-field {
+    position: relative;
+}
+
+.cep-address-results {
+    position: absolute;
+    z-index: 80;
+    top: calc(100% - 20px);
+    left: 0;
+    right: 0;
+    padding: 6px;
+    border: 1px solid #9bc8df;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 14px 34px rgba(18, 60, 82, 0.2);
+}
+
+.cep-address-option {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: #eef8fc;
+    color: #14394d;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+}
+
+.cep-address-option:hover,
+.cep-address-option:focus {
+    background: #d9eef7;
+    outline: 2px solid #1d83b4;
+}

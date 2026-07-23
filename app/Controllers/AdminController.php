@@ -850,6 +850,39 @@ class AdminController extends Controller
     }
 
     /**
+     * Cadastra um novo local de treino.
+     */
+    public function storeTrainingLocation(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $this->adminService->createTrainingLocation($_POST);
+
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Local de treino cadastrado com sucesso.',
+                    'redirect' => url('/admin'),
+                ]);
+            }
+
+            flash('success', 'Local de treino cadastrado com sucesso.');
+        } catch (\Throwable $e) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+
+            flash('error', $e->getMessage());
+        }
+
+        redirect('/admin');
+    }
+
+    /**
      * Salva uma nova suspensão temporaria de espaco.
      */
     public function storeSpaceSuspension(): void
@@ -1490,6 +1523,7 @@ class AdminController extends Controller
         }
 
         if ($sectionName === 'locais-espacos') {
+            $data['trainingLocations'] = $this->adminService->listTrainingLocationsForManagement();
             $data['trainingSpaces'] = $this->adminService->listTrainingSpacesForManagement();
             $data['spaceSuspensions'] = $this->adminService->listSpaceSuspensionsForManagement();
         }

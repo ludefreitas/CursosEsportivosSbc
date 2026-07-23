@@ -220,12 +220,16 @@ CREATE TABLE IF NOT EXISTS locais_treino (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(150) NOT NULL,
     slug VARCHAR(150) NOT NULL UNIQUE,
+    cep CHAR(8) NULL,
+    logradouro VARCHAR(180) NULL,
+    bairro VARCHAR(120) NULL,
     endereco_completo VARCHAR(255) NOT NULL,
     cidade VARCHAR(120) NOT NULL,
     uf CHAR(2) NOT NULL,
     latitude DECIMAL(10,7) NULL,
     longitude DECIMAL(10,7) NULL,
-    ativo TINYINT(1) NOT NULL DEFAULT 1
+    ativo TINYINT(1) NOT NULL DEFAULT 1,
+    INDEX idx_locais_treino_cep (cep)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS espacos_treino (

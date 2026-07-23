@@ -2619,6 +2619,102 @@
             });
         },
 
+        iniciarBuscaEnderecoCep: function () {
+            let request = null;
+            let debounceTimer = null;
+
+            function clearAddress($form) {
+                $form.find('[data-address-field]').val('');
+            }
+
+            function closeResults($input, $results) {
+                $results.addClass('hidden').empty();
+                $input.attr('aria-expanded', 'false');
+            }
+
+            $(document).on('input', '[data-cep-address-search="1"]', function () {
+                const $input = $(this);
+                const $form = $input.closest('form');
+                const $results = $form.find('.cep-address-results').first();
+                const $status = $form.find('.cep-address-status').first();
+                const digits = String($input.val() || '').replace(/\D/g, '').slice(0, 8);
+                const formatted = digits.length > 5 ? digits.slice(0, 5) + '-' + digits.slice(5) : digits;
+
+                $input.val(formatted);
+                clearAddress($form);
+                closeResults($input, $results);
+                window.clearTimeout(debounceTimer);
+
+                if (request) {
+                    request.abort();
+                    request = null;
+                }
+
+                if (digits.length < 8) {
+                    $status.text('Digite os 8 números do CEP. Faltam ' + String(8 - digits.length) + '.');
+                    return;
+                }
+
+                $status.text('Consultando endereço...');
+                debounceTimer = window.setTimeout(function () {
+                    request = $.getJSON(App.core.buildUrl('/api/ceps/endereco'), { cep: digits })
+                        .done(function (response) {
+                            if (!response || response.success !== true || !response.address) {
+                                $status.text(String((response && response.message) || 'CEP não encontrado.'));
+                                return;
+                            }
+
+                            const address = response.address;
+                            const label = [
+                                String(address.logradouro || ''),
+                                String(address.bairro || ''),
+                                String(address.cidade || '') + '/' + String(address.uf || ''),
+                                String(address.cep || '').replace(/(\d{5})(\d{3})/, '$1-$2')
+                            ].filter(function (item) {
+                                return item.replace('/', '').trim() !== '';
+                            }).join(' — ');
+                            const $option = $('<button type="button" class="cep-address-option" role="option"></button>');
+
+                            $option.text(label);
+                            $option.data('address', address);
+                            $results.empty().append($option).removeClass('hidden');
+                            $input.attr('aria-expanded', 'true');
+                            $status.text('Selecione o endereço encontrado.');
+                        })
+                        .fail(function (xhr, status) {
+                            if (status !== 'abort') {
+                                $status.text('Não foi possível consultar o CEP neste momento.');
+                            }
+                        })
+                        .always(function () {
+                            request = null;
+                        });
+                }, 250);
+            });
+
+            $(document).on('click', '.cep-address-option', function () {
+                const $option = $(this);
+                const $form = $option.closest('form');
+                const $input = $form.find('[data-cep-address-search="1"]').first();
+                const address = $option.data('address') || {};
+
+                $input.val(String(address.cep || '').replace(/(\d{5})(\d{3})/, '$1-$2'));
+                $form.find('[data-address-field="logradouro"]').val(String(address.logradouro || ''));
+                $form.find('[data-address-field="bairro"]').val(String(address.bairro || ''));
+                $form.find('[data-address-field="cidade"]').val(String(address.cidade || ''));
+                $form.find('[data-address-field="uf"]').val(String(address.uf || ''));
+                $form.find('.cep-address-status').text('Endereço selecionado.');
+                closeResults($input, $form.find('.cep-address-results').first());
+            });
+
+            $(document).on('click', function (event) {
+                if ($(event.target).closest('.cep-autocomplete-field').length === 0) {
+                    $('.cep-address-results').addClass('hidden');
+                    $('[data-cep-address-search="1"]').attr('aria-expanded', 'false');
+                }
+            });
+        },
+
         init: function () {
             App.admin.iniciarSecoesAdmin();
             App.admin.iniciarEditorPessoaAdmin();
@@ -2631,6 +2727,7 @@
             App.admin.iniciarValidacaoAtestadosSaudeAdmin();
             App.admin.iniciarEditorPostagensBlog();
             App.admin.iniciarEditorComunicacaoOficialAdmin();
+            App.admin.iniciarBuscaEnderecoCep();
         }
     });
 

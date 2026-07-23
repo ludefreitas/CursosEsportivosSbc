@@ -18,4 +18,18 @@ class CepController extends Controller
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode($service->avaliarCep($cep), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
+
+    /**
+     * Consulta o endereço correspondente a um CEP completo.
+     */
+    public function address(): void
+    {
+        $service = new CepService();
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(
+            $service->buscarEndereco((string) ($_GET['cep'] ?? '')),
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
+    }
 }

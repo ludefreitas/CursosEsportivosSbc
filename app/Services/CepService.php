@@ -9,6 +9,58 @@ use RuntimeException;
 class CepService
 {
     /**
+     * Consulta um endereço no ViaCEP usando somente um CEP completo.
+     */
+    public function buscarEndereco(string $cep): array
+    {
+        $cep = normalize_cep($cep);
+
+        if (strlen($cep) !== 8) {
+            return [
+                'success' => false,
+                'message' => 'Digite os 8 números do CEP para consultar o endereço.',
+            ];
+        }
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'timeout' => 5,
+                'header' => "Accept: application/json\r\nUser-Agent: CursosEsportivosSBC/1.0\r\n",
+                'ignore_errors' => true,
+            ],
+        ]);
+        $response = @file_get_contents('https://viacep.com.br/ws/' . rawurlencode($cep) . '/json/', false, $context);
+
+        if ($response === false) {
+            return [
+                'success' => false,
+                'message' => 'Não foi possível consultar o CEP neste momento.',
+            ];
+        }
+
+        $address = json_decode($response, true);
+
+        if (!is_array($address) || !empty($address['erro'])) {
+            return [
+                'success' => false,
+                'message' => 'CEP não encontrado.',
+            ];
+        }
+
+        return [
+            'success' => true,
+            'address' => [
+                'cep' => normalize_cep((string) ($address['cep'] ?? $cep)),
+                'logradouro' => trim((string) ($address['logradouro'] ?? '')),
+                'bairro' => trim((string) ($address['bairro'] ?? '')),
+                'cidade' => trim((string) ($address['localidade'] ?? '')),
+                'uf' => strtoupper(trim((string) ($address['uf'] ?? ''))),
+            ],
+        ];
+    }
+
+    /**
      * Avalia se o CEP pode ser aceito pelo sistema.
      */
     public function avaliarCep(string $cep): array
