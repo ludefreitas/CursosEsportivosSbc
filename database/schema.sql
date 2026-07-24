@@ -196,7 +196,10 @@ CREATE TABLE IF NOT EXISTS niveis_modalidade (
 
 CREATE TABLE IF NOT EXISTS modalidades (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(150) NOT NULL,
+    nome_local VARCHAR(150) NOT NULL,
+    apelido_local VARCHAR(100) NULL,
+    admin_local BIGINT UNSIGNED NULL,
+    coord_local BIGINT UNSIGNED NULL,
     slug VARCHAR(150) NOT NULL UNIQUE,
     tipo_ambiente ENUM('aquatica', 'terrestre') NOT NULL,
     ativo TINYINT(1) NOT NULL DEFAULT 1
@@ -222,14 +225,17 @@ CREATE TABLE IF NOT EXISTS locais_treino (
     slug VARCHAR(150) NOT NULL UNIQUE,
     cep CHAR(8) NULL,
     logradouro VARCHAR(180) NULL,
+    numero_endereco VARCHAR(20) NULL,
+    complemento VARCHAR(120) NULL,
     bairro VARCHAR(120) NULL,
-    endereco_completo VARCHAR(255) NOT NULL,
     cidade VARCHAR(120) NOT NULL,
     uf CHAR(2) NOT NULL,
     latitude DECIMAL(10,7) NULL,
     longitude DECIMAL(10,7) NULL,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
-    INDEX idx_locais_treino_cep (cep)
+    INDEX idx_locais_treino_cep (cep),
+    CONSTRAINT fk_locais_treino_admin_local FOREIGN KEY (admin_local) REFERENCES contas(id) ON DELETE SET NULL,
+    CONSTRAINT fk_locais_treino_coord_local FOREIGN KEY (coord_local) REFERENCES contas(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS espacos_treino (
@@ -255,13 +261,15 @@ CREATE TABLE IF NOT EXISTS local_modalidade (
 CREATE TABLE IF NOT EXISTS suspensoes_espaco_treino (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     espaco_treino_id BIGINT UNSIGNED NOT NULL,
+    criado_por_conta_id BIGINT UNSIGNED NULL,
     data_inicio DATE NOT NULL,
     data_fim DATE NOT NULL,
     motivo VARCHAR(255) NULL,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_suspensoes_espaco_treino (espaco_treino_id, data_inicio, data_fim, ativo),
-    CONSTRAINT fk_suspensao_espaco FOREIGN KEY (espaco_treino_id) REFERENCES espacos_treino(id)
+    CONSTRAINT fk_suspensao_espaco FOREIGN KEY (espaco_treino_id) REFERENCES espacos_treino(id),
+    CONSTRAINT fk_suspensao_espaco_criador FOREIGN KEY (criado_por_conta_id) REFERENCES contas(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS temporadas (

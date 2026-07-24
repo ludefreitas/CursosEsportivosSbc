@@ -220,7 +220,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 <button type="button" class="agenda-secondary-tab is-active" data-admin-agenda-filter-kind="local" data-admin-agenda-filter-value="0">Todos os locais</button>
                                 <?php foreach ($trainingLocations as $location) { ?>
                                     <button type="button" class="agenda-secondary-tab" data-admin-agenda-filter-kind="local" data-admin-agenda-filter-value="<?php echo e((string) $location['id']); ?>">
-                                        <?php echo e($location['nome']); ?>
+                                        <?php echo e(format_training_location_name($location)); ?>
                                     </button>
                                 <?php } ?>
                             </div>
@@ -243,7 +243,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             </div>
         </article>
 
-        <section class="grid-two">
+        <section>
             <article class="content-card">
                 <h2>Agendamentos do dia</h2>
                 <p class="muted">A lista abaixo carrega todos os agendamentos do dia em ordem de horário e depois por nome, agrupados por local e espaço.</p>
@@ -259,7 +259,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 <option value="0">Todos os locais</option>
                                 <?php foreach ($trainingLocations as $location) { ?>
                                     <option value="<?php echo e((string) $location['id']); ?>" <?php echo (int) ($selectedDailyLocationId ?? 0) === (int) $location['id'] ? 'selected' : ''; ?>>
-                                        <?php echo e($location['nome']); ?>
+                                        <?php echo e(format_training_location_name($location)); ?>
                                     </option>
                                 <?php } ?>
                             </select>
@@ -596,7 +596,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 <option value="0">Todos os locais</option>
                                 <?php foreach ($trainingLocations as $location) { ?>
                                     <option value="<?php echo e((string) $location['id']); ?>" <?php echo (int) ($selectedLocationId ?? 0) === (int) $location['id'] ? 'selected' : ''; ?>>
-                                        <?php echo e($location['nome']); ?>
+                                        <?php echo e(format_training_location_name($location)); ?>
                                     </option>
                                 <?php } ?>
                             </select>
@@ -980,7 +980,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 <th>Local / modalidade</th>
                                 <th>Destino</th>
                                 <th>Status</th>
-                                <th>Acao</th>
+                                <th>Ação</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1016,7 +1016,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                 <button type="submit" class="btn btn-secondary btn-compact">Inativar</button>
                                             </form>
                                         <?php } else { ?>
-                                            <span class="muted">Sem acao</span>
+                                            <span class="muted">Sem ação</span>
                                         <?php } ?>
                                     </td>
                                 </tr>
@@ -1244,7 +1244,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                     <?php if ($popupStatus !== 'excluido') { ?>
                                         <form method="POST" action="<?php echo e(url('/admin/site-popups/remover')); ?>" class="inline-form" data-ajax-form="1" data-remove-closest="article">
                                             <input type="hidden" name="site_popup_id" value="<?php echo e((string) $popup['id']); ?>">
-                                            <button type="submit" class="btn btn-secondary">Excluir</button>
+                                            <button type="submit" class="btn btn-danger">Excluir</button>
                                         </form>
                                     <?php } ?>
                                 </div>
@@ -1429,9 +1429,9 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                     <div class="admin-blog-actions">
                                         <button type="button" class="btn btn-secondary" data-admin-blog-edit="1" data-post-id="<?php echo e((string) $post['id']); ?>">Editar</button>
                                         <a href="<?php echo e((string) ($post['public_url'] ?? url('/blog'))); ?>" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">Abrir</a>
-                                        <form method="POST" action="<?php echo e(url('/admin/postagens/remover')); ?>" class="inline-form" data-admin-blog-delete-form="1" data-manual-submit="1" data-post-title="<?php echo e((string) $post['titulo']); ?>">
+                                        <form method="POST" action="<?php echo e(url('/admin/postagens/remover')); ?>" class="inline-form" data-admin-blog-delete-form="1" data-manual-submit="1" data-skip-delete-confirmation="1" data-post-title="<?php echo e((string) $post['titulo']); ?>">
                                             <input type="hidden" name="post_id" value="<?php echo e((string) $post['id']); ?>">
-                                            <button type="submit" class="btn btn-secondary">Remover</button>
+                                            <button type="submit" class="btn btn-danger">Remover</button>
                                         </form>
                                     </div>
                                 </td>
@@ -1591,7 +1591,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     </label>
                 </div>
                 <div class="admin-blog-gallery-actions">
-                    <button type="button" class="btn btn-secondary" data-admin-blog-gallery-remove="1">Remover imagem</button>
+                    <button type="button" class="btn btn-danger" data-admin-blog-gallery-remove="1" data-confirm-delete="1" data-confirm-delete-message="Tem certeza de que deseja remover esta imagem da galeria?">Remover imagem</button>
                 </div>
             </div>
         </template>
@@ -1599,15 +1599,15 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         <div id="admin-blog-delete-confirm-modal" class="popup-overlay hidden" aria-hidden="true">
             <div class="popup-card" role="dialog" aria-modal="true" aria-labelledby="admin-blog-delete-confirm-title">
                 <div class="popup-head">
-                    <h3 id="admin-blog-delete-confirm-title">Confirmar remocao</h3>
-                    <button type="button" class="popup-close-icon" id="admin-blog-delete-confirm-close" aria-label="Fechar confirmacao">&times;</button>
+                    <h3 id="admin-blog-delete-confirm-title">Confirmar remoção</h3>
+                    <button type="button" class="popup-close-icon" id="admin-blog-delete-confirm-close" aria-label="Fechar confirmação">&times;</button>
                 </div>
                 <div class="popup-body">
                     <p id="admin-blog-delete-confirm-text">Tem certeza que deseja remover esta postagem?</p>
                 </div>
                 <div class="popup-actions">
                     <button type="button" class="btn btn-secondary" id="admin-blog-delete-confirm-cancel">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="admin-blog-delete-confirm-submit">Confirmar remocao</button>
+                    <button type="button" class="btn btn-danger" id="admin-blog-delete-confirm-submit">Confirmar remoção</button>
                 </div>
             </div>
         </div>
@@ -1623,188 +1623,193 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             </div>
         </div>
 
-        <section class="grid-two">
+        <section>
             <article class="content-card">
-                <h2>Cadastrar local de treino</h2>
-                <p class="muted">Digite o CEP completo e selecione o endereço apresentado na lista flutuante.</p>
-                <form method="POST" action="<?php echo e(url('/admin/locais')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1" data-follow-redirect="1" id="admin-training-location-form">
+                <div class="section-head">
+                    <div>
+                        <h2>Locais cadastrados</h2>
+                        <p class="muted">Consulte os locais existentes ou abra o cadastro de um novo local.</p>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="admin-training-location-open">Criar Local</button>
+                </div>
+                <form method="GET" action="<?php echo e(url('/admin/locais/lista')); ?>" class="admin-people-filter-form admin-training-location-filter-row" id="admin-training-location-filter-form" data-manual-submit="1">
                     <label>
-                        <span>Nome do local</span>
-                        <input type="text" name="nome" maxlength="150" required>
-                    </label>
-                    <label class="cep-autocomplete-field">
-                        <span>CEP</span>
+                        <span>Buscar local</span>
                         <input
                             type="text"
-                            name="cep"
-                            maxlength="9"
-                            inputmode="numeric"
-                            autocomplete="postal-code"
-                            data-cep-address-search="1"
-                            aria-autocomplete="list"
-                            aria-expanded="false"
-                            aria-controls="admin-training-location-cep-results"
+                            name="location_search"
+                            id="admin-training-location-search"
+                            value="<?php echo e((string) ($locationSearch ?? '')); ?>"
+                            placeholder="Digite nome, apelido, CEP, endereço, bairro ou cidade"
+                            autocomplete="off"
+                        >
+                        <small class="muted">A lista vai sendo atualizada enquanto você digita.</small>
+                    </label>
+                    <label>
+                        <span>Quantidade de locais a listar</span>
+                        <input
+                            type="number"
+                            name="location_limit"
+                            min="1"
+                            max="<?php echo e((string) ($locationLimitMax ?? 20)); ?>"
+                            value="<?php echo e((string) ($locationLimit ?? 20)); ?>"
                             required
                         >
-                        <div class="cep-address-results hidden" id="admin-training-location-cep-results" role="listbox"></div>
-                        <small class="cep-address-status muted">Digite os 8 números do CEP.</small>
+                        <small class="muted">Limite máximo aplicado nesta tela: <?php echo e((string) ($locationLimitMax ?? 20)); ?> locais por consulta.</small>
                     </label>
-                    <label>
-                        <span>Logradouro</span>
-                        <input type="text" name="logradouro" maxlength="180" data-address-field="logradouro" readonly required>
-                    </label>
-                    <label>
-                        <span>Bairro</span>
-                        <input type="text" name="bairro" maxlength="120" data-address-field="bairro" readonly required>
-                    </label>
-                    <div class="grid-two">
-                        <label>
-                            <span>Cidade</span>
-                            <input type="text" name="cidade" maxlength="120" data-address-field="cidade" readonly required>
-                        </label>
-                        <label>
-                            <span>UF</span>
-                            <input type="text" name="uf" maxlength="2" data-address-field="uf" readonly required>
-                        </label>
+                    <div class="admin-filter-actions">
+                        <button type="submit" class="btn btn-secondary">Atualizar lista</button>
                     </div>
-                    <label>
-                        <span>Status inicial</span>
-                        <select name="ativo">
-                            <option value="1">Ativo</option>
-                            <option value="0">Inativo</option>
-                        </select>
-                    </label>
-                    <button type="submit" class="btn btn-primary">Cadastrar local</button>
                 </form>
-            </article>
-
-            <article class="content-card">
-                <h2>Locais cadastrados</h2>
                 <div class="table-wrap">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Local</th>
+                                <th>Nome<br><small class="muted">(nome completo)</small></th>
                                 <th>CEP</th>
                                 <th>Endereço</th>
                                 <th>Cidade/UF</th>
+                                <th>Administrador</th>
+                                <th>Coordenador</th>
                                 <th>Status</th>
+                                <th>Ação</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <?php if (empty($trainingLocations)) { ?>
-                                <tr><td colspan="5">Nenhum local cadastrado.</td></tr>
-                            <?php } ?>
-                            <?php foreach (($trainingLocations ?? []) as $location) { ?>
-                                <tr>
-                                    <td><?php echo e((string) $location['nome']); ?></td>
-                                    <td><?php echo e(!empty($location['cep']) ? format_cep((string) $location['cep']) : '-'); ?></td>
-                                    <td><?php echo e(trim((string) (($location['logradouro'] ?: $location['endereco_completo']) . (!empty($location['bairro']) ? ' - ' . $location['bairro'] : '')))); ?></td>
-                                    <td><?php echo e((string) ($location['cidade'] . '/' . $location['uf'])); ?></td>
-                                    <td><?php echo (int) $location['ativo'] === 1 ? 'Ativo' : 'Inativo'; ?></td>
-                                </tr>
-                            <?php } ?>
+                        <tbody id="admin-training-location-list-body">
+                            <?php require ROOT_PATH . '/app/Views/admin/partials/training_location_rows.php'; ?>
                         </tbody>
                     </table>
                 </div>
             </article>
         </section>
 
-        <section class="grid-two">
-            <article class="content-card">
-                <h2>Suspensão de espaço de treino</h2>
-                <p class="muted">Bloqueie temporariamente um espaço por manutenção, limpeza, reforma ou outra indisponibilidade.</p>
-                <form method="POST" action="<?php echo e(url('/admin/espacos/suspensoes')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1" data-follow-redirect="1">
-                    <label>
-                        <span>Espaço de treino</span>
-                        <select name="espaco_treino_id" required>
-                            <option value="">Selecione</option>
-                            <?php foreach (($trainingSpaces ?? []) as $space) { ?>
-                                <option value="<?php echo e((string) $space['id']); ?>">
-                                    <?php echo e($space['local_nome'] . ' - ' . $space['nome'] . ' (' . $space['tipo_espaco'] . ')'); ?>
-                                </option>
-                            <?php } ?>
-                        </select>
-                    </label>
-                    <div class="grid-two">
-                        <label><span>Data inicial da suspensão</span><input type="date" name="data_inicio" required></label>
-                        <label><span>Data final da suspensão</span><input type="date" name="data_fim" required></label>
+        <div id="admin-training-location-modal" class="popup-overlay hidden" aria-hidden="true">
+            <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-training-location-modal-title">
+                <div class="popup-head admin-popup-head">
+                    <div>
+                        <h3 id="admin-training-location-modal-title">Cadastrar local de treino</h3>
+                        <p class="muted">Digite o CEP completo e selecione o endereço apresentado na lista flutuante.</p>
                     </div>
-                    <label><span>Motivo</span><input type="text" name="motivo" maxlength="255" placeholder="Ex.: manutenção preventiva da piscina"></label>
-                    <label>
-                        <span>Status inicial</span>
-                        <select name="ativo">
-                            <option value="1">Ativa</option>
-                            <option value="0">Inativa</option>
-                        </select>
-                    </label>
-                    <button type="submit" class="btn btn-primary">Salvar suspensão</button>
-                </form>
-            </article>
-
-            <article class="content-card">
-                <h2>Suspensões de espaço cadastradas</h2>
-                <div class="table-wrap">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Espaço</th>
-                                <th>Período</th>
-                                <th>Motivo</th>
-                                <th>Status</th>
-                                <th>Acao</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($spaceSuspensions)) { ?>
-                                <tr><td colspan="5">Nenhuma suspensão cadastrada.</td></tr>
-                            <?php } ?>
-                            <?php foreach (($spaceSuspensions ?? []) as $suspension) { ?>
-                                <tr>
-                                    <td><?php echo e($suspension['local_nome'] . ' - ' . $suspension['espaco_nome']); ?></td>
-                                    <td><?php echo e(date('d/m/Y', strtotime((string) $suspension['data_inicio']))); ?> até <?php echo e(date('d/m/Y', strtotime((string) $suspension['data_fim']))); ?></td>
-                                    <td><?php echo e($suspension['motivo'] ?: '-'); ?></td>
-                                    <td><?php echo e((int) $suspension['ativo'] === 1 ? 'Ativa' : 'Inativa'); ?></td>
-                                    <td>
-                                        <?php if ((int) $suspension['ativo'] === 1) { ?>
-                                            <form method="POST" action="<?php echo e(url('/admin/espacos/suspensoes/inativar')); ?>" class="inline-form" data-ajax-form="1" data-follow-redirect="1">
-                                                <input type="hidden" name="suspensao_espaco_id" value="<?php echo e((string) $suspension['id']); ?>">
-                                                <button type="submit" class="btn btn-secondary">Inativar</button>
-                                            </form>
-                                        <?php } else { ?>
-                                            <span class="muted">Sem acao</span>
-                                        <?php } ?>
-                                    </td>
-                                </tr>
-                            <?php } ?>
-                        </tbody>
-                    </table>
+                    <button type="button" class="popup-close-icon" id="admin-training-location-close" aria-label="Fechar cadastro de local">&times;</button>
                 </div>
-            </article>
-        </section>
+                <div class="popup-body admin-popup-body">
+                    <form
+                        method="POST"
+                        action="<?php echo e(url('/admin/locais')); ?>"
+                        data-create-action="<?php echo e(url('/admin/locais')); ?>"
+                        data-update-action="<?php echo e(url('/admin/locais/atualizar')); ?>"
+                        class="stack-form"
+                        data-ajax-form="1"
+                        data-success-reset="1"
+                        data-follow-redirect="1"
+                        id="admin-training-location-form"
+                    >
+                        <input type="hidden" name="local_treino_id" value="">
+                        <label>
+                            <span>Nome completo do local</span>
+                            <input type="text" name="nome_local" maxlength="150" placeholder="Ex.: Complexo Aquático Senador José Silva" required>
+                        </label>
+                        <label>
+                            <span>Apelido do local</span>
+                            <input type="text" name="apelido_local" maxlength="100" placeholder="Ex.: Baetão" required>
+                        </label>
+                        <div class="grid-two">
+                            <label>
+                                <span>Administrador do local</span>
+                                <select name="admin_local">
+                                    <option value="">Não definido</option>
+                                    <?php foreach (($eligibleLocationManagers ?? []) as $manager) { ?>
+                                        <option value="<?php echo e((string) $manager['conta_id']); ?>"><?php echo e((string) ($manager['nome_completo'] . ' — ' . $manager['papeis'])); ?></option>
+                                    <?php } ?>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Coordenador do local</span>
+                                <select name="coord_local">
+                                    <option value="">Não definido</option>
+                                    <?php foreach (($eligibleLocationManagers ?? []) as $manager) { ?>
+                                        <option value="<?php echo e((string) $manager['conta_id']); ?>"><?php echo e((string) ($manager['nome_completo'] . ' — ' . $manager['papeis'])); ?></option>
+                                    <?php } ?>
+                                </select>
+                            </label>
+                        </div>
+                        <label class="cep-autocomplete-field">
+                            <span>CEP</span>
+                            <input
+                                type="text"
+                                name="cep"
+                                maxlength="9"
+                                inputmode="numeric"
+                                autocomplete="postal-code"
+                                data-cep-address-search="1"
+                                aria-autocomplete="list"
+                                aria-expanded="false"
+                                aria-controls="admin-training-location-cep-results"
+                                required
+                            >
+                            <div class="cep-address-results hidden" id="admin-training-location-cep-results" role="listbox"></div>
+                            <small class="cep-address-status muted">Digite os 8 números do CEP.</small>
+                        </label>
+                        <label>
+                            <span>Logradouro</span>
+                            <input type="text" name="logradouro" maxlength="180" data-address-field="logradouro" readonly required>
+                        </label>
+                        <div class="grid-two">
+                            <label>
+                                <span>Número</span>
+                                <input type="text" name="numero_endereco" maxlength="20" data-address-field="numero_endereco" required>
+                            </label>
+                            <label>
+                                <span>Complemento</span>
+                                <input type="text" name="complemento" maxlength="120" data-address-field="complemento" placeholder="Opcional">
+                            </label>
+                        </div>
+                        <label>
+                            <span>Bairro</span>
+                            <input type="text" name="bairro" maxlength="120" data-address-field="bairro" readonly required>
+                        </label>
+                        <div class="grid-two">
+                            <label>
+                                <span>Cidade</span>
+                                <input type="text" name="cidade" maxlength="120" data-address-field="cidade" readonly required>
+                            </label>
+                            <label>
+                                <span>UF</span>
+                                <input type="text" name="uf" maxlength="2" data-address-field="uf" readonly required>
+                            </label>
+                        </div>
+                        <label>
+                            <span>Status inicial</span>
+                            <select name="ativo">
+                                <option value="1">Ativo</option>
+                                <option value="0">Inativo</option>
+                            </select>
+                        </label>
+                        <div class="popup-actions">
+                            <button type="button" class="btn btn-secondary" id="admin-training-location-cancel">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" id="admin-training-location-submit">Cadastrar local</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
-        <section class="grid-two">
-            <article class="content-card">
-                <h2>Espacos disponíveis para gestao</h2>
+        <section class="grid-two admin-training-spaces-grid">
+            <article class="content-card admin-training-spaces-card">
+                <h2>Espaços disponíveis para gestão</h2>
                 <div class="table-wrap">
-                    <table class="data-table">
+                    <table class="data-table admin-training-spaces-table">
                         <thead>
                             <tr>
-                                <th>Local</th>
                                 <th>Espaço</th>
                                 <th>Tipo</th>
                                 <th>Status</th>
+                                <th>Suspensões</th>
+                                <th>Ação</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <?php foreach (($trainingSpaces ?? []) as $space) { ?>
-                                <tr>
-                                    <td><?php echo e($space['local_nome']); ?></td>
-                                    <td><?php echo e($space['nome']); ?></td>
-                                    <td><?php echo e($space['tipo_espaco']); ?></td>
-                                    <td><?php echo e((int) $space['ativo'] === 1 ? 'Ativo' : 'Inativo'); ?></td>
-                                </tr>
-                            <?php } ?>
+                        <tbody id="admin-training-space-list-body">
+                            <?php require ROOT_PATH . '/app/Views/admin/partials/training_space_rows.php'; ?>
                         </tbody>
                     </table>
                 </div>
@@ -1821,6 +1826,70 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 </div>
             </article>
         </section>
+
+        <div id="admin-space-suspension-modal" class="popup-overlay hidden" aria-hidden="true">
+            <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-space-suspension-title">
+                <div class="popup-head admin-popup-head">
+                    <div>
+                        <h3 id="admin-space-suspension-title">Suspensão de espaço de treino</h3>
+                        <p class="muted" id="admin-space-suspension-subtitle">Bloqueie temporariamente o espaço selecionado.</p>
+                    </div>
+                    <button type="button" class="popup-close-icon" id="admin-space-suspension-close" aria-label="Fechar cadastro de suspensão">&times;</button>
+                </div>
+                <div class="popup-body admin-popup-body">
+                    <form method="POST" action="<?php echo e(url('/admin/espacos/suspensoes')); ?>" class="stack-form" id="admin-space-suspension-form" data-manual-submit="1">
+                        <label>
+                            <span>Espaço de treino</span>
+                            <input type="hidden" name="espaco_treino_id" value="">
+                            <input type="text" name="espaco_treino_nome" value="" readonly aria-readonly="true">
+                        </label>
+                        <div class="grid-two">
+                            <label><span>Data inicial da suspensão</span><input type="date" name="data_inicio" required></label>
+                            <label><span>Data final da suspensão</span><input type="date" name="data_fim" required></label>
+                        </div>
+                        <label><span>Motivo</span><input type="text" name="motivo" maxlength="255" placeholder="Ex.: manutenção preventiva da piscina"></label>
+                        <div class="popup-actions">
+                            <button type="button" class="btn btn-secondary" id="admin-space-suspension-cancel">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Salvar suspensão</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="admin-location-suspensions-modal" class="popup-overlay hidden" aria-hidden="true">
+            <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-location-suspensions-title">
+                <div class="popup-head admin-popup-head">
+                    <div>
+                        <h3 id="admin-location-suspensions-title">Suspensões do espaço</h3>
+                        <p class="muted" id="admin-location-suspensions-subtitle"></p>
+                    </div>
+                    <button type="button" class="popup-close-icon" id="admin-location-suspensions-close" aria-label="Fechar suspensões do espaço">&times;</button>
+                </div>
+                <div class="popup-body admin-popup-body">
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Espaço</th>
+                                    <th>Período</th>
+                                    <th>Motivo</th>
+                                    <th>Status</th>
+                                    <th>Criado por</th>
+                                    <th>Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-location-suspensions-body">
+                                <?php require ROOT_PATH . '/app/Views/admin/partials/location_suspension_rows.php'; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="popup-actions">
+                        <button type="button" class="btn btn-primary" id="admin-location-suspensions-cancel">Fechar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
 <?php } ?>
 
@@ -1870,7 +1939,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                     <td>
                                         <form method="POST" action="<?php echo e(url('/admin/ceps-intervalo/remover')); ?>" class="inline-form" data-ajax-form="1" data-remove-closest="tr">
                                             <input type="hidden" name="cep_intervalo_id" value="<?php echo e((string) $range['id']); ?>">
-                                            <button type="submit" class="btn btn-secondary">Remover</button>
+                                            <button type="submit" class="btn btn-danger">Remover</button>
                                         </form>
                                     </td>
                                 </tr>
@@ -1915,7 +1984,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                     <td>
                                         <form method="POST" action="<?php echo e(url('/admin/ceps-excecao/remover')); ?>" class="inline-form" data-ajax-form="1" data-remove-closest="tr">
                                             <input type="hidden" name="cep_excecao_id" value="<?php echo e((string) $exception['id']); ?>">
-                                            <button type="submit" class="btn btn-secondary">Remover</button>
+                                            <button type="submit" class="btn btn-danger">Remover</button>
                                         </form>
                                     </td>
                                 </tr>

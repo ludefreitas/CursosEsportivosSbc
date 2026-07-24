@@ -108,8 +108,8 @@
         <div class="post-grid">
             <?php foreach ($locations as $location) { ?>
                 <article class="post-card compact">
-                    <h3><?php echo e($location['nome']); ?></h3>
-                    <p><?php echo e($location['endereco_completo']); ?></p>
+                    <h3><?php echo e(format_training_location_name($location)); ?></h3>
+                    <p><?php echo e(format_training_location_address($location)); ?></p>
                     <small><?php echo e($location['cidade'] . '/' . $location['uf']); ?></small>
                 </article>
             <?php } ?>

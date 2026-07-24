@@ -16,7 +16,7 @@ $buildWhatsappLink = static function (?string $phone): ?string {
 };
 ?>
 
-<article class="content-card" id="admin-condition-validation-panel">
+<article class="content-card top-gap" id="admin-condition-validation-panel">
     <h2>Condições que precisam de validação</h2>
     <p class="muted">Esta relação destaca cada condição declarada que ainda depende de envio de PDF ou de análise da documentação.</p>
 

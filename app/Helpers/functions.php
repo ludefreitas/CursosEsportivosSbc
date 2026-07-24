@@ -408,6 +408,47 @@ function normalize_cep(string $cep): string
 }
 
 /**
+ * Monta a apresentação do endereço estruturado de um local de treino.
+ */
+function format_training_location_address(array $location): string
+{
+    $street = trim((string) ($location['logradouro'] ?? ''));
+    $number = trim((string) ($location['numero_endereco'] ?? ''));
+    $complement = trim((string) ($location['complemento'] ?? ''));
+    $district = trim((string) ($location['bairro'] ?? ''));
+    $address = $street;
+
+    if ($number !== '') {
+        $address .= ($address !== '' ? ', ' : '') . $number;
+    }
+
+    if ($complement !== '') {
+        $address .= ($address !== '' ? ' - ' : '') . $complement;
+    }
+
+    if ($district !== '') {
+        $address .= ($address !== '' ? ' - ' : '') . $district;
+    }
+
+    return $address;
+}
+
+/**
+ * Monta a apresentação do nome completo e do apelido de um local de treino.
+ */
+function format_training_location_name(array $location): string
+{
+    $name = trim((string) ($location['nome_local'] ?? $location['local_nome'] ?? ''));
+    $nickname = trim((string) ($location['apelido_local'] ?? $location['local_apelido'] ?? ''));
+
+    if ($nickname === '') {
+        return $name;
+    }
+
+    return $nickname . ($name !== '' ? ' — ' . $name : '');
+}
+
+/**
  * Normaliza nome completo removendo espacos excedentes.
  */
 function normalize_nome_completo(string $nome): string

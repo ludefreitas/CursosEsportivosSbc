@@ -1,9 +1,9 @@
 <div id="admin-people-panel-shell">
 <article class="content-card" id="admin-people-panel">
-    <h2>Usuarios e dependentes</h2>
+    <h2>Usuários e dependentes</h2>
     <p class="muted">Clique no nome para consultar os dados da pessoa e, se precisar, abrir a edição sem redirecionamento. A lista mostra primeiro os cadastros mais recentes.</p>
     <form method="GET" action="<?php echo e(url('/admin/pessoas/lista')); ?>" class="stack-form admin-people-filter-form" id="admin-people-filter-form" data-manual-submit="1" data-admin-people-filter="1">
-        <div class="grid-two admin-people-filter-grid">
+        <div class="admin-people-filter-grid admin-people-filter-row">
             <label>
                 <span>Buscar por nome ou CPF</span>
                 <input
@@ -411,10 +411,10 @@
 </article>
 
 <article class="content-card top-gap" id="admin-users-panel">
-    <h2>Lista somente de usuarios</h2>
+    <h2>Lista somente de usuários</h2>
     <p class="muted">Esta lista mostra apenas quem já possui conta criada. Use os links para verificar os dados do usuário ou abrir a relação de dependentes em pop-up.</p>
     <form method="GET" action="<?php echo e(url('/admin/pessoas/lista')); ?>" class="stack-form admin-people-filter-form" id="admin-users-filter-form" data-manual-submit="1" data-admin-people-filter="1">
-        <div class="grid-two admin-people-filter-grid">
+        <div class="admin-people-filter-grid admin-people-filter-row">
             <label>
                 <span>Buscar por nome ou CPF</span>
                 <input

@@ -45,7 +45,7 @@
                             <button type="button" class="agenda-secondary-tab is-active" data-agenda-filter-kind="local" data-agenda-filter-value="0">Todos os locais</button>
                             <?php foreach ($locations as $location) { ?>
                                 <button type="button" class="agenda-secondary-tab" data-agenda-filter-kind="local" data-agenda-filter-value="<?php echo e((string) $location['id']); ?>">
-                                    <?php echo e($location['nome']); ?>
+                                    <?php echo e(format_training_location_name($location)); ?>
                                 </button>
                             <?php } ?>
                         </div>

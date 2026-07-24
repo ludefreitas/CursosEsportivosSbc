@@ -9,8 +9,10 @@ use RuntimeException;
 
 class AdminService
 {
-    public const DEFAULT_PEOPLE_LIMIT = 50;
-    public const MAX_PEOPLE_LIMIT = 100;
+    public const DEFAULT_PEOPLE_LIMIT = 40;
+    public const MAX_PEOPLE_LIMIT = 40;
+    public const DEFAULT_TRAINING_LOCATION_LIMIT = 20;
+    public const MAX_TRAINING_LOCATION_LIMIT = 20;
     private const HEALTH_CERTIFICATE_TYPES = [
         'clinico' => 'Atestado clínico',
         'dermatologico' => 'Atestado dermatológico',
@@ -1446,6 +1448,7 @@ class AdminService
      */
     public function listTrainingSpacesForManagement(): array
     {
+        SpaceSuspensionService::expireElapsed();
         $pdo = Database::connection();
         $stmt = $pdo->query('
             SELECT
@@ -1454,10 +1457,25 @@ class AdminService
                 et.tipo_espaco,
                 et.ativo,
                 lt.id AS local_treino_id,
-                lt.nome AS local_nome
+                (
+                    SELECT COUNT(*)
+                    FROM suspensoes_espaco_treino s
+                    WHERE s.espaco_treino_id = et.id
+                      AND s.ativo = 1
+                ) AS total_suspensoes_ativas,
+                (
+                    SELECT COUNT(*)
+                    FROM suspensoes_espaco_treino s
+                    WHERE s.espaco_treino_id = et.id
+                ) AS total_suspensoes,
+                CASE
+                    WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                        THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local
+                END AS local_nome
             FROM espacos_treino et
             INNER JOIN locais_treino lt ON lt.id = et.local_treino_id
-            ORDER BY lt.nome, et.nome
+            ORDER BY lt.nome_local, et.nome
         ');
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -1466,14 +1484,71 @@ class AdminService
     /**
      * Lista os locais de treino cadastrados.
      */
-    public function listTrainingLocationsForManagement(): array
+    public function listTrainingLocationsForManagement(
+        string $search = '',
+        int $limit = self::DEFAULT_TRAINING_LOCATION_LIMIT
+    ): array
     {
         $pdo = Database::connection();
-        $stmt = $pdo->query('
-            SELECT id, nome, slug, cep, logradouro, bairro, endereco_completo, cidade, uf, ativo
-            FROM locais_treino
-            ORDER BY nome
-        ');
+        $search = trim($search);
+        $limit = max(1, min(self::MAX_TRAINING_LOCATION_LIMIT, $limit));
+        $sql = '
+            SELECT
+                lt.id,
+                lt.nome_local,
+                lt.apelido_local,
+                lt.admin_local,
+                lt.coord_local,
+                lt.slug,
+                lt.cep,
+                lt.logradouro,
+                lt.numero_endereco,
+                lt.complemento,
+                lt.bairro,
+                lt.cidade,
+                lt.uf,
+                lt.ativo,
+                admin_pessoa.nome_completo AS admin_local_nome,
+                coord_pessoa.nome_completo AS coord_local_nome
+            FROM locais_treino lt
+            LEFT JOIN contas admin_conta ON admin_conta.id = lt.admin_local
+            LEFT JOIN pessoas admin_pessoa ON admin_pessoa.cpf = admin_conta.cpf
+            LEFT JOIN contas coord_conta ON coord_conta.id = lt.coord_local
+            LEFT JOIN pessoas coord_pessoa ON coord_pessoa.cpf = coord_conta.cpf
+        ';
+        $params = [];
+
+        if ($search !== '') {
+            $sql .= '
+                WHERE lt.nome_local LIKE :search_name
+                   OR lt.apelido_local LIKE :search_nickname
+                   OR lt.cep LIKE :search_zip_code
+                   OR lt.logradouro LIKE :search_street
+                   OR lt.numero_endereco LIKE :search_number
+                   OR lt.bairro LIKE :search_district
+                   OR lt.cidade LIKE :search_city
+                   OR lt.uf LIKE :search_state
+                   OR admin_pessoa.nome_completo LIKE :search_admin
+                   OR coord_pessoa.nome_completo LIKE :search_coordinator
+            ';
+            $searchLike = '%' . $search . '%';
+            $params = [
+                ':search_name' => $searchLike,
+                ':search_nickname' => $searchLike,
+                ':search_zip_code' => $searchLike,
+                ':search_street' => $searchLike,
+                ':search_number' => $searchLike,
+                ':search_district' => $searchLike,
+                ':search_city' => $searchLike,
+                ':search_state' => $searchLike,
+                ':search_admin' => $searchLike,
+                ':search_coordinator' => $searchLike,
+            ];
+        }
+
+        $sql .= ' ORDER BY lt.nome_local LIMIT ' . $limit;
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -1483,16 +1558,25 @@ class AdminService
      */
     public function createTrainingLocation(array $data): int
     {
-        $name = trim((string) ($data['nome'] ?? ''));
+        $name = trim((string) ($data['nome_local'] ?? ''));
+        $nickname = trim((string) ($data['apelido_local'] ?? ''));
+        $localAdminId = (int) ($data['admin_local'] ?? 0);
+        $localCoordinatorId = (int) ($data['coord_local'] ?? 0);
         $zipCode = normalize_cep((string) ($data['cep'] ?? ''));
         $street = trim((string) ($data['logradouro'] ?? ''));
+        $number = trim((string) ($data['numero_endereco'] ?? ''));
+        $complement = trim((string) ($data['complemento'] ?? ''));
         $district = trim((string) ($data['bairro'] ?? ''));
         $city = trim((string) ($data['cidade'] ?? ''));
         $state = strtoupper(trim((string) ($data['uf'] ?? '')));
         $active = isset($data['ativo']) && (string) $data['ativo'] === '0' ? 0 : 1;
 
         if ($name === '') {
-            throw new RuntimeException('Informe o nome do local de treino.');
+            throw new RuntimeException('Informe o nome completo do local de treino.');
+        }
+
+        if ($nickname === '') {
+            throw new RuntimeException('Informe o apelido do local de treino.');
         }
 
         if (strlen($zipCode) !== 8) {
@@ -1503,7 +1587,13 @@ class AdminService
             throw new RuntimeException('Selecione um endereço válido na lista de resultados do CEP.');
         }
 
+        if ($number === '') {
+            throw new RuntimeException('Informe o número do endereço do local de treino.');
+        }
+
         $pdo = Database::connection();
+        $this->assertEligibleLocationManager($pdo, $localAdminId, 'administrador do local');
+        $this->assertEligibleLocationManager($pdo, $localCoordinatorId, 'coordenador do local');
         $slugBase = slugify($name);
         $slug = $slugBase !== '' ? $slugBase : 'local-treino';
         $suffix = 2;
@@ -1522,24 +1612,166 @@ class AdminService
 
         $stmt = $pdo->prepare('
             INSERT INTO locais_treino (
-                nome, slug, cep, logradouro, bairro, endereco_completo, cidade, uf, ativo
+                nome_local, apelido_local, admin_local, coord_local, slug, cep, logradouro, numero_endereco, complemento, bairro, cidade, uf, ativo
             ) VALUES (
-                :nome, :slug, :cep, :logradouro, :bairro, :endereco_completo, :cidade, :uf, :ativo
+                :nome_local, :apelido_local, :admin_local, :coord_local, :slug, :cep, :logradouro, :numero_endereco, :complemento, :bairro, :cidade, :uf, :ativo
             )
         ');
         $stmt->execute([
-            ':nome' => $name,
+            ':nome_local' => $name,
+            ':apelido_local' => $nickname,
+            ':admin_local' => $localAdminId > 0 ? $localAdminId : null,
+            ':coord_local' => $localCoordinatorId > 0 ? $localCoordinatorId : null,
             ':slug' => $slug,
             ':cep' => $zipCode,
             ':logradouro' => $street,
+            ':numero_endereco' => $number,
+            ':complemento' => $complement !== '' ? $complement : null,
             ':bairro' => $district,
-            ':endereco_completo' => $street . ' - ' . $district,
             ':cidade' => $city,
             ':uf' => $state,
             ':ativo' => $active,
         ]);
 
         return (int) $pdo->lastInsertId();
+    }
+
+    /**
+     * Atualiza os dados de um local de treino existente.
+     */
+    public function updateTrainingLocation(array $data): void
+    {
+        $locationId = (int) ($data['local_treino_id'] ?? 0);
+        $name = trim((string) ($data['nome_local'] ?? ''));
+        $nickname = trim((string) ($data['apelido_local'] ?? ''));
+        $localAdminId = (int) ($data['admin_local'] ?? 0);
+        $localCoordinatorId = (int) ($data['coord_local'] ?? 0);
+        $zipCode = normalize_cep((string) ($data['cep'] ?? ''));
+        $street = trim((string) ($data['logradouro'] ?? ''));
+        $number = trim((string) ($data['numero_endereco'] ?? ''));
+        $complement = trim((string) ($data['complemento'] ?? ''));
+        $district = trim((string) ($data['bairro'] ?? ''));
+        $city = trim((string) ($data['cidade'] ?? ''));
+        $state = strtoupper(trim((string) ($data['uf'] ?? '')));
+        $active = isset($data['ativo']) && (string) $data['ativo'] === '0' ? 0 : 1;
+
+        if ($locationId <= 0) {
+            throw new RuntimeException('Local de treino inválido para edição.');
+        }
+
+        if ($name === '') {
+            throw new RuntimeException('Informe o nome completo do local de treino.');
+        }
+
+        if ($nickname === '') {
+            throw new RuntimeException('Informe o apelido do local de treino.');
+        }
+
+        if (strlen($zipCode) !== 8) {
+            throw new RuntimeException('Informe um CEP válido com 8 dígitos.');
+        }
+
+        if ($street === '' || $district === '' || $city === '' || strlen($state) !== 2) {
+            throw new RuntimeException('Selecione um endereço válido na lista de resultados do CEP.');
+        }
+
+        if ($number === '') {
+            throw new RuntimeException('Informe o número do endereço do local de treino.');
+        }
+
+        $pdo = Database::connection();
+        $this->assertEligibleLocationManager($pdo, $localAdminId, 'administrador do local');
+        $this->assertEligibleLocationManager($pdo, $localCoordinatorId, 'coordenador do local');
+        $check = $pdo->prepare('SELECT COUNT(*) FROM locais_treino WHERE id = :id');
+        $check->execute([':id' => $locationId]);
+
+        if ((int) $check->fetchColumn() === 0) {
+            throw new RuntimeException('Local de treino não encontrado.');
+        }
+
+        $stmt = $pdo->prepare('
+            UPDATE locais_treino
+            SET
+                nome_local = :nome_local,
+                apelido_local = :apelido_local,
+                admin_local = :admin_local,
+                coord_local = :coord_local,
+                cep = :cep,
+                logradouro = :logradouro,
+                numero_endereco = :numero_endereco,
+                complemento = :complemento,
+                bairro = :bairro,
+                cidade = :cidade,
+                uf = :uf,
+                ativo = :ativo
+            WHERE id = :id
+        ');
+        $stmt->execute([
+            ':nome_local' => $name,
+            ':apelido_local' => $nickname,
+            ':admin_local' => $localAdminId > 0 ? $localAdminId : null,
+            ':coord_local' => $localCoordinatorId > 0 ? $localCoordinatorId : null,
+            ':cep' => $zipCode,
+            ':logradouro' => $street,
+            ':numero_endereco' => $number,
+            ':complemento' => $complement !== '' ? $complement : null,
+            ':bairro' => $district,
+            ':cidade' => $city,
+            ':uf' => $state,
+            ':ativo' => $active,
+            ':id' => $locationId,
+        ]);
+    }
+
+    /**
+     * Lista contas que podem administrar ou coordenar um local.
+     */
+    public function listEligibleLocationManagers(): array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->query('
+            SELECT
+                c.id AS conta_id,
+                p.nome_completo,
+                GROUP_CONCAT(DISTINCT pa.nome ORDER BY pa.nome SEPARATOR ", ") AS papeis
+            FROM contas c
+            INNER JOIN pessoas p ON p.cpf = c.cpf
+            INNER JOIN conta_papeis cp ON cp.conta_id = c.id
+            INNER JOIN papeis pa ON pa.id = cp.papel_id
+            WHERE c.ativo = 1
+              AND pa.slug IN ("admin", "coordinator", "supervisor", "teacher")
+            GROUP BY c.id, p.nome_completo
+            ORDER BY p.nome_completo
+        ');
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Impede a associação de contas sem um papel autorizado ao local.
+     */
+    private function assertEligibleLocationManager(PDO $pdo, int $accountId, string $fieldLabel): void
+    {
+        if ($accountId <= 0) {
+            return;
+        }
+
+        $stmt = $pdo->prepare('
+            SELECT COUNT(*)
+            FROM contas c
+            INNER JOIN conta_papeis cp ON cp.conta_id = c.id
+            INNER JOIN papeis pa ON pa.id = cp.papel_id
+            WHERE c.id = :conta_id
+              AND c.ativo = 1
+              AND pa.slug IN ("admin", "coordinator", "supervisor", "teacher")
+        ');
+        $stmt->execute([':conta_id' => $accountId]);
+
+        if ((int) $stmt->fetchColumn() === 0) {
+            throw new RuntimeException(
+                'Selecione para ' . $fieldLabel . ' um usuário ativo com papel de Administrador, Coordenador, Supervisor ou Professor.'
+            );
+        }
     }
 
     /**
@@ -1562,21 +1794,33 @@ class AdminService
      */
     public function listSpaceSuspensionsForManagement(): array
     {
+        SpaceSuspensionService::expireElapsed();
         $pdo = Database::connection();
         $stmt = $pdo->query('
             SELECT
                 s.id,
                 s.espaco_treino_id,
+                s.criado_por_conta_id,
                 s.data_inicio,
                 s.data_fim,
                 s.motivo,
                 s.ativo,
                 s.created_at,
+                CASE
+                    WHEN s.ativo = 1 AND CURDATE() BETWEEN s.data_inicio AND s.data_fim THEN 1
+                    ELSE 0
+                END AS pode_inativar,
                 et.nome AS espaco_nome,
-                lt.nome AS local_nome
+                lt.id AS local_treino_id,
+                criador_pessoa.nome_completo AS criado_por_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome
             FROM suspensoes_espaco_treino s
             INNER JOIN espacos_treino et ON et.id = s.espaco_treino_id
             INNER JOIN locais_treino lt ON lt.id = et.local_treino_id
+            LEFT JOIN contas criador_conta ON criador_conta.id = s.criado_por_conta_id
+            LEFT JOIN pessoas criador_pessoa ON criador_pessoa.cpf = criador_conta.cpf
             ORDER BY s.ativo DESC, s.data_inicio DESC, s.id DESC
         ');
 
@@ -1616,7 +1860,9 @@ class AdminService
                 hs.ativo,
                 hs.data_inativacao,
                 hs.created_at,
-                lt.nome AS local_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome
             FROM horarios_semanais hs
@@ -1683,7 +1929,9 @@ class AdminService
                 ah.rotulo_acao,
                 ah.ativo,
                 ah.created_at,
-                lt.nome AS local_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome
             FROM agenda_horarios_especiais ah
@@ -1730,7 +1978,9 @@ class AdminService
         $stmt = $pdo->prepare('
             SELECT
                 ah.*,
-                lt.nome AS local_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome
             FROM agenda_horarios_especiais ah
@@ -1780,7 +2030,9 @@ class AdminService
                 hs.tipo_horario,
                 m.nome AS modalidade_nome,
                 lt.id AS local_treino_id,
-                lt.nome AS local_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome,
                 et.id AS espaco_treino_id,
                 et.nome AS espaco_nome,
                 chamada_pessoa.nome_completo AS chamada_por_nome
@@ -1810,7 +2062,7 @@ class AdminService
         }
 
         $sql .= '
-            ORDER BY lt.nome ASC, et.nome ASC, a.data_agendada ASC, p.nome_completo ASC
+            ORDER BY lt.nome_local ASC, et.nome ASC, a.data_agendada ASC, p.nome_completo ASC
         ';
 
         $stmt = $pdo->prepare($sql);
@@ -1864,7 +2116,9 @@ class AdminService
                 hs.vagas_pvs,
                 m.nome AS modalidade_nome,
                 lt.id AS local_treino_id,
-                lt.nome AS local_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome,
                 et.id AS espaco_treino_id,
                 et.nome AS espaco_nome,
                 chamada_pessoa.nome_completo AS chamada_por_nome
@@ -1928,7 +2182,9 @@ class AdminService
         $stmt = $pdo->prepare('
             SELECT
                 hs.*,
-                lt.nome AS local_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome
             FROM horarios_semanais hs
@@ -2011,7 +2267,7 @@ class AdminService
         $startDate = trim((string) ($data['data_inicio'] ?? ''));
         $endDate = trim((string) ($data['data_fim'] ?? ''));
         $reason = trim((string) ($data['motivo'] ?? ''));
-        $active = (int) ($data['ativo'] ?? 1) === 1 ? 1 : 0;
+        $active = 1;
 
         if ($spaceId <= 0) {
             throw new RuntimeException('Selecione o espaço de treino para a suspensão.');
@@ -2027,6 +2283,7 @@ class AdminService
 
         $space = $this->findTrainingSpaceById($spaceId);
         $pdo = Database::connection();
+        SpaceSuspensionService::expireElapsed();
 
         if ($active === 1) {
             $stmtOverlap = $pdo->prepare('
@@ -2049,15 +2306,15 @@ class AdminService
         }
 
         $stmt = $pdo->prepare('
-            INSERT INTO suspensoes_espaco_treino (espaco_treino_id, data_inicio, data_fim, motivo, ativo)
-            VALUES (:espaco_treino_id, :data_inicio, :data_fim, :motivo, :ativo)
+            INSERT INTO suspensoes_espaco_treino (espaco_treino_id, criado_por_conta_id, data_inicio, data_fim, motivo, ativo)
+            VALUES (:espaco_treino_id, :criado_por_conta_id, :data_inicio, :data_fim, :motivo, 1)
         ');
         $stmt->execute([
             ':espaco_treino_id' => $spaceId,
+            ':criado_por_conta_id' => $accountId,
             ':data_inicio' => $startDate,
             ':data_fim' => $endDate,
             ':motivo' => $reason !== '' ? $reason : null,
-            ':ativo' => $active,
         ]);
 
         AuditLogService::record('admin.suspensao_espaco_criada', 'suspensoes_espaco_treino', (int) $pdo->lastInsertId(), [
@@ -2082,10 +2339,110 @@ class AdminService
         }
 
         $pdo = Database::connection();
-        $stmt = $pdo->prepare('UPDATE suspensoes_espaco_treino SET ativo = 0 WHERE id = :id');
+        SpaceSuspensionService::expireElapsed();
+
+        $stmtCurrent = $pdo->prepare('
+            SELECT id, espaco_treino_id, data_inicio, data_fim, ativo, CURDATE() AS data_corrente
+            FROM suspensoes_espaco_treino
+            WHERE id = :id
+            LIMIT 1
+        ');
+        $stmtCurrent->execute([':id' => $suspensionId]);
+        $current = $stmtCurrent->fetch(PDO::FETCH_ASSOC);
+
+        if (!$current) {
+            throw new RuntimeException('Suspensão não encontrada.');
+        }
+
+        if ((int) $current['ativo'] !== 1) {
+            throw new RuntimeException('Esta suspensão já está inativa.');
+        }
+
+        if ((string) $current['data_corrente'] < (string) $current['data_inicio']
+            || (string) $current['data_corrente'] > (string) $current['data_fim']) {
+            throw new RuntimeException('A suspensão só pode ser inativada manualmente durante o período de vigência.');
+        }
+
+        $stmt = $pdo->prepare('
+            UPDATE suspensoes_espaco_treino
+            SET ativo = 0
+            WHERE id = :id
+              AND ativo = 1
+        ');
         $stmt->execute([':id' => $suspensionId]);
 
-        AuditLogService::record('admin.suspensao_espaco_inativada', 'suspensoes_espaco_treino', $suspensionId, []);
+        AuditLogService::record('admin.suspensao_espaco_inativada', 'suspensoes_espaco_treino', $suspensionId, [
+            'espaco_treino_id' => (int) $current['espaco_treino_id'],
+            'data_inicio' => (string) $current['data_inicio'],
+            'data_fim' => (string) $current['data_fim'],
+            'ativo_anterior' => 1,
+            'ativo_novo' => 0,
+            'motivo_inativacao' => 'Inativação manual durante o período de vigência.',
+        ]);
+    }
+
+    /**
+     * Exclui uma suspensão que ainda não iniciou.
+     */
+    public function deleteFutureSpaceSuspension(int $suspensionId): void
+    {
+        if ($suspensionId <= 0) {
+            throw new RuntimeException('Suspensão inválida.');
+        }
+
+        $pdo = Database::connection();
+        SpaceSuspensionService::expireElapsed();
+        $pdo->beginTransaction();
+
+        try {
+            $stmtCurrent = $pdo->prepare('
+                SELECT id, espaco_treino_id, criado_por_conta_id, data_inicio, data_fim, motivo, ativo, CURDATE() AS data_corrente
+                FROM suspensoes_espaco_treino
+                WHERE id = :id
+                LIMIT 1
+                FOR UPDATE
+            ');
+            $stmtCurrent->execute([':id' => $suspensionId]);
+            $current = $stmtCurrent->fetch(PDO::FETCH_ASSOC);
+
+            if (!$current) {
+                throw new RuntimeException('Suspensão não encontrada.');
+            }
+
+            if ((int) $current['ativo'] !== 1 || (string) $current['data_corrente'] >= (string) $current['data_inicio']) {
+                throw new RuntimeException('Somente uma suspensão que ainda está aguardando o início pode ser excluída.');
+            }
+
+            $stmtDelete = $pdo->prepare('
+                DELETE FROM suspensoes_espaco_treino
+                WHERE id = :id
+                  AND ativo = 1
+                  AND CURDATE() < data_inicio
+            ');
+            $stmtDelete->execute([':id' => $suspensionId]);
+
+            if ($stmtDelete->rowCount() === 0) {
+                throw new RuntimeException('Não foi possível excluir a suspensão porque o período de vigência já começou.');
+            }
+
+            AuditLogService::record('admin.suspensao_espaco_excluida', 'suspensoes_espaco_treino', $suspensionId, [
+                'espaco_treino_id' => (int) $current['espaco_treino_id'],
+                'criado_por_conta_id' => (int) ($current['criado_por_conta_id'] ?? 0),
+                'data_inicio' => (string) $current['data_inicio'],
+                'data_fim' => (string) $current['data_fim'],
+                'motivo' => (string) ($current['motivo'] ?? ''),
+                'ativo_anterior' => 1,
+                'motivo_exclusao' => 'Suspensão excluída antes do início.',
+            ]);
+
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            throw $e;
+        }
     }
 
     /**
@@ -2593,7 +2950,14 @@ class AdminService
     {
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
-            SELECT et.id, et.nome, et.local_treino_id, et.ativo, lt.nome AS local_nome
+            SELECT
+                et.id,
+                et.nome,
+                et.local_treino_id,
+                et.ativo,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome
             FROM espacos_treino et
             INNER JOIN locais_treino lt ON lt.id = et.local_treino_id
             WHERE et.id = :id
@@ -3763,7 +4127,9 @@ class AdminService
                 ah.url_destino,
                 ah.rotulo_acao,
                 ah.ativo,
-                lt.nome AS local_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome
             FROM agenda_horarios_especiais ah
@@ -3941,7 +4307,9 @@ class AdminService
         $stmt = $pdo->prepare('
             SELECT
                 ah.*,
-                lt.nome AS local_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome
             FROM agenda_horarios_especiais ah

@@ -440,3 +440,17 @@ body.pagina-blog {
         grid-template-columns: 1fr;
     }
 }
+
+@media (max-width: 560px) {
+    .blog-hero-copy h1,
+    .blog-post-hero h1 {
+        font-size: clamp(27px, 9vw, 36px);
+        overflow-wrap: anywhere;
+    }
+
+    .blog-hero,
+    .blog-post-card,
+    .blog-post-hero {
+        border-radius: 20px;
+    }
+}

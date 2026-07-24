@@ -1,7 +1,7 @@
 <section class="content-card">
     <div class="section-head">
         <div>
-            <span class="eyebrow">Gestao inicial</span>
+            <span class="eyebrow">Gestão inicial</span>
             <h1>Área administrativa</h1>
             <p class="muted">Painel administrativo organizado por seções, sem redirecionamento de página.</p>
         </div>
@@ -11,14 +11,14 @@
 <div class="admin-sections-shell">
     <nav class="content-card admin-nav-card" aria-label="Menu da área administrativa">
         <div class="admin-nav">
-            <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Inicio</button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-pessoas">Usuarios e pessoas</button>
+            <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Início</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-pessoas">Usuários e pessoas</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="agenda">Agenda</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="pagina-home">Página home</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="blog">Blog</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="locais-espacos">Locais e espaços</button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="configuracoes">Configuracoes</button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="outras-areas">Outras areas</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="configuracoes">Configurações</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="outras-areas">Outras áreas</button>
         </div>
     </nav>
 

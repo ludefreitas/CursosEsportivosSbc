@@ -23,10 +23,10 @@ class AgendaService
     {
         $pdo = Database::connection();
         $stmt = $pdo->query('
-            SELECT id, nome, endereco_completo, cidade, uf, latitude, longitude
+            SELECT id, nome_local, apelido_local, cep, logradouro, numero_endereco, complemento, bairro, cidade, uf, latitude, longitude
             FROM locais_treino
             WHERE ativo = 1
-            ORDER BY nome
+            ORDER BY nome_local
         ');
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -42,7 +42,7 @@ class AgendaService
             SELECT id, nome, tipo_ambiente
             FROM modalidades
             WHERE ativo = 1
-            ORDER BY nome
+            ORDER BY nome_local
         ');
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -80,7 +80,11 @@ class AgendaService
                 hs.data_inativacao,
                 hs.created_at,
                 hs.espaco_treino_id,
-                lt.nome AS local_nome,
+                CASE
+                    WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                        THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local
+                END AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome,
                 m.tipo_ambiente
@@ -1175,7 +1179,11 @@ class AgendaService
                 ae.local_treino_id,
                 ae.espaco_treino_id,
                 ae.modalidade_id,
-                lt.nome AS local_nome,
+                CASE
+                    WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                        THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local
+                END AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome
             FROM agenda_horarios_especiais ae
@@ -1649,6 +1657,7 @@ class AgendaService
      */
     private function loadActiveSpaceSuspensions(DateTimeImmutable $start, DateTimeImmutable $end): array
     {
+        SpaceSuspensionService::expireElapsed();
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
             SELECT espaco_treino_id, data_inicio, data_fim
@@ -1706,6 +1715,7 @@ class AgendaService
             return false;
         }
 
+        SpaceSuspensionService::expireElapsed();
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
             SELECT 1

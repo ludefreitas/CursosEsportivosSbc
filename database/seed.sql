@@ -28,10 +28,13 @@ INSERT IGNORE INTO tipos_certificados (id, slug, nome, categoria) VALUES
     (2, 'plm', 'Pessoa com Laudo Médico de Doença', 'condicao'),
     (3, 'pvs', 'Pessoa em Situação de Vulnerabilidade Social', 'condicao');
 
-INSERT IGNORE INTO locais_treino (id, nome, slug, endereco_completo, cidade, uf, latitude, longitude, ativo) VALUES
-    (1, 'Centro Esportivo Baeta', 'centro-esportivo-baeta', 'Rua do Esporte, 120 - Centro', 'São Bernardo do Campo', 'SP', -23.6917710, -46.5647240, 1),
-    (2, 'Parque Aquático Riacho', 'parque-aquatico-riacho', 'Avenida das Piscinas, 250 - Riacho Grande', 'São Bernardo do Campo', 'SP', -23.7478820, -46.5083350, 1),
-    (3, 'Complexo Alvarenga', 'complexo-alvarenga', 'Rua das Quadras, 890 - Alvarenga', 'São Bernardo do Campo', 'SP', -23.7422120, -46.6049200, 1);
+INSERT IGNORE INTO locais_treino (
+    id, nome_local, apelido_local, slug, cep, logradouro, numero_endereco, complemento, bairro,
+    cidade, uf, latitude, longitude, ativo
+) VALUES
+    (1, 'Centro Esportivo Baeta', 'Baetão', 'centro-esportivo-baeta', NULL, 'Rua do Esporte', '120', NULL, 'Centro', 'São Bernardo do Campo', 'SP', -23.6917710, -46.5647240, 1),
+    (2, 'Parque Aquático Riacho', NULL, 'parque-aquatico-riacho', NULL, 'Avenida das Piscinas', '250', NULL, 'Riacho Grande', 'São Bernardo do Campo', 'SP', -23.7478820, -46.5083350, 1),
+    (3, 'Complexo Alvarenga', NULL, 'complexo-alvarenga', NULL, 'Rua das Quadras', '890', NULL, 'Alvarenga', 'São Bernardo do Campo', 'SP', -23.7422120, -46.6049200, 1);
 
 INSERT IGNORE INTO espacos_treino (id, local_treino_id, nome, tipo_espaco, capacidade_base, ativo) VALUES
     (1, 1, 'Sala de Musculação A', 'sala', 25, 1),

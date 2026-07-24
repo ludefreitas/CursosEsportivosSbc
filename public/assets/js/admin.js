@@ -2623,6 +2623,106 @@
             let request = null;
             let debounceTimer = null;
 
+            function getLocationModal() {
+                return $('#admin-training-location-modal');
+            }
+
+            function prepareCreateLocationForm() {
+                const $form = $('#admin-training-location-form');
+
+                if ($form.length === 0) {
+                    return;
+                }
+
+                $form[0].reset();
+                $form.attr('action', String($form.data('createAction') || ''));
+                $form.find('input[name="local_treino_id"]').val('');
+                $form.find('[data-address-field]').val('');
+                $form.find('.cep-address-results').addClass('hidden').empty();
+                $form.find('.cep-address-status').text('Digite os 8 números do CEP.');
+                $form.find('[data-cep-address-search="1"]').attr('aria-expanded', 'false');
+                $('#admin-training-location-modal-title').text('Cadastrar local de treino');
+                $('#admin-training-location-submit').text('Cadastrar local');
+            }
+
+            function closeLocationModal() {
+                const $modal = getLocationModal();
+
+                window.clearTimeout(debounceTimer);
+
+                if (request) {
+                    request.abort();
+                    request = null;
+                }
+
+                prepareCreateLocationForm();
+                $modal.addClass('hidden').attr('aria-hidden', 'true');
+            }
+
+            $(document).on('click', '#admin-training-location-open', function () {
+                const $modal = getLocationModal();
+
+                prepareCreateLocationForm();
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+                window.setTimeout(function () {
+                    $('#admin-training-location-form input[name="nome_local"]').trigger('focus');
+                }, 0);
+            });
+
+            $(document).on('click', '.admin-training-location-edit', function () {
+                const $button = $(this);
+                const $modal = getLocationModal();
+                const $form = $('#admin-training-location-form');
+                let location = {};
+
+                try {
+                    location = JSON.parse(String($button.attr('data-location') || '{}'));
+                } catch (error) {
+                    App.core.abrirPopup('erro', 'Não foi possível carregar os dados deste local.');
+                    return;
+                }
+
+                prepareCreateLocationForm();
+                $form.attr('action', String($form.data('updateAction') || ''));
+                $form.find('input[name="local_treino_id"]').val(String(location.id || ''));
+                $form.find('input[name="nome_local"]').val(String(location.nome_local || ''));
+                $form.find('input[name="apelido_local"]').val(String(location.apelido_local || ''));
+                $form.find('select[name="admin_local"]').val(String(Number(location.admin_local || 0) || ''));
+                $form.find('select[name="coord_local"]').val(String(Number(location.coord_local || 0) || ''));
+                $form.find('input[name="cep"]').val(String(location.cep || '').replace(/(\d{5})(\d{3})/, '$1-$2'));
+                $form.find('input[name="logradouro"]').val(String(location.logradouro || ''));
+                $form.find('input[name="numero_endereco"]').val(String(location.numero_endereco || ''));
+                $form.find('input[name="complemento"]').val(String(location.complemento || ''));
+                $form.find('input[name="bairro"]').val(String(location.bairro || ''));
+                $form.find('input[name="cidade"]').val(String(location.cidade || ''));
+                $form.find('input[name="uf"]').val(String(location.uf || ''));
+                $form.find('select[name="ativo"]').val(String(Number(location.ativo || 0)));
+                $form.find('.cep-address-status').text('Endereço atual carregado. Digite outro CEP para substituir.');
+                $('#admin-training-location-modal-title').text('Editar local de treino');
+                $('#admin-training-location-submit').text('Salvar alterações');
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+
+                window.setTimeout(function () {
+                    $form.find('input[name="nome_local"]').trigger('focus');
+                }, 0);
+            });
+
+            $(document).on('click', '#admin-training-location-close, #admin-training-location-cancel', function () {
+                closeLocationModal();
+            });
+
+            $(document).on('click', '#admin-training-location-modal', function (event) {
+                if (event.target === this) {
+                    closeLocationModal();
+                }
+            });
+
+            $(document).on('keydown', function (event) {
+                if (event.key === 'Escape' && !getLocationModal().hasClass('hidden')) {
+                    closeLocationModal();
+                }
+            });
+
             function clearAddress($form) {
                 $form.find('[data-address-field]').val('');
             }
@@ -2657,7 +2757,13 @@
 
                 $status.text('Consultando endereço...');
                 debounceTimer = window.setTimeout(function () {
-                    request = $.getJSON(App.core.buildUrl('/api/ceps/endereco'), { cep: digits })
+                    request = $.ajax({
+                        url: App.core.buildUrl('/api/ceps/endereco'),
+                        method: 'GET',
+                        dataType: 'json',
+                        data: { cep: digits },
+                        suppressGlobalLoading: true
+                    })
                         .done(function (response) {
                             if (!response || response.success !== true || !response.address) {
                                 $status.text(String((response && response.message) || 'CEP não encontrado.'));
@@ -2715,6 +2821,295 @@
             });
         },
 
+        iniciarFiltroLocaisTreino: function () {
+            let filterTimer = null;
+            let filterRequest = null;
+
+            function refreshTrainingLocations($form) {
+                const search = String($form.find('input[name="location_search"]').val() || '').trim();
+                const $limitInput = $form.find('input[name="location_limit"]').first();
+                const requestedLimit = Number.parseInt(String($limitInput.val() || '20'), 10);
+                const limit = Math.max(1, Math.min(20, Number.isFinite(requestedLimit) ? requestedLimit : 20));
+
+                $limitInput.val(String(limit));
+
+                if (filterRequest) {
+                    filterRequest.abort();
+                }
+
+                filterRequest = $.ajax({
+                    url: App.core.buildUrl('/admin/locais/lista'),
+                    method: 'GET',
+                    dataType: 'json',
+                    data: {
+                        location_search: search,
+                        location_limit: limit
+                    },
+                    suppressGlobalLoading: true
+                })
+                    .done(function (response) {
+                        if (!response || response.success === false || typeof response.html !== 'string') {
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar a lista de locais.'));
+                            return;
+                        }
+
+                        $('#admin-training-location-list-body').html(response.html);
+                    })
+                    .fail(function (xhr, status) {
+                        if (status !== 'abort') {
+                            const erro = App.core.extrairMensagemErroAjax(xhr);
+                            App.core.abrirPopup('erro', erro.mensagem);
+                        }
+                    })
+                    .always(function () {
+                        filterRequest = null;
+                    });
+            }
+
+            $(document).on('submit', '#admin-training-location-filter-form', function (event) {
+                event.preventDefault();
+                refreshTrainingLocations($(this));
+            });
+
+            $(document).on('input', '#admin-training-location-search', function () {
+                const $form = $(this).closest('form');
+
+                window.clearTimeout(filterTimer);
+                filterTimer = window.setTimeout(function () {
+                    refreshTrainingLocations($form);
+                }, 250);
+            });
+
+            $(document).on('input', '#admin-training-location-filter-form input[name="location_limit"]', function () {
+                const $form = $(this).closest('form');
+
+                window.clearTimeout(filterTimer);
+                filterTimer = window.setTimeout(function () {
+                    refreshTrainingLocations($form);
+                }, 250);
+            });
+
+        },
+
+        iniciarModalSuspensoesLocal: function () {
+            function getModal() {
+                return $('#admin-location-suspensions-modal');
+            }
+
+            function getSuspensionFormModal() {
+                return $('#admin-space-suspension-modal');
+            }
+
+            function closeSuspensionFormModal() {
+                const $form = $('#admin-space-suspension-form');
+
+                if ($form.length > 0) {
+                    $form[0].reset();
+                }
+
+                getSuspensionFormModal().addClass('hidden').attr('aria-hidden', 'true');
+            }
+
+            function showSpaceSuspensions(spaceId, spaceName) {
+                const $rows = $('[data-space-suspension-row="' + String(spaceId || '') + '"]');
+
+                $('[data-space-suspension-row]').addClass('hidden');
+                $rows.removeClass('hidden');
+                $('#admin-location-suspensions-empty').toggleClass('hidden', $rows.length > 0);
+                $('#admin-location-suspensions-subtitle').text(String(spaceName || ''));
+                getModal()
+                    .attr('data-current-space-id', String(spaceId || ''))
+                    .attr('data-current-space-name', String(spaceName || ''))
+                    .removeClass('hidden')
+                    .attr('aria-hidden', 'false');
+            }
+
+            function updateManagementFragments(response) {
+                if (response && typeof response.spaces_html === 'string') {
+                    $('#admin-training-space-list-body').html(response.spaces_html);
+                }
+
+                if (response && typeof response.suspensions_html === 'string') {
+                    $('#admin-location-suspensions-body').html(response.suspensions_html);
+                }
+            }
+
+            function closeModal() {
+                getModal()
+                    .removeAttr('data-current-space-id data-current-space-name')
+                    .addClass('hidden')
+                    .attr('aria-hidden', 'true');
+                $('[data-space-suspension-row]').addClass('hidden');
+                $('#admin-location-suspensions-empty').addClass('hidden');
+            }
+
+            $(document).on('click', '.admin-location-suspensions-link', function () {
+                const $button = $(this);
+                const spaceId = String($button.attr('data-space-id') || '');
+                const spaceName = String($button.attr('data-space-name') || '');
+                showSpaceSuspensions(spaceId, spaceName);
+            });
+
+            $(document).on('click', '.admin-space-suspension-open', function () {
+                const $button = $(this);
+                const $form = $('#admin-space-suspension-form');
+                const spaceId = String($button.attr('data-space-id') || '');
+                const spaceName = String($button.attr('data-space-name') || '');
+
+                $form[0].reset();
+                $form.find('input[name="espaco_treino_id"]').val(spaceId);
+                $form.find('input[name="espaco_treino_nome"]').val(spaceName);
+                $('#admin-space-suspension-subtitle').text(spaceName);
+                getSuspensionFormModal().removeClass('hidden').attr('aria-hidden', 'false');
+
+                window.setTimeout(function () {
+                    $form.find('input[name="data_inicio"]').trigger('focus');
+                }, 0);
+            });
+
+            $(document).on('click', '#admin-space-suspension-close, #admin-space-suspension-cancel', function () {
+                closeSuspensionFormModal();
+            });
+
+            $(document).on('click', '#admin-space-suspension-modal', function (event) {
+                if (event.target === this) {
+                    closeSuspensionFormModal();
+                }
+            });
+
+            $(document).on('submit', '#admin-space-suspension-form', function (event) {
+                event.preventDefault();
+
+                const $form = $(this);
+                const $submitButton = $form.find('button[type="submit"]').first();
+
+                $submitButton.prop('disabled', true);
+
+                $.ajax({
+                    url: String($form.attr('action') || ''),
+                    method: 'POST',
+                    dataType: 'json',
+                    data: $form.serialize(),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    suppressGlobalLoading: true
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar a suspensão.'));
+                        return;
+                    }
+
+                    updateManagementFragments(response);
+                    closeSuspensionFormModal();
+                    App.core.abrirPopup('sucesso', String(response.message || 'Suspensão de espaço salva com sucesso.'));
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                }).always(function () {
+                    $submitButton.prop('disabled', false);
+                });
+            });
+
+            $(document).on('submit', '.admin-space-suspension-deactivate-form', function (event) {
+                event.preventDefault();
+
+                const $form = $(this);
+                const $submitButton = $form.find('button[type="submit"]').first();
+                const $modal = getModal();
+                const spaceId = String($modal.attr('data-current-space-id') || '');
+                const spaceName = String($modal.attr('data-current-space-name') || '');
+
+                $submitButton.prop('disabled', true);
+
+                $.ajax({
+                    url: String($form.attr('action') || ''),
+                    method: 'POST',
+                    dataType: 'json',
+                    data: $form.serialize(),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    suppressGlobalLoading: true
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível inativar a suspensão.'));
+                        return;
+                    }
+
+                    updateManagementFragments(response);
+                    showSpaceSuspensions(spaceId, spaceName);
+                    App.core.abrirPopup('sucesso', String(response.message || 'Suspensão de espaço inativada com sucesso.'));
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                }).always(function () {
+                    $submitButton.prop('disabled', false);
+                });
+            });
+
+            $(document).on('submit', '.admin-space-suspension-delete-form', function (event) {
+                event.preventDefault();
+
+                const $form = $(this);
+                const $submitButton = $form.find('button[type="submit"]').first();
+                const $modal = getModal();
+                const spaceId = String($modal.attr('data-current-space-id') || '');
+                const spaceName = String($modal.attr('data-current-space-name') || '');
+
+                $submitButton.prop('disabled', true);
+
+                $.ajax({
+                    url: String($form.attr('action') || ''),
+                    method: 'POST',
+                    dataType: 'json',
+                    data: $form.serialize(),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    suppressGlobalLoading: true
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível excluir a suspensão.'));
+                        return;
+                    }
+
+                    updateManagementFragments(response);
+                    showSpaceSuspensions(spaceId, spaceName);
+                    App.core.abrirPopup('sucesso', String(response.message || 'Suspensão futura excluída com sucesso.'));
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                }).always(function () {
+                    $submitButton.prop('disabled', false);
+                });
+            });
+
+            $(document).on('click', '#admin-location-suspensions-close, #admin-location-suspensions-cancel', function () {
+                closeModal();
+            });
+
+            $(document).on('click', '#admin-location-suspensions-modal', function (event) {
+                if (event.target === this) {
+                    closeModal();
+                }
+            });
+
+            $(document).on('keydown', function (event) {
+                if (event.key === 'Escape' && !getSuspensionFormModal().hasClass('hidden')) {
+                    closeSuspensionFormModal();
+                    return;
+                }
+
+                if (event.key === 'Escape' && !getModal().hasClass('hidden')) {
+                    closeModal();
+                }
+            });
+        },
+
         init: function () {
             App.admin.iniciarSecoesAdmin();
             App.admin.iniciarEditorPessoaAdmin();
@@ -2728,6 +3123,8 @@
             App.admin.iniciarEditorPostagensBlog();
             App.admin.iniciarEditorComunicacaoOficialAdmin();
             App.admin.iniciarBuscaEnderecoCep();
+            App.admin.iniciarFiltroLocaisTreino();
+            App.admin.iniciarModalSuspensoesLocal();
         }
     });
 

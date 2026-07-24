@@ -79,7 +79,12 @@
             const normalizedMethod = String(method || 'GET').toUpperCase();
             const normalizedUrl = App.core.getAppRelativePath(String(url || ''));
 
-            if (normalizedUrl.indexOf('/api/ceps/validar') === 0 || normalizedUrl.indexOf('/api/cpf/cadastro-status') === 0) {
+            if (
+                normalizedUrl.indexOf('/api/ceps/validar') === 0 ||
+                normalizedUrl.indexOf('/api/ceps/endereco') === 0 ||
+                normalizedUrl.indexOf('/admin/locais/lista') === 0 ||
+                normalizedUrl.indexOf('/api/cpf/cadastro-status') === 0
+            ) {
                 return true;
             }
 
@@ -477,6 +482,46 @@
             });
         },
 
+        iniciarConfirmacoesExclusao: function () {
+            function solicitarConfirmacao(element) {
+                const $element = $(element);
+                const message = String(
+                    $element.attr('data-confirm-delete-message')
+                    || $element.closest('form').attr('data-confirm-delete-message')
+                    || 'Tem certeza de que deseja excluir este registro? Esta ação não poderá ser desfeita.'
+                );
+
+                return window.confirm(message);
+            }
+
+            $(document).on('submit', 'form', function (event) {
+                const $form = $(this);
+                const action = String($form.attr('action') || '').toLowerCase();
+                const isDeleteAction = $form.is('[data-confirm-delete="1"]')
+                    || /\/(?:excluir|remover|delete)(?:[/?#]|$)/.test(action);
+
+                if (
+                    !isDeleteAction
+                    || $form.is('[data-skip-delete-confirmation="1"]')
+                    || solicitarConfirmacao($form)
+                ) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            });
+
+            $(document).on('click', '[data-confirm-delete="1"]:not(form)', function (event) {
+                if (solicitarConfirmacao(this)) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            });
+        },
+
         validarCepSbc: function (selector) {
             function obterMensagem($input) {
                 let $message = $input.siblings('.cep-helper');
@@ -708,6 +753,66 @@
             }
         },
 
+        iniciarTabelasResponsivas: function () {
+            let updateTimer = null;
+
+            function applyLabels(scope) {
+                const $scope = scope ? $(scope) : $(document);
+                let $tables = $scope.is('.data-table') ? $scope : $scope.find('.data-table');
+
+                if ($scope.closest('.data-table').length > 0) {
+                    $tables = $tables.add($scope.closest('.data-table'));
+                }
+
+                $tables.each(function () {
+                    const $table = $(this);
+                    const labels = $table.find('thead tr').first().children('th').map(function () {
+                        return String($(this).text() || '').replace(/\s+/g, ' ').trim();
+                    }).get();
+
+                    $table.find('tbody tr').each(function () {
+                        $(this).children('td').each(function (index) {
+                            const $cell = $(this);
+                            const colspan = Number($cell.attr('colspan') || 1);
+
+                            if (colspan > 1) {
+                                $cell.addClass('responsive-table-full-cell').removeAttr('data-label');
+                                return;
+                            }
+
+                            $cell
+                                .removeClass('responsive-table-full-cell')
+                                .attr('data-label', labels[index] || 'Dado');
+                        });
+                    });
+                });
+            }
+
+            applyLabels(document);
+
+            if (!window.MutationObserver || !document.body) {
+                return;
+            }
+
+            const observer = new window.MutationObserver(function (mutations) {
+                window.clearTimeout(updateTimer);
+                updateTimer = window.setTimeout(function () {
+                    mutations.forEach(function (mutation) {
+                        mutation.addedNodes.forEach(function (node) {
+                            if (node.nodeType === 1) {
+                                applyLabels(node);
+                            }
+                        });
+                    });
+                }, 0);
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        },
+
         init: function () {
             App.core.mascararCpf('input[name="cpf"], input[name="parent1_cpf"], input[name="parent2_cpf"], input[name="responsavel1_cpf"], input[name="responsavel2_cpf"], input[name="new_responsible_cpf"]');
             App.core.mascararTelefone('input[name="phone_whatsapp"], input[name="emergency_contact_phone"]');
@@ -720,7 +825,9 @@
             App.core.iniciarAvisoSexoNaoDeclarado('select[data-sexo-select="1"]');
             App.core.iniciarSelecaoExclusivaCondicoes('input[data-condition-exclusive="1"]');
             App.core.iniciarSitePopups();
+            App.core.iniciarConfirmacoesExclusao();
             App.core.iniciarLoadingGlobal();
+            App.core.iniciarTabelasResponsivas();
         }
     });
 

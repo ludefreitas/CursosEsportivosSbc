@@ -76,7 +76,7 @@
     </div>
     <div class="chips-wrap">
         <?php foreach ($locations as $location) { ?>
-            <span class="chip"><?php echo e($location['nome'] . ' - ' . $location['cidade'] . '/' . $location['uf']); ?></span>
+            <span class="chip"><?php echo e(format_training_location_name($location) . ' - ' . $location['cidade'] . '/' . $location['uf']); ?></span>
         <?php } ?>
     </div>
 </section>

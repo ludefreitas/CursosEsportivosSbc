@@ -466,3 +466,21 @@ body.pagina-home {
         grid-template-columns: 1fr;
     }
 }
+
+@media (max-width: 560px) {
+    .hero-copy h1 {
+        max-width: none;
+        font-size: clamp(28px, 9vw, 36px);
+        line-height: 1.02;
+    }
+
+    .hero-copy,
+    .home-logo-card {
+        padding: 20px 18px;
+    }
+
+    .home-whatsapp-row {
+        align-items: flex-start;
+        overflow-wrap: anywhere;
+    }
+}

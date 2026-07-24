@@ -883,6 +883,74 @@ class AdminController extends Controller
     }
 
     /**
+     * Atualiza um local de treino existente.
+     */
+    public function updateTrainingLocation(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $this->adminService->updateTrainingLocation($_POST);
+
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Local de treino atualizado com sucesso.',
+                    'redirect' => url('/admin'),
+                ]);
+            }
+
+            flash('success', 'Local de treino atualizado com sucesso.');
+        } catch (\Throwable $e) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+
+            flash('error', $e->getMessage());
+        }
+
+        redirect('/admin');
+    }
+
+    /**
+     * Retorna somente as linhas filtradas da lista de locais de treino.
+     */
+    public function trainingLocationList(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $locationLimit = (int) ($_GET['location_limit'] ?? AdminService::DEFAULT_TRAINING_LOCATION_LIMIT);
+            $locationLimit = max(1, min(AdminService::MAX_TRAINING_LOCATION_LIMIT, $locationLimit));
+            $trainingLocations = $this->adminService->listTrainingLocationsForManagement(
+                (string) ($_GET['location_search'] ?? ''),
+                $locationLimit
+            );
+
+            ob_start();
+            require ROOT_PATH . '/app/Views/admin/partials/training_location_rows.php';
+            $html = (string) ob_get_clean();
+
+            $this->jsonResponse([
+                'success' => true,
+                'html' => $html,
+            ]);
+        } catch (\Throwable $e) {
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
      * Salva uma nova suspensão temporaria de espaco.
      */
     public function storeSpaceSuspension(): void
@@ -893,10 +961,12 @@ class AdminController extends Controller
             $this->adminService->createSpaceSuspension((int) $user['conta_id'], $_POST);
 
             if ($this->isAjaxRequest()) {
+                $fragments = $this->renderSpaceManagementFragments();
                 $this->jsonResponse([
                     'success' => true,
                     'message' => 'Suspensão de espaço salva com sucesso.',
-                    'redirect' => url('/admin'),
+                    'spaces_html' => $fragments['spaces_html'],
+                    'suspensions_html' => $fragments['suspensions_html'],
                 ]);
             }
 
@@ -906,7 +976,7 @@ class AdminController extends Controller
                 $this->jsonResponse([
                     'success' => false,
                     'message' => $e->getMessage(),
-                ]);
+                ], 422);
             }
 
             flash('error', $e->getMessage());
@@ -926,10 +996,12 @@ class AdminController extends Controller
             $this->adminService->deactivateSpaceSuspension((int) ($_POST['suspensao_espaco_id'] ?? 0));
 
             if ($this->isAjaxRequest()) {
+                $fragments = $this->renderSpaceManagementFragments();
                 $this->jsonResponse([
                     'success' => true,
                     'message' => 'Suspensão de espaço inativada com sucesso.',
-                    'redirect' => url('/admin'),
+                    'spaces_html' => $fragments['spaces_html'],
+                    'suspensions_html' => $fragments['suspensions_html'],
                 ]);
             }
 
@@ -939,7 +1011,42 @@ class AdminController extends Controller
                 $this->jsonResponse([
                     'success' => false,
                     'message' => $e->getMessage(),
+                ], 422);
+            }
+
+            flash('error', $e->getMessage());
+        }
+
+        redirect('/admin');
+    }
+
+    /**
+     * Exclui uma suspensão futura antes do início da vigência.
+     */
+    public function deleteFutureSpaceSuspension(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $this->adminService->deleteFutureSpaceSuspension((int) ($_POST['suspensao_espaco_id'] ?? 0));
+
+            if ($this->isAjaxRequest()) {
+                $fragments = $this->renderSpaceManagementFragments();
+                $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Suspensão futura excluída com sucesso.',
+                    'spaces_html' => $fragments['spaces_html'],
+                    'suspensions_html' => $fragments['suspensions_html'],
                 ]);
+            }
+
+            flash('success', 'Suspensão futura excluída com sucesso.');
+        } catch (\Throwable $e) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
             }
 
             flash('error', $e->getMessage());
@@ -1523,7 +1630,15 @@ class AdminController extends Controller
         }
 
         if ($sectionName === 'locais-espacos') {
-            $data['trainingLocations'] = $this->adminService->listTrainingLocationsForManagement();
+            $data['locationSearch'] = trim((string) ($_GET['location_search'] ?? ''));
+            $data['locationLimit'] = (int) ($_GET['location_limit'] ?? AdminService::DEFAULT_TRAINING_LOCATION_LIMIT);
+            $data['locationLimit'] = max(1, min(AdminService::MAX_TRAINING_LOCATION_LIMIT, (int) $data['locationLimit']));
+            $data['locationLimitMax'] = AdminService::MAX_TRAINING_LOCATION_LIMIT;
+            $data['trainingLocations'] = $this->adminService->listTrainingLocationsForManagement(
+                (string) $data['locationSearch'],
+                (int) $data['locationLimit']
+            );
+            $data['eligibleLocationManagers'] = $this->adminService->listEligibleLocationManagers();
             $data['trainingSpaces'] = $this->adminService->listTrainingSpacesForManagement();
             $data['spaceSuspensions'] = $this->adminService->listSpaceSuspensionsForManagement();
         }
@@ -1586,5 +1701,27 @@ class AdminController extends Controller
         ob_start();
         require ROOT_PATH . '/app/Views/admin/partials/health_certificate_validation_panel.php';
         return (string) ob_get_clean();
+    }
+
+    /**
+     * Renderiza os fragmentos atualizados da gestão de espaços e suspensões.
+     */
+    private function renderSpaceManagementFragments(): array
+    {
+        $trainingSpaces = $this->adminService->listTrainingSpacesForManagement();
+        $spaceSuspensions = $this->adminService->listSpaceSuspensionsForManagement();
+
+        ob_start();
+        require ROOT_PATH . '/app/Views/admin/partials/training_space_rows.php';
+        $spacesHtml = (string) ob_get_clean();
+
+        ob_start();
+        require ROOT_PATH . '/app/Views/admin/partials/location_suspension_rows.php';
+        $suspensionsHtml = (string) ob_get_clean();
+
+        return [
+            'spaces_html' => $spacesHtml,
+            'suspensions_html' => $suspensionsHtml,
+        ];
     }
 }

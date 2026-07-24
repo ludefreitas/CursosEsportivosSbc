@@ -14,7 +14,7 @@ UPDATE tipos_certificados SET nome = 'Pessoa com Deficiência' WHERE slug = 'pcd
 UPDATE tipos_certificados SET nome = 'Pessoa com Laudo Médico de Doença' WHERE slug = 'plm';
 UPDATE tipos_certificados SET nome = 'Pessoa em Situação de Vulnerabilidade Social' WHERE slug = 'pvs';
 
-UPDATE locais_treino SET nome = 'Parque Aquático Riacho' WHERE slug = 'parque-aquatico-riacho';
+UPDATE locais_treino SET nome_local = 'Parque Aquático Riacho' WHERE slug = 'parque-aquatico-riacho';
 UPDATE locais_treino SET cidade = 'São Bernardo do Campo' WHERE cidade = 'Sao Bernardo do Campo';
 UPDATE pessoas SET cidade = 'São Bernardo do Campo' WHERE cidade = 'Sao Bernardo do Campo';
 
