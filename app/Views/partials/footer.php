@@ -93,6 +93,31 @@
             <p id="app-loading-text">Carregando...</p>
         </div>
     </div>
+    <div id="external-person-choice-modal" class="popup-overlay hidden" aria-hidden="true">
+        <div class="popup-card external-person-choice-card" role="dialog" aria-modal="true" aria-labelledby="external-person-choice-title">
+            <button
+                type="button"
+                class="popup-close-icon"
+                id="external-person-choice-close"
+                data-external-person-choice-close="1"
+                aria-label="Fechar lista de pessoas encontradas"
+                title="Fechar"
+            >&times;</button>
+            <div class="popup-head">
+                <div>
+                    <h3 id="external-person-choice-title">Encontramos dados em nosso sistema</h3>
+                    <p class="muted">Selecione a pessoa correta para preencher o formulário ou continue manualmente.</p>
+                </div>
+            </div>
+            <div class="popup-body">
+                <div id="external-person-choice-results" class="external-person-results" aria-live="polite"></div>
+            </div>
+            <div class="popup-actions">
+                <button type="button" class="btn btn-warning" id="external-person-choice-manual">Preencher manualmente</button>
+                <button type="button" class="btn btn-secondary" id="external-person-choice-close-footer" data-external-person-choice-close="1">Fechar</button>
+            </div>
+        </div>
+    </div>
     <script>
         window.APP_BASE_URL = <?php echo json_encode(url('/'), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
     </script>

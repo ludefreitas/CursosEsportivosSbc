@@ -42,7 +42,7 @@ class AgendaService
             SELECT id, nome, tipo_ambiente
             FROM modalidades
             WHERE ativo = 1
-            ORDER BY nome_local
+            ORDER BY nome
         ');
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -590,7 +590,7 @@ class AgendaService
             FROM avaliacoes_fisicas
             WHERE pessoa_id = :pessoa_id
               AND modalidade_id = :modalidade_id
-              AND situação = "apto"
+              AND situacao = "apto"
             LIMIT 1
         ');
         $stmtEval->execute([

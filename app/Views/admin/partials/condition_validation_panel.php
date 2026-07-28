@@ -31,7 +31,7 @@ $buildWhatsappLink = static function (?string $phone): ?string {
                     <th>Condição</th>
                     <th>Documentos em PDF</th>
                     <th>Falta para validar</th>
-                    <th>Acao</th>
+                    <th>Ação</th>
                 </tr>
             </thead>
             <tbody>

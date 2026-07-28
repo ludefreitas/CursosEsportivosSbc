@@ -198,6 +198,10 @@
         },
 
         abrirConfirmacaoCompletarCadastro: function (returnTo) {
+            // A navegação para a área protegida é interrompida para exibir este
+            // diálogo. Portanto, qualquer loading iniciado pelo clique anterior
+            // precisa ser encerrado antes de abrir a confirmação.
+            App.core.hideLoading(true);
             App.state.profileCompletionReturnTo = App.core.getAppRelativePath(returnTo || App.core.buildUrl('/dashboard'));
             $('#popup-profile-completion-texto').text(App.core.profileCompletionMessage());
             App.core.abrirPopupCustomizado('#popup-profile-completion-confirm');
@@ -463,6 +467,10 @@
                     event.shiftKey ||
                     event.altKey ||
                     $(this).is('[data-open-route-modal]') ||
+                    (
+                        $(this).is('[data-profile-completion-link="1"]') &&
+                        App.core.pageRequiresProfileCompletion()
+                    ) ||
                     App.core.isModalRouteUrl(href)
                 ) {
                     return;
@@ -813,6 +821,310 @@
             });
         },
 
+        iniciarImportacaoPessoaExterna: function () {
+            const fieldMap = {
+                nome_completo: ['full_name'],
+                data_nascimento: ['birth_date'],
+                sexo: ['sexo'],
+                telefone_whatsapp: ['phone_whatsapp'],
+                email: ['email'],
+                numero_cartao_sus: ['numero_cartao_sus'],
+                cep: ['zip_code'],
+                logradouro: ['street'],
+                numero_endereco: ['address_number'],
+                complemento: ['address_complement'],
+                bairro: ['neighborhood'],
+                cidade: ['city'],
+                uf: ['state'],
+                contato_emergencia_nome: ['emergency_contact_name'],
+                contato_emergencia_telefone: ['emergency_contact_phone'],
+                responsavel1_nome: ['responsavel1_nome', 'parent1_name'],
+                responsavel1_cpf: ['responsavel1_cpf', 'parent1_cpf'],
+                responsavel2_nome: ['responsavel2_nome', 'parent2_name'],
+                responsavel2_cpf: ['responsavel2_cpf', 'parent2_cpf']
+            };
+
+            function escapeHtml(value) {
+                return $('<div>').text(String(value || '')).html();
+            }
+
+            function getCpf($form) {
+                const fixedCpf = String($form.attr('data-external-person-cpf') || '');
+                return (fixedCpf || String($form.find('[name="cpf"]').first().val() || '')).replace(/\D+/g, '');
+            }
+
+            function fillForm($form, record) {
+                $.each(fieldMap, function (sourceField, targetNames) {
+                    const value = String(record[sourceField] || '');
+
+                    targetNames.some(function (targetName) {
+                        const $field = $form.find('[name="' + targetName + '"]').first();
+
+                        if ($field.length === 0) {
+                            return false;
+                        }
+
+                        $field.val(value).trigger('input').trigger('change');
+                        return true;
+                    });
+                });
+            }
+
+            $(document).on('click', '[data-external-person-search="1"]', function () {
+                const $button = $(this);
+                const $form = $button.closest('[data-external-person-form="1"]');
+                const $results = $form.find('[data-external-person-results="1"]').first();
+                const cpf = getCpf($form);
+
+                if (cpf.length !== 11) {
+                    App.core.abrirPopup('erro', 'Informe um CPF válido antes de procurar os dados.');
+                    return;
+                }
+
+                $button.prop('disabled', true);
+                $results.removeClass('hidden').html('<p class="muted">Procurando registros...</p>');
+
+                $.getJSON(App.core.buildUrl('/api/pessoas-externas/registros'), { cpf: cpf })
+                    .done(function (response) {
+                        const records = response && Array.isArray(response.registros) ? response.registros : [];
+
+                        if (!response || response.success === false) {
+                            $results.html('<p class="muted">' + escapeHtml(response && response.message ? response.message : 'Não foi possível realizar a consulta.') + '</p>');
+                            return;
+                        }
+
+                        if (records.length === 0) {
+                            $results.html('<p class="muted">Nenhum registro foi encontrado para este CPF.</p>');
+                            return;
+                        }
+
+                        $results.html(records.map(function (record) {
+                            const details = [
+                                record.data_nascimento_resumida,
+                                record.unidade,
+                                record.situacao
+                            ].filter(Boolean).map(escapeHtml).join(' • ');
+
+                            return [
+                                '<div class="external-person-result">',
+                                '<div><strong>', escapeHtml(record.nome_completo || 'Registro encontrado'), '</strong>',
+                                details ? '<p class="muted">' + details + '</p>' : '',
+                                '</div>',
+                                '<button type="button" class="btn btn-primary" data-external-person-select="1" data-record-id="',
+                                Number(record.registro_id || 0), '">Usar estes dados</button>',
+                                '</div>'
+                            ].join('');
+                        }).join(''));
+                    })
+                    .fail(function (xhr) {
+                        const error = App.core.extrairMensagemErroAjax(xhr);
+                        $results.html('<p class="muted">' + escapeHtml(error.mensagem) + '</p>');
+                    })
+                    .always(function () {
+                        $button.prop('disabled', false);
+                    });
+            });
+
+            $(document).on('click', '[data-external-person-inline-select="1"]', function () {
+                const $button = $(this);
+                const $form = $button.closest('[data-external-person-form="1"]');
+                const cpf = getCpf($form);
+                const recordId = Number($button.attr('data-record-id') || 0);
+
+                if (!window.confirm('Deseja preencher o formulário com os dados deste registro? Os campos atuais serão substituídos, mas nada será salvo até você revisar e enviar o formulário.')) {
+                    return;
+                }
+
+                $button.prop('disabled', true).text('Carregando...');
+
+                $.getJSON(App.core.buildUrl('/api/pessoas-externas/registro'), {
+                    cpf: cpf,
+                    registro_id: recordId
+                }).done(function (response) {
+                    if (!response || response.success === false || !response.registro) {
+                        App.core.abrirPopup('erro', response && response.message ? response.message : 'Não foi possível carregar o registro.');
+                        return;
+                    }
+
+                    fillForm($form, response.registro);
+                    $form.find('[data-external-person-results="1"]').addClass('hidden').empty();
+                    App.core.abrirPopup('sucesso', 'Dados preenchidos. Revise todas as informações antes de salvar.');
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () {
+                    $button.prop('disabled', false).text('Usar estes dados');
+                });
+            });
+
+            let $activeExternalPersonForm = $();
+            let restoreRouteModalAfterChoice = false;
+
+            function closeExternalPersonChoice() {
+                App.core.fecharPopupCustomizado('#external-person-choice-modal');
+                $('#external-person-choice-results').empty();
+
+                if (restoreRouteModalAfterChoice) {
+                    App.core.abrirPopupCustomizado('#popup-route-modal');
+                }
+
+                restoreRouteModalAfterChoice = false;
+                $activeExternalPersonForm = $();
+            }
+
+            function showExternalPersonChoices($form, records) {
+                $activeExternalPersonForm = $form;
+                restoreRouteModalAfterChoice = $form.closest('#popup-route-modal').length > 0
+                    && !$('#popup-route-modal').hasClass('hidden');
+
+                if (restoreRouteModalAfterChoice) {
+                    App.core.fecharPopupCustomizado('#popup-route-modal');
+                }
+
+                $('#external-person-choice-results').html(records.map(function (record) {
+                    const birthDate = String(record.data_nascimento_resumida || '');
+                    const email = String(record.email || '');
+                    const inclusionDate = String(record.data_inclusao || '');
+
+                    return [
+                        '<div class="external-person-result">',
+                        '<div><strong>', escapeHtml(record.nome_completo || 'Pessoa encontrada'), '</strong>',
+                        '<p class="muted">',
+                        birthDate ? 'Nascimento: ' + escapeHtml(birthDate) + '<br>' : '',
+                        email ? 'E-mail: ' + escapeHtml(email) + '<br>' : 'E-mail não informado<br>',
+                        inclusionDate
+                            ? 'Incluído no sistema em: ' + escapeHtml(inclusionDate)
+                            : 'Data de inclusão não informada',
+                        '</p></div>',
+                        '<button type="button" class="btn btn-primary" data-external-person-select="1" data-record-id="',
+                        Number(record.registro_id || 0), '">Selecionar pessoa</button>',
+                        '</div>'
+                    ].join('');
+                }).join(''));
+
+                App.core.abrirPopupCustomizado('#external-person-choice-modal');
+            }
+
+            function searchExternalPersonRecords($form) {
+                const cpf = getCpf($form);
+                const previousCpf = String($form.data('externalPersonSearchedCpf') || '');
+
+                if (cpf.length !== 11 || previousCpf === cpf || $form.data('externalPersonSearching')) {
+                    return;
+                }
+
+                $form.data('externalPersonSearching', true);
+                $form.data('externalPersonSearchedCpf', cpf);
+
+                $.getJSON(App.core.buildUrl('/api/pessoas-externas/registros'), { cpf: cpf })
+                    .done(function (response) {
+                        const records = response && Array.isArray(response.registros) ? response.registros : [];
+
+                        if (response && response.success !== false && records.length > 0) {
+                            showExternalPersonChoices($form, records);
+                            return;
+                        }
+
+                        if (!response || response.success === false) {
+                            App.core.abrirPopup(
+                                'erro',
+                                response && response.message
+                                    ? response.message
+                                    : 'Não foi possível consultar os dados existentes.'
+                            );
+                        }
+                    })
+                    .fail(function (xhr) {
+                        App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                    })
+                    .always(function () {
+                        $form.data('externalPersonSearching', false);
+                    });
+            }
+
+            function scanExternalPersonForms() {
+                $('[data-external-person-auto-search="1"]').each(function () {
+                    const $form = $(this);
+
+                    if (!$form.data('externalPersonAutoStarted')) {
+                        $form.data('externalPersonAutoStarted', true);
+                        searchExternalPersonRecords($form);
+                    }
+                });
+            }
+
+            $(document).on('input', '[data-external-person-form="1"] input[name="cpf"]', function () {
+                const $form = $(this).closest('[data-external-person-form="1"]');
+
+                if (getCpf($form).length < 11) {
+                    $form.removeData('externalPersonSearchedCpf');
+                    return;
+                }
+
+                searchExternalPersonRecords($form);
+            });
+
+            $(document).on('click', '#external-person-choice-manual, [data-external-person-choice-close="1"]', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                closeExternalPersonChoice();
+            });
+
+            $(document).on('click', '#external-person-choice-modal', function (event) {
+                if (event.target === this) {
+                    closeExternalPersonChoice();
+                }
+            });
+
+            $(document).on('keydown', function (event) {
+                if (event.key === 'Escape' && !$('#external-person-choice-modal').hasClass('hidden')) {
+                    closeExternalPersonChoice();
+                }
+            });
+
+            $(document).on('click', '[data-external-person-select="1"]', function () {
+                const $button = $(this);
+                const $form = $activeExternalPersonForm;
+                const cpf = getCpf($form);
+                const recordId = Number($button.attr('data-record-id') || 0);
+
+                if ($form.length === 0 || cpf.length !== 11 || recordId < 1) {
+                    closeExternalPersonChoice();
+                    App.core.abrirPopup('erro', 'Não foi possível identificar o formulário desta pessoa.');
+                    return;
+                }
+
+                $button.prop('disabled', true).text('Carregando...');
+
+                $.getJSON(App.core.buildUrl('/api/pessoas-externas/registro'), {
+                    cpf: cpf,
+                    registro_id: recordId
+                }).done(function (response) {
+                    if (!response || response.success === false || !response.registro) {
+                        App.core.abrirPopup(
+                            'erro',
+                            response && response.message
+                                ? response.message
+                                : 'Não foi possível carregar os dados selecionados.'
+                        );
+                        return;
+                    }
+
+                    fillForm($form, response.registro);
+                    closeExternalPersonChoice();
+                    App.core.abrirPopup('sucesso', 'Dados encontrados e preenchidos. Revise todas as informações antes de salvar.');
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () {
+                    $button.prop('disabled', false).text('Selecionar pessoa');
+                });
+            });
+
+            scanExternalPersonForms();
+            $(document).ajaxComplete(function () {
+                window.setTimeout(scanExternalPersonForms, 0);
+            });
+        },
+
         init: function () {
             App.core.mascararCpf('input[name="cpf"], input[name="parent1_cpf"], input[name="parent2_cpf"], input[name="responsavel1_cpf"], input[name="responsavel2_cpf"], input[name="new_responsible_cpf"]');
             App.core.mascararTelefone('input[name="phone_whatsapp"], input[name="emergency_contact_phone"]');
@@ -828,6 +1140,7 @@
             App.core.iniciarConfirmacoesExclusao();
             App.core.iniciarLoadingGlobal();
             App.core.iniciarTabelasResponsivas();
+            App.core.iniciarImportacaoPessoaExterna();
         }
     });
 

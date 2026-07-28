@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Services\CertificateService;
+use App\Services\ExternalPersonService;
 use App\Services\ProfileService;
 use App\Services\UserService;
 
@@ -12,6 +13,7 @@ class ProfileController extends Controller
 {
     private ProfileService $profileService;
     private CertificateService $certificateService;
+    private ExternalPersonService $externalPersonService;
 
     /**
      * Inicializa o controlador de perfil.
@@ -20,6 +22,7 @@ class ProfileController extends Controller
     {
         $this->profileService = new ProfileService();
         $this->certificateService = new CertificateService();
+        $this->externalPersonService = new ExternalPersonService();
     }
 
     /**
@@ -86,6 +89,60 @@ class ProfileController extends Controller
 
             flash('error', $e->getMessage());
             redirect('/perfil/completar?return_to=' . rawurlencode($returnTo));
+        }
+    }
+
+    /**
+     * Lista registros resumidos encontrados no sistema externo.
+     */
+    public function externalPersonRecords(): void
+    {
+        if (!Auth::check()) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Faça login para consultar os dados.',
+                'redirect' => login_modal_url('/dashboard'),
+            ], 401);
+        }
+
+        try {
+            $result = $this->externalPersonService->listByCpf((string) ($_GET['cpf'] ?? ''));
+            $this->jsonResponse(['success' => true] + $result);
+        } catch (\Throwable $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Retorna os dados do registro externo escolhido pela pessoa.
+     */
+    public function externalPersonSelected(): void
+    {
+        if (!Auth::check()) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => 'Faça login para consultar os dados.',
+                'redirect' => login_modal_url('/dashboard'),
+            ], 401);
+        }
+
+        try {
+            $record = $this->externalPersonService->getSelected(
+                (string) ($_GET['cpf'] ?? ''),
+                (int) ($_GET['registro_id'] ?? 0)
+            );
+            $this->jsonResponse([
+                'success' => true,
+                'registro' => $record,
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
         }
     }
 

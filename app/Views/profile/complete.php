@@ -18,7 +18,16 @@
             Será exigido comprovante de endereço ao se matricular nos cursos esportivos e no dia do agendamento.
         </div>
         <?php if (empty($registrationBlock)) { ?>
-        <form method="POST" action="<?php echo e(url('/perfil/completar')); ?>" class="stack-form" data-ajax-form="1" data-follow-redirect="1">
+        <form
+            method="POST"
+            action="<?php echo e(url('/perfil/completar')); ?>"
+            class="stack-form"
+            data-ajax-form="1"
+            data-follow-redirect="1"
+            data-external-person-form="1"
+            data-external-person-cpf="<?php echo e((string) ($person['cpf'] ?? '')); ?>"
+            data-external-person-auto-search="1"
+        >
         <input type="hidden" name="return_to" value="<?php echo e($returnTo ?? '/dashboard'); ?>">
         <div class="alert-inline dashboard-dependent-attention">
             Confira com atenção o CPF e a data de nascimento ao concluir este cadastro. Esses dados identificam a pessoa no sistema e eventuais correções posteriores podem depender do suporte.

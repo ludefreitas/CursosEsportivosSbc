@@ -79,7 +79,7 @@ $currentValidationNote = (string) ($certificate['observacao_validacao'] ?? '');
 
         <label>
             <span>Observação da validação</span>
-            <textarea name="observacao_validacao" id="admin-health-certificate-validation-note" rows="4" placeholder="Explique a decisao tomada nesta validação."><?php echo e($currentValidationNote); ?></textarea>
+            <textarea name="observacao_validacao" id="admin-health-certificate-validation-note" rows="4" placeholder="Explique a decisão tomada nesta validação."><?php echo e($currentValidationNote); ?></textarea>
             <small class="muted">Ao reprovar um atestado, informe o motivo para orientar o novo envio.</small>
         </label>
 

@@ -17,7 +17,7 @@ $updatedAt = trim((string) ($communication['updated_at'] ?? ''));
             <?php } ?>
             <small class="muted">
                 <?php if ($updatedAt !== '') { ?>
-                    Ultima atualizacao em <?php echo e(date('d/m/Y H:i', strtotime($updatedAt))); ?>.
+                    Última atualização em <?php echo e(date('d/m/Y H:i', strtotime($updatedAt))); ?>.
                 <?php } else { ?>
                     Quadro ainda usando o conteúdo padrão.
                 <?php } ?>

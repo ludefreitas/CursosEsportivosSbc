@@ -52,6 +52,27 @@ class View
             }
         }
 
+        if (!array_key_exists('headerAdminAccessAllowed', $data)) {
+            $data['headerAdminAccessAllowed'] = false;
+
+            if (Auth::check() && empty($data['profileCompletionRequired'])) {
+                try {
+                    $account = (new UserService())->currentAccountWithRoles();
+
+                    if ($account && (int) ($account['cadastro_completo'] ?? 0) === 1) {
+                        foreach (['master_admin', 'admin', 'supervisor', 'coordinator'] as $roleSlug) {
+                            if (has_role($account['roles'] ?? [], $roleSlug)) {
+                                $data['headerAdminAccessAllowed'] = true;
+                                break;
+                            }
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    $data['headerAdminAccessAllowed'] = false;
+                }
+            }
+        }
+
         extract($data, EXTR_SKIP);
         $viewFile = ROOT_PATH . '/app/Views/' . $view . '.php';
 
@@ -97,6 +118,7 @@ class View
             'profileCompletionRequired' => false,
             'profileCompletionBlockMessage' => '',
             'headerCertificateAlerts' => [],
+            'headerAdminAccessAllowed' => false,
         ], EXTR_SKIP);
 
         if (self::shouldRenderModalOnly()) {

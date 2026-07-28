@@ -330,7 +330,7 @@
                             <input type="text" name="zip_code" id="admin-person-zip-code" required>
                         </label>
                         <label class="span-2">
-                            <span>Endereco</span>
+                            <span>Endereço</span>
                             <input type="text" name="street" id="admin-person-street" required>
                         </label>
                         <label>
@@ -449,7 +449,7 @@
                     <th>Papéis</th>
                     <th>Ultima atribuicao</th>
                     <th>Dependentes</th>
-                    <th>Acoes</th>
+                    <th>Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -608,7 +608,7 @@
                         </label>
                     <?php } ?>
                 </div>
-                <small class="muted">Você pode selecionar mais de um papel ao mesmo tempo. O sistema registra atribuicoes manuais, remocoes manuais e remocoes automaticas por inatividade.</small>
+                <small class="muted">Você pode selecionar mais de um papel ao mesmo tempo. O sistema registra atribuições manuais, remoções manuais e remoções automáticas por inatividade.</small>
 
                 <label>
                     <span>Motivo da alteração</span>

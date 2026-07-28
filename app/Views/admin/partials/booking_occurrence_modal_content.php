@@ -31,7 +31,7 @@ $currentAdminName = (string) ($currentAdminName ?? '');
                     <th>Status</th>
                     <th>Fez a chamada</th>
                     <th>Motivo da justificativa</th>
-                    <th>Acao</th>
+                    <th>Ação</th>
                 </tr>
             </thead>
             <tbody>
@@ -67,7 +67,17 @@ $currentAdminName = (string) ($currentAdminName ?? '');
                                         <span>Ausente</span>
                                     </label>
                                     <label class="admin-booking-status-option admin-booking-status-option-justificado">
-                                        <input type="checkbox" class="admin-booking-status-checkbox" data-booking-id="<?php echo e((string) $booking['id']); ?>" data-status="justificado" data-current-justification="<?php echo e((string) ($booking['justificativa_motivo'] ?? '')); ?>" <?php echo $bookingStatus === 'justificado' ? 'checked' : ''; ?> <?php echo !$canManageAttendance ? 'disabled' : ''; ?>>
+                                        <input
+                                            type="checkbox"
+                                            class="admin-booking-status-checkbox"
+                                            data-booking-id="<?php echo e((string) $booking['id']); ?>"
+                                            data-status="justificado"
+                                            data-current-justification="<?php echo e((string) ($booking['justificativa_motivo'] ?? '')); ?>"
+                                            data-booking-person="<?php echo e((string) ($booking['nome_completo'] ?? '')); ?>"
+                                            data-booking-date="<?php echo e(!empty($booking['data_agendada']) ? date('d/m/Y \à\s H:i', strtotime((string) $booking['data_agendada'])) : '-'); ?>"
+                                            <?php echo $bookingStatus === 'justificado' ? 'checked' : ''; ?>
+                                            <?php echo !$canManageAttendance ? 'disabled' : ''; ?>
+                                        >
                                         <span>Justificar</span>
                                     </label>
                                 </div>

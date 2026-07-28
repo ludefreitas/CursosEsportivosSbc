@@ -196,10 +196,7 @@ CREATE TABLE IF NOT EXISTS niveis_modalidade (
 
 CREATE TABLE IF NOT EXISTS modalidades (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    nome_local VARCHAR(150) NOT NULL,
-    apelido_local VARCHAR(100) NULL,
-    admin_local BIGINT UNSIGNED NULL,
-    coord_local BIGINT UNSIGNED NULL,
+    nome VARCHAR(150) NOT NULL,
     slug VARCHAR(150) NOT NULL UNIQUE,
     tipo_ambiente ENUM('aquatica', 'terrestre') NOT NULL,
     ativo TINYINT(1) NOT NULL DEFAULT 1
@@ -241,11 +238,13 @@ CREATE TABLE IF NOT EXISTS locais_treino (
 CREATE TABLE IF NOT EXISTS espacos_treino (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     local_treino_id BIGINT UNSIGNED NOT NULL,
+    supervisor_espaco BIGINT UNSIGNED NULL,
     nome VARCHAR(120) NOT NULL,
     tipo_espaco VARCHAR(80) NOT NULL,
     capacidade_base INT NOT NULL DEFAULT 0,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
-    CONSTRAINT fk_espaco_local FOREIGN KEY (local_treino_id) REFERENCES locais_treino(id)
+    CONSTRAINT fk_espaco_local FOREIGN KEY (local_treino_id) REFERENCES locais_treino(id),
+    CONSTRAINT fk_espaco_supervisor FOREIGN KEY (supervisor_espaco) REFERENCES contas(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS local_modalidade (

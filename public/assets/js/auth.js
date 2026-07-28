@@ -2,9 +2,12 @@
     const App = window.App || {};
 
     App.auth = Object.assign(App.auth || {}, {
-        sincronizarCabecalhoAutenticado: function () {
+        sincronizarCabecalhoAutenticado: function (adminAccessAllowed) {
             const $nav = $('.site-nav').first();
             const profileCompletionRequired = App.core.pageRequiresProfileCompletion() ? '1' : '0';
+            const canAccessAdmin = typeof adminAccessAllowed === 'boolean'
+                ? adminAccessAllowed
+                : String($('body').attr('data-admin-access-allowed') || '') === '1';
 
             if ($nav.length === 0) {
                 return;
@@ -22,6 +25,12 @@
                 '<button type="submit" class="link-button nav-color-green">Sair</button>',
                 '</form>'
             ].join(''));
+
+            $('body').attr('data-admin-access-allowed', canAccessAdmin ? '1' : '0');
+
+            if (!canAccessAdmin || profileCompletionRequired === '1') {
+                $nav.find('a[href="' + App.core.buildUrl('/admin') + '"]').remove();
+            }
 
             const $heroPrimaryButton = $('.hero-actions .btn-primary').first();
 
@@ -228,7 +237,7 @@
                         );
 
                         $('body').attr('data-profile-completion-required', authenticationNeedsProfileCompletion ? '1' : '0');
-                        App.auth.sincronizarCabecalhoAutenticado();
+                        App.auth.sincronizarCabecalhoAutenticado(!!response.admin_access_allowed);
                         $('main.page-content > .flash').remove();
                         $personOptions.data('agendaAuthenticated', '1');
                         $calendar.attr('data-agenda-authenticated', '1');

@@ -188,15 +188,6 @@ body.pagina-home {
 .pagina-home .hero-actions .btn {
     min-width: 210px;
     justify-content: center;
-    border: none;
-    box-shadow: 0 14px 30px rgba(17, 47, 67, 0.16);
-}
-.pagina-home .hero-actions .btn-primary {
-    background: linear-gradient(135deg, #1f76b5 0%, #0d5f98 100%);
-}
-.pagina-home .hero-actions .btn-secondary {
-    color: #fff;
-    background: linear-gradient(135deg, #d96b1f 0%, #bf5412 100%);
 }
 .hero-card {
     background:
@@ -385,25 +376,6 @@ body.pagina-home {
 
 .pagina-home .chip:nth-child(4n + 4) {
     background: linear-gradient(135deg, #d62b45 0%, #b21d37 100%);
-}
-
-.pagina-home .section-head .btn-secondary,
-.pagina-home .post-card .btn-primary,
-.pagina-home .special-event-card .btn-primary {
-    border: none;
-    color: #fff;
-}
-
-.pagina-home .section-head .btn-secondary {
-    background: linear-gradient(135deg, #1f76b5 0%, #0d5f98 100%);
-}
-
-.pagina-home .special-event-card .btn-primary {
-    background: linear-gradient(135deg, #1ca746 0%, #108739 100%);
-}
-
-.pagina-home .post-card .btn-primary {
-    background: linear-gradient(135deg, #d96b1f 0%, #bf5412 100%);
 }
 
 .pagina-home .special-event-card:nth-child(3n + 2)::before {

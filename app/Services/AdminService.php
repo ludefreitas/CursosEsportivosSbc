@@ -9,10 +9,12 @@ use RuntimeException;
 
 class AdminService
 {
-    public const DEFAULT_PEOPLE_LIMIT = 40;
+    public const DEFAULT_PEOPLE_LIMIT = 10;
     public const MAX_PEOPLE_LIMIT = 40;
-    public const DEFAULT_TRAINING_LOCATION_LIMIT = 20;
+    public const DEFAULT_TRAINING_LOCATION_LIMIT = 10;
     public const MAX_TRAINING_LOCATION_LIMIT = 20;
+    public const DEFAULT_TRAINING_SPACE_LIMIT = 10;
+    public const MAX_TRAINING_SPACE_LIMIT = 20;
     private const HEALTH_CERTIFICATE_TYPES = [
         'clinico' => 'Atestado clínico',
         'dermatologico' => 'Atestado dermatológico',
@@ -1446,17 +1448,21 @@ class AdminService
     /**
      * Lista espacos de treino para formularios administrativos.
      */
-    public function listTrainingSpacesForManagement(): array
+    public function listTrainingSpacesForManagement(string $search = '', ?int $limit = null): array
     {
         SpaceSuspensionService::expireElapsed();
         $pdo = Database::connection();
-        $stmt = $pdo->query('
+        $search = trim($search);
+        $sql = '
             SELECT
                 et.id,
                 et.nome,
                 et.tipo_espaco,
+                et.capacidade_base,
+                et.supervisor_espaco,
                 et.ativo,
                 lt.id AS local_treino_id,
+                lt.apelido_local AS local_apelido,
                 (
                     SELECT COUNT(*)
                     FROM suspensoes_espaco_treino s
@@ -1472,13 +1478,164 @@ class AdminService
                     WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
                         THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
                     ELSE lt.nome_local
-                END AS local_nome
+                END AS local_nome,
+                supervisor_pessoa.nome_completo AS supervisor_espaco_nome
             FROM espacos_treino et
             INNER JOIN locais_treino lt ON lt.id = et.local_treino_id
-            ORDER BY lt.nome_local, et.nome
+            LEFT JOIN contas supervisor_conta ON supervisor_conta.id = et.supervisor_espaco
+            LEFT JOIN pessoas supervisor_pessoa ON supervisor_pessoa.cpf = supervisor_conta.cpf
+        ';
+        $params = [];
+
+        if ($search !== '') {
+            $sql .= '
+                WHERE et.nome LIKE :search_space
+                   OR et.tipo_espaco LIKE :search_type
+                   OR lt.nome_local LIKE :search_location
+                   OR lt.apelido_local LIKE :search_nickname
+                   OR supervisor_pessoa.nome_completo LIKE :search_supervisor
+            ';
+            $searchLike = '%' . $search . '%';
+            $params = [
+                ':search_space' => $searchLike,
+                ':search_type' => $searchLike,
+                ':search_location' => $searchLike,
+                ':search_nickname' => $searchLike,
+                ':search_supervisor' => $searchLike,
+            ];
+        }
+
+        $sql .= ' ORDER BY lt.nome_local, et.nome';
+
+        if ($limit !== null) {
+            $limit = max(1, min(self::MAX_TRAINING_SPACE_LIMIT, $limit));
+            $sql .= ' LIMIT ' . $limit;
+        }
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function listEligibleSpaceSupervisors(): array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->query('
+            SELECT DISTINCT c.id AS conta_id, p.nome_completo
+            FROM contas c
+            INNER JOIN pessoas p ON p.cpf = c.cpf
+            INNER JOIN conta_papeis cp ON cp.conta_id = c.id
+            INNER JOIN papeis pa ON pa.id = cp.papel_id
+            WHERE c.ativo = 1
+              AND pa.slug = "supervisor"
+            ORDER BY p.nome_completo
         ');
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function listTrainingLocationsForSpaceForm(): array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->query('
+            SELECT id, nome_local, apelido_local
+            FROM locais_treino
+            WHERE ativo = 1
+            ORDER BY nome_local
+        ');
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function createTrainingSpace(array $data): int
+    {
+        $payload = $this->validateTrainingSpacePayload($data);
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('
+            INSERT INTO espacos_treino (local_treino_id, supervisor_espaco, nome, tipo_espaco, capacidade_base, ativo)
+            VALUES (:local_treino_id, :supervisor_espaco, :nome, :tipo_espaco, :capacidade_base, :ativo)
+        ');
+        $stmt->execute($payload);
+
+        return (int) $pdo->lastInsertId();
+    }
+
+    public function updateTrainingSpace(array $data): void
+    {
+        $spaceId = (int) ($data['espaco_treino_id'] ?? 0);
+
+        if ($spaceId <= 0) {
+            throw new RuntimeException('Espaço de treino inválido.');
+        }
+
+        $payload = $this->validateTrainingSpacePayload($data);
+        $payload[':id'] = $spaceId;
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('
+            UPDATE espacos_treino
+            SET local_treino_id = :local_treino_id,
+                supervisor_espaco = :supervisor_espaco,
+                nome = :nome,
+                tipo_espaco = :tipo_espaco,
+                capacidade_base = :capacidade_base,
+                ativo = :ativo
+            WHERE id = :id
+        ');
+        $stmt->execute($payload);
+
+        if ($stmt->rowCount() === 0) {
+            $check = $pdo->prepare('SELECT 1 FROM espacos_treino WHERE id = :id');
+            $check->execute([':id' => $spaceId]);
+            if (!$check->fetchColumn()) {
+                throw new RuntimeException('Espaço de treino não encontrado.');
+            }
+        }
+    }
+
+    private function validateTrainingSpacePayload(array $data): array
+    {
+        $locationId = (int) ($data['local_treino_id'] ?? 0);
+        $supervisorId = (int) ($data['supervisor_espaco'] ?? 0);
+        $name = trim((string) ($data['nome'] ?? ''));
+        $type = trim((string) ($data['tipo_espaco'] ?? ''));
+        $capacity = max(0, (int) ($data['capacidade_base'] ?? 0));
+        $active = isset($data['ativo']) && (string) $data['ativo'] === '0' ? 0 : 1;
+        $pdo = Database::connection();
+
+        if ($locationId <= 0 || $name === '' || $type === '') {
+            throw new RuntimeException('Informe o local, o nome e o tipo do espaço.');
+        }
+
+        $locationCheck = $pdo->prepare('SELECT 1 FROM locais_treino WHERE id = :id');
+        $locationCheck->execute([':id' => $locationId]);
+        if (!$locationCheck->fetchColumn()) {
+            throw new RuntimeException('Local de treino não encontrado.');
+        }
+
+        if ($supervisorId > 0) {
+            $supervisorCheck = $pdo->prepare('
+                SELECT 1
+                FROM contas c
+                INNER JOIN conta_papeis cp ON cp.conta_id = c.id
+                INNER JOIN papeis p ON p.id = cp.papel_id
+                WHERE c.id = :id AND c.ativo = 1 AND p.slug = "supervisor"
+                LIMIT 1
+            ');
+            $supervisorCheck->execute([':id' => $supervisorId]);
+            if (!$supervisorCheck->fetchColumn()) {
+                throw new RuntimeException('Selecione um usuário ativo com o papel de Supervisor.');
+            }
+        }
+
+        return [
+            ':local_treino_id' => $locationId,
+            ':supervisor_espaco' => $supervisorId > 0 ? $supervisorId : null,
+            ':nome' => $name,
+            ':tipo_espaco' => $type,
+            ':capacidade_base' => $capacity,
+            ':ativo' => $active,
+        ];
     }
 
     /**

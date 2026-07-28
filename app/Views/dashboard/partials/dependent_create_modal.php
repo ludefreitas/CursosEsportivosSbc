@@ -14,7 +14,7 @@
         Preencha CPF e data de nascimento com muita atenção. Esses dados identificam a pessoa no sistema e, se precisarem de correção depois, será necessário acionar o suporte.
     </div>
 
-    <form method="POST" action="<?php echo e(url('/dependentes/salvar')); ?>" class="stack-form dashboard-dependent-create-form" id="dashboard-dependent-create-form" data-manual-submit="1">
+    <form method="POST" action="<?php echo e(url('/dependentes/salvar')); ?>" class="stack-form dashboard-dependent-create-form" id="dashboard-dependent-create-form" data-manual-submit="1" data-external-person-form="1">
         <label><span>Nome completo</span><input type="text" name="full_name" required></label>
         <div class="grid-two">
             <label><span>CPF</span><input type="text" name="cpf" placeholder="000.000.000-00" required></label>

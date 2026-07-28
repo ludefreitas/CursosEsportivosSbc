@@ -21,6 +21,7 @@
 <body
     class="<?php echo e($pageClass ?? ''); ?>"
     data-profile-completion-required="<?php echo !empty($profileCompletionRequired) ? '1' : '0'; ?>"
+    data-admin-access-allowed="<?php echo !empty($headerAdminAccessAllowed) ? '1' : '0'; ?>"
     data-profile-completion-message="<?php echo e($profileCompletionBlockMessage ?: 'Antes de acessar esta área, você precisa completar seu cadastro.'); ?>"
 >
     <?php $isAuthenticated = \App\Core\Auth::check(); ?>
@@ -65,11 +66,9 @@
                         class="nav-color-teal"
                         data-profile-completion-link="<?php echo !empty($profileCompletionRequired) ? '1' : '0'; ?>"
                     >Meu painel</a>
-                    <a
-                        href="<?php echo e(url('/admin')); ?>"
-                        class="nav-color-orange"
-                        data-profile-completion-link="<?php echo !empty($profileCompletionRequired) ? '1' : '0'; ?>"
-                    >Admin</a>
+                    <?php if (!empty($headerAdminAccessAllowed)) { ?>
+                        <a href="<?php echo e(url('/admin')); ?>" class="nav-color-orange">Admin</a>
+                    <?php } ?>
                     <form method="POST" action="<?php echo e(url('/logout')); ?>" class="inline-form">
                         <button type="submit" class="link-button nav-color-green">Sair</button>
                     </form>

@@ -15,6 +15,7 @@
             function hydrateDynamicSection() {
                 $('#popup-todas-paginas').trigger('change');
                 $('select[data-sexo-select="1"]').trigger('change');
+                syncDailyBookingSpaceOptions();
                 initAdminAgendaCalendar();
             }
 
@@ -53,6 +54,48 @@
                     local_treino_id: String($form.find('input[name="local_treino_id"]').val() || '0'),
                     modalidade_id: String($form.find('input[name="modalidade_id"]').val() || '0')
                 };
+            }
+
+            function syncDailyBookingSpaceOptions() {
+                const $form = $('#admin-daily-bookings-filter-form');
+                const $location = $form.find('select[name="agendamento_local_treino_id"]');
+                const $space = $form.find('select[name="agendamento_espaco_treino_id"]');
+                const locationId = String($location.val() || '0');
+
+                if ($form.length === 0 || $space.length === 0) {
+                    return;
+                }
+
+                $space.find('option[data-local-treino-id]').each(function () {
+                    const optionLocationId = String($(this).data('localTreinoId') || '0');
+                    const isAvailable = locationId === '0' || optionLocationId === locationId;
+
+                    $(this).prop('disabled', !isAvailable).prop('hidden', !isAvailable);
+                });
+
+                const $selectedOption = $space.find('option:selected');
+
+                if ($selectedOption.is(':disabled')) {
+                    $space.val('0');
+                }
+            }
+
+            function getDailyBookingsModal() {
+                return $('#admin-daily-bookings-modal');
+            }
+
+            function openDailyBookingsModal() {
+                const $modal = getDailyBookingsModal();
+
+                if ($modal.length === 0) {
+                    return;
+                }
+
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+            }
+
+            function closeDailyBookingsModal() {
+                getDailyBookingsModal().addClass('hidden').attr('aria-hidden', 'true');
             }
 
             function getOccurrenceModal() {
@@ -388,10 +431,11 @@
 
                 $form[0].reset();
                 $form.find('input[name="agendamento_id"]').val('');
+                $('#admin-booking-justification-person, #admin-booking-justification-date').text('-');
                 $modal.addClass('hidden').attr('aria-hidden', 'true');
             }
 
-            function openJustificationModal(bookingId, reason) {
+            function openJustificationModal(bookingId, reason, personName, bookingDate) {
                 const $modal = getJustificationModal();
                 const $form = getJustificationForm();
 
@@ -402,6 +446,8 @@
 
                 $form.find('input[name="agendamento_id"]').val(String(bookingId || ''));
                 $form.find('input[name="justificativa_motivo"]').val(String(reason || ''));
+                $('#admin-booking-justification-person').text(String(personName || '-'));
+                $('#admin-booking-justification-date').text(String(bookingDate || '-'));
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
                 $form.find('input[name="justificativa_motivo"]').trigger('focus');
             }
@@ -479,6 +525,10 @@
                         $host.html(String(response.html || ''));
                         hydrateDynamicSection();
                         updateHash(normalizedTarget);
+
+                        if (normalizedTarget === 'agenda' && String(requestData.abrir_resultado_agendamentos || '0') === '1') {
+                            openDailyBookingsModal();
+                        }
                     })
                     .fail(function (xhr) {
                         const erro = App.core.extrairMensagemErroAjax(xhr);
@@ -513,11 +563,14 @@
 
             $(document).on('submit', '#admin-daily-bookings-filter-form', function (event) {
                 event.preventDefault();
-                activateSection('agenda', currentAgendaFilters());
+                const filters = currentAgendaFilters();
+                filters.abrir_resultado_agendamentos = '1';
+                activateSection('agenda', filters);
             });
 
-            $(document).on('change', '#admin-daily-bookings-filter-form input[name="data_agendamento"], #admin-daily-bookings-filter-form select[name="agendamento_local_treino_id"], #admin-daily-bookings-filter-form select[name="agendamento_espaco_treino_id"]', function () {
-                activateSection('agenda', currentAgendaFilters());
+            $(document).on('change', '#admin-daily-bookings-filter-form select[name="agendamento_local_treino_id"]', function () {
+                $('#admin-daily-bookings-filter-form select[name="agendamento_espaco_treino_id"]').val('0');
+                syncDailyBookingSpaceOptions();
             });
 
             $(document).on('click', '[data-admin-agenda-filter-mode]', function () {
@@ -607,7 +660,12 @@
 
                 if (status === 'justificado') {
                     syncBookingStatusGroup(bookingId, previousStatus);
-                    openJustificationModal(bookingId, String($checkbox.data('currentJustification') || ''));
+                    openJustificationModal(
+                        bookingId,
+                        String($checkbox.attr('data-current-justification') || ''),
+                        String($checkbox.attr('data-booking-person') || ''),
+                        String($checkbox.attr('data-booking-date') || '')
+                    );
                     return;
                 }
 
@@ -635,6 +693,16 @@
             $(document).on('click', '#admin-booking-occurrence-modal', function (event) {
                 if ($(event.target).is('#admin-booking-occurrence-modal')) {
                     closeOccurrenceModal();
+                }
+            });
+
+            $(document).on('click', '#admin-daily-bookings-modal-close', function () {
+                closeDailyBookingsModal();
+            });
+
+            $(document).on('click', '#admin-daily-bookings-modal', function (event) {
+                if ($(event.target).is('#admin-daily-bookings-modal')) {
+                    closeDailyBookingsModal();
                 }
             });
 
@@ -1142,7 +1210,7 @@
                                     '<th>Nascimento</th>' +
                                     '<th>Cadastro</th>' +
                                     '<th>Vinculo desde</th>' +
-                                    '<th>Observacoes</th>' +
+                                    '<th>Observações</th>' +
                                 '</tr>' +
                             '</thead>' +
                             '<tbody>' + rows + '</tbody>' +
@@ -2828,8 +2896,8 @@
             function refreshTrainingLocations($form) {
                 const search = String($form.find('input[name="location_search"]').val() || '').trim();
                 const $limitInput = $form.find('input[name="location_limit"]').first();
-                const requestedLimit = Number.parseInt(String($limitInput.val() || '20'), 10);
-                const limit = Math.max(1, Math.min(20, Number.isFinite(requestedLimit) ? requestedLimit : 20));
+                const requestedLimit = Number.parseInt(String($limitInput.val() || '10'), 10);
+                const limit = Math.max(1, Math.min(20, Number.isFinite(requestedLimit) ? requestedLimit : 10));
 
                 $limitInput.val(String(limit));
 
@@ -2891,7 +2959,172 @@
 
         },
 
+        iniciarFiltroEspacosTreino: function () {
+            let filterTimer = null;
+            let filterRequest = null;
+
+            function refreshTrainingSpaces($form) {
+                const search = String($form.find('input[name="space_search"]').val() || '').trim();
+                const $limitInput = $form.find('input[name="space_limit"]').first();
+                const requestedLimit = Number.parseInt(String($limitInput.val() || '10'), 10);
+                const limit = Math.max(1, Math.min(20, Number.isFinite(requestedLimit) ? requestedLimit : 10));
+
+                $limitInput.val(String(limit));
+
+                if (filterRequest) {
+                    filterRequest.abort();
+                }
+
+                filterRequest = $.ajax({
+                    url: App.core.buildUrl('/admin/espacos/lista'),
+                    method: 'GET',
+                    dataType: 'json',
+                    data: {
+                        space_search: search,
+                        space_limit: limit
+                    },
+                    suppressGlobalLoading: true
+                }).done(function (response) {
+                    if (!response || response.success === false || typeof response.html !== 'string') {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar a lista de espaços.'));
+                        return;
+                    }
+
+                    $('#admin-training-space-list-body').html(response.html);
+                }).fail(function (xhr, status) {
+                    if (status !== 'abort') {
+                        const erro = App.core.extrairMensagemErroAjax(xhr);
+                        App.core.abrirPopup('erro', erro.mensagem);
+                    }
+                }).always(function () {
+                    filterRequest = null;
+                });
+            }
+
+            $(document).on('submit', '#admin-training-space-filter-form', function (event) {
+                event.preventDefault();
+                refreshTrainingSpaces($(this));
+            });
+
+            $(document).on('input', '#admin-training-space-search, #admin-training-space-filter-form input[name="space_limit"]', function () {
+                const $form = $(this).closest('form');
+
+                window.clearTimeout(filterTimer);
+                filterTimer = window.setTimeout(function () {
+                    refreshTrainingSpaces($form);
+                }, 250);
+            });
+        },
+
+        iniciarEditorEspacosTreino: function () {
+            function getModal() {
+                return $('#admin-training-space-modal');
+            }
+
+            function closeModal() {
+                getModal().addClass('hidden').attr('aria-hidden', 'true');
+            }
+
+            function prepareCreate() {
+                const $form = $('#admin-training-space-form');
+
+                if ($form[0]) {
+                    $form[0].reset();
+                }
+                $form.attr('action', String($form.data('createAction') || ''));
+                $form.find('input[name="espaco_treino_id"]').val('');
+                $('#admin-training-space-modal-title').text('Criar espaço de treino');
+                $('#admin-training-space-submit').text('Cadastrar espaço');
+            }
+
+            $(document).on('click', '#admin-training-space-create', function () {
+                prepareCreate();
+                getModal().removeClass('hidden').attr('aria-hidden', 'false');
+            });
+
+            $(document).on('click', '.admin-training-space-edit', function () {
+                const $form = $('#admin-training-space-form');
+                let space;
+
+                try {
+                    space = JSON.parse(String($(this).attr('data-space') || '{}'));
+                } catch (error) {
+                    App.core.abrirPopup('erro', 'Não foi possível carregar os dados deste espaço.');
+                    return;
+                }
+
+                prepareCreate();
+                $form.attr('action', String($form.data('updateAction') || ''));
+                $form.find('input[name="espaco_treino_id"]').val(String(space.id || ''));
+                $form.find('select[name="local_treino_id"]').val(String(space.local_treino_id || ''));
+                $form.find('input[name="nome"]').val(String(space.nome || ''));
+                $form.find('input[name="tipo_espaco"]').val(String(space.tipo_espaco || ''));
+                $form.find('input[name="capacidade_base"]').val(String(space.capacidade_base || 0));
+                $form.find('select[name="supervisor_espaco"]').val(String(space.supervisor_espaco || ''));
+                $form.find('select[name="ativo"]').val(String(Number(space.ativo || 0)));
+                $('#admin-training-space-modal-title').text('Editar espaço de treino');
+                $('#admin-training-space-submit').text('Salvar alterações');
+                getModal().removeClass('hidden').attr('aria-hidden', 'false');
+            });
+
+            $(document).on('submit', '#admin-training-space-form', function (event) {
+                event.preventDefault();
+
+                const $form = $(this);
+                const $button = $form.find('button[type="submit"]').first();
+                const $filterForm = $('#admin-training-space-filter-form');
+                const data = $form.serialize() + '&' + $.param({
+                    space_search: String($filterForm.find('input[name="space_search"]').val() || '').trim(),
+                    space_limit: String($filterForm.find('input[name="space_limit"]').val() || '10').trim()
+                });
+
+                $button.prop('disabled', true);
+                $.ajax({
+                    url: String($form.attr('action') || ''),
+                    method: 'POST',
+                    dataType: 'json',
+                    data: data,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar o espaço.'));
+                        return;
+                    }
+
+                    if (typeof response.spaces_html === 'string') {
+                        $('#admin-training-space-list-body').html(response.spaces_html);
+                    }
+                    closeModal();
+                    App.core.abrirPopup('sucesso', String(response.message || 'Espaço salvo com sucesso.'));
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                }).always(function () {
+                    $button.prop('disabled', false);
+                });
+            });
+
+            $(document).on('click', '#admin-training-space-close, #admin-training-space-cancel', closeModal);
+            $(document).on('click', '#admin-training-space-modal', function (event) {
+                if (event.target === this) {
+                    closeModal();
+                }
+            });
+        },
+
         iniciarModalSuspensoesLocal: function () {
+            function currentSpaceFilters() {
+                const $filterForm = $('#admin-training-space-filter-form');
+
+                return {
+                    space_search: String($filterForm.find('input[name="space_search"]').val() || '').trim(),
+                    space_limit: String($filterForm.find('input[name="space_limit"]').val() || '10').trim()
+                };
+            }
+
             function getModal() {
                 return $('#admin-location-suspensions-modal');
             }
@@ -2989,7 +3222,7 @@
                     url: String($form.attr('action') || ''),
                     method: 'POST',
                     dataType: 'json',
-                    data: $form.serialize(),
+                    data: $form.serialize() + '&' + $.param(currentSpaceFilters()),
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
                         'Accept': 'application/json'
@@ -3027,7 +3260,7 @@
                     url: String($form.attr('action') || ''),
                     method: 'POST',
                     dataType: 'json',
-                    data: $form.serialize(),
+                    data: $form.serialize() + '&' + $.param(currentSpaceFilters()),
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
                         'Accept': 'application/json'
@@ -3065,7 +3298,7 @@
                     url: String($form.attr('action') || ''),
                     method: 'POST',
                     dataType: 'json',
-                    data: $form.serialize(),
+                    data: $form.serialize() + '&' + $.param(currentSpaceFilters()),
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
                         'Accept': 'application/json'
@@ -3124,6 +3357,8 @@
             App.admin.iniciarEditorComunicacaoOficialAdmin();
             App.admin.iniciarBuscaEnderecoCep();
             App.admin.iniciarFiltroLocaisTreino();
+            App.admin.iniciarFiltroEspacosTreino();
+            App.admin.iniciarEditorEspacosTreino();
             App.admin.iniciarModalSuspensoesLocal();
         }
     });

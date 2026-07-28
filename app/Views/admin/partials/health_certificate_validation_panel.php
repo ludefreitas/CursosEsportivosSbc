@@ -18,7 +18,7 @@ $healthCertificateValidationRows = $healthCertificateValidationRows ?? [];
                     <th>Atendimento</th>
                     <th>Status</th>
                     <th>Pendencia</th>
-                    <th>Acao</th>
+                    <th>Ação</th>
                 </tr>
             </thead>
             <tbody>

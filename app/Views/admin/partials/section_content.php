@@ -16,7 +16,7 @@ if (!isset($diasSemana)) {
 if (!isset($formatarPaginasPopup)) {
     $formatarPaginasPopup = static function (?string $paths, int $showAllPages, array $popupPages): string {
         if ($showAllPages === 1) {
-            return 'Todas as paginas';
+            return 'Todas as páginas';
         }
 
         $pages = array_values(array_filter(array_map('trim', explode(',', (string) $paths))));
@@ -96,12 +96,12 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             <h2>Painel administrativo</h2>
             <p class="muted">Esta página inicial fica reservada para a futura mensagem institucional da administração. A partir dos botões acima, cada área do sistema abre abaixo sem carregar outra página.</p>
             <div class="chips-wrap">
-                <span class="chip">Usuarios e pessoas</span>
+                <span class="chip">Usuários e pessoas</span>
                 <span class="chip">Agenda</span>
                 <span class="chip">Página home</span>
                 <span class="chip">Blog</span>
                 <span class="chip">Locais e espaços</span>
-                <span class="chip">Configuracoes</span>
+                <span class="chip">Configurações</span>
             </div>
         </article>
     </section>
@@ -111,8 +111,8 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
     <section class="admin-section-panel" data-admin-section="usuarios-pessoas">
         <div class="section-head admin-section-head">
             <div>
-                <h2>Usuarios e pessoas</h2>
-                <p class="muted">Lista, filtro e edição de pessoas, usuarios e dependentes.</p>
+                <h2>Usuários e pessoas</h2>
+                <p class="muted">Lista, filtro e edição de pessoas, usuários e dependentes.</p>
             </div>
         </div>
         <?php require ROOT_PATH . '/app/Views/admin/partials/people_panel.php'; ?>
@@ -132,26 +132,26 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 
         $trainingLocations[$locationId] = [
             'id' => $locationId,
-            'nome' => (string) ($space['local_nome'] ?? ''),
+            'local_nome' => (string) ($space['local_nome'] ?? ''),
         ];
     }
 
     uasort($trainingLocations, static function (array $left, array $right): int {
-        return strcmp($left['nome'], $right['nome']);
+        return strcmp($left['local_nome'], $right['local_nome']);
     });
 
     $dailyBookingSpaces = [];
 
     foreach (($trainingSpaces ?? []) as $space) {
-        $spaceLocationId = (int) ($space['local_treino_id'] ?? 0);
-        $selectedDailyLocationId = (int) ($selectedDailyLocationId ?? 0);
-
-        if ($selectedDailyLocationId > 0 && $spaceLocationId !== $selectedDailyLocationId) {
-            continue;
-        }
-
         $dailyBookingSpaces[] = $space;
     }
+
+    usort($dailyBookingSpaces, static function (array $left, array $right): int {
+        return strnatcasecmp(
+            trim((string) ($left['nome'] ?? '')),
+            trim((string) ($right['nome'] ?? ''))
+        );
+    });
 
     $weeklySchedulesByDay = [];
 
@@ -246,15 +246,23 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         <section>
             <article class="content-card">
                 <h2>Agendamentos do dia</h2>
-                <p class="muted">A lista abaixo carrega todos os agendamentos do dia em ordem de horário e depois por nome, agrupados por local e espaço.</p>
+                <p class="muted">Defina as três etapas abaixo e clique em “Buscar agendamentos”. O resultado será aberto em uma janela.</p>
                 <form class="stack-form admin-daily-bookings-filter-form" id="admin-daily-bookings-filter-form" data-admin-section-filter="agenda" data-manual-submit="1">
-                    <div class="admin-agenda-filter-row">
-                        <label>
-                            <span>Data</span>
+                    <div class="admin-daily-bookings-search-steps">
+                        <label class="admin-daily-bookings-search-step">
+                            <span class="admin-search-step-number">1</span>
+                            <span class="admin-search-step-copy">
+                                <strong>Data</strong>
+                                <small>Escolha o dia da consulta.</small>
+                            </span>
                             <input type="date" name="data_agendamento" value="<?php echo e((string) ($selectedDailyDate ?? date('Y-m-d'))); ?>">
                         </label>
-                        <label>
-                            <span>Local</span>
+                        <label class="admin-daily-bookings-search-step">
+                            <span class="admin-search-step-number">2</span>
+                            <span class="admin-search-step-copy">
+                                <strong>Local</strong>
+                                <small>Selecione um local ou consulte todos.</small>
+                            </span>
                             <select name="agendamento_local_treino_id">
                                 <option value="0">Todos os locais</option>
                                 <?php foreach ($trainingLocations as $location) { ?>
@@ -264,42 +272,68 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 <?php } ?>
                             </select>
                         </label>
-                        <label>
-                            <span>Espaço</span>
+                        <label class="admin-daily-bookings-search-step">
+                            <span class="admin-search-step-number">3</span>
+                            <span class="admin-search-step-copy">
+                                <strong>Espaço</strong>
+                                <small>Refine por espaço ou mantenha todos.</small>
+                            </span>
                             <select name="agendamento_espaco_treino_id">
                                 <option value="0">Todos os espaços</option>
                                 <?php foreach ($dailyBookingSpaces as $space) { ?>
-                                    <option value="<?php echo e((string) $space['id']); ?>" <?php echo (int) ($selectedDailySpaceId ?? 0) === (int) $space['id'] ? 'selected' : ''; ?>>
-                                        <?php echo e($space['local_nome'] . ' - ' . $space['nome']); ?>
+                                    <option
+                                        value="<?php echo e((string) $space['id']); ?>"
+                                        data-local-treino-id="<?php echo e((string) ($space['local_treino_id'] ?? 0)); ?>"
+                                        <?php echo (int) ($selectedDailySpaceId ?? 0) === (int) $space['id'] ? 'selected' : ''; ?>
+                                    >
+                                        <?php
+                                        $spaceLocationLabel = trim((string) ($space['local_apelido'] ?? ''));
+
+                                        if ($spaceLocationLabel === '') {
+                                            $spaceLocationLabel = trim((string) ($space['local_nome'] ?? ''));
+                                        }
+
+                                        echo e(trim((string) ($space['nome'] ?? '')) . ' - ' . $spaceLocationLabel);
+                                        ?>
                                     </option>
                                 <?php } ?>
                             </select>
                         </label>
                     </div>
+                    <div class="admin-daily-bookings-search-actions">
+                        <p class="muted">O local limita os espaços disponíveis. Com “Todos os locais”, você pode buscar todos os espaços ou escolher somente um.</p>
+                        <button type="submit" class="btn btn-primary">Buscar agendamentos</button>
+                    </div>
                 </form>
             </article>
 
-            <article class="content-card">
-                <h2>Resumo rapido</h2>
-                <div class="admin-daily-bookings-summary">
-                    <div class="admin-daily-booking-stat">
-                        <strong><?php echo e((string) count($dailyBookings ?? [])); ?></strong>
-                        <span>Agendamentos carregados</span>
-                    </div>
-                    <div class="admin-daily-booking-stat">
-                        <strong><?php echo e((string) count($dailyBookingsGrouped)); ?></strong>
-                        <span>Grupos de local e espaço</span>
-                    </div>
-                    <div class="admin-daily-booking-stat">
-                        <strong><?php echo e(date('d/m/Y', strtotime((string) ($selectedDailyDate ?? date('Y-m-d'))))); ?></strong>
-                        <span>Data consultada</span>
-                    </div>
-                </div>
-            </article>
         </section>
 
-        <article class="content-card">
-            <h2>Lista diária por local e espaço</h2>
+        <div id="admin-daily-bookings-modal" class="popup-overlay hidden" aria-hidden="true">
+            <div class="popup-card popup-admin-card admin-daily-bookings-modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-daily-bookings-modal-title">
+                <div class="popup-head admin-popup-head">
+                    <div>
+                        <h2 id="admin-daily-bookings-modal-title">Lista diária por local e espaço</h2>
+                        <p class="muted">Agendamentos em ordem de horário e nome, agrupados por local e espaço.</p>
+                    </div>
+                    <button type="button" class="popup-close-icon" id="admin-daily-bookings-modal-close" aria-label="Fechar lista diária">&times;</button>
+                </div>
+
+                <div class="admin-daily-bookings-modal-body">
+                <div class="admin-daily-bookings-summary admin-daily-bookings-summary--compact" aria-label="Informações da consulta">
+                <div class="admin-daily-booking-stat">
+                    <strong><?php echo e((string) count($dailyBookings ?? [])); ?></strong>
+                    <span>Agendamentos carregados</span>
+                </div>
+                <div class="admin-daily-booking-stat">
+                    <strong><?php echo e((string) count($dailyBookingsGrouped)); ?></strong>
+                    <span>Grupos de local e espaço</span>
+                </div>
+                <div class="admin-daily-booking-stat">
+                    <strong><?php echo e(date('d/m/Y', strtotime((string) ($selectedDailyDate ?? date('Y-m-d'))))); ?></strong>
+                    <span>Data consultada</span>
+                </div>
+            </div>
 
             <?php if (empty($dailyBookingsGrouped)) { ?>
                 <p class="muted">Nenhum agendamento encontrado para os filtros selecionados.</p>
@@ -328,7 +362,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                             <th>Status</th>
                                             <th>Fez a chamada</th>
                                             <th>Motivo da justificativa</th>
-                                            <th>Acao</th>
+                                            <th>Ação</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -368,7 +402,17 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                                 <span>Ausente</span>
                                                             </label>
                                                             <label class="admin-booking-status-option admin-booking-status-option-justificado">
-                                                                <input type="checkbox" class="admin-booking-status-checkbox" data-booking-id="<?php echo e((string) $booking['id']); ?>" data-status="justificado" data-current-justification="<?php echo e((string) ($booking['justificativa_motivo'] ?? '')); ?>" <?php echo $bookingStatus === 'justificado' ? 'checked' : ''; ?> <?php echo !$canManageAttendance ? 'disabled' : ''; ?>>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    class="admin-booking-status-checkbox"
+                                                                    data-booking-id="<?php echo e((string) $booking['id']); ?>"
+                                                                    data-status="justificado"
+                                                                    data-current-justification="<?php echo e((string) ($booking['justificativa_motivo'] ?? '')); ?>"
+                                                                    data-booking-person="<?php echo e((string) ($booking['nome_completo'] ?? '')); ?>"
+                                                                    data-booking-date="<?php echo e(!empty($booking['data_agendada']) ? date('d/m/Y \à\s H:i', strtotime((string) $booking['data_agendada'])) : '-'); ?>"
+                                                                    <?php echo $bookingStatus === 'justificado' ? 'checked' : ''; ?>
+                                                                    <?php echo !$canManageAttendance ? 'disabled' : ''; ?>
+                                                                >
                                                                 <span>Justificar</span>
                                                             </label>
                                                         </div>
@@ -386,7 +430,9 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     <?php } ?>
                 </div>
             <?php } ?>
-        </article>
+                </div>
+            </div>
+        </div>
 
         <div id="admin-booking-justification-modal" class="popup-overlay hidden" aria-hidden="true">
             <div class="popup-card popup-admin-card admin-booking-justification-card" role="dialog" aria-modal="true" aria-labelledby="admin-booking-justification-title">
@@ -400,6 +446,16 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 <form method="POST" action="<?php echo e(url('/admin/agendamentos/presenca')); ?>" class="stack-form" id="admin-booking-justification-form" data-manual-submit="1">
                     <input type="hidden" name="agendamento_id" value="">
                     <input type="hidden" name="status" value="justificado">
+                    <div class="admin-booking-justification-context" aria-live="polite">
+                        <div>
+                            <span>Pessoa</span>
+                            <strong id="admin-booking-justification-person">-</strong>
+                        </div>
+                        <div>
+                            <span>Data do agendamento</span>
+                            <strong id="admin-booking-justification-date">-</strong>
+                        </div>
+                    </div>
                     <label>
                         <span>Motivo da justificativa</span>
                         <input type="text" name="justificativa_motivo" maxlength="255" required placeholder="Ex.: atestado medico apresentado">
@@ -664,8 +720,8 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                     </td>
                                                     <td>
                                                         <small><?php echo e($schedule['sexo'] ? ucfirst((string) $schedule['sexo']) : 'Livre'); ?></small><br>
-                                                        <small><?php echo e('Clinico: ' . $formatarRegraAtestado($schedule['regra_atestado_clinico'] ?? 'global')); ?></small><br>
-                                                        <small><?php echo e('Dermatologico: ' . $formatarRegraAtestado($schedule['regra_atestado_dermatologico'] ?? 'global')); ?></small><br>
+                                                        <small><?php echo e('Clínico: ' . $formatarRegraAtestado($schedule['regra_atestado_clinico'] ?? 'global')); ?></small><br>
+                                                        <small><?php echo e('Dermatológico: ' . $formatarRegraAtestado($schedule['regra_atestado_dermatologico'] ?? 'global')); ?></small><br>
                                                         <small><?php echo e((int) $schedule['ativo'] === 1 ? 'Ativo' : 'Inativo'); ?></small>
                                                         <?php if ((int) ($schedule['ativo'] ?? 0) !== 1 && !empty($schedule['data_inativacao'])) { ?>
                                                             <br><small><?php echo e('Inativado em ' . date('d/m/Y', strtotime((string) $schedule['data_inativacao']))); ?></small>
@@ -951,7 +1007,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <div></div>
                     </div>
                     <div class="grid-two">
-                        <label><span>Rotulo do botao</span><input type="text" name="rotulo_acao" maxlength="80" placeholder="Ex.: Ver detalhes"></label>
+                        <label><span>Rótulo do botão</span><input type="text" name="rotulo_acao" maxlength="80" placeholder="Ex.: Ver detalhes"></label>
                         <div></div>
                     </div>
                     <label>
@@ -1099,7 +1155,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         </div>
                         <div class="grid-two">
                             <label><span>URL de destino</span><input type="text" name="url_destino" id="admin-special-schedule-url" placeholder="/blog/post ou https://..."></label>
-                            <label><span>Rotulo do botao</span><input type="text" name="rotulo_acao" id="admin-special-schedule-label" maxlength="80" placeholder="Ex.: Ver detalhes"></label>
+                            <label><span>Rótulo do botão</span><input type="text" name="rotulo_acao" id="admin-special-schedule-label" maxlength="80" placeholder="Ex.: Ver detalhes"></label>
                         </div>
                         <label>
                             <span>Status</span>
@@ -1124,7 +1180,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         <div class="section-head admin-section-head">
             <div>
                 <h2>Página home</h2>
-                <p class="muted">Quadro informativo e pop-ups institucionais da home e demais paginas públicas.</p>
+                <p class="muted">Quadro informativo e pop-ups institucionais da home e demais páginas públicas.</p>
             </div>
         </div>
 
@@ -1149,10 +1205,10 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 
                         <div class="grid-two">
                             <label><span>Imagem (URL)</span><input type="text" name="imagem_url" placeholder="https://... ou /assets/imagens/..."></label>
-                            <label><span>Rotulo do botao ou link</span><input type="text" name="rotulo_acao" maxlength="90" placeholder="Ex.: Ver agenda"></label>
+                            <label><span>Rótulo do botão ou link</span><input type="text" name="rotulo_acao" maxlength="90" placeholder="Ex.: Ver agenda"></label>
                         </div>
 
-                        <label><span>URL de destino do botao</span><input type="text" name="url_acao" placeholder="/agenda ou https://..."></label>
+                        <label><span>URL de destino do botão</span><input type="text" name="url_acao" placeholder="/agenda ou https://..."></label>
 
                         <div class="grid-two">
                             <label><span>Inicio da exibicao</span><input type="datetime-local" name="data_inicio" required></label>
@@ -1161,11 +1217,11 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 
                         <label class="checkbox-line">
                             <input type="checkbox" name="mostrar_todas_paginas" value="1" id="popup-todas-paginas">
-                            <span>Exibir este pop-up em todas as paginas permitidas do site.</span>
+                            <span>Exibir este pop-up em todas as páginas permitidas do site.</span>
                         </label>
 
                         <div class="popup-pages-picker" id="popup-paginas-alvo">
-                            <span class="picker-title">Paginas onde o pop-up poderá aparecer</span>
+                            <span class="picker-title">Páginas onde o pop-up poderá aparecer</span>
                             <div class="popup-page-list">
                                 <?php foreach (($popupPages ?? []) as $pagePath => $pageLabel) { ?>
                                     <label class="checkbox-chip">
@@ -1223,7 +1279,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 <p><?php echo e($popup['texto_principal'] ?: 'Sem texto principal informado.'); ?></p>
                                 <p class="muted"><?php echo e($popup['texto_secundario'] ?: 'Sem texto secundario.'); ?></p>
                                 <div class="popup-meta-list">
-                                    <small><strong>Paginas:</strong> <?php echo e($formatarPaginasPopup($popup['caminhos_paginas'] ?? '', (int) ($popup['mostrar_todas_paginas'] ?? 0), $popupPages ?? [])); ?></small>
+                                    <small><strong>Páginas:</strong> <?php echo e($formatarPaginasPopup($popup['caminhos_paginas'] ?? '', (int) ($popup['mostrar_todas_paginas'] ?? 0), $popupPages ?? [])); ?></small>
                                     <small><strong>Período:</strong> <?php echo e(date('d/m/Y H:i', strtotime((string) $popup['data_inicio']))); ?> até <?php echo e(date('d/m/Y H:i', strtotime((string) $popup['data_fim']))); ?></small>
                                     <small><strong>Criado por:</strong> <?php echo e($popup['autor_nome'] ?? '-'); ?></small>
                                 </div>
@@ -1407,7 +1463,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             <th>Data da atribuicao/públicação</th>
                             <th>Compartilhar</th>
                             <th>Home</th>
-                            <th>Acao</th>
+                            <th>Ação</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1652,7 +1708,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             name="location_limit"
                             min="1"
                             max="<?php echo e((string) ($locationLimitMax ?? 20)); ?>"
-                            value="<?php echo e((string) ($locationLimit ?? 20)); ?>"
+                            value="<?php echo e((string) ($locationLimit ?? 10)); ?>"
                             required
                         >
                         <small class="muted">Limite máximo aplicado nesta tela: <?php echo e((string) ($locationLimitMax ?? 20)); ?> locais por consulta.</small>
@@ -1796,7 +1852,39 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 
         <section class="grid-two admin-training-spaces-grid">
             <article class="content-card admin-training-spaces-card">
-                <h2>Espaços disponíveis para gestão</h2>
+                <div class="section-head">
+                    <h2>Espaços disponíveis para gestão</h2>
+                    <button type="button" class="btn btn-primary" id="admin-training-space-create">Criar espaço</button>
+                </div>
+                <form method="GET" action="<?php echo e(url('/admin/espacos/lista')); ?>" class="admin-people-filter-form admin-training-location-filter-row" id="admin-training-space-filter-form" data-manual-submit="1">
+                    <label>
+                        <span>Buscar espaço</span>
+                        <input
+                            type="text"
+                            name="space_search"
+                            id="admin-training-space-search"
+                            value="<?php echo e((string) ($spaceSearch ?? '')); ?>"
+                            placeholder="Digite o espaço, tipo ou local"
+                            autocomplete="off"
+                        >
+                        <small class="muted">A lista vai sendo atualizada enquanto você digita.</small>
+                    </label>
+                    <label>
+                        <span>Quantidade de espaços a listar</span>
+                        <input
+                            type="number"
+                            name="space_limit"
+                            min="1"
+                            max="<?php echo e((string) ($spaceLimitMax ?? 20)); ?>"
+                            value="<?php echo e((string) ($spaceLimit ?? 10)); ?>"
+                            required
+                        >
+                        <small class="muted">Limite máximo nesta tela: <?php echo e((string) ($spaceLimitMax ?? 20)); ?> espaços.</small>
+                    </label>
+                    <div class="admin-filter-actions">
+                        <button type="submit" class="btn btn-secondary">Atualizar lista</button>
+                    </div>
+                </form>
                 <div class="table-wrap">
                     <table class="data-table admin-training-spaces-table">
                         <thead>
@@ -1805,7 +1893,8 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 <th>Tipo</th>
                                 <th>Status</th>
                                 <th>Suspensões</th>
-                                <th>Ação</th>
+                                <th>Editar</th>
+                                <th>Suspensão</th>
                             </tr>
                         </thead>
                         <tbody id="admin-training-space-list-body">
@@ -1826,6 +1915,56 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 </div>
             </article>
         </section>
+
+        <div id="admin-training-space-modal" class="popup-overlay hidden" aria-hidden="true">
+            <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-training-space-modal-title">
+                <div class="popup-head admin-popup-head">
+                    <div>
+                        <h3 id="admin-training-space-modal-title">Criar espaço de treino</h3>
+                        <p class="muted">Cadastre o espaço e, se aplicável, defina seu supervisor.</p>
+                    </div>
+                    <button type="button" class="popup-close-icon" id="admin-training-space-close" aria-label="Fechar cadastro de espaço">&times;</button>
+                </div>
+                <div class="popup-body admin-popup-body">
+                    <form method="POST" action="<?php echo e(url('/admin/espacos')); ?>" data-create-action="<?php echo e(url('/admin/espacos')); ?>" data-update-action="<?php echo e(url('/admin/espacos/atualizar')); ?>" class="stack-form" id="admin-training-space-form" data-manual-submit="1">
+                        <input type="hidden" name="espaco_treino_id" value="">
+                        <label>
+                            <span>Local de treino</span>
+                            <select name="local_treino_id" required>
+                                <option value="">Selecione</option>
+                                <?php foreach (($spaceFormLocations ?? []) as $location) { ?>
+                                    <option value="<?php echo e((string) $location['id']); ?>"><?php echo e((string) (($location['apelido_local'] ?: $location['nome_local']) . ' — ' . $location['nome_local'])); ?></option>
+                                <?php } ?>
+                            </select>
+                        </label>
+                        <div class="grid-two">
+                            <label><span>Nome do espaço</span><input type="text" name="nome" maxlength="120" required></label>
+                            <label><span>Tipo do espaço</span><input type="text" name="tipo_espaco" maxlength="80" placeholder="Ex.: quadra, piscina ou sala" required></label>
+                        </div>
+                        <div class="grid-two">
+                            <label><span>Capacidade base</span><input type="number" name="capacidade_base" min="0" value="0" required></label>
+                            <label>
+                                <span>Supervisor do espaço</span>
+                                <select name="supervisor_espaco">
+                                    <option value="">Não definido</option>
+                                    <?php foreach (($eligibleSpaceSupervisors ?? []) as $supervisor) { ?>
+                                        <option value="<?php echo e((string) $supervisor['conta_id']); ?>"><?php echo e((string) $supervisor['nome_completo']); ?></option>
+                                    <?php } ?>
+                                </select>
+                            </label>
+                        </div>
+                        <label>
+                            <span>Status</span>
+                            <select name="ativo"><option value="1">Ativo</option><option value="0">Inativo</option></select>
+                        </label>
+                        <div class="popup-actions">
+                            <button type="button" class="btn btn-secondary" id="admin-training-space-cancel">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" id="admin-training-space-submit">Cadastrar espaço</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
         <div id="admin-space-suspension-modal" class="popup-overlay hidden" aria-hidden="true">
             <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-space-suspension-title">
@@ -1897,8 +2036,8 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
     <section class="admin-section-panel" data-admin-section="configuracoes">
         <div class="section-head admin-section-head">
             <div>
-                <h2>Configuracoes</h2>
-                <p class="muted">Rotinas tecnicas e parametrizacoes do sistema.</p>
+                <h2>Configurações</h2>
+                <p class="muted">Rotinas técnicas e parametrizações do sistema.</p>
             </div>
         </div>
 
@@ -1924,9 +2063,9 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             <tr>
                                 <th>CEP inicial</th>
                                 <th>CEP final</th>
-                                <th>Observacoes</th>
+                                <th>Observações</th>
                                 <th>Cadastrado por</th>
-                                <th>Acao</th>
+                                <th>Ação</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1970,9 +2109,9 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <thead>
                             <tr>
                                 <th>CEP</th>
-                                <th>Observacoes</th>
+                                <th>Observações</th>
                                 <th>Cadastrado por</th>
-                                <th>Acao</th>
+                                <th>Ação</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -2013,7 +2152,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     <span class="chip">Area do professor</span>
                     <span class="chip">Presença e falta</span>
                     <span class="chip">Inscrições em turmas</span>
-                    <span class="chip">Documentos e validacoes</span>
+                    <span class="chip">Documentos e validações</span>
                     <span class="chip">Relatorios gerenciais</span>
                 </div>
             </article>

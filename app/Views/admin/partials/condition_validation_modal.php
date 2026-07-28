@@ -99,7 +99,7 @@ foreach ($selectedDisabilityTypes as $selectedType) {
 
         <label>
             <span>Observação da validação</span>
-            <textarea name="observacao_validacao" id="admin-condition-validation-note" rows="4" placeholder="Explique a decisao tomada nesta validação." <?php echo $documents === [] ? 'disabled' : ''; ?>><?php echo e($currentValidationNote); ?></textarea>
+            <textarea name="observacao_validacao" id="admin-condition-validation-note" rows="4" placeholder="Explique a decisão tomada nesta validação." <?php echo $documents === [] ? 'disabled' : ''; ?>><?php echo e($currentValidationNote); ?></textarea>
             <small class="muted">Ao marcar como validado parcial, esta observação passa a ser obrigatória.</small>
         </label>
 

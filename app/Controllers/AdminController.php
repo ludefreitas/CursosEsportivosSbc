@@ -951,6 +951,73 @@ class AdminController extends Controller
     }
 
     /**
+     * Retorna somente as linhas filtradas da lista de espaços de treino.
+     */
+    public function trainingSpaceList(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $spaceLimit = (int) ($_GET['space_limit'] ?? AdminService::DEFAULT_TRAINING_SPACE_LIMIT);
+            $spaceLimit = max(1, min(AdminService::MAX_TRAINING_SPACE_LIMIT, $spaceLimit));
+            $trainingSpaces = $this->adminService->listTrainingSpacesForManagement(
+                (string) ($_GET['space_search'] ?? ''),
+                $spaceLimit
+            );
+
+            ob_start();
+            require ROOT_PATH . '/app/Views/admin/partials/training_space_rows.php';
+            $html = (string) ob_get_clean();
+
+            $this->jsonResponse([
+                'success' => true,
+                'html' => $html,
+            ]);
+        } catch (\Throwable $e) {
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function storeTrainingSpace(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $this->adminService->createTrainingSpace($_POST);
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Espaço de treino cadastrado com sucesso.',
+                'spaces_html' => $this->renderSpaceManagementFragments()['spaces_html'],
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function updateTrainingSpace(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $this->adminService->updateTrainingSpace($_POST);
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Espaço de treino atualizado com sucesso.',
+                'spaces_html' => $this->renderSpaceManagementFragments()['spaces_html'],
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
      * Salva uma nova suspensão temporaria de espaco.
      */
     public function storeSpaceSuspension(): void
@@ -1599,6 +1666,28 @@ class AdminController extends Controller
             }
 
             $data['trainingSpaces'] = $this->adminService->listTrainingSpacesForManagement();
+
+            if ($dailySpaceId > 0) {
+                $selectedDailySpace = null;
+
+                foreach ($data['trainingSpaces'] as $trainingSpace) {
+                    if ((int) ($trainingSpace['id'] ?? 0) === $dailySpaceId) {
+                        $selectedDailySpace = $trainingSpace;
+                        break;
+                    }
+                }
+
+                if (
+                    $selectedDailySpace === null
+                    || (
+                        $dailyLocationId > 0
+                        && (int) ($selectedDailySpace['local_treino_id'] ?? 0) !== $dailyLocationId
+                    )
+                ) {
+                    $dailySpaceId = 0;
+                }
+            }
+
             $data['modalities'] = $this->adminService->listModalitiesForManagement();
             $data['selectedLocationId'] = $locationId > 0 ? $locationId : 0;
             $data['selectedModalityId'] = $modalityId > 0 ? $modalityId : 0;
@@ -1639,7 +1728,16 @@ class AdminController extends Controller
                 (int) $data['locationLimit']
             );
             $data['eligibleLocationManagers'] = $this->adminService->listEligibleLocationManagers();
-            $data['trainingSpaces'] = $this->adminService->listTrainingSpacesForManagement();
+            $data['spaceSearch'] = trim((string) ($_GET['space_search'] ?? ''));
+            $data['spaceLimit'] = (int) ($_GET['space_limit'] ?? AdminService::DEFAULT_TRAINING_SPACE_LIMIT);
+            $data['spaceLimit'] = max(1, min(AdminService::MAX_TRAINING_SPACE_LIMIT, (int) $data['spaceLimit']));
+            $data['spaceLimitMax'] = AdminService::MAX_TRAINING_SPACE_LIMIT;
+            $data['spaceFormLocations'] = $this->adminService->listTrainingLocationsForSpaceForm();
+            $data['eligibleSpaceSupervisors'] = $this->adminService->listEligibleSpaceSupervisors();
+            $data['trainingSpaces'] = $this->adminService->listTrainingSpacesForManagement(
+                (string) $data['spaceSearch'],
+                (int) $data['spaceLimit']
+            );
             $data['spaceSuspensions'] = $this->adminService->listSpaceSuspensionsForManagement();
         }
 
@@ -1708,7 +1806,10 @@ class AdminController extends Controller
      */
     private function renderSpaceManagementFragments(): array
     {
-        $trainingSpaces = $this->adminService->listTrainingSpacesForManagement();
+        $spaceSearch = trim((string) ($_POST['space_search'] ?? ''));
+        $spaceLimit = (int) ($_POST['space_limit'] ?? AdminService::DEFAULT_TRAINING_SPACE_LIMIT);
+        $spaceLimit = max(1, min(AdminService::MAX_TRAINING_SPACE_LIMIT, $spaceLimit));
+        $trainingSpaces = $this->adminService->listTrainingSpacesForManagement($spaceSearch, $spaceLimit);
         $spaceSuspensions = $this->adminService->listSpaceSuspensionsForManagement();
 
         ob_start();

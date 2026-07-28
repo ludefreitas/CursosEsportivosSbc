@@ -35,7 +35,7 @@
         <td>
             <button
                 type="button"
-                class="link-button admin-training-location-edit"
+                class="btn btn-warning admin-training-location-edit"
                 data-location="<?php echo e((string) json_encode($locationEditPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
             >Editar</button>
         </td>

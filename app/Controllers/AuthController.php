@@ -69,11 +69,25 @@ class AuthController extends Controller
                 $successMessage = 'Login realizado com sucesso. Complete agora seu cadastro para continuar.';
             }
 
+            $adminAccessAllowed = false;
+
+            if ($registrationBlock === null && $person && (int) ($person['cadastro_completo'] ?? 0) === 1) {
+                $authenticatedUser = (new \App\Services\UserService())->currentAccountWithRoles();
+
+                foreach (['master_admin', 'admin', 'supervisor', 'coordinator'] as $roleSlug) {
+                    if (has_role($authenticatedUser['roles'] ?? [], $roleSlug)) {
+                        $adminAccessAllowed = true;
+                        break;
+                    }
+                }
+            }
+
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
                     'message' => $successMessage,
                     'redirect' => $redirectUrl,
+                    'admin_access_allowed' => $adminAccessAllowed,
                 ]);
             }
 
