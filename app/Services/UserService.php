@@ -40,7 +40,7 @@ class UserService
     }
 
     /**
-     * Busca os papeis vinculados a uma conta.
+     * Busca os papéis vinculados a uma conta.
      */
     public function getRolesByAccountId(int $accountId): array
     {
@@ -176,7 +176,7 @@ class UserService
                 if ($certificate === null || (int) ($certificate['documentos_enviados'] ?? 0) <= 0) {
                     $alerts[] = [
                         'level' => 'warning',
-                        'message' => $person['nome_completo'] . ' foi marcado como ' . $meta['label'] . ' e ainda precisa enviar a documentacao para validacao do certificado.',
+                        'message' => $person['nome_completo'] . ' foi marcado como ' . $meta['label'] . ' e ainda precisa enviar a documentação para validação do certificado.',
                     ];
                     continue;
                 }
@@ -187,7 +187,7 @@ class UserService
                 if ($status === 'pendente') {
                     $alerts[] = [
                         'level' => 'warning',
-                        'message' => 'A documentacao de ' . $person['nome_completo'] . ' para ' . $meta['label'] . ' foi enviada e ainda esta pendente de validacao.',
+                        'message' => 'A documentação de ' . $person['nome_completo'] . ' para ' . $meta['label'] . ' foi enviada e ainda está pendente de validação.',
                     ];
                     continue;
                 }
@@ -195,7 +195,7 @@ class UserService
                 if ($status === 'validado_parcial') {
                     $alerts[] = [
                         'level' => 'warning',
-                        'message' => 'O certificado de ' . $meta['label'] . ' de ' . $person['nome_completo'] . ' foi validado parcialmente e ainda exige regularizacao complementar.',
+                        'message' => 'O certificado de ' . $meta['label'] . ' de ' . $person['nome_completo'] . ' foi validado parcialmente e ainda exige regularização complementar.',
                     ];
                 }
 

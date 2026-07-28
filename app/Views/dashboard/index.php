@@ -2,14 +2,14 @@
     <div class="content-card">
         <span class="eyebrow">Painel autenticado</span>
         <h1><?php echo e($user['nome_completo'] ?? ''); ?></h1>
-        <p class="muted">CPF <?php echo e(format_cpf($user['cpf'] ?? '')); ?>. Seu cadastro completo libera agenda, dependentes e demais modulos autenticados.</p>
+        <p class="muted">CPF <?php echo e(format_cpf($user['cpf'] ?? '')); ?>. Seu cadastro completo libera agenda, dependentes e demais módulos autenticados.</p>
         <div class="chips-wrap">
             <?php if (!empty($user['roles'])) { ?>
                 <?php foreach ($user['roles'] as $role) { ?>
                     <span class="chip"><?php echo e($role['nome']); ?></span>
                 <?php } ?>
             <?php } else { ?>
-                <span class="chip">Usuario comum</span>
+                <span class="chip">Usuário comum</span>
             <?php } ?>
         </div>
     </div>
@@ -27,7 +27,7 @@
         <div class="section-head">
             <div>
                 <h2>Meus dependentes</h2>
-                <p class="muted">Voce pode cadastrar dependentes maiores ou menores de idade, sempre sem duplicar CPF.</p>
+                <p class="muted">Você pode cadastrar dependentes maiores ou menores de idade, sempre sem duplicar CPF.</p>
             </div>
             <div class="chips-wrap">
                 <button type="button" class="btn btn-primary" data-open-dependent-create-modal="1">Novo dependente</button>
@@ -42,9 +42,9 @@
                         <th>CPF</th>
                         <th>Data de nascimento</th>
                         <th>Dados</th>
-                        <th>Atestado clinico</th>
-                        <th>Atestado dermatologico</th>
-                        <th>Documentacao por condicao</th>
+                        <th>Atestado clínico</th>
+                        <th>Atestado dermatológico</th>
+                        <th>Documentação por condição</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -86,7 +86,7 @@
 <section class="grid-two dashboard-secondary-grid">
     <article class="content-card">
         <h2>Transferir dependente</h2>
-        <p class="muted">A troca de responsavel fica registrada no sistema, com motivo e trilha de auditoria.</p>
+        <p class="muted">A troca de responsável fica registrada no sistema, com motivo e trilha de auditoria.</p>
         <form method="POST" action="<?php echo e(url('/dependentes/transferir')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1">
             <label>
                 <span>Dependente</span>
@@ -97,8 +97,8 @@
                     <?php } ?>
                 </select>
             </label>
-            <label><span>CPF do novo responsavel</span><input type="text" name="new_responsible_cpf" placeholder="000.000.000-00" required></label>
-            <label><span>Motivo da alteracao</span><textarea name="reason" rows="4" required></textarea></label>
+            <label><span>CPF do novo responsável</span><input type="text" name="new_responsible_cpf" placeholder="000.000.000-00" required></label>
+            <label><span>Motivo da alteração</span><textarea name="reason" rows="4" required></textarea></label>
             <button type="submit" class="btn btn-secondary">Transferir responsabilidade</button>
         </form>
     </article>
@@ -108,8 +108,8 @@
         <div class="post-grid">
             <?php foreach ($locations as $location) { ?>
                 <article class="post-card compact">
-                    <h3><?php echo e($location['nome']); ?></h3>
-                    <p><?php echo e($location['endereco_completo']); ?></p>
+                    <h3><?php echo e(format_training_location_name($location)); ?></h3>
+                    <p><?php echo e(format_training_location_address($location)); ?></p>
                     <small><?php echo e($location['cidade'] . '/' . $location['uf']); ?></small>
                 </article>
             <?php } ?>

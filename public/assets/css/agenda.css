@@ -446,7 +446,16 @@
 @media (max-width: 720px) {
     .agenda-primary-tabs,
     .agenda-secondary-tabs {
-        flex-direction: row;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+    }
+
+    .agenda-primary-tab,
+    .agenda-secondary-tab {
+        width: 100%;
+        min-width: 0;
+        white-space: normal;
     }
 
     .agenda-calendar-event-time,

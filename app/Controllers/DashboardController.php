@@ -29,7 +29,7 @@ class DashboardController extends Controller
         }
 
         if (!$person || (int) $person['cadastro_completo'] !== 1) {
-            flash('error', 'Complete primeiro seu cadastro para acessar as paginas autenticadas.');
+            flash('error', 'Complete primeiro seu cadastro para acessar as páginas autenticadas.');
             redirect_to_profile_completion_modal('/dashboard');
         }
 
@@ -38,7 +38,7 @@ class DashboardController extends Controller
         $user = $userService->currentAccountWithRoles();
 
         $this->view('dashboard/index', [
-            'title' => 'Painel do Usuario',
+            'title' => 'Painel do Usuário',
             'user' => $user,
             'person' => $person,
             'dependents' => $profileService->listDependents(),

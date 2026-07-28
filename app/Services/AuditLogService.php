@@ -8,9 +8,22 @@ use App\Core\Database;
 class AuditLogService
 {
     /**
-     * Registra uma trilha de auditoria para alteracoes sensiveis.
+     * Registra uma trilha de auditoria para alterações sensiveis.
      */
     public static function record(string $eventType, string $entityType, ?int $entityId = null, array $payload = []): void
+    {
+        self::write(Auth::id(), $eventType, $entityType, $entityId, $payload);
+    }
+
+    /**
+     * Registra uma alteração automática executada pelo sistema.
+     */
+    public static function recordSystem(string $eventType, string $entityType, ?int $entityId = null, array $payload = []): void
+    {
+        self::write(null, $eventType, $entityType, $entityId, $payload);
+    }
+
+    private static function write(?int $accountId, string $eventType, string $entityType, ?int $entityId, array $payload): void
     {
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
@@ -19,7 +32,7 @@ class AuditLogService
         ');
 
         $stmt->execute([
-            ':conta_id' => Auth::id(),
+            ':conta_id' => $accountId,
             ':tipo_evento' => $eventType,
             ':tipo_entidade' => $entityType,
             ':entidade_id' => $entityId,

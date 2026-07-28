@@ -14,6 +14,7 @@ desktop.ini
 .env.*
 config/database.local.php
 config/app.local.php
+config/external_database.local.php
 
 # PHP/runtime artifacts
 vendor/
@@ -25,4 +26,3 @@ composer.lock
 
 # Uploaded files and generated content
 public/uploads/
-

@@ -16,28 +16,28 @@ $buildWhatsappLink = static function (?string $phone): ?string {
 };
 ?>
 
-<article class="content-card" id="admin-condition-validation-panel">
-    <h2>Condicoes que precisam de validacao</h2>
-    <p class="muted">Esta relacao destaca cada condicao declarada que ainda depende de envio de PDF ou de analise da documentacao.</p>
+<article class="content-card top-gap" id="admin-condition-validation-panel">
+    <h2>Condições que precisam de validação</h2>
+    <p class="muted">Esta relação destaca cada condição declarada que ainda depende de envio de PDF ou de análise da documentação.</p>
 
     <div class="table-wrap">
         <table class="data-table">
             <thead>
                 <tr>
                     <th>Nome</th>
-                    <th>Responsavel</th>
+                    <th>Responsável</th>
                     <th>Idade</th>
                     <th>WhatsApp</th>
-                    <th>Condicao</th>
+                    <th>Condição</th>
                     <th>Documentos em PDF</th>
                     <th>Falta para validar</th>
-                    <th>Acao</th>
+                    <th>Ação</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if ($conditionValidationRows === []) { ?>
                     <tr>
-                        <td colspan="8" class="muted">Nenhuma condicao pendente de documentacao ou validacao neste momento.</td>
+                        <td colspan="8" class="muted">Nenhuma condição pendente de documentação ou validação neste momento.</td>
                     </tr>
                 <?php } ?>
 
@@ -60,7 +60,7 @@ $buildWhatsappLink = static function (?string $phone): ?string {
                                     <?php echo e((string) ($row['telefone_whatsapp'] ?? '')); ?>
                                 </a>
                             <?php } else { ?>
-                                <span class="muted">Nao informado</span>
+                                <span class="muted">Não informado</span>
                             <?php } ?>
                         </td>
                         <td><?php echo e((string) ($row['condicao_label'] ?? '')); ?></td>

@@ -181,9 +181,9 @@
 
                 if ($title.length > 0) {
                     if (normalizedType === 'clinico') {
-                        $title.text('Atualizar atestado clinico');
+                        $title.text('Atualizar atestado clínico');
                     } else if (normalizedType === 'dermatologico') {
-                        $title.text('Atualizar atestado dermatologico');
+                        $title.text('Atualizar atestado dermatológico');
                     }
                 }
 
@@ -224,14 +224,14 @@
                 const conditionSlug = String($(this).data('conditionSlug') || '').trim().toLowerCase();
 
                 if (!personId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar a pessoa selecionada.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar a pessoa selecionada.');
                     return;
                 }
 
                 $.getJSON(App.core.buildUrl('/perfil/certificados/modal'), { person_id: personId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.html) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar a documentacao desta pessoa.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar a documentação desta pessoa.'));
                             return;
                         }
 
@@ -248,14 +248,14 @@
                 const personId = Number($(this).data('personId') || 0);
 
                 if (!personId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar a pessoa selecionada.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar a pessoa selecionada.');
                     return;
                 }
 
                 $.getJSON(App.core.buildUrl('/dependentes/detalhe'), { person_id: personId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.html) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar os dados desta pessoa.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar os dados desta pessoa.'));
                             return;
                         }
 
@@ -277,14 +277,14 @@
                 const certificateType = String($(this).data('certificateType') || '').trim().toLowerCase();
 
                 if (!personId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar a pessoa selecionada.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar a pessoa selecionada.');
                     return;
                 }
 
                 $.getJSON(App.core.buildUrl('/perfil/atestados/modal'), { person_id: personId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.html) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar os atestados desta pessoa.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar os atestados desta pessoa.'));
                             return;
                         }
 
@@ -345,7 +345,7 @@
                 const fieldLabel = String($(this).data('lockedFieldLabel') || 'esse dado');
                 App.core.abrirPopup(
                     'erro',
-                    'Para alterar ' + fieldLabel + ', entre em contato com o suporte pelo whatsapp e envie uma imagem do documento da pessoa para validacao da mudanca.'
+                    'Para alterar ' + fieldLabel + ', entre em contato com o suporte pelo WhatsApp e envie uma imagem do documento da pessoa para validação da mudança.'
                 );
             });
 
@@ -370,13 +370,13 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false || !response.html) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel atualizar a documentacao.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar a documentação.'));
                         return;
                     }
 
                     openModal(response.html);
                     replaceHeaderAlerts(response.header_alerts_html || '');
-                    App.core.abrirPopup('sucesso', String(response.message || 'Documentacao atualizada com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Documentação atualizada com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
@@ -406,7 +406,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false || !response.html) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel atualizar os dados da pessoa.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar os dados da pessoa.'));
                         return;
                     }
 
@@ -445,7 +445,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false || !response.row_html) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel salvar o dependente.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar o dependente.'));
                         return;
                     }
 
@@ -487,7 +487,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false || !response.html) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel atualizar os atestados.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar os atestados.'));
                         return;
                     }
 

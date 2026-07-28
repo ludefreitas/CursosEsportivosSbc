@@ -66,7 +66,7 @@
 
         <?php if (!empty($relatedPosts)) { ?>
             <section class="blog-section-card">
-                <h2>Leia tambem</h2>
+                <h2>Leia também</h2>
                 <div class="blog-related-grid">
                     <?php foreach ($relatedPosts as $relatedPost) { ?>
                         <article class="blog-related-card">

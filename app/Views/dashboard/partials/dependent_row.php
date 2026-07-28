@@ -13,11 +13,11 @@
         >Visualizar dados</button>
     </td>
     <td>
-        <?php $status = $healthSummary['clinico'] ?? ['class' => 'is-nao-enviado', 'icon' => '--', 'label' => 'Nao enviado']; ?>
+        <?php $status = $healthSummary['clinico'] ?? ['class' => 'is-nao-enviado', 'icon' => '--', 'label' => 'Não enviado']; ?>
         <div class="dashboard-health-status-item">
             <span class="dashboard-health-status-badge <?php echo e((string) ($status['class'] ?? 'is-nao-enviado')); ?>">
                 <span class="dashboard-health-status-icon"><?php echo e((string) ($status['icon'] ?? '--')); ?></span>
-                <span><?php echo e((string) ($status['label'] ?? 'Nao enviado')); ?></span>
+                <span><?php echo e((string) ($status['label'] ?? 'Não enviado')); ?></span>
             </span>
             <button
                 type="button"
@@ -25,15 +25,15 @@
                 data-open-health-certificates-modal="1"
                 data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
                 data-certificate-type="clinico"
-            >Atualizar atestado clinico</button>
+            >Atualizar atestado clínico</button>
         </div>
     </td>
     <td>
-        <?php $status = $healthSummary['dermatologico'] ?? ['class' => 'is-nao-enviado', 'icon' => '--', 'label' => 'Nao enviado']; ?>
+        <?php $status = $healthSummary['dermatologico'] ?? ['class' => 'is-nao-enviado', 'icon' => '--', 'label' => 'Não enviado']; ?>
         <div class="dashboard-health-status-item">
             <span class="dashboard-health-status-badge <?php echo e((string) ($status['class'] ?? 'is-nao-enviado')); ?>">
                 <span class="dashboard-health-status-icon"><?php echo e((string) ($status['icon'] ?? '--')); ?></span>
-                <span><?php echo e((string) ($status['label'] ?? 'Nao enviado')); ?></span>
+                <span><?php echo e((string) ($status['label'] ?? 'Não enviado')); ?></span>
             </span>
             <button
                 type="button"
@@ -41,7 +41,7 @@
                 data-open-health-certificates-modal="1"
                 data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
                 data-certificate-type="dermatologico"
-            >Atualizar atestado dermatologico</button>
+            >Atualizar atestado dermatológico</button>
         </div>
     </td>
     <td>
@@ -55,7 +55,7 @@
                     data-open-certificates-modal="1"
                     data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
                     data-condition-slug="pcd"
-                >PCD enviar/atualizar documentacao</button>
+                >PCD enviar/atualizar documentação</button>
             <?php } ?>
             <?php if ((int) ($dependent['eh_pvs'] ?? 0) === 1) { ?>
                 <?php $hasConditionAction = true; ?>
@@ -65,7 +65,7 @@
                     data-open-certificates-modal="1"
                     data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
                     data-condition-slug="pvs"
-                >PVS enviar/atualizar documentacao</button>
+                >PVS enviar/atualizar documentação</button>
             <?php } ?>
             <?php if ((int) ($dependent['eh_plm'] ?? 0) === 1) { ?>
                 <?php $hasConditionAction = true; ?>
@@ -75,11 +75,11 @@
                     data-open-certificates-modal="1"
                     data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
                     data-condition-slug="plm"
-                >PLM enviar/atualizar documentacao</button>
+                >PLM enviar/atualizar documentação</button>
             <?php } ?>
         </div>
         <?php if (!$hasConditionAction) { ?>
-            <span class="muted">Nao declarado</span>
+            <span class="muted">Não declarado</span>
         <?php } ?>
     </td>
 </tr>

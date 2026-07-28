@@ -9,14 +9,18 @@ use RuntimeException;
 
 class AdminService
 {
-    public const DEFAULT_PEOPLE_LIMIT = 50;
-    public const MAX_PEOPLE_LIMIT = 100;
+    public const DEFAULT_PEOPLE_LIMIT = 10;
+    public const MAX_PEOPLE_LIMIT = 40;
+    public const DEFAULT_TRAINING_LOCATION_LIMIT = 10;
+    public const MAX_TRAINING_LOCATION_LIMIT = 20;
+    public const DEFAULT_TRAINING_SPACE_LIMIT = 10;
+    public const MAX_TRAINING_SPACE_LIMIT = 20;
     private const HEALTH_CERTIFICATE_TYPES = [
-        'clinico' => 'Atestado clinico',
-        'dermatologico' => 'Atestado dermatologico',
+        'clinico' => 'Atestado clínico',
+        'dermatologico' => 'Atestado dermatológico',
     ];
     private const HEALTH_CERTIFICATE_SERVICE_LOCATIONS = [
-        'servico_publico' => 'Servico publico',
+        'servico_publico' => 'Serviço público',
         'clinica_particular' => 'Clinica particular',
         'clinica_convenio' => 'Clinica convenio medico',
     ];
@@ -29,7 +33,7 @@ class AdminService
     }
 
     /**
-     * Mapa fixo das condicoes especiais monitoradas para validacao.
+     * Mapa fixo das condicoes especiais monitoradas para validação.
      */
     private function certificateConditionMap(): array
     {
@@ -49,14 +53,14 @@ class AdminService
             'auditiva' => 'Auditiva',
             'visual' => 'Visual',
             'intelectual' => 'Intelectual',
-            'fisica' => 'Fisica',
+            'fisica' => 'Física',
             'autismo' => 'Autismo',
             'tea' => 'TEA (Transtorno do Espectro Autista)',
         ];
     }
 
     /**
-     * Lista usuarios e dependentes para a area administrativa inicial.
+     * Lista usuarios e dependentes para a área administrativa inicial.
      */
     public function listUsersAndDependents(int $limit = self::DEFAULT_PEOPLE_LIMIT, string $search = ''): array
     {
@@ -206,12 +210,12 @@ class AdminService
     }
 
     /**
-     * Busca os dados completos de uma pessoa para edicao na area administrativa.
+     * Busca os dados completos de uma pessoa para edição na área administrativa.
      */
     public function getPersonDetails(int $personId): array
     {
         if ($personId <= 0) {
-            throw new RuntimeException('Pessoa invalida para edicao.');
+            throw new RuntimeException('Pessoa inválida para edição.');
         }
 
         $pdo = Database::connection();
@@ -232,7 +236,7 @@ class AdminService
         $person = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$person) {
-            throw new RuntimeException('Pessoa nao encontrada.');
+            throw new RuntimeException('Pessoa não encontrada.');
         }
 
         $person['situacao_certificados'] = $this->buildPersonCertificateSituationSummary($pdo, $person);
@@ -241,12 +245,12 @@ class AdminService
     }
 
     /**
-     * Busca os dados completos de uma conta de usuario para consulta administrativa.
+     * Busca os dados completos de uma conta de usuário para consulta administrativa.
      */
     public function getUserDetails(int $accountId): array
     {
         if ($accountId <= 0) {
-            throw new RuntimeException('Usuario invalido para consulta.');
+            throw new RuntimeException('Usuário inválido para consulta.');
         }
 
         $pdo = Database::connection();
@@ -275,7 +279,7 @@ class AdminService
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$user) {
-            throw new RuntimeException('Usuario nao encontrado.');
+            throw new RuntimeException('Usuário não encontrado.');
         }
 
         $stmtRoles = $pdo->prepare('
@@ -316,7 +320,7 @@ class AdminService
     }
 
     /**
-     * Lista os dependentes vinculados ao usuario selecionado.
+     * Lista os dependentes vinculados ao usuário selecionado.
      */
     public function listUserDependents(int $accountId): array
     {
@@ -347,7 +351,7 @@ class AdminService
     }
 
     /**
-     * Lista todos os papeis disponiveis para administracao.
+     * Lista todos os papéis disponíveis para administracao.
      */
     public function listRolesForManagement(): array
     {
@@ -371,21 +375,21 @@ class AdminService
         $reason = trim((string) ($data['reason'] ?? ''));
 
         if ($targetAccountId <= 0) {
-            throw new RuntimeException('Usuario invalido para atualizar os papeis.');
+            throw new RuntimeException('Usuário inválido para atualizar os papéis.');
         }
 
         if ($actorAccountId <= 0) {
-            throw new RuntimeException('Conta administrativa invalida para atualizar os papeis.');
+            throw new RuntimeException('Conta administrativa inválida para atualizar os papéis.');
         }
 
         if ($reason === '') {
-            throw new RuntimeException('Informe o motivo da alteracao dos papeis.');
+            throw new RuntimeException('Informe o motivo da alteração dos papéis.');
         }
 
         $roleAssignmentBlock = $this->resolveRoleAssignmentBlockForUser($targetUser = $this->getUserDetails($targetAccountId));
 
         if ($roleAssignmentBlock !== null) {
-            throw new RuntimeException('Este usuario nao pode receber papeis agora. Motivo: ' . $roleAssignmentBlock);
+            throw new RuntimeException('Este usuário não pode receber papéis agora. Motivo: ' . $roleAssignmentBlock);
         }
 
         $selectedRoleIds = $data['roles'] ?? [];
@@ -433,7 +437,7 @@ class AdminService
         }
 
         if (count($selectedRoles) !== count($selectedRoleIds)) {
-            throw new RuntimeException('Um ou mais papeis selecionados nao existem mais.');
+            throw new RuntimeException('Um ou mais papéis selecionados não existem mais.');
         }
 
         $selectedRolesById = [];
@@ -488,7 +492,7 @@ class AdminService
             $masterCount = (int) $stmtMasterCount->fetchColumn();
 
             if ($masterCount <= 1) {
-                throw new RuntimeException('Nao e permitido remover o ultimo papel Administrador Master ativo do sistema.');
+                throw new RuntimeException('Não é permitido remover o último papel Administrador Master ativo do sistema.');
             }
         }
 
@@ -601,17 +605,17 @@ class AdminService
     private function resolveRoleAssignmentBlockForUser(array $user): ?string
     {
         if ((int) ($user['conta_ativa'] ?? 0) !== 1) {
-            return 'A conta do usuario esta inativa.';
+            return 'A conta do usuário está inativa.';
         }
 
         if ((int) ($user['cadastro_completo'] ?? 0) !== 1) {
-            return 'O cadastro da pessoa ainda esta pendente e precisa ser completado.';
+            return 'O cadastro da pessoa ainda está pendente e precisa ser completado.';
         }
 
         $personId = (int) ($user['pessoa_id'] ?? 0);
 
         if ($personId <= 0) {
-            return 'Nao foi possivel localizar a pessoa vinculada a esta conta.';
+            return 'Não foi possível localizar a pessoa vinculada a esta conta.';
         }
 
         $registrationBlock = (new ProfileService())->getRegistrationBlockForPerson($personId);
@@ -624,7 +628,7 @@ class AdminService
     }
 
     /**
-     * Lista condicoes declaradas que ainda dependem de documentacao ou validacao.
+     * Lista condicoes declaradas que ainda dependem de documentação ou validação.
      */
     public function listPeopleRequiringConditionValidation(): array
     {
@@ -784,12 +788,12 @@ class AdminService
     }
 
     /**
-     * Busca um documento de certificado para abertura segura na area administrativa.
+     * Busca um documento de certificado para abertura segura na área administrativa.
      */
     public function getCertificateDocumentForAdmin(int $documentId): array
     {
         if ($documentId <= 0) {
-            throw new RuntimeException('Documento invalido.');
+            throw new RuntimeException('Documento inválido.');
         }
 
         $pdo = Database::connection();
@@ -813,14 +817,14 @@ class AdminService
         $document = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$document) {
-            throw new RuntimeException('Documento nao encontrado.');
+            throw new RuntimeException('Documento não encontrado.');
         }
 
         return $document;
     }
 
     /**
-     * Busca os dados de uma condicao declarada para validacao administrativa.
+     * Busca os dados de uma condicao declarada para validação administrativa.
      */
     public function getConditionValidationDetails(int $personId, string $conditionSlug): array
     {
@@ -828,7 +832,7 @@ class AdminService
         $conditionMap = $this->certificateConditionMap();
 
         if ($personId <= 0 || !isset($conditionMap[$conditionSlug])) {
-            throw new RuntimeException('Condicao invalida para validacao.');
+            throw new RuntimeException('Condição inválida para validação.');
         }
 
         $pdo = Database::connection();
@@ -858,11 +862,11 @@ class AdminService
         $person = $stmtPerson->fetch(PDO::FETCH_ASSOC);
 
         if (!$person) {
-            throw new RuntimeException('Pessoa nao encontrada para validacao.');
+            throw new RuntimeException('Pessoa não encontrada para validação.');
         }
 
         if ((int) ($person[$conditionMap[$conditionSlug]['field']] ?? 0) !== 1) {
-            throw new RuntimeException('Essa condicao nao esta declarada no cadastro desta pessoa.');
+            throw new RuntimeException('Essa condição não está declarada no cadastro desta pessoa.');
         }
 
         $certificate = $this->findLatestConditionCertificate($pdo, $personId, $conditionSlug);
@@ -894,11 +898,11 @@ class AdminService
         $documents = $details['documents'];
 
         if ($certificate === null) {
-            throw new RuntimeException('Nao existe certificado enviado para essa condicao ainda.');
+            throw new RuntimeException('Não existe certificado enviado para essa condição ainda.');
         }
 
         if ($documents === []) {
-            throw new RuntimeException('Nao existem documentos em PDF enviados para essa condicao.');
+            throw new RuntimeException('Não existem documentos em PDF enviados para essa condição.');
         }
 
         $status = trim((string) ($data['status'] ?? ''));
@@ -909,19 +913,19 @@ class AdminService
         $allowedStatuses = ['pendente', 'reprovado', 'validado', 'validado_parcial'];
 
         if (!in_array($status, $allowedStatuses, true)) {
-            throw new RuntimeException('Selecione um status valido para o certificado.');
+            throw new RuntimeException('Selecione um status válido para o certificado.');
         }
 
         if (in_array($status, ['validado', 'validado_parcial'], true) && $validityDate !== '' && !$this->isValidDate($validityDate)) {
-            throw new RuntimeException('Informe uma data de validade valida para o certificado.');
+            throw new RuntimeException('Informe uma data de validade válida para o certificado.');
         }
 
         if ($status === 'validado_parcial' && $validationNote === '') {
-            throw new RuntimeException('Ao marcar como validado parcial, informe a observacao explicando o motivo.');
+            throw new RuntimeException('Ao marcar como validado parcial, informe a observação explicando o motivo.');
         }
 
         if (in_array($conditionSlug, ['pcd', 'plm'], true) && in_array($status, ['validado', 'validado_parcial'], true) && $validatedCidCode === '') {
-            throw new RuntimeException('Informe o codigo CID validado para concluir a validacao de PCD ou PLM.');
+            throw new RuntimeException('Informe o código CID validado para concluir a validação de PCD ou PLM.');
         }
 
         if (in_array($conditionSlug, ['pcd', 'plm'], true) && in_array($status, ['validado', 'validado_parcial'], true) && !$this->isValidCidCode($validatedCidCode)) {
@@ -929,7 +933,7 @@ class AdminService
         }
 
         if (in_array($conditionSlug, ['pcd', 'plm'], true) && in_array($status, ['validado', 'validado_parcial'], true) && $validatedDisease === '') {
-            throw new RuntimeException('Informe a doenca validada para concluir a validacao de PCD ou PLM.');
+            throw new RuntimeException('Informe a doença validada para concluir a validação de PCD ou PLM.');
         }
 
         $pdo = Database::connection();
@@ -970,7 +974,7 @@ class AdminService
     }
 
     /**
-     * Lista atestados de saude que precisam de validacao administrativa.
+     * Lista atestados de saude que precisam de validação administrativa.
      */
     public function listPeopleRequiringHealthCertificateValidation(): array
     {
@@ -1016,14 +1020,14 @@ class AdminService
     }
 
     /**
-     * Busca os dados de um atestado de saude para validacao administrativa.
+     * Busca os dados de um atestado de saude para validação administrativa.
      */
     public function getHealthCertificateValidationDetails(int $personId, string $certificateType): array
     {
         $certificateType = trim(strtolower($certificateType));
 
         if ($personId <= 0 || !isset(self::HEALTH_CERTIFICATE_TYPES[$certificateType])) {
-            throw new RuntimeException('Atestado invalido para validacao.');
+            throw new RuntimeException('Atestado inválido para validação.');
         }
 
         $pdo = Database::connection();
@@ -1055,7 +1059,7 @@ class AdminService
         $certificate = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$certificate) {
-            throw new RuntimeException('Nao existe atestado enviado para essa pessoa nesse tipo ainda.');
+            throw new RuntimeException('Não existe atestado enviado para essa pessoa nesse tipo ainda.');
         }
 
         return [
@@ -1080,7 +1084,7 @@ class AdminService
     }
 
     /**
-     * Atualiza a validacao administrativa de um atestado de saude.
+     * Atualiza a validação administrativa de um atestado de saude.
      */
     public function updateHealthCertificateValidation(int $personId, string $certificateType, int $accountId, array $data): array
     {
@@ -1094,15 +1098,15 @@ class AdminService
         $allowedMonthOptions = [6, 12, 18, 24];
 
         if (!in_array($status, $allowedStatuses, true)) {
-            throw new RuntimeException('Selecione um status valido para o atestado.');
+            throw new RuntimeException('Selecione um status válido para o atestado.');
         }
 
         if ($status === 'validado' && !$this->isValidDate($validatedIssueDate)) {
-            throw new RuntimeException('Informe a data de emissao validada para concluir a validacao do atestado.');
+            throw new RuntimeException('Informe a data de emissao validada para concluir a validação do atestado.');
         }
 
         if ($status === 'validado' && !in_array($validityMonths, $allowedMonthOptions, true)) {
-            throw new RuntimeException('Selecione um prazo de validade em meses valido para o atestado.');
+            throw new RuntimeException('Selecione um prazo de validade em meses válido para o atestado.');
         }
 
         if ($status === 'reprovado' && $validationNote === '') {
@@ -1153,7 +1157,7 @@ class AdminService
     }
 
     /**
-     * Atualiza os dados de pessoa e, quando houver conta, os dados basicos do usuario.
+     * Atualiza os dados de pessoa e, quando houver conta, os dados basicos do usuário.
      */
     public function updatePersonAndUser(int $personId, array $data): array
     {
@@ -1186,7 +1190,7 @@ class AdminService
         $contaAtiva = (int) ($data['conta_ativa'] ?? 0) === 1 ? 1 : 0;
 
         if ($reason === '') {
-            throw new RuntimeException('Informe o motivo da alteracao para registrar a auditoria.');
+            throw new RuntimeException('Informe o motivo da alteração para registrar a auditoria.');
         }
 
         if (!validar_nome_cadastro($fullName)) {
@@ -1194,7 +1198,7 @@ class AdminService
         }
 
         if (!validar_cpf($cpf)) {
-            throw new RuntimeException('Informe um CPF valido para a pessoa.');
+            throw new RuntimeException('Informe um CPF válido para a pessoa.');
         }
 
         if (!in_array($sexo, ['masculino', 'feminino', 'Sexo não declarado'], true)) {
@@ -1202,15 +1206,15 @@ class AdminService
         }
 
         if (calculate_age($birthDate) === null) {
-            throw new RuntimeException('Informe uma data de nascimento valida.');
+            throw new RuntimeException('Informe uma data de nascimento válida.');
         }
 
         if ($numeroCartaoSus !== '' && strlen($numeroCartaoSus) !== 16) {
-            throw new RuntimeException('Quando informado, o numero do cartao SUS deve conter exatamente 16 numeros.');
+            throw new RuntimeException('Quando informado, o número do cartão SUS deve conter exatamente 16 números.');
         }
 
         if ($zipCode !== '' && strlen($zipCode) !== 8) {
-            throw new RuntimeException('Informe um CEP valido com 8 digitos.');
+            throw new RuntimeException('Informe um CEP válido com 8 dígitos.');
         }
 
         if ($state !== '' && strlen($state) !== 2) {
@@ -1221,15 +1225,15 @@ class AdminService
         $responsavel2Valido = $parent2Name !== '' && validar_cpf($parent2Cpf);
 
         if (!$responsavel1Valido && !$responsavel2Valido) {
-            throw new RuntimeException('Informe pelo menos um responsavel com nome e CPF validos.');
+            throw new RuntimeException('Informe pelo menos um responsável com nome e CPF válidos.');
         }
 
         if ($parent1Name !== '' && !validar_cpf($parent1Cpf)) {
-            throw new RuntimeException('Informe um CPF valido para o responsavel 1.');
+            throw new RuntimeException('Informe um CPF válido para o responsável 1.');
         }
 
         if ($parent2Name !== '' && !validar_cpf($parent2Cpf)) {
-            throw new RuntimeException('Informe um CPF valido para o responsavel 2.');
+            throw new RuntimeException('Informe um CPF válido para o responsável 2.');
         }
 
         $pdo = Database::connection();
@@ -1245,7 +1249,7 @@ class AdminService
         ]);
 
         if ($stmtCpfCheck->fetchColumn()) {
-            throw new RuntimeException('Ja existe outra pessoa cadastrada com este CPF.');
+            throw new RuntimeException('Já existe outra pessoa cadastrada com este CPF.');
         }
 
         $before = [
@@ -1396,7 +1400,7 @@ class AdminService
             $message = $e->getMessage();
 
             if (str_contains($message, 'fk_contas_pessoa_cpf') && str_contains($message, 'Integrity constraint violation')) {
-                throw new RuntimeException('Nao foi possivel alterar o CPF porque o banco ainda esta com a chave estrangeira antiga entre contas e pessoas. Execute a migracao database/migracao_ajustar_fk_contas_cpf_on_update_cascade.sql e tente novamente.');
+                throw new RuntimeException('Não foi possível alterar o CPF porque o banco ainda está com a chave estrangeira antiga entre contas e pessoas. Execute a migração database/migracao_ajustar_fk_contas_cpf_on_update_cascade.sql e tente novamente.');
             }
 
             throw $e;
@@ -1444,23 +1448,487 @@ class AdminService
     /**
      * Lista espacos de treino para formularios administrativos.
      */
-    public function listTrainingSpacesForManagement(): array
+    public function listTrainingSpacesForManagement(string $search = '', ?int $limit = null): array
     {
+        SpaceSuspensionService::expireElapsed();
         $pdo = Database::connection();
-        $stmt = $pdo->query('
+        $search = trim($search);
+        $sql = '
             SELECT
                 et.id,
                 et.nome,
                 et.tipo_espaco,
+                et.capacidade_base,
+                et.supervisor_espaco,
                 et.ativo,
                 lt.id AS local_treino_id,
-                lt.nome AS local_nome
+                lt.apelido_local AS local_apelido,
+                (
+                    SELECT COUNT(*)
+                    FROM suspensoes_espaco_treino s
+                    WHERE s.espaco_treino_id = et.id
+                      AND s.ativo = 1
+                ) AS total_suspensoes_ativas,
+                (
+                    SELECT COUNT(*)
+                    FROM suspensoes_espaco_treino s
+                    WHERE s.espaco_treino_id = et.id
+                ) AS total_suspensoes,
+                CASE
+                    WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                        THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local
+                END AS local_nome,
+                supervisor_pessoa.nome_completo AS supervisor_espaco_nome
             FROM espacos_treino et
             INNER JOIN locais_treino lt ON lt.id = et.local_treino_id
-            ORDER BY lt.nome, et.nome
+            LEFT JOIN contas supervisor_conta ON supervisor_conta.id = et.supervisor_espaco
+            LEFT JOIN pessoas supervisor_pessoa ON supervisor_pessoa.cpf = supervisor_conta.cpf
+        ';
+        $params = [];
+
+        if ($search !== '') {
+            $sql .= '
+                WHERE et.nome LIKE :search_space
+                   OR et.tipo_espaco LIKE :search_type
+                   OR lt.nome_local LIKE :search_location
+                   OR lt.apelido_local LIKE :search_nickname
+                   OR supervisor_pessoa.nome_completo LIKE :search_supervisor
+            ';
+            $searchLike = '%' . $search . '%';
+            $params = [
+                ':search_space' => $searchLike,
+                ':search_type' => $searchLike,
+                ':search_location' => $searchLike,
+                ':search_nickname' => $searchLike,
+                ':search_supervisor' => $searchLike,
+            ];
+        }
+
+        $sql .= ' ORDER BY lt.nome_local, et.nome';
+
+        if ($limit !== null) {
+            $limit = max(1, min(self::MAX_TRAINING_SPACE_LIMIT, $limit));
+            $sql .= ' LIMIT ' . $limit;
+        }
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function listEligibleSpaceSupervisors(): array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->query('
+            SELECT DISTINCT c.id AS conta_id, p.nome_completo
+            FROM contas c
+            INNER JOIN pessoas p ON p.cpf = c.cpf
+            INNER JOIN conta_papeis cp ON cp.conta_id = c.id
+            INNER JOIN papeis pa ON pa.id = cp.papel_id
+            WHERE c.ativo = 1
+              AND pa.slug = "supervisor"
+            ORDER BY p.nome_completo
         ');
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function listTrainingLocationsForSpaceForm(): array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->query('
+            SELECT id, nome_local, apelido_local
+            FROM locais_treino
+            WHERE ativo = 1
+            ORDER BY nome_local
+        ');
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function createTrainingSpace(array $data): int
+    {
+        $payload = $this->validateTrainingSpacePayload($data);
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('
+            INSERT INTO espacos_treino (local_treino_id, supervisor_espaco, nome, tipo_espaco, capacidade_base, ativo)
+            VALUES (:local_treino_id, :supervisor_espaco, :nome, :tipo_espaco, :capacidade_base, :ativo)
+        ');
+        $stmt->execute($payload);
+
+        return (int) $pdo->lastInsertId();
+    }
+
+    public function updateTrainingSpace(array $data): void
+    {
+        $spaceId = (int) ($data['espaco_treino_id'] ?? 0);
+
+        if ($spaceId <= 0) {
+            throw new RuntimeException('Espaço de treino inválido.');
+        }
+
+        $payload = $this->validateTrainingSpacePayload($data);
+        $payload[':id'] = $spaceId;
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('
+            UPDATE espacos_treino
+            SET local_treino_id = :local_treino_id,
+                supervisor_espaco = :supervisor_espaco,
+                nome = :nome,
+                tipo_espaco = :tipo_espaco,
+                capacidade_base = :capacidade_base,
+                ativo = :ativo
+            WHERE id = :id
+        ');
+        $stmt->execute($payload);
+
+        if ($stmt->rowCount() === 0) {
+            $check = $pdo->prepare('SELECT 1 FROM espacos_treino WHERE id = :id');
+            $check->execute([':id' => $spaceId]);
+            if (!$check->fetchColumn()) {
+                throw new RuntimeException('Espaço de treino não encontrado.');
+            }
+        }
+    }
+
+    private function validateTrainingSpacePayload(array $data): array
+    {
+        $locationId = (int) ($data['local_treino_id'] ?? 0);
+        $supervisorId = (int) ($data['supervisor_espaco'] ?? 0);
+        $name = trim((string) ($data['nome'] ?? ''));
+        $type = trim((string) ($data['tipo_espaco'] ?? ''));
+        $capacity = max(0, (int) ($data['capacidade_base'] ?? 0));
+        $active = isset($data['ativo']) && (string) $data['ativo'] === '0' ? 0 : 1;
+        $pdo = Database::connection();
+
+        if ($locationId <= 0 || $name === '' || $type === '') {
+            throw new RuntimeException('Informe o local, o nome e o tipo do espaço.');
+        }
+
+        $locationCheck = $pdo->prepare('SELECT 1 FROM locais_treino WHERE id = :id');
+        $locationCheck->execute([':id' => $locationId]);
+        if (!$locationCheck->fetchColumn()) {
+            throw new RuntimeException('Local de treino não encontrado.');
+        }
+
+        if ($supervisorId > 0) {
+            $supervisorCheck = $pdo->prepare('
+                SELECT 1
+                FROM contas c
+                INNER JOIN conta_papeis cp ON cp.conta_id = c.id
+                INNER JOIN papeis p ON p.id = cp.papel_id
+                WHERE c.id = :id AND c.ativo = 1 AND p.slug = "supervisor"
+                LIMIT 1
+            ');
+            $supervisorCheck->execute([':id' => $supervisorId]);
+            if (!$supervisorCheck->fetchColumn()) {
+                throw new RuntimeException('Selecione um usuário ativo com o papel de Supervisor.');
+            }
+        }
+
+        return [
+            ':local_treino_id' => $locationId,
+            ':supervisor_espaco' => $supervisorId > 0 ? $supervisorId : null,
+            ':nome' => $name,
+            ':tipo_espaco' => $type,
+            ':capacidade_base' => $capacity,
+            ':ativo' => $active,
+        ];
+    }
+
+    /**
+     * Lista os locais de treino cadastrados.
+     */
+    public function listTrainingLocationsForManagement(
+        string $search = '',
+        int $limit = self::DEFAULT_TRAINING_LOCATION_LIMIT
+    ): array
+    {
+        $pdo = Database::connection();
+        $search = trim($search);
+        $limit = max(1, min(self::MAX_TRAINING_LOCATION_LIMIT, $limit));
+        $sql = '
+            SELECT
+                lt.id,
+                lt.nome_local,
+                lt.apelido_local,
+                lt.admin_local,
+                lt.coord_local,
+                lt.slug,
+                lt.cep,
+                lt.logradouro,
+                lt.numero_endereco,
+                lt.complemento,
+                lt.bairro,
+                lt.cidade,
+                lt.uf,
+                lt.ativo,
+                admin_pessoa.nome_completo AS admin_local_nome,
+                coord_pessoa.nome_completo AS coord_local_nome
+            FROM locais_treino lt
+            LEFT JOIN contas admin_conta ON admin_conta.id = lt.admin_local
+            LEFT JOIN pessoas admin_pessoa ON admin_pessoa.cpf = admin_conta.cpf
+            LEFT JOIN contas coord_conta ON coord_conta.id = lt.coord_local
+            LEFT JOIN pessoas coord_pessoa ON coord_pessoa.cpf = coord_conta.cpf
+        ';
+        $params = [];
+
+        if ($search !== '') {
+            $sql .= '
+                WHERE lt.nome_local LIKE :search_name
+                   OR lt.apelido_local LIKE :search_nickname
+                   OR lt.cep LIKE :search_zip_code
+                   OR lt.logradouro LIKE :search_street
+                   OR lt.numero_endereco LIKE :search_number
+                   OR lt.bairro LIKE :search_district
+                   OR lt.cidade LIKE :search_city
+                   OR lt.uf LIKE :search_state
+                   OR admin_pessoa.nome_completo LIKE :search_admin
+                   OR coord_pessoa.nome_completo LIKE :search_coordinator
+            ';
+            $searchLike = '%' . $search . '%';
+            $params = [
+                ':search_name' => $searchLike,
+                ':search_nickname' => $searchLike,
+                ':search_zip_code' => $searchLike,
+                ':search_street' => $searchLike,
+                ':search_number' => $searchLike,
+                ':search_district' => $searchLike,
+                ':search_city' => $searchLike,
+                ':search_state' => $searchLike,
+                ':search_admin' => $searchLike,
+                ':search_coordinator' => $searchLike,
+            ];
+        }
+
+        $sql .= ' ORDER BY lt.nome_local LIMIT ' . $limit;
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Cadastra um local de treino com endereço estruturado.
+     */
+    public function createTrainingLocation(array $data): int
+    {
+        $name = trim((string) ($data['nome_local'] ?? ''));
+        $nickname = trim((string) ($data['apelido_local'] ?? ''));
+        $localAdminId = (int) ($data['admin_local'] ?? 0);
+        $localCoordinatorId = (int) ($data['coord_local'] ?? 0);
+        $zipCode = normalize_cep((string) ($data['cep'] ?? ''));
+        $street = trim((string) ($data['logradouro'] ?? ''));
+        $number = trim((string) ($data['numero_endereco'] ?? ''));
+        $complement = trim((string) ($data['complemento'] ?? ''));
+        $district = trim((string) ($data['bairro'] ?? ''));
+        $city = trim((string) ($data['cidade'] ?? ''));
+        $state = strtoupper(trim((string) ($data['uf'] ?? '')));
+        $active = isset($data['ativo']) && (string) $data['ativo'] === '0' ? 0 : 1;
+
+        if ($name === '') {
+            throw new RuntimeException('Informe o nome completo do local de treino.');
+        }
+
+        if ($nickname === '') {
+            throw new RuntimeException('Informe o apelido do local de treino.');
+        }
+
+        if (strlen($zipCode) !== 8) {
+            throw new RuntimeException('Informe um CEP válido com 8 dígitos.');
+        }
+
+        if ($street === '' || $district === '' || $city === '' || strlen($state) !== 2) {
+            throw new RuntimeException('Selecione um endereço válido na lista de resultados do CEP.');
+        }
+
+        if ($number === '') {
+            throw new RuntimeException('Informe o número do endereço do local de treino.');
+        }
+
+        $pdo = Database::connection();
+        $this->assertEligibleLocationManager($pdo, $localAdminId, 'administrador do local');
+        $this->assertEligibleLocationManager($pdo, $localCoordinatorId, 'coordenador do local');
+        $slugBase = slugify($name);
+        $slug = $slugBase !== '' ? $slugBase : 'local-treino';
+        $suffix = 2;
+        $check = $pdo->prepare('SELECT COUNT(*) FROM locais_treino WHERE slug = :slug');
+
+        while (true) {
+            $check->execute([':slug' => $slug]);
+
+            if ((int) $check->fetchColumn() === 0) {
+                break;
+            }
+
+            $slug = $slugBase . '-' . $suffix;
+            $suffix++;
+        }
+
+        $stmt = $pdo->prepare('
+            INSERT INTO locais_treino (
+                nome_local, apelido_local, admin_local, coord_local, slug, cep, logradouro, numero_endereco, complemento, bairro, cidade, uf, ativo
+            ) VALUES (
+                :nome_local, :apelido_local, :admin_local, :coord_local, :slug, :cep, :logradouro, :numero_endereco, :complemento, :bairro, :cidade, :uf, :ativo
+            )
+        ');
+        $stmt->execute([
+            ':nome_local' => $name,
+            ':apelido_local' => $nickname,
+            ':admin_local' => $localAdminId > 0 ? $localAdminId : null,
+            ':coord_local' => $localCoordinatorId > 0 ? $localCoordinatorId : null,
+            ':slug' => $slug,
+            ':cep' => $zipCode,
+            ':logradouro' => $street,
+            ':numero_endereco' => $number,
+            ':complemento' => $complement !== '' ? $complement : null,
+            ':bairro' => $district,
+            ':cidade' => $city,
+            ':uf' => $state,
+            ':ativo' => $active,
+        ]);
+
+        return (int) $pdo->lastInsertId();
+    }
+
+    /**
+     * Atualiza os dados de um local de treino existente.
+     */
+    public function updateTrainingLocation(array $data): void
+    {
+        $locationId = (int) ($data['local_treino_id'] ?? 0);
+        $name = trim((string) ($data['nome_local'] ?? ''));
+        $nickname = trim((string) ($data['apelido_local'] ?? ''));
+        $localAdminId = (int) ($data['admin_local'] ?? 0);
+        $localCoordinatorId = (int) ($data['coord_local'] ?? 0);
+        $zipCode = normalize_cep((string) ($data['cep'] ?? ''));
+        $street = trim((string) ($data['logradouro'] ?? ''));
+        $number = trim((string) ($data['numero_endereco'] ?? ''));
+        $complement = trim((string) ($data['complemento'] ?? ''));
+        $district = trim((string) ($data['bairro'] ?? ''));
+        $city = trim((string) ($data['cidade'] ?? ''));
+        $state = strtoupper(trim((string) ($data['uf'] ?? '')));
+        $active = isset($data['ativo']) && (string) $data['ativo'] === '0' ? 0 : 1;
+
+        if ($locationId <= 0) {
+            throw new RuntimeException('Local de treino inválido para edição.');
+        }
+
+        if ($name === '') {
+            throw new RuntimeException('Informe o nome completo do local de treino.');
+        }
+
+        if ($nickname === '') {
+            throw new RuntimeException('Informe o apelido do local de treino.');
+        }
+
+        if (strlen($zipCode) !== 8) {
+            throw new RuntimeException('Informe um CEP válido com 8 dígitos.');
+        }
+
+        if ($street === '' || $district === '' || $city === '' || strlen($state) !== 2) {
+            throw new RuntimeException('Selecione um endereço válido na lista de resultados do CEP.');
+        }
+
+        if ($number === '') {
+            throw new RuntimeException('Informe o número do endereço do local de treino.');
+        }
+
+        $pdo = Database::connection();
+        $this->assertEligibleLocationManager($pdo, $localAdminId, 'administrador do local');
+        $this->assertEligibleLocationManager($pdo, $localCoordinatorId, 'coordenador do local');
+        $check = $pdo->prepare('SELECT COUNT(*) FROM locais_treino WHERE id = :id');
+        $check->execute([':id' => $locationId]);
+
+        if ((int) $check->fetchColumn() === 0) {
+            throw new RuntimeException('Local de treino não encontrado.');
+        }
+
+        $stmt = $pdo->prepare('
+            UPDATE locais_treino
+            SET
+                nome_local = :nome_local,
+                apelido_local = :apelido_local,
+                admin_local = :admin_local,
+                coord_local = :coord_local,
+                cep = :cep,
+                logradouro = :logradouro,
+                numero_endereco = :numero_endereco,
+                complemento = :complemento,
+                bairro = :bairro,
+                cidade = :cidade,
+                uf = :uf,
+                ativo = :ativo
+            WHERE id = :id
+        ');
+        $stmt->execute([
+            ':nome_local' => $name,
+            ':apelido_local' => $nickname,
+            ':admin_local' => $localAdminId > 0 ? $localAdminId : null,
+            ':coord_local' => $localCoordinatorId > 0 ? $localCoordinatorId : null,
+            ':cep' => $zipCode,
+            ':logradouro' => $street,
+            ':numero_endereco' => $number,
+            ':complemento' => $complement !== '' ? $complement : null,
+            ':bairro' => $district,
+            ':cidade' => $city,
+            ':uf' => $state,
+            ':ativo' => $active,
+            ':id' => $locationId,
+        ]);
+    }
+
+    /**
+     * Lista contas que podem administrar ou coordenar um local.
+     */
+    public function listEligibleLocationManagers(): array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->query('
+            SELECT
+                c.id AS conta_id,
+                p.nome_completo,
+                GROUP_CONCAT(DISTINCT pa.nome ORDER BY pa.nome SEPARATOR ", ") AS papeis
+            FROM contas c
+            INNER JOIN pessoas p ON p.cpf = c.cpf
+            INNER JOIN conta_papeis cp ON cp.conta_id = c.id
+            INNER JOIN papeis pa ON pa.id = cp.papel_id
+            WHERE c.ativo = 1
+              AND pa.slug IN ("admin", "coordinator", "supervisor", "teacher")
+            GROUP BY c.id, p.nome_completo
+            ORDER BY p.nome_completo
+        ');
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Impede a associação de contas sem um papel autorizado ao local.
+     */
+    private function assertEligibleLocationManager(PDO $pdo, int $accountId, string $fieldLabel): void
+    {
+        if ($accountId <= 0) {
+            return;
+        }
+
+        $stmt = $pdo->prepare('
+            SELECT COUNT(*)
+            FROM contas c
+            INNER JOIN conta_papeis cp ON cp.conta_id = c.id
+            INNER JOIN papeis pa ON pa.id = cp.papel_id
+            WHERE c.id = :conta_id
+              AND c.ativo = 1
+              AND pa.slug IN ("admin", "coordinator", "supervisor", "teacher")
+        ');
+        $stmt->execute([':conta_id' => $accountId]);
+
+        if ((int) $stmt->fetchColumn() === 0) {
+            throw new RuntimeException(
+                'Selecione para ' . $fieldLabel . ' um usuário ativo com papel de Administrador, Coordenador, Supervisor ou Professor.'
+            );
+        }
     }
 
     /**
@@ -1479,25 +1947,37 @@ class AdminService
     }
 
     /**
-     * Lista suspensoes de espaco para a area administrativa.
+     * Lista suspensoes de espaco para a área administrativa.
      */
     public function listSpaceSuspensionsForManagement(): array
     {
+        SpaceSuspensionService::expireElapsed();
         $pdo = Database::connection();
         $stmt = $pdo->query('
             SELECT
                 s.id,
                 s.espaco_treino_id,
+                s.criado_por_conta_id,
                 s.data_inicio,
                 s.data_fim,
                 s.motivo,
                 s.ativo,
                 s.created_at,
+                CASE
+                    WHEN s.ativo = 1 AND CURDATE() BETWEEN s.data_inicio AND s.data_fim THEN 1
+                    ELSE 0
+                END AS pode_inativar,
                 et.nome AS espaco_nome,
-                lt.nome AS local_nome
+                lt.id AS local_treino_id,
+                criador_pessoa.nome_completo AS criado_por_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome
             FROM suspensoes_espaco_treino s
             INNER JOIN espacos_treino et ON et.id = s.espaco_treino_id
             INNER JOIN locais_treino lt ON lt.id = et.local_treino_id
+            LEFT JOIN contas criador_conta ON criador_conta.id = s.criado_por_conta_id
+            LEFT JOIN pessoas criador_pessoa ON criador_pessoa.cpf = criador_conta.cpf
             ORDER BY s.ativo DESC, s.data_inicio DESC, s.id DESC
         ');
 
@@ -1505,7 +1985,7 @@ class AdminService
     }
 
     /**
-     * Lista horarios semanais para a area administrativa.
+     * Lista horários semanais para a área administrativa.
      */
     public function listWeeklySchedulesForManagement(int $locationId = 0, int $modalityId = 0): array
     {
@@ -1537,7 +2017,9 @@ class AdminService
                 hs.ativo,
                 hs.data_inativacao,
                 hs.created_at,
-                lt.nome AS local_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome
             FROM horarios_semanais hs
@@ -1604,7 +2086,9 @@ class AdminService
                 ah.rotulo_acao,
                 ah.ativo,
                 ah.created_at,
-                lt.nome AS local_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome
             FROM agenda_horarios_especiais ah
@@ -1639,19 +2123,21 @@ class AdminService
     }
 
     /**
-     * Retorna um horario especial pronto para preencher o modal de edicao.
+     * Retorna um horário especial pronto para preencher o modal de edição.
      */
     public function getSpecialScheduleDetails(int $scheduleId): array
     {
         if ($scheduleId <= 0) {
-            throw new RuntimeException('Horario especial invalido.');
+            throw new RuntimeException('Horário especial inválido.');
         }
 
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
             SELECT
                 ah.*,
-                lt.nome AS local_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome
             FROM agenda_horarios_especiais ah
@@ -1665,7 +2151,7 @@ class AdminService
         $schedule = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$schedule) {
-            throw new RuntimeException('Horario especial nao encontrado.');
+            throw new RuntimeException('Horário especial não encontrado.');
         }
 
         return $schedule;
@@ -1701,7 +2187,9 @@ class AdminService
                 hs.tipo_horario,
                 m.nome AS modalidade_nome,
                 lt.id AS local_treino_id,
-                lt.nome AS local_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome,
                 et.id AS espaco_treino_id,
                 et.nome AS espaco_nome,
                 chamada_pessoa.nome_completo AS chamada_por_nome
@@ -1731,7 +2219,7 @@ class AdminService
         }
 
         $sql .= '
-            ORDER BY lt.nome ASC, et.nome ASC, a.data_agendada ASC, p.nome_completo ASC
+            ORDER BY lt.nome_local ASC, et.nome ASC, a.data_agendada ASC, p.nome_completo ASC
         ';
 
         $stmt = $pdo->prepare($sql);
@@ -1741,24 +2229,24 @@ class AdminService
     }
 
     /**
-     * Lista os agendamentos de uma ocorrencia especifica para chamada administrativa.
+     * Lista os agendamentos de uma ocorrência especifica para chamada administrativa.
      */
     public function listOccurrenceBookingsForManagement(int $scheduleId, string $startDateTime): array
     {
         if ($scheduleId <= 0) {
-            throw new RuntimeException('Horario semanal invalido para a chamada administrativa.');
+            throw new RuntimeException('Horário semanal inválido para a chamada administrativa.');
         }
 
         $startDateTime = trim($startDateTime);
 
         if ($startDateTime === '') {
-            throw new RuntimeException('Data e horario da ocorrencia nao informados.');
+            throw new RuntimeException('Data e horário da ocorrência não informados.');
         }
 
         try {
             $occurrenceDate = new DateTimeImmutable($startDateTime);
         } catch (\Throwable $e) {
-            throw new RuntimeException('Data e horario da ocorrencia sao invalidos.');
+            throw new RuntimeException('Data e horário da ocorrência são inválidos.');
         }
 
         $pdo = Database::connection();
@@ -1785,7 +2273,9 @@ class AdminService
                 hs.vagas_pvs,
                 m.nome AS modalidade_nome,
                 lt.id AS local_treino_id,
-                lt.nome AS local_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome,
                 et.id AS espaco_treino_id,
                 et.nome AS espaco_nome,
                 chamada_pessoa.nome_completo AS chamada_por_nome
@@ -1810,7 +2300,7 @@ class AdminService
     }
 
     /**
-     * Monta os eventos do FullCalendar administrativo para os horarios semanais cadastrados.
+     * Monta os eventos do FullCalendar administrativo para os horários semanais cadastrados.
      */
     public function listCalendarEventsForManagement(int $locationId = 0, int $modalityId = 0, string $rangeStart = '', string $rangeEnd = ''): array
     {
@@ -1837,19 +2327,21 @@ class AdminService
     }
 
     /**
-     * Retorna um horario semanal pronto para preencher o formulario de edicao.
+     * Retorna um horário semanal pronto para preencher o formulario de edição.
      */
     public function getWeeklyScheduleDetails(int $scheduleId): array
     {
         if ($scheduleId <= 0) {
-            throw new RuntimeException('Horario semanal invalido.');
+            throw new RuntimeException('Horário semanal inválido.');
         }
 
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
             SELECT
                 hs.*,
-                lt.nome AS local_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome
             FROM horarios_semanais hs
@@ -1863,14 +2355,14 @@ class AdminService
         $schedule = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$schedule) {
-            throw new RuntimeException('Horario semanal nao encontrado.');
+            throw new RuntimeException('Horário semanal não encontrado.');
         }
 
         return $schedule;
     }
 
     /**
-     * Atualiza a chamada de um agendamento, respeitando horario e regras de justificativa.
+     * Atualiza a chamada de um agendamento, respeitando horário e regras de justificativa.
      */
     public function updateBookingAttendanceStatus(int $bookingId, string $status, int $accountId, string $justificationReason = ''): void
     {
@@ -1880,15 +2372,15 @@ class AdminService
         $justificationReason = trim($justificationReason);
 
         if (!in_array($normalizedStatus, ['presente', 'falta', 'justificado'], true)) {
-            throw new RuntimeException('O status de chamada informado e invalido.');
+            throw new RuntimeException('O status de chamada informado é inválido.');
         }
 
         if ($currentStatus === 'cancelado') {
-            throw new RuntimeException('Agendamentos cancelados nao podem receber chamada.');
+            throw new RuntimeException('Agendamentos cancelados não podem receber chamada.');
         }
 
         if (!$this->canManageBookingAttendance($booking)) {
-            throw new RuntimeException('A chamada so pode ser registrada a partir da data e horario agendados.');
+            throw new RuntimeException('A chamada só pode ser registrada a partir da data e horário agendados.');
         }
 
         if ($normalizedStatus === 'justificado' && $justificationReason === '') {
@@ -1924,7 +2416,7 @@ class AdminService
     }
 
     /**
-     * Cria uma nova suspensao temporaria de espaco.
+     * Cria uma nova suspensão temporaria de espaco.
      */
     public function createSpaceSuspension(int $accountId, array $data): void
     {
@@ -1932,22 +2424,23 @@ class AdminService
         $startDate = trim((string) ($data['data_inicio'] ?? ''));
         $endDate = trim((string) ($data['data_fim'] ?? ''));
         $reason = trim((string) ($data['motivo'] ?? ''));
-        $active = (int) ($data['ativo'] ?? 1) === 1 ? 1 : 0;
+        $active = 1;
 
         if ($spaceId <= 0) {
-            throw new RuntimeException('Selecione o espaco de treino para a suspensao.');
+            throw new RuntimeException('Selecione o espaço de treino para a suspensão.');
         }
 
         if (!$this->isValidDate($startDate) || !$this->isValidDate($endDate)) {
-            throw new RuntimeException('Informe datas validas para o periodo de suspensao.');
+            throw new RuntimeException('Informe datas válidas para o período de suspensão.');
         }
 
         if ($startDate > $endDate) {
-            throw new RuntimeException('A data inicial da suspensao nao pode ser maior que a data final.');
+            throw new RuntimeException('A data inicial da suspensão não pode ser maior que a data final.');
         }
 
         $space = $this->findTrainingSpaceById($spaceId);
         $pdo = Database::connection();
+        SpaceSuspensionService::expireElapsed();
 
         if ($active === 1) {
             $stmtOverlap = $pdo->prepare('
@@ -1965,20 +2458,20 @@ class AdminService
             ]);
 
             if ($stmtOverlap->fetchColumn()) {
-                throw new RuntimeException('Ja existe uma suspensao ativa que se sobrepoe a este periodo para o espaco selecionado.');
+                throw new RuntimeException('Já existe uma suspensão ativa que se sobrepõe a este período para o espaço selecionado.');
             }
         }
 
         $stmt = $pdo->prepare('
-            INSERT INTO suspensoes_espaco_treino (espaco_treino_id, data_inicio, data_fim, motivo, ativo)
-            VALUES (:espaco_treino_id, :data_inicio, :data_fim, :motivo, :ativo)
+            INSERT INTO suspensoes_espaco_treino (espaco_treino_id, criado_por_conta_id, data_inicio, data_fim, motivo, ativo)
+            VALUES (:espaco_treino_id, :criado_por_conta_id, :data_inicio, :data_fim, :motivo, 1)
         ');
         $stmt->execute([
             ':espaco_treino_id' => $spaceId,
+            ':criado_por_conta_id' => $accountId,
             ':data_inicio' => $startDate,
             ':data_fim' => $endDate,
             ':motivo' => $reason !== '' ? $reason : null,
-            ':ativo' => $active,
         ]);
 
         AuditLogService::record('admin.suspensao_espaco_criada', 'suspensoes_espaco_treino', (int) $pdo->lastInsertId(), [
@@ -1994,23 +2487,123 @@ class AdminService
     }
 
     /**
-     * Inativa uma suspensao de espaco.
+     * Inativa uma suspensão de espaco.
      */
     public function deactivateSpaceSuspension(int $suspensionId): void
     {
         if ($suspensionId <= 0) {
-            throw new RuntimeException('Suspensao invalida.');
+            throw new RuntimeException('Suspensão inválida.');
         }
 
         $pdo = Database::connection();
-        $stmt = $pdo->prepare('UPDATE suspensoes_espaco_treino SET ativo = 0 WHERE id = :id');
+        SpaceSuspensionService::expireElapsed();
+
+        $stmtCurrent = $pdo->prepare('
+            SELECT id, espaco_treino_id, data_inicio, data_fim, ativo, CURDATE() AS data_corrente
+            FROM suspensoes_espaco_treino
+            WHERE id = :id
+            LIMIT 1
+        ');
+        $stmtCurrent->execute([':id' => $suspensionId]);
+        $current = $stmtCurrent->fetch(PDO::FETCH_ASSOC);
+
+        if (!$current) {
+            throw new RuntimeException('Suspensão não encontrada.');
+        }
+
+        if ((int) $current['ativo'] !== 1) {
+            throw new RuntimeException('Esta suspensão já está inativa.');
+        }
+
+        if ((string) $current['data_corrente'] < (string) $current['data_inicio']
+            || (string) $current['data_corrente'] > (string) $current['data_fim']) {
+            throw new RuntimeException('A suspensão só pode ser inativada manualmente durante o período de vigência.');
+        }
+
+        $stmt = $pdo->prepare('
+            UPDATE suspensoes_espaco_treino
+            SET ativo = 0
+            WHERE id = :id
+              AND ativo = 1
+        ');
         $stmt->execute([':id' => $suspensionId]);
 
-        AuditLogService::record('admin.suspensao_espaco_inativada', 'suspensoes_espaco_treino', $suspensionId, []);
+        AuditLogService::record('admin.suspensao_espaco_inativada', 'suspensoes_espaco_treino', $suspensionId, [
+            'espaco_treino_id' => (int) $current['espaco_treino_id'],
+            'data_inicio' => (string) $current['data_inicio'],
+            'data_fim' => (string) $current['data_fim'],
+            'ativo_anterior' => 1,
+            'ativo_novo' => 0,
+            'motivo_inativacao' => 'Inativação manual durante o período de vigência.',
+        ]);
     }
 
     /**
-     * Cria um novo horario semanal.
+     * Exclui uma suspensão que ainda não iniciou.
+     */
+    public function deleteFutureSpaceSuspension(int $suspensionId): void
+    {
+        if ($suspensionId <= 0) {
+            throw new RuntimeException('Suspensão inválida.');
+        }
+
+        $pdo = Database::connection();
+        SpaceSuspensionService::expireElapsed();
+        $pdo->beginTransaction();
+
+        try {
+            $stmtCurrent = $pdo->prepare('
+                SELECT id, espaco_treino_id, criado_por_conta_id, data_inicio, data_fim, motivo, ativo, CURDATE() AS data_corrente
+                FROM suspensoes_espaco_treino
+                WHERE id = :id
+                LIMIT 1
+                FOR UPDATE
+            ');
+            $stmtCurrent->execute([':id' => $suspensionId]);
+            $current = $stmtCurrent->fetch(PDO::FETCH_ASSOC);
+
+            if (!$current) {
+                throw new RuntimeException('Suspensão não encontrada.');
+            }
+
+            if ((int) $current['ativo'] !== 1 || (string) $current['data_corrente'] >= (string) $current['data_inicio']) {
+                throw new RuntimeException('Somente uma suspensão que ainda está aguardando o início pode ser excluída.');
+            }
+
+            $stmtDelete = $pdo->prepare('
+                DELETE FROM suspensoes_espaco_treino
+                WHERE id = :id
+                  AND ativo = 1
+                  AND CURDATE() < data_inicio
+            ');
+            $stmtDelete->execute([':id' => $suspensionId]);
+
+            if ($stmtDelete->rowCount() === 0) {
+                throw new RuntimeException('Não foi possível excluir a suspensão porque o período de vigência já começou.');
+            }
+
+            AuditLogService::record('admin.suspensao_espaco_excluida', 'suspensoes_espaco_treino', $suspensionId, [
+                'espaco_treino_id' => (int) $current['espaco_treino_id'],
+                'criado_por_conta_id' => (int) ($current['criado_por_conta_id'] ?? 0),
+                'data_inicio' => (string) $current['data_inicio'],
+                'data_fim' => (string) $current['data_fim'],
+                'motivo' => (string) ($current['motivo'] ?? ''),
+                'ativo_anterior' => 1,
+                'motivo_exclusao' => 'Suspensão excluída antes do início.',
+            ]);
+
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Cria um novo horário semanal.
      */
     public function createWeeklySchedule(int $accountId, array $data): void
     {
@@ -2141,12 +2734,12 @@ class AdminService
     }
 
     /**
-     * Atualiza um horario semanal existente com as mesmas validacoes da criacao.
+     * Atualiza um horário semanal existente com as mesmas validacoes da criacao.
      */
     public function updateWeeklySchedule(int $scheduleId, int $accountId, array $data): array
     {
         if ($scheduleId <= 0) {
-            throw new RuntimeException('Horario semanal invalido.');
+            throw new RuntimeException('Horário semanal inválido.');
         }
 
         $existingSchedule = $this->getWeeklyScheduleDetails($scheduleId);
@@ -2259,12 +2852,12 @@ class AdminService
     }
 
     /**
-     * Inativa um horario semanal.
+     * Inativa um horário semanal.
      */
     public function deactivateWeeklySchedule(int $scheduleId): void
     {
         if ($scheduleId <= 0) {
-            throw new RuntimeException('Horario semanal invalido.');
+            throw new RuntimeException('Horário semanal inválido.');
         }
 
         $pdo = Database::connection();
@@ -2282,12 +2875,12 @@ class AdminService
     }
 
     /**
-     * Reativa um horario semanal e limpa a data de inativacao.
+     * Reativa um horário semanal e limpa a data de inativacao.
      */
     public function activateWeeklySchedule(int $scheduleId): void
     {
         if ($scheduleId <= 0) {
-            throw new RuntimeException('Horario semanal invalido.');
+            throw new RuntimeException('Horário semanal inválido.');
         }
 
         $pdo = Database::connection();
@@ -2303,7 +2896,7 @@ class AdminService
     }
 
     /**
-     * Cria um evento sazonal/especial para a agenda publica.
+     * Cria um evento sazonal/especial para a agenda pública.
      */
     public function createSpecialSchedule(int $accountId, array $data, array $files = []): void
     {
@@ -2406,12 +2999,12 @@ class AdminService
     }
 
     /**
-     * Atualiza um horario especial existente.
+     * Atualiza um horário especial existente.
      */
     public function updateSpecialSchedule(int $scheduleId, int $accountId, array $data, array $files = []): array
     {
         if ($scheduleId <= 0) {
-            throw new RuntimeException('Horario especial invalido.');
+            throw new RuntimeException('Horário especial inválido.');
         }
 
         $existingSchedule = $this->getSpecialScheduleDetails($scheduleId);
@@ -2497,7 +3090,7 @@ class AdminService
     public function deactivateSpecialSchedule(int $scheduleId): void
     {
         if ($scheduleId <= 0) {
-            throw new RuntimeException('Horario especial invalido.');
+            throw new RuntimeException('Horário especial inválido.');
         }
 
         $pdo = Database::connection();
@@ -2514,7 +3107,14 @@ class AdminService
     {
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
-            SELECT et.id, et.nome, et.local_treino_id, et.ativo, lt.nome AS local_nome
+            SELECT
+                et.id,
+                et.nome,
+                et.local_treino_id,
+                et.ativo,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome
             FROM espacos_treino et
             INNER JOIN locais_treino lt ON lt.id = et.local_treino_id
             WHERE et.id = :id
@@ -2524,7 +3124,7 @@ class AdminService
         $space = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$space) {
-            throw new RuntimeException('Espaco de treino nao encontrado.');
+            throw new RuntimeException('Espaço de treino não encontrado.');
         }
 
         return $space;
@@ -2546,14 +3146,14 @@ class AdminService
         $modality = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$modality) {
-            throw new RuntimeException('Modalidade nao encontrada.');
+            throw new RuntimeException('Modalidade não encontrada.');
         }
 
         return $modality;
     }
 
     /**
-     * Normaliza um valor de horario HTML para o formato do banco.
+     * Normaliza um valor de horário HTML para o formato do banco.
      */
     private function normalizeTimeValue(string $value): string
     {
@@ -2575,7 +3175,7 @@ class AdminService
     }
 
     /**
-     * Valida e normaliza os dados recebidos para criacao ou edicao de horario.
+     * Valida e normaliza os dados recebidos para criacao ou edição de horário.
      */
     private function validateWeeklySchedulePayload(array $data): array
     {
@@ -2607,76 +3207,76 @@ class AdminService
         ];
 
         if ($payload['espaco_treino_id'] <= 0) {
-            throw new RuntimeException('Selecione o espaco de treino do horario semanal.');
+            throw new RuntimeException('Selecione o espaço de treino do horário semanal.');
         }
 
         if ($payload['modalidade_id'] <= 0) {
-            throw new RuntimeException('Selecione a modalidade do horario semanal.');
+            throw new RuntimeException('Selecione a modalidade do horário semanal.');
         }
 
         if (!in_array($payload['tipo_horario'], ['avaliacao', 'treino', 'aula'], true)) {
-            throw new RuntimeException('Selecione um tipo valido para o horario semanal.');
+            throw new RuntimeException('Selecione um tipo válido para o horário semanal.');
         }
 
         if ($payload['dia_semana'] < 1 || $payload['dia_semana'] > 7) {
-            throw new RuntimeException('Selecione um dia da semana valido para o horario semanal.');
+            throw new RuntimeException('Selecione um dia da semana válido para o horário semanal.');
         }
 
         if ($payload['hora_inicio'] === '' || $payload['hora_fim'] === '') {
-            throw new RuntimeException('Informe horario inicial e final validos.');
+            throw new RuntimeException('Informe horários inicial e final válidos.');
         }
 
         if ($payload['hora_inicio'] >= $payload['hora_fim']) {
-            throw new RuntimeException('O horario inicial precisa ser anterior ao horario final.');
+            throw new RuntimeException('O horário inicial precisa ser anterior ao horário final.');
         }
 
         if ($payload['idade_minima'] < 0 || $payload['idade_maxima'] < 0 || $payload['idade_minima'] > $payload['idade_maxima']) {
-            throw new RuntimeException('Informe uma faixa etaria valida para o horario semanal.');
+            throw new RuntimeException('Informe uma faixa etária válida para o horário semanal.');
         }
 
         if (!in_array($payload['criterio_faixa_etaria'], ['idade_exata', 'ano_nascimento'], true)) {
-            throw new RuntimeException('Selecione um criterio etario valido para o horario semanal.');
+            throw new RuntimeException('Selecione um critério etário válido para o horário semanal.');
         }
 
         if (!in_array($payload['regra_atestado_clinico'], ['global', 'exigir', 'dispensar'], true)) {
-            throw new RuntimeException('Selecione uma regra valida para o atestado clinico.');
+            throw new RuntimeException('Selecione uma regra válida para o atestado clínico.');
         }
 
         if (!in_array($payload['regra_atestado_dermatologico'], ['global', 'exigir', 'dispensar'], true)) {
-            throw new RuntimeException('Selecione uma regra valida para o atestado dermatologico.');
+            throw new RuntimeException('Selecione uma regra válida para o atestado dermatológico.');
         }
 
         if (!in_array($payload['sexo'], ['', 'masculino', 'feminino'], true)) {
-            throw new RuntimeException('Selecione um sexo valido para o horario semanal ou deixe livre.');
+            throw new RuntimeException('Selecione um sexo válido para o horário semanal ou deixe livre.');
         }
 
         foreach (['vagas_geral', 'vagas_pcd', 'vagas_plm', 'vagas_pvs'] as $field) {
             if ((int) $payload[$field] < 0) {
-                throw new RuntimeException('As vagas do horario semanal nao podem ser negativas.');
+                throw new RuntimeException('As vagas do horário semanal não podem ser negativas.');
             }
         }
 
-        if (!in_array($payload['janela_agendamento_tipo'], ['semana_atual_proxima', 'janela_semanal_fixa', 'antecedencia'], true)) {
-            throw new RuntimeException('Selecione uma regra valida para a janela de agendamento.');
+        if (!in_array($payload['janela_agendamento_tipo'], ['semana_atual_proxima', 'janela_semanal_fixa', 'antecedência'], true)) {
+            throw new RuntimeException('Selecione uma regra válida para a janela de agendamento.');
         }
 
         if ($payload['janela_agendamento_tipo'] === 'janela_semanal_fixa') {
             if ($payload['janela_abertura_dia_semana'] < 1 || $payload['janela_abertura_dia_semana'] > 7 || $payload['janela_abertura_hora'] === '') {
-                throw new RuntimeException('Informe dia e hora validos para a abertura semanal da agenda.');
+                throw new RuntimeException('Informe dia e hora válidos para a abertura semanal da agenda.');
             }
 
             if ($payload['janela_fechamento_dia_semana'] < 1 || $payload['janela_fechamento_dia_semana'] > 7 || $payload['janela_fechamento_hora'] === '') {
-                throw new RuntimeException('Informe dia e hora validos para o fechamento semanal da agenda.');
+                throw new RuntimeException('Informe dia e hora válidos para o fechamento semanal da agenda.');
             }
         }
 
-        if ($payload['janela_agendamento_tipo'] === 'antecedencia') {
+        if ($payload['janela_agendamento_tipo'] === 'antecedência') {
             if ($payload['janela_dias_antecedencia'] < 0) {
-                throw new RuntimeException('A antecedencia de abertura nao pode ser negativa.');
+                throw new RuntimeException('A antecedência de abertura não pode ser negativa.');
             }
 
             if ($payload['janela_horas_antes_fechamento'] < 0) {
-                throw new RuntimeException('As horas antes do fechamento nao podem ser negativas.');
+                throw new RuntimeException('As horas antes do fechamento não podem ser negativas.');
             }
         }
 
@@ -2714,15 +3314,15 @@ class AdminService
         $uploadedImage = $files['imagem_arquivo'] ?? null;
 
         if ($payload['titulo'] === '') {
-            throw new RuntimeException('Informe o titulo do horario especial.');
+            throw new RuntimeException('Informe o título do horário especial.');
         }
 
         if ($payload['data_inicio'] === '' || $payload['data_fim'] === '') {
-            throw new RuntimeException('Informe inicio e fim validos para o horario especial.');
+            throw new RuntimeException('Informe início e fim válidos para o horário especial.');
         }
 
         if ($payload['data_publicacao_inicio'] === '' || $payload['data_publicacao_fim'] === '') {
-            throw new RuntimeException('Informe o inicio e o fim da publicacao do horario especial.');
+            throw new RuntimeException('Informe o inicio e o fim da públicação do horário especial.');
         }
 
         try {
@@ -2731,24 +3331,24 @@ class AdminService
             $publishStart = new DateTimeImmutable($payload['data_publicacao_inicio']);
             $publishEnd = new DateTimeImmutable($payload['data_publicacao_fim']);
         } catch (\Throwable $e) {
-            throw new RuntimeException('As datas do horario especial sao invalidas.');
+            throw new RuntimeException('As datas do horário especial são inválidas.');
         }
 
         if ($end <= $start) {
-            throw new RuntimeException('O fim do horario especial precisa ser posterior ao inicio.');
+            throw new RuntimeException('O fim do horário especial precisa ser posterior ao inicio.');
         }
 
         if ($publishEnd <= $publishStart) {
-            throw new RuntimeException('O fim da publicacao precisa ser posterior ao inicio da publicacao.');
+            throw new RuntimeException('O fim da públicação precisa ser posterior ao inicio da públicação.');
         }
 
         if ($payload['idade_minima'] < 0 || $payload['idade_maxima'] < 0 || $payload['idade_minima'] > $payload['idade_maxima']) {
-            throw new RuntimeException('Informe uma faixa etaria valida para o horario especial.');
+            throw new RuntimeException('Informe uma faixa etária válida para o horário especial.');
         }
 
         foreach (['vagas_geral', 'vagas_pcd', 'vagas_plm', 'vagas_pvs'] as $field) {
             if ((int) $payload[$field] < 0) {
-                throw new RuntimeException('As vagas do horario especial nao podem ser negativas.');
+                throw new RuntimeException('As vagas do horário especial não podem ser negativas.');
             }
         }
 
@@ -2758,11 +3358,11 @@ class AdminService
             + (int) $payload['vagas_plm']
             + (int) $payload['vagas_pvs'] <= 0
         ) {
-            throw new RuntimeException('Informe pelo menos uma vaga para o horario especial.');
+            throw new RuntimeException('Informe pelo menos uma vaga para o horário especial.');
         }
 
         if ($payload['imagem_url'] !== '' && !filter_var($payload['imagem_url'], FILTER_VALIDATE_URL) && !str_starts_with($payload['imagem_url'], '/')) {
-            throw new RuntimeException('Informe uma URL de imagem valida ou use um caminho interno iniciado por "/".');
+            throw new RuntimeException('Informe uma URL de imagem válida ou use um caminho interno iniciado por "/".');
         }
 
         if (is_array($uploadedImage) && (int) ($uploadedImage['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
@@ -2773,21 +3373,21 @@ class AdminService
     }
 
     /**
-     * Salva a imagem opcional de um horario especial e devolve o caminho publico.
+     * Salva a imagem opcional de um horário especial e devolve o caminho publico.
      */
     private function storeSpecialScheduleImage(array $file): string
     {
         $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
 
         if ($error !== UPLOAD_ERR_OK) {
-            throw new RuntimeException('Nao foi possivel enviar a imagem do horario especial.');
+            throw new RuntimeException('Não foi possível enviar a imagem do horário especial.');
         }
 
         $tmpName = (string) ($file['tmp_name'] ?? '');
         $originalName = trim((string) ($file['name'] ?? 'imagem'));
 
         if ($tmpName === '' || !is_uploaded_file($tmpName)) {
-            throw new RuntimeException('Arquivo de imagem invalido.');
+            throw new RuntimeException('Arquivo de imagem inválido.');
         }
 
         $mime = mime_content_type($tmpName) ?: '';
@@ -2798,17 +3398,17 @@ class AdminService
         ];
 
         if (!isset($allowedMimes[$mime])) {
-            throw new RuntimeException('A imagem do horario especial deve estar em JPG, PNG ou WEBP.');
+            throw new RuntimeException('A imagem do horário especial deve estar em JPG, PNG ou WEBP.');
         }
 
         if ((int) ($file['size'] ?? 0) > 5 * 1024 * 1024) {
-            throw new RuntimeException('A imagem do horario especial deve ter no maximo 5 MB.');
+            throw new RuntimeException('A imagem do horário especial deve ter no máximo 5 MB.');
         }
 
         $directory = ROOT_PATH . '/public/uploads/agenda-horarios-especiais';
 
         if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
-            throw new RuntimeException('Nao foi possivel preparar a pasta da imagem do horario especial.');
+            throw new RuntimeException('Não foi possível preparar a pasta da imagem do horário especial.');
         }
 
         $baseName = preg_replace('/[^a-z0-9]+/i', '-', pathinfo($originalName, PATHINFO_FILENAME));
@@ -2818,14 +3418,14 @@ class AdminService
         $absolutePath = $directory . DIRECTORY_SEPARATOR . $storedName;
 
         if (!move_uploaded_file($tmpName, $absolutePath)) {
-            throw new RuntimeException('Nao foi possivel salvar a imagem do horario especial.');
+            throw new RuntimeException('Não foi possível salvar a imagem do horário especial.');
         }
 
         return '/uploads/agenda-horarios-especiais/' . $storedName;
     }
 
     /**
-     * Bloqueia sobreposicao de horarios ativos no mesmo espaco, inclusive na edicao.
+     * Bloqueia sobreposicao de horários ativos no mesmo espaco, inclusive na edição.
      */
     private function assertWeeklyScheduleNoOverlap(\PDO $pdo, array $payload, int $ignoreScheduleId = 0): void
     {
@@ -2859,7 +3459,7 @@ class AdminService
         $stmtOverlap->execute($params);
 
         if ($stmtOverlap->fetchColumn()) {
-            throw new RuntimeException('Ja existe um horario semanal ativo neste espaco com sobreposicao de dia e horario.');
+            throw new RuntimeException('Já existe um horário semanal ativo neste espaço com sobreposição de dia e horário.');
         }
     }
 
@@ -2884,10 +3484,10 @@ class AdminService
         $status = trim((string) ($certificate['status_validacao'] ?? ''));
 
         if ($status === 'reprovado') {
-            return 'O atestado foi reprovado e aguarda novo envio ou nova analise.';
+            return 'O atestado foi reprovado e aguarda novo envio ou nova análise.';
         }
 
-        return 'O atestado foi enviado e aguarda validacao administrativa.';
+        return 'O atestado foi enviado e aguarda validação administrativa.';
     }
 
     /**
@@ -2904,36 +3504,36 @@ class AdminService
     private function buildConditionValidationPendingReason(?array $certificate, array $documents): ?string
     {
         if ($certificate === null) {
-            return 'Declarou a condicao, mas ainda nao enviou documentacao.';
+            return 'Declarou a condição, mas ainda não enviou documentação.';
         }
 
         if ($documents === []) {
-            return 'Enviou ou iniciou o cadastro da condicao, mas ainda nao ha PDF anexado.';
+            return 'Enviou ou iniciou o cadastro da condição, mas ainda não há PDF anexado.';
         }
 
         $status = trim((string) ($certificate['status'] ?? ''));
 
         if ($status === 'pendente' || $status === '') {
-            return 'Enviou a documentacao e ela ainda precisa ser validada.';
+            return 'Enviou a documentação e ela ainda precisa ser validada.';
         }
 
         if ($status === 'validado_parcial') {
-            return 'O certificado foi validado parcialmente e ainda exige regularizacao complementar.';
+            return 'O certificado foi validado parcialmente e ainda exige regularização complementar.';
         }
 
         if ($status === 'reprovado') {
-            return 'A documentacao anterior foi reprovada e precisa de novo envio ou ajuste.';
+            return 'A documentação anterior foi reprovada e precisa de novo envio ou ajuste.';
         }
 
         if ($status === 'validado') {
             return null;
         }
 
-        return 'A documentacao desta condicao ainda precisa de analise administrativa.';
+        return 'A documentação desta condição ainda precisa de análise administrativa.';
     }
 
     /**
-     * Define o grupo de ordenacao da fila de validacao.
+     * Define o grupo de ordenacao da fila de validação.
      */
     private function resolveConditionValidationSortStatus(?array $certificate, array $documents): string
     {
@@ -3090,7 +3690,7 @@ class AdminService
     }
 
     /**
-     * Garante a coluna do criterio etario nos horarios semanais.
+     * Garante a coluna do criterio etario nos horários semanais.
      */
     private function ensureWeeklyScheduleAgeRuleSchema(): void
     {
@@ -3116,7 +3716,7 @@ class AdminService
     }
 
     /**
-     * Resume a situacao atual dos certificados das condicoes declaradas da pessoa.
+     * Resume a situação atual dos certificados das condicoes declaradas da pessoa.
      */
     private function buildPersonCertificateSituationSummary(\PDO $pdo, array $person): string
     {
@@ -3152,7 +3752,7 @@ class AdminService
             $certificate = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 
             if ($certificate === null || (int) ($certificate['documentos_enviados'] ?? 0) <= 0) {
-                $items[] = $meta['label'] . ': documentacao nao enviada';
+                $items[] = $meta['label'] . ': documentação não enviada';
                 continue;
             }
 
@@ -3160,12 +3760,12 @@ class AdminService
             $expiry = trim((string) ($certificate['validade_certificado'] ?? ''));
 
             if ($status === 'pendente') {
-                $items[] = $meta['label'] . ': validacao pendente';
+                $items[] = $meta['label'] . ': validação pendente';
                 continue;
             }
 
             if ($status === 'reprovado') {
-                $items[] = $meta['label'] . ': documentacao reprovada';
+                $items[] = $meta['label'] . ': documentação reprovada';
                 continue;
             }
 
@@ -3196,7 +3796,7 @@ class AdminService
                             continue;
                         }
 
-                        $items[] = $meta['label'] . ': validado ate ' . $expiryDate->format('d/m/Y');
+                        $items[] = $meta['label'] . ': validado até ' . $expiryDate->format('d/m/Y');
                         continue;
                     } catch (\Throwable $e) {
                     }
@@ -3206,10 +3806,10 @@ class AdminService
                 continue;
             }
 
-            $items[] = $meta['label'] . ': situacao indefinida';
+            $items[] = $meta['label'] . ': situação indefinida';
         }
 
-        return $items !== [] ? implode(' | ', $items) : 'Nenhuma condicao declarada';
+        return $items !== [] ? implode(' | ', $items) : 'Nenhuma condição declarada';
     }
 
     /**
@@ -3328,9 +3928,9 @@ class AdminService
         $statusLabel = 'Declarada';
 
         if ($certificate === null || !$documentsSent) {
-            $statusLabel = 'Sem documentacao';
+            $statusLabel = 'Sem documentação';
         } elseif ($status === 'pendente') {
-            $statusLabel = 'Validacao pendente';
+            $statusLabel = 'Validação pendente';
         } elseif ($status === 'reprovado') {
             $statusLabel = 'Reprovado';
         } elseif ($status === 'validado_parcial') {
@@ -3407,7 +4007,7 @@ class AdminService
                     $iconMessage = $label . ' vence em ' . $expiryDate->format('d/m/Y') . '.';
                 } else {
                     $iconType = 'ok';
-                    $iconMessage = $label . ' valido ate ' . $expiryDate->format('d/m/Y') . '.';
+                    $iconMessage = $label . ' válido até ' . $expiryDate->format('d/m/Y') . '.';
                 }
             } catch (\Throwable $e) {
                 $iconType = 'ok';
@@ -3418,12 +4018,12 @@ class AdminService
 
         if ($status === 'reprovado') {
             $iconType = 'expired';
-            $iconMessage = $label . ' reprovado e aguardando regularizacao.';
+            $iconMessage = $label . ' reprovado e aguardando regularização.';
         }
 
         if ($status === 'pendente' || $status === '') {
             $iconType = 'warning';
-            $iconMessage = $label . ' aguardando validacao administrativa.';
+            $iconMessage = $label . ' aguardando validação administrativa.';
         }
 
         return [
@@ -3441,7 +4041,7 @@ class AdminService
     private function findBookingForManagement(int $bookingId): array
     {
         if ($bookingId <= 0) {
-            throw new RuntimeException('Agendamento invalido para controle de presenca.');
+            throw new RuntimeException('Agendamento inválido para controle de presença.');
         }
 
         $pdo = Database::connection();
@@ -3463,7 +4063,7 @@ class AdminService
         $booking = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$booking) {
-            throw new RuntimeException('Agendamento nao encontrado.');
+            throw new RuntimeException('Agendamento não encontrado.');
         }
 
         return $booking;
@@ -3549,7 +4149,7 @@ class AdminService
     }
 
     /**
-     * Gera as ocorrencias futuras e atuais dos horarios ativos dentro do intervalo visivel.
+     * Gera as ocorrencias futuras e atuais dos horários ativos dentro do intervalo visivel.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -3605,7 +4205,7 @@ class AdminService
     }
 
     /**
-     * Resolve a data-limite historica para um horario atualmente inativo.
+     * Resolve a data-limite historica para um horário atualmente inativo.
      */
     private function resolveInactiveScheduleBoundary(array $schedule): ?DateTimeImmutable
     {
@@ -3657,7 +4257,7 @@ class AdminService
     }
 
     /**
-     * Carrega horarios especiais para o FullCalendar administrativo.
+     * Carrega horários especiais para o FullCalendar administrativo.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -3684,7 +4284,9 @@ class AdminService
                 ah.url_destino,
                 ah.rotulo_acao,
                 ah.ativo,
-                lt.nome AS local_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome
             FROM agenda_horarios_especiais ah
@@ -3722,7 +4324,7 @@ class AdminService
 
             $events[] = [
                 'id' => 'special-schedule-' . (string) ($row['id'] ?? ''),
-                'title' => (string) ($row['titulo'] ?? 'Horario especial'),
+                'title' => (string) ($row['titulo'] ?? 'Horário especial'),
                 'start' => str_replace(' ', 'T', (string) ($row['data_inicio'] ?? '')),
                 'end' => str_replace(' ', 'T', (string) ($row['data_fim'] ?? '')),
                 'classNames' => $classNames,
@@ -3733,7 +4335,7 @@ class AdminService
                     'local' => (string) ($row['local_nome'] ?? ''),
                     'espaco' => (string) ($row['espaco_nome'] ?? ''),
                     'modalidade' => (string) ($row['modalidade_nome'] ?? ''),
-                    'tipo_horario' => 'horario especial',
+                    'tipo_horario' => 'horário especial',
                     'idade_minima' => (int) ($row['idade_minima'] ?? 0),
                     'idade_maxima' => (int) ($row['idade_maxima'] ?? 120),
                     'criterio_faixa_etaria' => normalize_age_rule_mode((string) ($row['criterio_faixa_etaria'] ?? 'idade_exata')),
@@ -3853,7 +4455,7 @@ class AdminService
     }
 
     /**
-     * Lista horarios especiais visiveis em um canal publico.
+     * Lista horários especiais visiveis em um canal publico.
      */
     public function listPublishedSpecialSchedules(string $channel, int $limit = 6): array
     {
@@ -3862,7 +4464,9 @@ class AdminService
         $stmt = $pdo->prepare('
             SELECT
                 ah.*,
-                lt.nome AS local_nome,
+                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                    THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
+                    ELSE lt.nome_local END AS local_nome,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome
             FROM agenda_horarios_especiais ah
@@ -3950,7 +4554,7 @@ class AdminService
         $content = trim((string) ($data['conteudo'] ?? ''));
 
         if ($title === '' || $summary === '' || $content === '') {
-            throw new RuntimeException('Preencha titulo, resumo e conteudo da postagem.');
+            throw new RuntimeException('Preencha título, resumo e conteúdo da postagem.');
         }
 
         $pdo = Database::connection();

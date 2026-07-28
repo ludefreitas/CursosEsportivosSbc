@@ -188,15 +188,6 @@ body.pagina-home {
 .pagina-home .hero-actions .btn {
     min-width: 210px;
     justify-content: center;
-    border: none;
-    box-shadow: 0 14px 30px rgba(17, 47, 67, 0.16);
-}
-.pagina-home .hero-actions .btn-primary {
-    background: linear-gradient(135deg, #1f76b5 0%, #0d5f98 100%);
-}
-.pagina-home .hero-actions .btn-secondary {
-    color: #fff;
-    background: linear-gradient(135deg, #d96b1f 0%, #bf5412 100%);
 }
 .hero-card {
     background:
@@ -387,25 +378,6 @@ body.pagina-home {
     background: linear-gradient(135deg, #d62b45 0%, #b21d37 100%);
 }
 
-.pagina-home .section-head .btn-secondary,
-.pagina-home .post-card .btn-primary,
-.pagina-home .special-event-card .btn-primary {
-    border: none;
-    color: #fff;
-}
-
-.pagina-home .section-head .btn-secondary {
-    background: linear-gradient(135deg, #1f76b5 0%, #0d5f98 100%);
-}
-
-.pagina-home .special-event-card .btn-primary {
-    background: linear-gradient(135deg, #1ca746 0%, #108739 100%);
-}
-
-.pagina-home .post-card .btn-primary {
-    background: linear-gradient(135deg, #d96b1f 0%, #bf5412 100%);
-}
-
 .pagina-home .special-event-card:nth-child(3n + 2)::before {
     background: linear-gradient(180deg, #1ca746 0%, #d96b1f 100%);
 }
@@ -464,5 +436,23 @@ body.pagina-home {
     }
     .special-event-card {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .hero-copy h1 {
+        max-width: none;
+        font-size: clamp(28px, 9vw, 36px);
+        line-height: 1.02;
+    }
+
+    .hero-copy,
+    .home-logo-card {
+        padding: 20px 18px;
+    }
+
+    .home-whatsapp-row {
+        align-items: flex-start;
+        overflow-wrap: anywhere;
     }
 }

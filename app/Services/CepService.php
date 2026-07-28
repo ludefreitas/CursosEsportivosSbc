@@ -9,6 +9,58 @@ use RuntimeException;
 class CepService
 {
     /**
+     * Consulta um endereço no ViaCEP usando somente um CEP completo.
+     */
+    public function buscarEndereco(string $cep): array
+    {
+        $cep = normalize_cep($cep);
+
+        if (strlen($cep) !== 8) {
+            return [
+                'success' => false,
+                'message' => 'Digite os 8 números do CEP para consultar o endereço.',
+            ];
+        }
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'timeout' => 5,
+                'header' => "Accept: application/json\r\nUser-Agent: CursosEsportivosSBC/1.0\r\n",
+                'ignore_errors' => true,
+            ],
+        ]);
+        $response = @file_get_contents('https://viacep.com.br/ws/' . rawurlencode($cep) . '/json/', false, $context);
+
+        if ($response === false) {
+            return [
+                'success' => false,
+                'message' => 'Não foi possível consultar o CEP neste momento.',
+            ];
+        }
+
+        $address = json_decode($response, true);
+
+        if (!is_array($address) || !empty($address['erro'])) {
+            return [
+                'success' => false,
+                'message' => 'CEP não encontrado.',
+            ];
+        }
+
+        return [
+            'success' => true,
+            'address' => [
+                'cep' => normalize_cep((string) ($address['cep'] ?? $cep)),
+                'logradouro' => trim((string) ($address['logradouro'] ?? '')),
+                'bairro' => trim((string) ($address['bairro'] ?? '')),
+                'cidade' => trim((string) ($address['localidade'] ?? '')),
+                'uf' => strtoupper(trim((string) ($address['uf'] ?? ''))),
+            ],
+        ];
+    }
+
+    /**
      * Avalia se o CEP pode ser aceito pelo sistema.
      */
     public function avaliarCep(string $cep): array
@@ -19,7 +71,7 @@ class CepService
             return [
                 'aceito' => false,
                 'tipo' => 'invalido',
-                'mensagem' => 'Informe um CEP valido com 8 digitos.',
+                'mensagem' => 'Informe um CEP válido com 8 dígitos.',
             ];
         }
 
@@ -35,14 +87,14 @@ class CepService
             return [
                 'aceito' => true,
                 'tipo' => 'intervalo',
-                'mensagem' => 'CEP dentro de uma faixa aceita para moradores de Sao Bernardo do Campo.',
+                'mensagem' => 'CEP dentro de uma faixa aceita para moradores de São Bernardo do Campo.',
             ];
         }
 
         return [
             'aceito' => false,
             'tipo' => 'fora_intervalo',
-            'mensagem' => 'As inscricoes para os cursos esportivos e os agendamentos para treinos sao exclusivos para moradores de Sao Bernardo do Campo. Sera exigido comprovante de endereco na matricula e no dia do agendamento.',
+            'mensagem' => 'As inscrições para os cursos esportivos e os agendamentos para treinos são exclusivos para moradores de São Bernardo do Campo. Será exigido comprovante de endereço na matrícula e no dia do agendamento.',
         ];
     }
 
@@ -103,7 +155,7 @@ class CepService
         $observacoes = trim((string) ($data['observacoes'] ?? ''));
 
         if (strlen($cep) !== 8) {
-            throw new RuntimeException('Informe um CEP valido com 8 digitos para a excecao.');
+            throw new RuntimeException('Informe um CEP válido com 8 dígitos para a exceção.');
         }
 
         $pdo = Database::connection();
@@ -150,11 +202,11 @@ class CepService
         $observacoes = trim((string) ($data['observacoes'] ?? ''));
 
         if (strlen($cepInicio) !== 8 || strlen($cepFim) !== 8) {
-            throw new RuntimeException('Informe CEP inicial e CEP final validos com 8 digitos.');
+            throw new RuntimeException('Informe CEP inicial e CEP final válidos com 8 dígitos.');
         }
 
         if ((int) $cepInicio > (int) $cepFim) {
-            throw new RuntimeException('O CEP inicial nao pode ser maior que o CEP final.');
+            throw new RuntimeException('O CEP inicial não pode ser maior que o CEP final.');
         }
 
         $pdo = Database::connection();

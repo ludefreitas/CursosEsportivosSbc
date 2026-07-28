@@ -16,7 +16,7 @@ class AuthService
         $cpf = normalize_cpf($cpf);
 
         if (!validar_cpf($cpf) || $password === '') {
-            throw new RuntimeException('Informe um CPF valido e a senha.');
+            throw new RuntimeException('Informe um CPF válido e a senha.');
         }
 
         $pdo = Database::connection();
@@ -35,7 +35,7 @@ class AuthService
         }
 
         if (is_minor_by_birth_date($account['data_nascimento'] ?? null) === true) {
-            throw new RuntimeException('O CPF digitado pertence a uma pessoa menor de idade e por isso nao pode acessar o sistema.');
+            throw new RuntimeException('O CPF digitado pertence a uma pessoa menor de idade e por isso não pode acessar o sistema.');
         }
 
         (new AccountAccessService())->revokeExpiredRolesForAccount((int) $account['conta_id']);
@@ -48,7 +48,7 @@ class AuthService
     }
 
     /**
-     * Registra um novo responsavel maior de idade.
+     * Registra um novo responsável maior de idade.
      */
     public function registerResponsible(array $data): array
     {
@@ -57,7 +57,7 @@ class AuthService
         $password = (string) ($data['password'] ?? '');
 
         if (!validar_nome_cadastro($name) || !validar_cpf($cpf) || strlen($password) < 6) {
-            throw new RuntimeException('Informe um nome completo sem caracteres especiais, com no minimo 14 caracteres, alem de CPF valido e senha com ao menos 6 caracteres.');
+            throw new RuntimeException('Informe um nome completo sem caracteres especiais, com no mínimo 14 caracteres, além de CPF válido e senha com ao menos 6 caracteres.');
         }
 
         $statusCpf = $this->consultarSituacaoCpfParaCadastro($cpf);
@@ -128,8 +128,8 @@ class AuthService
                 'status' => 'cpf_invalido',
                 'pode_criar_conta' => false,
                 'bloquear_cadastro_complementar' => false,
-                'mensagem_popup' => 'O CPF digitado e invalido. Confira os numeros informados.',
-                'mensagem_helper' => 'Informe um CPF valido para continuar.',
+                'mensagem_popup' => 'O CPF digitado é inválido. Confira os números informados.',
+                'mensagem_helper' => 'Informe um CPF válido para continuar.',
                 'mensagem_bloqueio' => '',
                 'pessoa_id' => null,
                 'cadastro_ja_completo' => false,
@@ -159,11 +159,11 @@ class AuthService
 
         if (!$person) {
             return [
-                'status' => 'disponivel',
+                'status' => 'disponível',
                 'pode_criar_conta' => true,
                 'bloquear_cadastro_complementar' => false,
-                'mensagem_popup' => 'Este CPF ainda nao possui cadastro no sistema. Voce pode criar a conta normalmente.',
-                'mensagem_helper' => 'CPF disponivel para criar uma nova conta.',
+                'mensagem_popup' => 'Este CPF ainda não possui cadastro no sistema. Você pode criar a conta normalmente.',
+                'mensagem_helper' => 'CPF disponível para criar uma nova conta.',
                 'mensagem_bloqueio' => '',
                 'pessoa_id' => null,
                 'cadastro_ja_completo' => false,
@@ -176,7 +176,7 @@ class AuthService
                 'pode_criar_conta' => false,
                 'bloquear_cadastro_complementar' => false,
                 'mensagem_popup' => $this->buildContaAlreadyRegisteredMessage($person),
-                'mensagem_helper' => 'Este CPF ja possui uma conta criada no sistema.',
+                'mensagem_helper' => 'Este CPF já possui uma conta criada no sistema.',
                 'mensagem_bloqueio' => '',
                 'pessoa_id' => (int) $person['id'],
                 'cadastro_ja_completo' => (int) ($person['cadastro_completo'] ?? 0) === 1,
@@ -189,9 +189,9 @@ class AuthService
             $mensagem = 'O CPF digitado pertence a uma pessoa menor de idade.';
 
             if ($responsavelOutro && !empty($person['nome_responsavel'])) {
-                $mensagem .= ' Esta pessoa esta cadastrada como dependente de ' . $person['nome_responsavel'] . ' e nao pode criar uma conta propria.';
+                $mensagem .= ' Esta pessoa está cadastrada como dependente de ' . $person['nome_responsavel'] . ' e não pode criar uma conta própria.';
             } else {
-                $mensagem .= ' Menores de idade nao podem criar conta propria no sistema.';
+                $mensagem .= ' Menores de idade não podem criar conta própria no sistema.';
             }
 
             return [
@@ -199,7 +199,7 @@ class AuthService
                 'pode_criar_conta' => false,
                 'bloquear_cadastro_complementar' => false,
                 'mensagem_popup' => $mensagem,
-                'mensagem_helper' => 'CPF de menor de idade. A conta nao pode ser criada.',
+                'mensagem_helper' => 'CPF de menor de idade. A conta não pode ser criada.',
                 'mensagem_bloqueio' => '',
                 'pessoa_id' => (int) $person['id'],
                 'cadastro_ja_completo' => (int) ($person['cadastro_completo'] ?? 0) === 1,
@@ -207,15 +207,15 @@ class AuthService
         }
 
         if ($responsavelOutro && !empty($person['nome_responsavel'])) {
-            $mensagem = 'Este CPF ja esta cadastrado como dependente de ' . $person['nome_responsavel'] . '. ';
-            $mensagem .= 'A conta pode ser criada, mas o cadastro complementar ficara bloqueado ate que a responsabilidade seja transferida para este CPF pelo responsavel atual.';
+            $mensagem = 'Este CPF já está cadastrado como dependente de ' . $person['nome_responsavel'] . '. ';
+            $mensagem .= 'A conta pode ser criada, mas o cadastro complementar ficará bloqueado até que a responsabilidade seja transferida para este CPF pelo responsável atual.';
 
             return [
                 'status' => 'dependente_maior_sem_conta',
                 'pode_criar_conta' => true,
                 'bloquear_cadastro_complementar' => true,
                 'mensagem_popup' => $mensagem,
-                'mensagem_helper' => 'CPF de dependente maior de idade. A conta pode ser criada, mas o cadastro ficara bloqueado ate a transferencia de responsabilidade.',
+                'mensagem_helper' => 'CPF de dependente maior de idade. A conta pode ser criada, mas o cadastro ficara bloqueado até a transferencia de responsabilidade.',
                 'mensagem_bloqueio' => $mensagem,
                 'pessoa_id' => (int) $person['id'],
                 'cadastro_ja_completo' => (int) ($person['cadastro_completo'] ?? 0) === 1,
@@ -226,8 +226,8 @@ class AuthService
             'status' => 'pessoa_sem_conta',
             'pode_criar_conta' => true,
             'bloquear_cadastro_complementar' => false,
-            'mensagem_popup' => 'Este CPF ja possui cadastro de pessoa no sistema, mas ainda nao possui conta. Voce pode criar a conta normalmente.',
-            'mensagem_helper' => 'CPF ja cadastrado como pessoa, mas sem conta. A criacao da conta esta liberada.',
+            'mensagem_popup' => 'Este CPF já possui cadastro de pessoa no sistema, mas ainda não possui conta. Você pode criar a conta normalmente.',
+            'mensagem_helper' => 'CPF já cadastrado como pessoa, mas sem conta. A criação da conta está liberada.',
             'mensagem_bloqueio' => '',
             'pessoa_id' => (int) $person['id'],
             'cadastro_ja_completo' => (int) ($person['cadastro_completo'] ?? 0) === 1,
@@ -240,9 +240,9 @@ class AuthService
     private function buildContaAlreadyRegisteredMessage(array $person): string
     {
         if (!empty($person['nome_responsavel']) && $person['nome_responsavel'] !== $person['nome_completo']) {
-            return 'Este CPF ja possui uma conta criada no sistema e esta vinculado a pessoa cadastrada como dependente de ' . $person['nome_responsavel'] . '.';
+            return 'Este CPF já possui uma conta criada no sistema e está vinculado à pessoa cadastrada como dependente de ' . $person['nome_responsavel'] . '.';
         }
 
-        return 'Este CPF ja possui uma conta criada no sistema em nome de ' . $person['nome_completo'] . '.';
+        return 'Este CPF já possui uma conta criada no sistema em nome de ' . $person['nome_completo'] . '.';
     }
 }

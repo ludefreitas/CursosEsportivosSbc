@@ -1,7 +1,7 @@
 <section class="auth-wrap modal-page-wrap">
     <div class="auth-card modal-page-card">
         <h1>Entrar</h1>
-        <p>Use seu CPF como login. Menores de idade nao podem acessar com a propria conta.</p>
+        <p>Use seu CPF como login. Menores de idade não podem acessar com a própria conta.</p>
         <form method="POST" action="<?php echo e(url('/login')); ?>" class="stack-form" data-ajax-form="1" data-follow-redirect="1">
             <input type="hidden" name="return_to" value="<?php echo e($returnTo ?? '/dashboard'); ?>">
             <label>
@@ -13,7 +13,7 @@
                 <input type="password" name="password" required>
             </label>
             <div class="alert-inline">
-                Ao final do projeto, lembrem-se de incluir aqui a verificacao "nao sou robo" ou "sou humano".
+                Ao final do projeto, lembrem-se de incluir aqui a verificação "não sou robô" ou "sou humano".
             </div>
             <button type="submit" class="btn btn-primary">Entrar</button>
         </form>

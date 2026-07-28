@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 /**
- * Front controller canonico da raiz do projeto.
- * Tambem entrega assets fisicos armazenados em public/assets.
+ * Front controller canônico da raiz do projeto.
+ * Também entrega assets físicos armazenados em public/assets.
  */
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 
@@ -39,7 +39,7 @@ if (str_starts_with($requestPath, '/assets/')) {
     ) {
         http_response_code(404);
         header('Content-Type: text/plain; charset=utf-8');
-        echo 'Asset nao encontrado.';
+        echo 'Asset não encontrado.';
         exit;
     }
 

@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/usuario/public_html/agenda.cursosesportivossbc.com
+    - /bin/cp -R * $DEPLOYPATH

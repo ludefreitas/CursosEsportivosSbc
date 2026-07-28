@@ -14,7 +14,7 @@ class BlogService
     private const BLOG_GALLERY_UPLOAD_DIR = '/assets/img/blog/galeria';
 
     /**
-     * Lista postagens publicadas para a area publica.
+     * Lista postagens publicadas para a area pública.
      */
     public function listPublishedPosts(array $filters = []): array
     {
@@ -116,7 +116,7 @@ class BlogService
         $this->ensureSchema();
 
         if ($postId <= 0) {
-            throw new RuntimeException('Postagem invalida.');
+            throw new RuntimeException('Postagem inválida.');
         }
 
         $pdo = Database::connection();
@@ -131,7 +131,7 @@ class BlogService
         $post = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$post) {
-            throw new RuntimeException('Postagem nao encontrada.');
+            throw new RuntimeException('Postagem não encontrada.');
         }
 
         $post['tags_array'] = $this->parseTags($post['tags'] ?? '');
@@ -143,7 +143,7 @@ class BlogService
     }
 
     /**
-     * Retorna uma postagem publica pelo slug.
+     * Retorna uma postagem pública pelo slug.
      */
     public function findPublishedPostBySlug(string $slug): ?array
     {
@@ -212,23 +212,23 @@ class BlogService
         $shareX = $allowShare ? $this->checkboxValue($data, 'compartilhar_x') : 0;
 
         if ($title === '' || $summary === '' || $content === '') {
-            throw new RuntimeException('Preencha titulo, resumo e conteudo da postagem.');
+            throw new RuntimeException('Preencha título, resumo e conteúdo da postagem.');
         }
 
         if (!in_array($status, ['rascunho', 'publicado'], true)) {
-            throw new RuntimeException('Selecione um status valido para a postagem.');
+            throw new RuntimeException('Selecione um status válido para a postagem.');
         }
 
         if (mb_strlen($title, 'UTF-8') > 180) {
-            throw new RuntimeException('O titulo pode ter no maximo 180 caracteres.');
+            throw new RuntimeException('O título pode ter no máximo 180 caracteres.');
         }
 
         if (mb_strlen($category, 'UTF-8') > 120) {
-            throw new RuntimeException('A categoria pode ter no maximo 120 caracteres.');
+            throw new RuntimeException('A categoria pode ter no máximo 120 caracteres.');
         }
 
         if (mb_strlen($shareText, 'UTF-8') > 255) {
-            throw new RuntimeException('O texto de compartilhamento pode ter no maximo 255 caracteres.');
+            throw new RuntimeException('O texto de compartilhamento pode ter no máximo 255 caracteres.');
         }
 
         if ($imageUrl === '') {
@@ -393,7 +393,7 @@ class BlogService
         $this->ensureSchema();
 
         if ($postId <= 0) {
-            throw new RuntimeException('Postagem invalida.');
+            throw new RuntimeException('Postagem inválida.');
         }
 
         $pdo = Database::connection();
@@ -408,7 +408,7 @@ class BlogService
     }
 
     /**
-     * Lista categorias publicas com contagem.
+     * Lista categorias públicas com contagem.
      */
     public function listPublicCategories(): array
     {
@@ -543,7 +543,7 @@ class BlogService
     }
 
     /**
-     * Hidrata uma postagem publica com dados de visualizacao.
+     * Hidrata uma postagem pública com dados de visualizacao.
      */
     private function hydratePublicPost(array $post): array
     {
@@ -555,7 +555,7 @@ class BlogService
         if ($post['gallery_images'] === []) {
             $post['gallery_images'] = [[
                 'imagem_url' => $post['capa_imagem_url'],
-                'legenda' => 'Imagem padrao da postagem',
+                'legenda' => 'Imagem padrão da postagem',
                 'ordem' => 1,
             ]];
         }
@@ -707,7 +707,7 @@ class BlogService
         }
 
         if ($error !== UPLOAD_ERR_OK) {
-            throw new RuntimeException('Nao foi possivel concluir o upload da imagem selecionada.');
+            throw new RuntimeException('Não foi possível concluir o upload da imagem selecionada.');
         }
 
         return $file;
@@ -721,13 +721,13 @@ class BlogService
         $tmpPath = (string) ($file['tmp_name'] ?? '');
 
         if ($tmpPath === '' || !is_file($tmpPath)) {
-            throw new RuntimeException('A imagem enviada nao esta disponivel para processamento.');
+            throw new RuntimeException('A imagem enviada não está disponível para processamento.');
         }
 
         $imageInfo = @getimagesize($tmpPath);
 
         if ($imageInfo === false) {
-            throw new RuntimeException('O arquivo enviado nao e uma imagem valida.');
+            throw new RuntimeException('O arquivo enviado não é uma imagem válida.');
         }
 
         $mimeType = (string) ($imageInfo['mime'] ?? '');
@@ -747,7 +747,7 @@ class BlogService
         $absoluteDirectory = ROOT_PATH . $relativeDirectory;
 
         if (!is_dir($absoluteDirectory) && !mkdir($absoluteDirectory, 0775, true) && !is_dir($absoluteDirectory)) {
-            throw new RuntimeException('Nao foi possivel preparar a pasta de imagens do blog.');
+            throw new RuntimeException('Não foi possível preparar a pasta de imagens do blog.');
         }
 
         $safeBaseName = slugify($baseName !== '' ? $baseName : pathinfo((string) ($file['name'] ?? 'imagem'), PATHINFO_FILENAME));
@@ -755,7 +755,7 @@ class BlogService
         $absolutePath = $absoluteDirectory . '/' . $fileName;
 
         if (!move_uploaded_file($tmpPath, $absolutePath)) {
-            throw new RuntimeException('Nao foi possivel salvar a imagem enviada.');
+            throw new RuntimeException('Não foi possível salvar a imagem enviada.');
         }
 
         return $publicDirectory . '/' . $fileName;
@@ -832,7 +832,7 @@ class BlogService
     }
 
     /**
-     * Normaliza a data de publicacao vinda do formulario.
+     * Normaliza a data de públicação vinda do formulario.
      */
     private function normalizePublicationDate(string $value): ?string
     {
@@ -851,7 +851,7 @@ class BlogService
         $timestamp = strtotime($normalized);
 
         if ($timestamp === false) {
-            throw new RuntimeException('A data de publicacao informada e invalida.');
+            throw new RuntimeException('A data de publicação informada é inválida.');
         }
 
         return date('Y-m-d H:i:s', $timestamp);

@@ -15,6 +15,7 @@
             function hydrateDynamicSection() {
                 $('#popup-todas-paginas').trigger('change');
                 $('select[data-sexo-select="1"]').trigger('change');
+                syncDailyBookingSpaceOptions();
                 initAdminAgendaCalendar();
             }
 
@@ -55,6 +56,48 @@
                 };
             }
 
+            function syncDailyBookingSpaceOptions() {
+                const $form = $('#admin-daily-bookings-filter-form');
+                const $location = $form.find('select[name="agendamento_local_treino_id"]');
+                const $space = $form.find('select[name="agendamento_espaco_treino_id"]');
+                const locationId = String($location.val() || '0');
+
+                if ($form.length === 0 || $space.length === 0) {
+                    return;
+                }
+
+                $space.find('option[data-local-treino-id]').each(function () {
+                    const optionLocationId = String($(this).data('localTreinoId') || '0');
+                    const isAvailable = locationId === '0' || optionLocationId === locationId;
+
+                    $(this).prop('disabled', !isAvailable).prop('hidden', !isAvailable);
+                });
+
+                const $selectedOption = $space.find('option:selected');
+
+                if ($selectedOption.is(':disabled')) {
+                    $space.val('0');
+                }
+            }
+
+            function getDailyBookingsModal() {
+                return $('#admin-daily-bookings-modal');
+            }
+
+            function openDailyBookingsModal() {
+                const $modal = getDailyBookingsModal();
+
+                if ($modal.length === 0) {
+                    return;
+                }
+
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+            }
+
+            function closeDailyBookingsModal() {
+                getDailyBookingsModal().addClass('hidden').attr('aria-hidden', 'true');
+            }
+
             function getOccurrenceModal() {
                 return $('#admin-booking-occurrence-modal');
             }
@@ -89,11 +132,11 @@
                 const $content = getOccurrenceModalContent();
 
                 if ($content.length === 0) {
-                    App.core.abrirPopup('erro', 'O modal da chamada administrativa nao esta disponivel nesta tela.');
+                    App.core.abrirPopup('erro', 'O modal da chamada administrativa não está disponível nesta tela.');
                     return;
                 }
 
-                $content.html('<p class="muted">Carregando chamada da ocorrencia...</p>');
+                $content.html('<p class="muted">Carregando chamada da ocorrência...</p>');
                 openOccurrenceModal();
 
                 $.ajax({
@@ -107,7 +150,7 @@
                     suppressGlobalLoading: true
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar a chamada desta ocorrencia.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar a chamada desta ocorrência.'));
                         closeOccurrenceModal();
                         return;
                     }
@@ -197,22 +240,22 @@
 
                         if (props.is_special === true) {
                             let details = ''
-                                + '<strong>Horario especial:</strong> ' + App.core.escapeHtml(String(info.event.title || 'Horario especial'))
-                                + '<br><strong>Periodo:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.startStr || '')))
-                                + ' ate ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.endStr || '')))
+                                + '<strong>Horário especial:</strong> ' + App.core.escapeHtml(String(info.event.title || 'Horário especial'))
+                                + '<br><strong>Período:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.startStr || '')))
+                                + ' até ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.endStr || '')))
                                 + '<br><strong>Local:</strong> ' + App.core.escapeHtml(String(props.local || 'A definir'))
-                                + '<br><strong>Espaco:</strong> ' + App.core.escapeHtml(String(props.espaco || 'A definir'))
+                                + '<br><strong>Espaço:</strong> ' + App.core.escapeHtml(String(props.espaco || 'A definir'))
                                 + '<br><strong>Modalidade:</strong> ' + App.core.escapeHtml(String(props.modalidade || 'Sem modalidade'))
                                 + '<br><strong>Vagas:</strong> Geral ' + App.core.escapeHtml(String(props.vagas_geral || 0))
                                 + ' | PCD ' + App.core.escapeHtml(String(props.vagas_pcd || 0))
                                 + ' | PVS ' + App.core.escapeHtml(String(props.vagas_pvs || 0))
                                 + ' | PLM ' + App.core.escapeHtml(String(props.vagas_plm || 0))
-                                + '<br><strong>Publicacao:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_inicio || '')))
-                                + ' ate ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_fim || '')))
+                                + '<br><strong>Publicação:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_inicio || '')))
+                                + ' até ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_fim || '')))
                                 + '<br><strong>Status:</strong> ' + (Number(props.ativo || 0) === 1 ? 'Ativo' : 'Inativo');
 
                             if (String(props.special_description || '').trim() !== '') {
-                                details += '<br><strong>Descricao:</strong> ' + App.core.escapeHtml(String(props.special_description || ''));
+                                details += '<br><strong>Descrição:</strong> ' + App.core.escapeHtml(String(props.special_description || ''));
                             }
 
                             App.core.abrirPopupHtml('info', details);
@@ -388,20 +431,23 @@
 
                 $form[0].reset();
                 $form.find('input[name="agendamento_id"]').val('');
+                $('#admin-booking-justification-person, #admin-booking-justification-date').text('-');
                 $modal.addClass('hidden').attr('aria-hidden', 'true');
             }
 
-            function openJustificationModal(bookingId, reason) {
+            function openJustificationModal(bookingId, reason, personName, bookingDate) {
                 const $modal = getJustificationModal();
                 const $form = getJustificationForm();
 
                 if ($modal.length === 0 || $form.length === 0) {
-                    App.core.abrirPopup('erro', 'O modal de justificativa nao esta disponivel nesta tela.');
+                    App.core.abrirPopup('erro', 'O modal de justificativa não está disponível nesta tela.');
                     return;
                 }
 
                 $form.find('input[name="agendamento_id"]').val(String(bookingId || ''));
                 $form.find('input[name="justificativa_motivo"]').val(String(reason || ''));
+                $('#admin-booking-justification-person').text(String(personName || '-'));
+                $('#admin-booking-justification-date').text(String(bookingDate || '-'));
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
                 $form.find('input[name="justificativa_motivo"]').trigger('focus');
             }
@@ -436,7 +482,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel atualizar a chamada.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar a chamada.'));
                         return;
                     }
 
@@ -461,7 +507,7 @@
                 }
 
                 syncActiveButton(normalizedTarget);
-                $host.attr('data-admin-loading', '1').html('<section class="admin-section-panel"><article class="content-card"><p class="muted">Carregando conteudo...</p></article></section>');
+                $host.attr('data-admin-loading', '1').html('<section class="admin-section-panel"><article class="content-card"><p class="muted">Carregando conteúdo...</p></article></section>');
 
                 $.ajax({
                     url: sectionsUrl,
@@ -472,13 +518,17 @@
                 })
                     .done(function (response) {
                         if (!response || response.success === false || !response.html) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar esta secao agora.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar esta seção agora.'));
                             return;
                         }
 
                         $host.html(String(response.html || ''));
                         hydrateDynamicSection();
                         updateHash(normalizedTarget);
+
+                        if (normalizedTarget === 'agenda' && String(requestData.abrir_resultado_agendamentos || '0') === '1') {
+                            openDailyBookingsModal();
+                        }
                     })
                     .fail(function (xhr) {
                         const erro = App.core.extrairMensagemErroAjax(xhr);
@@ -513,11 +563,14 @@
 
             $(document).on('submit', '#admin-daily-bookings-filter-form', function (event) {
                 event.preventDefault();
-                activateSection('agenda', currentAgendaFilters());
+                const filters = currentAgendaFilters();
+                filters.abrir_resultado_agendamentos = '1';
+                activateSection('agenda', filters);
             });
 
-            $(document).on('change', '#admin-daily-bookings-filter-form input[name="data_agendamento"], #admin-daily-bookings-filter-form select[name="agendamento_local_treino_id"], #admin-daily-bookings-filter-form select[name="agendamento_espaco_treino_id"]', function () {
-                activateSection('agenda', currentAgendaFilters());
+            $(document).on('change', '#admin-daily-bookings-filter-form select[name="agendamento_local_treino_id"]', function () {
+                $('#admin-daily-bookings-filter-form select[name="agendamento_espaco_treino_id"]').val('0');
+                syncDailyBookingSpaceOptions();
             });
 
             $(document).on('click', '[data-admin-agenda-filter-mode]', function () {
@@ -607,7 +660,12 @@
 
                 if (status === 'justificado') {
                     syncBookingStatusGroup(bookingId, previousStatus);
-                    openJustificationModal(bookingId, String($checkbox.data('currentJustification') || ''));
+                    openJustificationModal(
+                        bookingId,
+                        String($checkbox.attr('data-current-justification') || ''),
+                        String($checkbox.attr('data-booking-person') || ''),
+                        String($checkbox.attr('data-booking-date') || '')
+                    );
                     return;
                 }
 
@@ -635,6 +693,16 @@
             $(document).on('click', '#admin-booking-occurrence-modal', function (event) {
                 if ($(event.target).is('#admin-booking-occurrence-modal')) {
                     closeOccurrenceModal();
+                }
+            });
+
+            $(document).on('click', '#admin-daily-bookings-modal-close', function () {
+                closeDailyBookingsModal();
+            });
+
+            $(document).on('click', '#admin-daily-bookings-modal', function (event) {
+                if ($(event.target).is('#admin-daily-bookings-modal')) {
+                    closeDailyBookingsModal();
                 }
             });
 
@@ -779,12 +847,12 @@
                 const $detailsPanel = getDetailsPanel();
 
                 if ($detailsPanel.length === 0) {
-                    App.core.abrirPopup('erro', 'O modal de consulta de pessoa nao esta disponivel nesta tela.');
+                    App.core.abrirPopup('erro', 'O modal de consulta de pessoa não está disponível nesta tela.');
                     return;
                 }
 
                 currentPerson = person;
-                $('#admin-person-details-subtitle').text('Consultando ' + String(person.nome_completo || '') + ' sem sair desta pagina.');
+                $('#admin-person-details-subtitle').text('Consultando ' + String(person.nome_completo || '') + ' sem sair desta página.');
                 $('#admin-person-details-full-name').text(String(person.nome_completo || '-'));
                 $('#admin-person-details-cpf').text(person.cpf ? String(person.cpf).replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '-');
                 $('#admin-person-details-sex').text(formatSex(person.sexo));
@@ -818,7 +886,7 @@
                 const $panel = getPanel();
 
                 if ($panel.length === 0) {
-                    App.core.abrirPopup('erro', 'O formulario de edicao de pessoa nao esta disponivel nesta tela.');
+                    App.core.abrirPopup('erro', 'O formulario de edição de pessoa não está disponível nesta tela.');
                     return;
                 }
 
@@ -857,14 +925,14 @@
                 if (hasAccount) {
                     setValue('#admin-person-conta-ativa', Number(person.conta_ativa || 0) === 1 ? '1' : '0');
                     $contaAtiva.prop('disabled', false);
-                    $accountHint.text('Conta vinculada encontrada. Voce pode ativar ou inativar este usuario aqui.');
+                    $accountHint.text('Conta vinculada encontrada. Você pode ativar ou inativar este usuário aqui.');
                 } else {
                     setValue('#admin-person-conta-ativa', '0');
                     $contaAtiva.prop('disabled', true);
-                    $accountHint.text('Esta pessoa ainda nao possui conta de usuario vinculada.');
+                    $accountHint.text('Esta pessoa ainda não possui conta de usuário vinculada.');
                 }
 
-                $('#admin-person-editor-subtitle').text('Editando ' + String(person.nome_completo || '') + ' sem sair desta pagina.');
+                $('#admin-person-editor-subtitle').text('Editando ' + String(person.nome_completo || '') + ' sem sair desta página.');
                 $panel.removeClass('hidden').attr('aria-hidden', 'false');
                 $('#admin-person-sexo').trigger('change');
             }
@@ -873,14 +941,14 @@
                 const personId = Number($(this).data('personId') || 0);
 
                 if (!personId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar a pessoa selecionada.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar a pessoa selecionada.');
                     return;
                 }
 
                 $.getJSON(App.core.buildUrl('/admin/pessoas/detalhe'), { id: personId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.person) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar os dados desta pessoa.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar os dados desta pessoa.'));
                             return;
                         }
 
@@ -904,7 +972,7 @@
 
             $(document).on('click', '#admin-person-details-edit', function () {
                 if (!currentPerson) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel localizar os dados desta pessoa para edicao.');
+                    App.core.abrirPopup('erro', 'Não foi possível localizar os dados desta pessoa para edição.');
                     return;
                 }
 
@@ -963,7 +1031,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false || !response.person) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel salvar as alteracoes.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar as alterações.'));
                         return;
                     }
 
@@ -996,7 +1064,7 @@
 
                 App.core.abrirPopup(
                     String($(this).data('alertLevel') || 'erro'),
-                    String($(this).data('alertMessage') || 'Nao foi possivel carregar o aviso deste certificado.')
+                    String($(this).data('alertMessage') || 'Não foi possível carregar o aviso deste certificado.')
                 );
             });
         },
@@ -1084,7 +1152,7 @@
             }
 
             function fillDetails(user) {
-                $('#admin-user-details-subtitle').text('Consultando os dados de ' + String(user.nome_completo || '') + ' sem sair desta pagina.');
+                $('#admin-user-details-subtitle').text('Consultando os dados de ' + String(user.nome_completo || '') + ' sem sair desta página.');
                 $('#admin-user-details-name').text(String(user.nome_completo || '-'));
                 $('#admin-user-details-cpf').text(formatCpf(user.cpf));
                 $('#admin-user-details-email').text(String(user.email || '-'));
@@ -1105,10 +1173,10 @@
                 const dependents = Array.isArray(payload && payload.dependents) ? payload.dependents : [];
                 const $content = $('#admin-user-dependents-content');
 
-                $('#admin-user-dependents-subtitle').text('Dependentes vinculados a ' + String(user.nome_completo || 'este usuario') + '.');
+                $('#admin-user-dependents-subtitle').text('Dependentes vinculados a ' + String(user.nome_completo || 'este usuário') + '.');
 
                 if (dependents.length === 0) {
-                    $content.html('<p class="muted">Este usuario nao possui dependentes vinculados no momento.</p>');
+                    $content.html('<p class="muted">Este usuário não possui dependentes vinculados no momento.</p>');
                     return;
                 }
 
@@ -1130,7 +1198,7 @@
 
                 $content.html('' +
                     '<div class="admin-user-dependent-summary">' +
-                        '<p><strong>Usuario:</strong> ' + App.core.escapeHtml(String(user.nome_completo || '-')) + '</p>' +
+                        '<p><strong>Usuário:</strong> ' + App.core.escapeHtml(String(user.nome_completo || '-')) + '</p>' +
                         '<p><strong>Total de dependentes:</strong> ' + App.core.escapeHtml(String(dependents.length)) + '</p>' +
                     '</div>' +
                     '<div class="table-wrap">' +
@@ -1142,7 +1210,7 @@
                                     '<th>Nascimento</th>' +
                                     '<th>Cadastro</th>' +
                                     '<th>Vinculo desde</th>' +
-                                    '<th>Observacoes</th>' +
+                                    '<th>Observações</th>' +
                                 '</tr>' +
                             '</thead>' +
                             '<tbody>' + rows + '</tbody>' +
@@ -1154,14 +1222,14 @@
                 const accountId = Number($(this).data('accountId') || 0);
 
                 if (!accountId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o usuario selecionado.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar o usuário selecionado.');
                     return;
                 }
 
                 $.getJSON(App.core.buildUrl('/admin/usuarios/detalhe'), { id: accountId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.user) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar os dados deste usuario.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar os dados deste usuário.'));
                             return;
                         }
 
@@ -1178,7 +1246,7 @@
                 const accountId = Number($(this).data('accountId') || 0);
 
                 if (!accountId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o usuario selecionado.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar o usuário selecionado.');
                     return;
                 }
 
@@ -1188,7 +1256,7 @@
                 $.getJSON(App.core.buildUrl('/admin/usuarios/dependentes'), { conta_id: accountId })
                     .done(function (response) {
                         if (!response || response.success === false) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar os dependentes deste usuario.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar os dependentes deste usuário.'));
                             closeDependentsModal();
                             return;
                         }
@@ -1287,7 +1355,7 @@
                 $('#admin-user-roles-account-id').val(String(user.conta_id || ''));
                 $('#admin-user-roles-account-name').text(String(user.nome_completo || '-'));
                 $('#admin-user-roles-last-access').text(formatDateTime(user.ultimo_acesso_em));
-                $('#admin-user-roles-subtitle').text('Defina os papeis ativos de ' + String(user.nome_completo || 'este usuario') + '.');
+                $('#admin-user-roles-subtitle').text('Defina os papéis ativos de ' + String(user.nome_completo || 'este usuário') + '.');
                 $('#admin-user-roles-status').text(blockReason !== '' ? 'Bloqueado: ' + blockReason : 'Liberado para atribuicao');
                 $('#admin-user-roles-reason').val('');
 
@@ -1319,21 +1387,21 @@
                 const accountId = Number($(this).data('accountId') || 0);
 
                 if (!accountId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o usuario selecionado para gerenciar os papeis.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar o usuário selecionado para gerenciar os papéis.');
                     return;
                 }
 
                 $.getJSON(App.core.buildUrl('/admin/usuarios/detalhe'), { id: accountId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.user) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar os papeis deste usuario.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar os papéis deste usuário.'));
                             return;
                         }
 
                         if (Number(response.user.role_assignment_allowed || 0) !== 1) {
                             App.core.abrirPopup(
                                 'erro',
-                                String(response.user.role_assignment_block_reason || 'Este usuario nao pode receber papeis no momento.')
+                                String(response.user.role_assignment_block_reason || 'Este usuário não pode receber papéis no momento.')
                             );
                             return;
                         }
@@ -1378,13 +1446,13 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false || !response.user) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel salvar os papeis deste usuario.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar os papéis deste usuário.'));
                         return;
                     }
 
                     updateUserRow(response.user);
                     closeModal();
-                    App.core.abrirPopup('sucesso', String(response.message || 'Papeis do usuario atualizados com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Papéis do usuário atualizados com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
@@ -1414,7 +1482,7 @@
                 })
                     .done(function (response) {
                         if (!response || response.success === false || !response.html) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel atualizar a lista agora.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar a lista agora.'));
                             return;
                         }
 
@@ -1511,7 +1579,7 @@
                 const birthYearTo = currentYear - minAge;
 
                 if ($agePreview.length > 0) {
-                    $agePreview.text('Faixa etaria: para ' + String(minAge) + ' a ' + String(maxAge) + ' anos de idade.');
+                    $agePreview.text('Faixa etária: para ' + String(minAge) + ' a ' + String(maxAge) + ' anos de idade.');
                 }
 
                 if ($birthYearPreview.length > 0) {
@@ -1620,14 +1688,14 @@
                 const scheduleId = Number($(this).data('weeklyScheduleId') || 0);
 
                 if (!scheduleId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o horario selecionado.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar o horário selecionado.');
                     return;
                 }
 
                 $.getJSON(App.core.buildUrl('/admin/horarios-semanais/detalhe'), { id: scheduleId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.schedule) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar este horario.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar este horário.'));
                             return;
                         }
 
@@ -1681,13 +1749,13 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel criar o horario semanal.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível criar o horário semanal.'));
                         return;
                     }
 
                     $createForm[0].reset();
                     App.admin.activateSection('agenda', currentAgendaFilters());
-                    App.core.abrirPopup('sucesso', String(response.message || 'Horario semanal criado com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Horário semanal criado com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
@@ -1717,13 +1785,13 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel atualizar o horario semanal.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar o horário semanal.'));
                         return;
                     }
 
                     closeEditor();
                     App.admin.activateSection('agenda', currentAgendaFilters());
-                    App.core.abrirPopup('sucesso', String(response.message || 'Horario semanal atualizado com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Horário semanal atualizado com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
@@ -1753,12 +1821,12 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel inativar o horario semanal.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível inativar o horário semanal.'));
                         return;
                     }
 
                     App.admin.activateSection('agenda', currentAgendaFilters());
-                    App.core.abrirPopup('sucesso', String(response.message || 'Horario semanal inativado com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Horário semanal inativado com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
@@ -1788,12 +1856,12 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel ativar o horario semanal.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível ativar o horário semanal.'));
                         return;
                     }
 
                     App.admin.activateSection('agenda', currentAgendaFilters());
-                    App.core.abrirPopup('sucesso', String(response.message || 'Horario semanal ativado com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Horário semanal ativado com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
@@ -1892,7 +1960,7 @@
                 $('#admin-special-schedule-blog').prop('checked', Number(eventData.publicar_blog || 0) === 1);
 
                 $('#admin-special-schedule-editor-subtitle').text(
-                    'Editando ' + String(eventData.titulo || 'horario especial') + ' sem sair da agenda administrativa.'
+                    'Editando ' + String(eventData.titulo || 'horário especial') + ' sem sair da agenda administrativa.'
                 );
             }
 
@@ -1900,14 +1968,14 @@
                 const eventId = Number($(this).data('specialScheduleId') || 0);
 
                 if (!eventId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o horario especial selecionado.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar o horário especial selecionado.');
                     return;
                 }
 
                 $.getJSON(App.core.buildUrl('/admin/agenda-horarios-especiais/detalhe'), { id: eventId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.event) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar este horario especial.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar este horário especial.'));
                             return;
                         }
 
@@ -1951,13 +2019,13 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel atualizar o horario especial.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar o horário especial.'));
                         return;
                     }
 
                     closeEditor();
                     App.admin.activateSection('agenda', currentAgendaFilters());
-                    App.core.abrirPopup('sucesso', String(response.message || 'Horario especial atualizado com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Horário especial atualizado com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
@@ -2014,7 +2082,7 @@
                 const conditionSlug = String($(this).data('conditionSlug') || '').trim();
 
                 if (!personId || conditionSlug === '') {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar a condicao selecionada para validacao.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar a condição selecionada para validação.');
                     return;
                 }
 
@@ -2023,7 +2091,7 @@
                     condition_slug: conditionSlug
                 }).done(function (response) {
                     if (!response || response.success === false || !response.html) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel abrir a validacao deste certificado.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível abrir a validação deste certificado.'));
                         return;
                     }
 
@@ -2071,7 +2139,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel salvar a validacao do certificado.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar a validação do certificado.'));
                         return;
                     }
 
@@ -2089,7 +2157,7 @@
                     }
 
                     closeModal();
-                    App.core.abrirPopup('sucesso', String(response.message || 'Validacao atualizada com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Validação atualizada com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
@@ -2145,7 +2213,7 @@
                 const certificateType = String($(this).data('certificateType') || '').trim().toLowerCase();
 
                 if (!personId || certificateType === '') {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar o atestado selecionado para validacao.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar o atestado selecionado para validação.');
                     return;
                 }
 
@@ -2154,7 +2222,7 @@
                     certificate_type: certificateType
                 }).done(function (response) {
                     if (!response || response.success === false || !response.html) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel abrir a validacao deste atestado.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível abrir a validação deste atestado.'));
                         return;
                     }
 
@@ -2202,7 +2270,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel salvar a validacao do atestado.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar a validação do atestado.'));
                         return;
                     }
 
@@ -2215,7 +2283,7 @@
                     }
 
                     closeModal();
-                    App.core.abrirPopup('sucesso', String(response.message || 'Validacao do atestado atualizada com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Validação do atestado atualizada com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
@@ -2245,7 +2313,7 @@
                 $('#admin-blog-post-image-current-text').text(
                     String(imageUrl || '').trim() !== ''
                         ? 'Imagem atual: ' + String(imageUrl)
-                        : 'Se nenhuma imagem for enviada, o sistema usa a imagem padrao da home como capa e fundo da postagem.'
+                        : 'Se nenhuma imagem for enviada, o sistema usa a imagem padrão da home como capa e fundo da postagem.'
                 );
             }
 
@@ -2338,7 +2406,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel remover a postagem.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível remover a postagem.'));
                         return;
                     }
 
@@ -2400,7 +2468,7 @@
                 }
 
                 $('#admin-blog-post-modal-title').text('Editar postagem do blog');
-                $('#admin-blog-post-submit').text('Salvar alteracoes');
+                $('#admin-blog-post-submit').text('Salvar alterações');
                 syncShareOptions();
             }
 
@@ -2413,14 +2481,14 @@
                 const postId = Number($(this).data('postId') || 0);
 
                 if (!postId) {
-                    App.core.abrirPopup('erro', 'Nao foi possivel identificar a postagem selecionada.');
+                    App.core.abrirPopup('erro', 'Não foi possível identificar a postagem selecionada.');
                     return;
                 }
 
                 $.getJSON(App.core.buildUrl('/admin/postagens/detalhe'), { id: postId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.post) {
-                            App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel carregar a postagem.'));
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar a postagem.'));
                             return;
                         }
 
@@ -2511,7 +2579,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel salvar a postagem.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar a postagem.'));
                         return;
                     }
 
@@ -2539,7 +2607,7 @@
 
             function openModal() {
                 if ($('#admin-official-communication-modal').length === 0) {
-                    App.core.abrirPopup('erro', 'O editor de comunicacao oficial nao esta disponivel nesta tela.');
+                    App.core.abrirPopup('erro', 'O editor de comunicação oficial não está disponível nesta tela.');
                     return;
                 }
 
@@ -2596,7 +2664,7 @@
                     }
                 }).done(function (response) {
                     if (!response || response.success === false) {
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Nao foi possivel salvar a comunicacao oficial.'));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar a comunicação oficial.'));
                         return;
                     }
 
@@ -2609,13 +2677,669 @@
                     }
 
                     closeModal();
-                    App.core.abrirPopup('sucesso', String(response.message || 'Comunicacao oficial salva com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Comunicação oficial salva com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
                 }).always(function () {
                     $submitButton.prop('disabled', false);
                 });
+            });
+        },
+
+        iniciarBuscaEnderecoCep: function () {
+            let request = null;
+            let debounceTimer = null;
+
+            function getLocationModal() {
+                return $('#admin-training-location-modal');
+            }
+
+            function prepareCreateLocationForm() {
+                const $form = $('#admin-training-location-form');
+
+                if ($form.length === 0) {
+                    return;
+                }
+
+                $form[0].reset();
+                $form.attr('action', String($form.data('createAction') || ''));
+                $form.find('input[name="local_treino_id"]').val('');
+                $form.find('[data-address-field]').val('');
+                $form.find('.cep-address-results').addClass('hidden').empty();
+                $form.find('.cep-address-status').text('Digite os 8 números do CEP.');
+                $form.find('[data-cep-address-search="1"]').attr('aria-expanded', 'false');
+                $('#admin-training-location-modal-title').text('Cadastrar local de treino');
+                $('#admin-training-location-submit').text('Cadastrar local');
+            }
+
+            function closeLocationModal() {
+                const $modal = getLocationModal();
+
+                window.clearTimeout(debounceTimer);
+
+                if (request) {
+                    request.abort();
+                    request = null;
+                }
+
+                prepareCreateLocationForm();
+                $modal.addClass('hidden').attr('aria-hidden', 'true');
+            }
+
+            $(document).on('click', '#admin-training-location-open', function () {
+                const $modal = getLocationModal();
+
+                prepareCreateLocationForm();
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+                window.setTimeout(function () {
+                    $('#admin-training-location-form input[name="nome_local"]').trigger('focus');
+                }, 0);
+            });
+
+            $(document).on('click', '.admin-training-location-edit', function () {
+                const $button = $(this);
+                const $modal = getLocationModal();
+                const $form = $('#admin-training-location-form');
+                let location = {};
+
+                try {
+                    location = JSON.parse(String($button.attr('data-location') || '{}'));
+                } catch (error) {
+                    App.core.abrirPopup('erro', 'Não foi possível carregar os dados deste local.');
+                    return;
+                }
+
+                prepareCreateLocationForm();
+                $form.attr('action', String($form.data('updateAction') || ''));
+                $form.find('input[name="local_treino_id"]').val(String(location.id || ''));
+                $form.find('input[name="nome_local"]').val(String(location.nome_local || ''));
+                $form.find('input[name="apelido_local"]').val(String(location.apelido_local || ''));
+                $form.find('select[name="admin_local"]').val(String(Number(location.admin_local || 0) || ''));
+                $form.find('select[name="coord_local"]').val(String(Number(location.coord_local || 0) || ''));
+                $form.find('input[name="cep"]').val(String(location.cep || '').replace(/(\d{5})(\d{3})/, '$1-$2'));
+                $form.find('input[name="logradouro"]').val(String(location.logradouro || ''));
+                $form.find('input[name="numero_endereco"]').val(String(location.numero_endereco || ''));
+                $form.find('input[name="complemento"]').val(String(location.complemento || ''));
+                $form.find('input[name="bairro"]').val(String(location.bairro || ''));
+                $form.find('input[name="cidade"]').val(String(location.cidade || ''));
+                $form.find('input[name="uf"]').val(String(location.uf || ''));
+                $form.find('select[name="ativo"]').val(String(Number(location.ativo || 0)));
+                $form.find('.cep-address-status').text('Endereço atual carregado. Digite outro CEP para substituir.');
+                $('#admin-training-location-modal-title').text('Editar local de treino');
+                $('#admin-training-location-submit').text('Salvar alterações');
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+
+                window.setTimeout(function () {
+                    $form.find('input[name="nome_local"]').trigger('focus');
+                }, 0);
+            });
+
+            $(document).on('click', '#admin-training-location-close, #admin-training-location-cancel', function () {
+                closeLocationModal();
+            });
+
+            $(document).on('click', '#admin-training-location-modal', function (event) {
+                if (event.target === this) {
+                    closeLocationModal();
+                }
+            });
+
+            $(document).on('keydown', function (event) {
+                if (event.key === 'Escape' && !getLocationModal().hasClass('hidden')) {
+                    closeLocationModal();
+                }
+            });
+
+            function clearAddress($form) {
+                $form.find('[data-address-field]').val('');
+            }
+
+            function closeResults($input, $results) {
+                $results.addClass('hidden').empty();
+                $input.attr('aria-expanded', 'false');
+            }
+
+            $(document).on('input', '[data-cep-address-search="1"]', function () {
+                const $input = $(this);
+                const $form = $input.closest('form');
+                const $results = $form.find('.cep-address-results').first();
+                const $status = $form.find('.cep-address-status').first();
+                const digits = String($input.val() || '').replace(/\D/g, '').slice(0, 8);
+                const formatted = digits.length > 5 ? digits.slice(0, 5) + '-' + digits.slice(5) : digits;
+
+                $input.val(formatted);
+                clearAddress($form);
+                closeResults($input, $results);
+                window.clearTimeout(debounceTimer);
+
+                if (request) {
+                    request.abort();
+                    request = null;
+                }
+
+                if (digits.length < 8) {
+                    $status.text('Digite os 8 números do CEP. Faltam ' + String(8 - digits.length) + '.');
+                    return;
+                }
+
+                $status.text('Consultando endereço...');
+                debounceTimer = window.setTimeout(function () {
+                    request = $.ajax({
+                        url: App.core.buildUrl('/api/ceps/endereco'),
+                        method: 'GET',
+                        dataType: 'json',
+                        data: { cep: digits },
+                        suppressGlobalLoading: true
+                    })
+                        .done(function (response) {
+                            if (!response || response.success !== true || !response.address) {
+                                $status.text(String((response && response.message) || 'CEP não encontrado.'));
+                                return;
+                            }
+
+                            const address = response.address;
+                            const label = [
+                                String(address.logradouro || ''),
+                                String(address.bairro || ''),
+                                String(address.cidade || '') + '/' + String(address.uf || ''),
+                                String(address.cep || '').replace(/(\d{5})(\d{3})/, '$1-$2')
+                            ].filter(function (item) {
+                                return item.replace('/', '').trim() !== '';
+                            }).join(' — ');
+                            const $option = $('<button type="button" class="cep-address-option" role="option"></button>');
+
+                            $option.text(label);
+                            $option.data('address', address);
+                            $results.empty().append($option).removeClass('hidden');
+                            $input.attr('aria-expanded', 'true');
+                            $status.text('Selecione o endereço encontrado.');
+                        })
+                        .fail(function (xhr, status) {
+                            if (status !== 'abort') {
+                                $status.text('Não foi possível consultar o CEP neste momento.');
+                            }
+                        })
+                        .always(function () {
+                            request = null;
+                        });
+                }, 250);
+            });
+
+            $(document).on('click', '.cep-address-option', function () {
+                const $option = $(this);
+                const $form = $option.closest('form');
+                const $input = $form.find('[data-cep-address-search="1"]').first();
+                const address = $option.data('address') || {};
+
+                $input.val(String(address.cep || '').replace(/(\d{5})(\d{3})/, '$1-$2'));
+                $form.find('[data-address-field="logradouro"]').val(String(address.logradouro || ''));
+                $form.find('[data-address-field="bairro"]').val(String(address.bairro || ''));
+                $form.find('[data-address-field="cidade"]').val(String(address.cidade || ''));
+                $form.find('[data-address-field="uf"]').val(String(address.uf || ''));
+                $form.find('.cep-address-status').text('Endereço selecionado.');
+                closeResults($input, $form.find('.cep-address-results').first());
+            });
+
+            $(document).on('click', function (event) {
+                if ($(event.target).closest('.cep-autocomplete-field').length === 0) {
+                    $('.cep-address-results').addClass('hidden');
+                    $('[data-cep-address-search="1"]').attr('aria-expanded', 'false');
+                }
+            });
+        },
+
+        iniciarFiltroLocaisTreino: function () {
+            let filterTimer = null;
+            let filterRequest = null;
+
+            function refreshTrainingLocations($form) {
+                const search = String($form.find('input[name="location_search"]').val() || '').trim();
+                const $limitInput = $form.find('input[name="location_limit"]').first();
+                const requestedLimit = Number.parseInt(String($limitInput.val() || '10'), 10);
+                const limit = Math.max(1, Math.min(20, Number.isFinite(requestedLimit) ? requestedLimit : 10));
+
+                $limitInput.val(String(limit));
+
+                if (filterRequest) {
+                    filterRequest.abort();
+                }
+
+                filterRequest = $.ajax({
+                    url: App.core.buildUrl('/admin/locais/lista'),
+                    method: 'GET',
+                    dataType: 'json',
+                    data: {
+                        location_search: search,
+                        location_limit: limit
+                    },
+                    suppressGlobalLoading: true
+                })
+                    .done(function (response) {
+                        if (!response || response.success === false || typeof response.html !== 'string') {
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar a lista de locais.'));
+                            return;
+                        }
+
+                        $('#admin-training-location-list-body').html(response.html);
+                    })
+                    .fail(function (xhr, status) {
+                        if (status !== 'abort') {
+                            const erro = App.core.extrairMensagemErroAjax(xhr);
+                            App.core.abrirPopup('erro', erro.mensagem);
+                        }
+                    })
+                    .always(function () {
+                        filterRequest = null;
+                    });
+            }
+
+            $(document).on('submit', '#admin-training-location-filter-form', function (event) {
+                event.preventDefault();
+                refreshTrainingLocations($(this));
+            });
+
+            $(document).on('input', '#admin-training-location-search', function () {
+                const $form = $(this).closest('form');
+
+                window.clearTimeout(filterTimer);
+                filterTimer = window.setTimeout(function () {
+                    refreshTrainingLocations($form);
+                }, 250);
+            });
+
+            $(document).on('input', '#admin-training-location-filter-form input[name="location_limit"]', function () {
+                const $form = $(this).closest('form');
+
+                window.clearTimeout(filterTimer);
+                filterTimer = window.setTimeout(function () {
+                    refreshTrainingLocations($form);
+                }, 250);
+            });
+
+        },
+
+        iniciarFiltroEspacosTreino: function () {
+            let filterTimer = null;
+            let filterRequest = null;
+
+            function refreshTrainingSpaces($form) {
+                const search = String($form.find('input[name="space_search"]').val() || '').trim();
+                const $limitInput = $form.find('input[name="space_limit"]').first();
+                const requestedLimit = Number.parseInt(String($limitInput.val() || '10'), 10);
+                const limit = Math.max(1, Math.min(20, Number.isFinite(requestedLimit) ? requestedLimit : 10));
+
+                $limitInput.val(String(limit));
+
+                if (filterRequest) {
+                    filterRequest.abort();
+                }
+
+                filterRequest = $.ajax({
+                    url: App.core.buildUrl('/admin/espacos/lista'),
+                    method: 'GET',
+                    dataType: 'json',
+                    data: {
+                        space_search: search,
+                        space_limit: limit
+                    },
+                    suppressGlobalLoading: true
+                }).done(function (response) {
+                    if (!response || response.success === false || typeof response.html !== 'string') {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar a lista de espaços.'));
+                        return;
+                    }
+
+                    $('#admin-training-space-list-body').html(response.html);
+                }).fail(function (xhr, status) {
+                    if (status !== 'abort') {
+                        const erro = App.core.extrairMensagemErroAjax(xhr);
+                        App.core.abrirPopup('erro', erro.mensagem);
+                    }
+                }).always(function () {
+                    filterRequest = null;
+                });
+            }
+
+            $(document).on('submit', '#admin-training-space-filter-form', function (event) {
+                event.preventDefault();
+                refreshTrainingSpaces($(this));
+            });
+
+            $(document).on('input', '#admin-training-space-search, #admin-training-space-filter-form input[name="space_limit"]', function () {
+                const $form = $(this).closest('form');
+
+                window.clearTimeout(filterTimer);
+                filterTimer = window.setTimeout(function () {
+                    refreshTrainingSpaces($form);
+                }, 250);
+            });
+        },
+
+        iniciarEditorEspacosTreino: function () {
+            function getModal() {
+                return $('#admin-training-space-modal');
+            }
+
+            function closeModal() {
+                getModal().addClass('hidden').attr('aria-hidden', 'true');
+            }
+
+            function prepareCreate() {
+                const $form = $('#admin-training-space-form');
+
+                if ($form[0]) {
+                    $form[0].reset();
+                }
+                $form.attr('action', String($form.data('createAction') || ''));
+                $form.find('input[name="espaco_treino_id"]').val('');
+                $('#admin-training-space-modal-title').text('Criar espaço de treino');
+                $('#admin-training-space-submit').text('Cadastrar espaço');
+            }
+
+            $(document).on('click', '#admin-training-space-create', function () {
+                prepareCreate();
+                getModal().removeClass('hidden').attr('aria-hidden', 'false');
+            });
+
+            $(document).on('click', '.admin-training-space-edit', function () {
+                const $form = $('#admin-training-space-form');
+                let space;
+
+                try {
+                    space = JSON.parse(String($(this).attr('data-space') || '{}'));
+                } catch (error) {
+                    App.core.abrirPopup('erro', 'Não foi possível carregar os dados deste espaço.');
+                    return;
+                }
+
+                prepareCreate();
+                $form.attr('action', String($form.data('updateAction') || ''));
+                $form.find('input[name="espaco_treino_id"]').val(String(space.id || ''));
+                $form.find('select[name="local_treino_id"]').val(String(space.local_treino_id || ''));
+                $form.find('input[name="nome"]').val(String(space.nome || ''));
+                $form.find('input[name="tipo_espaco"]').val(String(space.tipo_espaco || ''));
+                $form.find('input[name="capacidade_base"]').val(String(space.capacidade_base || 0));
+                $form.find('select[name="supervisor_espaco"]').val(String(space.supervisor_espaco || ''));
+                $form.find('select[name="ativo"]').val(String(Number(space.ativo || 0)));
+                $('#admin-training-space-modal-title').text('Editar espaço de treino');
+                $('#admin-training-space-submit').text('Salvar alterações');
+                getModal().removeClass('hidden').attr('aria-hidden', 'false');
+            });
+
+            $(document).on('submit', '#admin-training-space-form', function (event) {
+                event.preventDefault();
+
+                const $form = $(this);
+                const $button = $form.find('button[type="submit"]').first();
+                const $filterForm = $('#admin-training-space-filter-form');
+                const data = $form.serialize() + '&' + $.param({
+                    space_search: String($filterForm.find('input[name="space_search"]').val() || '').trim(),
+                    space_limit: String($filterForm.find('input[name="space_limit"]').val() || '10').trim()
+                });
+
+                $button.prop('disabled', true);
+                $.ajax({
+                    url: String($form.attr('action') || ''),
+                    method: 'POST',
+                    dataType: 'json',
+                    data: data,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar o espaço.'));
+                        return;
+                    }
+
+                    if (typeof response.spaces_html === 'string') {
+                        $('#admin-training-space-list-body').html(response.spaces_html);
+                    }
+                    closeModal();
+                    App.core.abrirPopup('sucesso', String(response.message || 'Espaço salvo com sucesso.'));
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                }).always(function () {
+                    $button.prop('disabled', false);
+                });
+            });
+
+            $(document).on('click', '#admin-training-space-close, #admin-training-space-cancel', closeModal);
+            $(document).on('click', '#admin-training-space-modal', function (event) {
+                if (event.target === this) {
+                    closeModal();
+                }
+            });
+        },
+
+        iniciarModalSuspensoesLocal: function () {
+            function currentSpaceFilters() {
+                const $filterForm = $('#admin-training-space-filter-form');
+
+                return {
+                    space_search: String($filterForm.find('input[name="space_search"]').val() || '').trim(),
+                    space_limit: String($filterForm.find('input[name="space_limit"]').val() || '10').trim()
+                };
+            }
+
+            function getModal() {
+                return $('#admin-location-suspensions-modal');
+            }
+
+            function getSuspensionFormModal() {
+                return $('#admin-space-suspension-modal');
+            }
+
+            function closeSuspensionFormModal() {
+                const $form = $('#admin-space-suspension-form');
+
+                if ($form.length > 0) {
+                    $form[0].reset();
+                }
+
+                getSuspensionFormModal().addClass('hidden').attr('aria-hidden', 'true');
+            }
+
+            function showSpaceSuspensions(spaceId, spaceName) {
+                const $rows = $('[data-space-suspension-row="' + String(spaceId || '') + '"]');
+
+                $('[data-space-suspension-row]').addClass('hidden');
+                $rows.removeClass('hidden');
+                $('#admin-location-suspensions-empty').toggleClass('hidden', $rows.length > 0);
+                $('#admin-location-suspensions-subtitle').text(String(spaceName || ''));
+                getModal()
+                    .attr('data-current-space-id', String(spaceId || ''))
+                    .attr('data-current-space-name', String(spaceName || ''))
+                    .removeClass('hidden')
+                    .attr('aria-hidden', 'false');
+            }
+
+            function updateManagementFragments(response) {
+                if (response && typeof response.spaces_html === 'string') {
+                    $('#admin-training-space-list-body').html(response.spaces_html);
+                }
+
+                if (response && typeof response.suspensions_html === 'string') {
+                    $('#admin-location-suspensions-body').html(response.suspensions_html);
+                }
+            }
+
+            function closeModal() {
+                getModal()
+                    .removeAttr('data-current-space-id data-current-space-name')
+                    .addClass('hidden')
+                    .attr('aria-hidden', 'true');
+                $('[data-space-suspension-row]').addClass('hidden');
+                $('#admin-location-suspensions-empty').addClass('hidden');
+            }
+
+            $(document).on('click', '.admin-location-suspensions-link', function () {
+                const $button = $(this);
+                const spaceId = String($button.attr('data-space-id') || '');
+                const spaceName = String($button.attr('data-space-name') || '');
+                showSpaceSuspensions(spaceId, spaceName);
+            });
+
+            $(document).on('click', '.admin-space-suspension-open', function () {
+                const $button = $(this);
+                const $form = $('#admin-space-suspension-form');
+                const spaceId = String($button.attr('data-space-id') || '');
+                const spaceName = String($button.attr('data-space-name') || '');
+
+                $form[0].reset();
+                $form.find('input[name="espaco_treino_id"]').val(spaceId);
+                $form.find('input[name="espaco_treino_nome"]').val(spaceName);
+                $('#admin-space-suspension-subtitle').text(spaceName);
+                getSuspensionFormModal().removeClass('hidden').attr('aria-hidden', 'false');
+
+                window.setTimeout(function () {
+                    $form.find('input[name="data_inicio"]').trigger('focus');
+                }, 0);
+            });
+
+            $(document).on('click', '#admin-space-suspension-close, #admin-space-suspension-cancel', function () {
+                closeSuspensionFormModal();
+            });
+
+            $(document).on('click', '#admin-space-suspension-modal', function (event) {
+                if (event.target === this) {
+                    closeSuspensionFormModal();
+                }
+            });
+
+            $(document).on('submit', '#admin-space-suspension-form', function (event) {
+                event.preventDefault();
+
+                const $form = $(this);
+                const $submitButton = $form.find('button[type="submit"]').first();
+
+                $submitButton.prop('disabled', true);
+
+                $.ajax({
+                    url: String($form.attr('action') || ''),
+                    method: 'POST',
+                    dataType: 'json',
+                    data: $form.serialize() + '&' + $.param(currentSpaceFilters()),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    suppressGlobalLoading: true
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar a suspensão.'));
+                        return;
+                    }
+
+                    updateManagementFragments(response);
+                    closeSuspensionFormModal();
+                    App.core.abrirPopup('sucesso', String(response.message || 'Suspensão de espaço salva com sucesso.'));
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                }).always(function () {
+                    $submitButton.prop('disabled', false);
+                });
+            });
+
+            $(document).on('submit', '.admin-space-suspension-deactivate-form', function (event) {
+                event.preventDefault();
+
+                const $form = $(this);
+                const $submitButton = $form.find('button[type="submit"]').first();
+                const $modal = getModal();
+                const spaceId = String($modal.attr('data-current-space-id') || '');
+                const spaceName = String($modal.attr('data-current-space-name') || '');
+
+                $submitButton.prop('disabled', true);
+
+                $.ajax({
+                    url: String($form.attr('action') || ''),
+                    method: 'POST',
+                    dataType: 'json',
+                    data: $form.serialize() + '&' + $.param(currentSpaceFilters()),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    suppressGlobalLoading: true
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível inativar a suspensão.'));
+                        return;
+                    }
+
+                    updateManagementFragments(response);
+                    showSpaceSuspensions(spaceId, spaceName);
+                    App.core.abrirPopup('sucesso', String(response.message || 'Suspensão de espaço inativada com sucesso.'));
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                }).always(function () {
+                    $submitButton.prop('disabled', false);
+                });
+            });
+
+            $(document).on('submit', '.admin-space-suspension-delete-form', function (event) {
+                event.preventDefault();
+
+                const $form = $(this);
+                const $submitButton = $form.find('button[type="submit"]').first();
+                const $modal = getModal();
+                const spaceId = String($modal.attr('data-current-space-id') || '');
+                const spaceName = String($modal.attr('data-current-space-name') || '');
+
+                $submitButton.prop('disabled', true);
+
+                $.ajax({
+                    url: String($form.attr('action') || ''),
+                    method: 'POST',
+                    dataType: 'json',
+                    data: $form.serialize() + '&' + $.param(currentSpaceFilters()),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    suppressGlobalLoading: true
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível excluir a suspensão.'));
+                        return;
+                    }
+
+                    updateManagementFragments(response);
+                    showSpaceSuspensions(spaceId, spaceName);
+                    App.core.abrirPopup('sucesso', String(response.message || 'Suspensão futura excluída com sucesso.'));
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                }).always(function () {
+                    $submitButton.prop('disabled', false);
+                });
+            });
+
+            $(document).on('click', '#admin-location-suspensions-close, #admin-location-suspensions-cancel', function () {
+                closeModal();
+            });
+
+            $(document).on('click', '#admin-location-suspensions-modal', function (event) {
+                if (event.target === this) {
+                    closeModal();
+                }
+            });
+
+            $(document).on('keydown', function (event) {
+                if (event.key === 'Escape' && !getSuspensionFormModal().hasClass('hidden')) {
+                    closeSuspensionFormModal();
+                    return;
+                }
+
+                if (event.key === 'Escape' && !getModal().hasClass('hidden')) {
+                    closeModal();
+                }
             });
         },
 
@@ -2631,6 +3355,11 @@
             App.admin.iniciarValidacaoAtestadosSaudeAdmin();
             App.admin.iniciarEditorPostagensBlog();
             App.admin.iniciarEditorComunicacaoOficialAdmin();
+            App.admin.iniciarBuscaEnderecoCep();
+            App.admin.iniciarFiltroLocaisTreino();
+            App.admin.iniciarFiltroEspacosTreino();
+            App.admin.iniciarEditorEspacosTreino();
+            App.admin.iniciarModalSuspensoesLocal();
         }
     });
 

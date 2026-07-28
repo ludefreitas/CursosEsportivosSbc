@@ -26,7 +26,7 @@ class AdminController extends Controller
     private OfficialCommunicationService $officialCommunicationService;
 
     /**
-     * Inicializa servicos da area administrativa.
+     * Inicializa servicos da área administrativa.
      */
     public function __construct()
     {
@@ -40,7 +40,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Exibe a area administrativa inicial.
+     * Exibe a área administrativa inicial.
      */
     public function index(): void
     {
@@ -53,7 +53,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna o HTML de uma secao especifica da area administrativa.
+     * Retorna o HTML de uma seção especifica da área administrativa.
      */
     public function section(): void
     {
@@ -73,7 +73,7 @@ class AdminController extends Controller
             ];
 
             if (!in_array($sectionName, $allowedSections, true)) {
-                throw new \RuntimeException('A secao administrativa solicitada nao existe.');
+                throw new \RuntimeException('A seção administrativa solicitada não existe.');
             }
 
             $sectionData = $this->buildSectionData($sectionName, $user);
@@ -100,7 +100,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Salva o quadro "o que voce precisa saber" da home.
+     * Salva o quadro "o que você precisa saber" da home.
      */
     public function saveHomeInfoBox(): void
     {
@@ -145,13 +145,13 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Comunicacao oficial salva com sucesso.',
+                    'message' => 'Comunicação oficial salva com sucesso.',
                     'communication' => $officialCommunication,
                     'card_html' => $this->renderOfficialCommunicationCardHtml($officialCommunication),
                 ]);
             }
 
-            flash('success', 'Comunicacao oficial salva com sucesso.');
+            flash('success', 'Comunicação oficial salva com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -167,7 +167,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna os dados completos de uma pessoa para edicao inline.
+     * Retorna os dados completos de uma pessoa para edição inline.
      */
     public function personDetails(): void
     {
@@ -210,7 +210,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna os dependentes do usuario selecionado para consulta em modal.
+     * Retorna os dependentes do usuário selecionado para consulta em modal.
      */
     public function userDependents(): void
     {
@@ -233,7 +233,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Atualiza os papeis ativos do usuario selecionado.
+     * Atualiza os papéis ativos do usuário selecionado.
      */
     public function updateUserRoles(): void
     {
@@ -249,12 +249,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Papeis do usuario atualizados com sucesso.',
+                    'message' => 'Papéis do usuário atualizados com sucesso.',
                     'user' => $updatedUser,
                 ]);
             }
 
-            flash('success', 'Papeis do usuario atualizados com sucesso.');
+            flash('success', 'Papéis do usuário atualizados com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -270,7 +270,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna os dados completos de um horario semanal para edicao em modal.
+     * Retorna os dados completos de um horário semanal para edição em modal.
      */
     public function weeklyScheduleDetails(): void
     {
@@ -291,7 +291,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna os dados completos de um horario especial para edicao em modal.
+     * Retorna os dados completos de um horário especial para edição em modal.
      */
     public function specialScheduleDetails(): void
     {
@@ -312,7 +312,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna os eventos do calendario administrativo da agenda.
+     * Retorna os eventos do calendário administrativo da agenda.
      */
     public function calendarEvents(): void
     {
@@ -336,7 +336,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna a lista de chamada de uma ocorrencia especifica da agenda administrativa.
+     * Retorna a lista de chamada de uma ocorrência especifica da agenda administrativa.
      */
     public function bookingOccurrence(): void
     {
@@ -350,7 +350,7 @@ class AdminController extends Controller
             try {
                 $occurrenceDate = new DateTimeImmutable($startDateTime);
             } catch (\Throwable $e) {
-                throw new \RuntimeException('Data e horario da ocorrencia sao invalidos.');
+                throw new \RuntimeException('Data e horário da ocorrência são inválidos.');
             }
 
             $occurrence = [
@@ -394,7 +394,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna apenas o quadro de pessoas da area administrativa.
+     * Retorna apenas o quadro de pessoas da área administrativa.
      */
     public function peoplePanel(): void
     {
@@ -434,7 +434,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Entrega um PDF de certificado para consulta na area administrativa.
+     * Entrega um PDF de certificado para consulta na área administrativa.
      */
     public function certificateDocument(): void
     {
@@ -447,7 +447,7 @@ class AdminController extends Controller
 
             if ($relativePath === '' || !is_file($absolutePath)) {
                 http_response_code(404);
-                echo 'Arquivo nao encontrado.';
+                echo 'Arquivo não encontrado.';
                 exit;
             }
 
@@ -466,13 +466,13 @@ class AdminController extends Controller
             exit;
         } catch (\Throwable $e) {
             http_response_code(404);
-            echo 'Arquivo nao encontrado.';
+            echo 'Arquivo não encontrado.';
             exit;
         }
     }
 
     /**
-     * Retorna o modal de validacao administrativa de um certificado de condicao.
+     * Retorna o modal de validação administrativa de um certificado de condicao.
      */
     public function conditionValidationModal(): void
     {
@@ -497,7 +497,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Salva a validacao administrativa de um certificado de condicao.
+     * Salva a validação administrativa de um certificado de condicao.
      */
     public function saveConditionValidation(): void
     {
@@ -516,7 +516,7 @@ class AdminController extends Controller
 
             $this->jsonResponse([
                 'success' => true,
-                'message' => 'Validacao do certificado atualizada com sucesso.',
+                'message' => 'Validação do certificado atualizada com sucesso.',
                 'html' => $this->renderConditionValidationModalHtml($modalData),
                 'panel_html' => $html,
             ]);
@@ -529,7 +529,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna o modal de validacao administrativa de um atestado de saude.
+     * Retorna o modal de validação administrativa de um atestado de saude.
      */
     public function healthCertificateValidationModal(): void
     {
@@ -554,7 +554,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Salva a validacao administrativa de um atestado de saude.
+     * Salva a validação administrativa de um atestado de saude.
      */
     public function saveHealthCertificateValidation(): void
     {
@@ -574,7 +574,7 @@ class AdminController extends Controller
 
             $this->jsonResponse([
                 'success' => true,
-                'message' => 'Validacao do atestado atualizada com sucesso.',
+                'message' => 'Validação do atestado atualizada com sucesso.',
                 'html' => $this->renderHealthCertificateValidationModalHtml($modalData),
                 'panel_html' => $panelHtml,
             ]);
@@ -587,7 +587,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Atualiza pessoa e usuario diretamente pela area administrativa.
+     * Atualiza pessoa e usuário diretamente pela área administrativa.
      */
     public function updatePerson(): void
     {
@@ -829,7 +829,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna os dados de uma postagem para edicao em modal.
+     * Retorna os dados de uma postagem para edição em modal.
      */
     public function postDetails(): void
     {
@@ -850,7 +850,175 @@ class AdminController extends Controller
     }
 
     /**
-     * Salva uma nova suspensao temporaria de espaco.
+     * Cadastra um novo local de treino.
+     */
+    public function storeTrainingLocation(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $this->adminService->createTrainingLocation($_POST);
+
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Local de treino cadastrado com sucesso.',
+                    'redirect' => url('/admin'),
+                ]);
+            }
+
+            flash('success', 'Local de treino cadastrado com sucesso.');
+        } catch (\Throwable $e) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+
+            flash('error', $e->getMessage());
+        }
+
+        redirect('/admin');
+    }
+
+    /**
+     * Atualiza um local de treino existente.
+     */
+    public function updateTrainingLocation(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $this->adminService->updateTrainingLocation($_POST);
+
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Local de treino atualizado com sucesso.',
+                    'redirect' => url('/admin'),
+                ]);
+            }
+
+            flash('success', 'Local de treino atualizado com sucesso.');
+        } catch (\Throwable $e) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+
+            flash('error', $e->getMessage());
+        }
+
+        redirect('/admin');
+    }
+
+    /**
+     * Retorna somente as linhas filtradas da lista de locais de treino.
+     */
+    public function trainingLocationList(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $locationLimit = (int) ($_GET['location_limit'] ?? AdminService::DEFAULT_TRAINING_LOCATION_LIMIT);
+            $locationLimit = max(1, min(AdminService::MAX_TRAINING_LOCATION_LIMIT, $locationLimit));
+            $trainingLocations = $this->adminService->listTrainingLocationsForManagement(
+                (string) ($_GET['location_search'] ?? ''),
+                $locationLimit
+            );
+
+            ob_start();
+            require ROOT_PATH . '/app/Views/admin/partials/training_location_rows.php';
+            $html = (string) ob_get_clean();
+
+            $this->jsonResponse([
+                'success' => true,
+                'html' => $html,
+            ]);
+        } catch (\Throwable $e) {
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * Retorna somente as linhas filtradas da lista de espaços de treino.
+     */
+    public function trainingSpaceList(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $spaceLimit = (int) ($_GET['space_limit'] ?? AdminService::DEFAULT_TRAINING_SPACE_LIMIT);
+            $spaceLimit = max(1, min(AdminService::MAX_TRAINING_SPACE_LIMIT, $spaceLimit));
+            $trainingSpaces = $this->adminService->listTrainingSpacesForManagement(
+                (string) ($_GET['space_search'] ?? ''),
+                $spaceLimit
+            );
+
+            ob_start();
+            require ROOT_PATH . '/app/Views/admin/partials/training_space_rows.php';
+            $html = (string) ob_get_clean();
+
+            $this->jsonResponse([
+                'success' => true,
+                'html' => $html,
+            ]);
+        } catch (\Throwable $e) {
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function storeTrainingSpace(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $this->adminService->createTrainingSpace($_POST);
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Espaço de treino cadastrado com sucesso.',
+                'spaces_html' => $this->renderSpaceManagementFragments()['spaces_html'],
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function updateTrainingSpace(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $this->adminService->updateTrainingSpace($_POST);
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Espaço de treino atualizado com sucesso.',
+                'spaces_html' => $this->renderSpaceManagementFragments()['spaces_html'],
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * Salva uma nova suspensão temporaria de espaco.
      */
     public function storeSpaceSuspension(): void
     {
@@ -860,20 +1028,22 @@ class AdminController extends Controller
             $this->adminService->createSpaceSuspension((int) $user['conta_id'], $_POST);
 
             if ($this->isAjaxRequest()) {
+                $fragments = $this->renderSpaceManagementFragments();
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Suspensao de espaco salva com sucesso.',
-                    'redirect' => url('/admin'),
+                    'message' => 'Suspensão de espaço salva com sucesso.',
+                    'spaces_html' => $fragments['spaces_html'],
+                    'suspensions_html' => $fragments['suspensions_html'],
                 ]);
             }
 
-            flash('success', 'Suspensao de espaco salva com sucesso.');
+            flash('success', 'Suspensão de espaço salva com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => false,
                     'message' => $e->getMessage(),
-                ]);
+                ], 422);
             }
 
             flash('error', $e->getMessage());
@@ -883,7 +1053,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Inativa uma suspensao temporaria de espaco.
+     * Inativa uma suspensão temporaria de espaco.
      */
     public function deactivateSpaceSuspension(): void
     {
@@ -893,20 +1063,22 @@ class AdminController extends Controller
             $this->adminService->deactivateSpaceSuspension((int) ($_POST['suspensao_espaco_id'] ?? 0));
 
             if ($this->isAjaxRequest()) {
+                $fragments = $this->renderSpaceManagementFragments();
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Suspensao de espaco inativada com sucesso.',
-                    'redirect' => url('/admin'),
+                    'message' => 'Suspensão de espaço inativada com sucesso.',
+                    'spaces_html' => $fragments['spaces_html'],
+                    'suspensions_html' => $fragments['suspensions_html'],
                 ]);
             }
 
-            flash('success', 'Suspensao de espaco inativada com sucesso.');
+            flash('success', 'Suspensão de espaço inativada com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => false,
                     'message' => $e->getMessage(),
-                ]);
+                ], 422);
             }
 
             flash('error', $e->getMessage());
@@ -916,7 +1088,42 @@ class AdminController extends Controller
     }
 
     /**
-     * Salva um novo horario semanal.
+     * Exclui uma suspensão futura antes do início da vigência.
+     */
+    public function deleteFutureSpaceSuspension(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $this->adminService->deleteFutureSpaceSuspension((int) ($_POST['suspensao_espaco_id'] ?? 0));
+
+            if ($this->isAjaxRequest()) {
+                $fragments = $this->renderSpaceManagementFragments();
+                $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Suspensão futura excluída com sucesso.',
+                    'spaces_html' => $fragments['spaces_html'],
+                    'suspensions_html' => $fragments['suspensions_html'],
+                ]);
+            }
+
+            flash('success', 'Suspensão futura excluída com sucesso.');
+        } catch (\Throwable $e) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+
+            flash('error', $e->getMessage());
+        }
+
+        redirect('/admin');
+    }
+
+    /**
+     * Salva um novo horário semanal.
      */
     public function storeWeeklySchedule(): void
     {
@@ -928,12 +1135,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Horario semanal criado com sucesso.',
+                    'message' => 'Horário semanal criado com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'Horario semanal criado com sucesso.');
+            flash('success', 'Horário semanal criado com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -949,7 +1156,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Atualiza um horario semanal existente.
+     * Atualiza um horário semanal existente.
      */
     public function updateWeeklySchedule(): void
     {
@@ -965,12 +1172,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Horario semanal atualizado com sucesso.',
+                    'message' => 'Horário semanal atualizado com sucesso.',
                     'schedule' => $schedule,
                 ]);
             }
 
-            flash('success', 'Horario semanal atualizado com sucesso.');
+            flash('success', 'Horário semanal atualizado com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -986,7 +1193,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Inativa um horario semanal existente.
+     * Inativa um horário semanal existente.
      */
     public function deactivateWeeklySchedule(): void
     {
@@ -998,12 +1205,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Horario semanal inativado com sucesso.',
+                    'message' => 'Horário semanal inativado com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'Horario semanal inativado com sucesso.');
+            flash('success', 'Horário semanal inativado com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1019,7 +1226,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Ativa novamente um horario semanal existente.
+     * Ativa novamente um horário semanal existente.
      */
     public function activateWeeklySchedule(): void
     {
@@ -1031,12 +1238,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Horario semanal ativado com sucesso.',
+                    'message' => 'Horário semanal ativado com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'Horario semanal ativado com sucesso.');
+            flash('success', 'Horário semanal ativado com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1052,7 +1259,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Salva um novo horario especial para a agenda publica.
+     * Salva um novo horário especial para a agenda pública.
      */
     public function storeSpecialSchedule(): void
     {
@@ -1064,12 +1271,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Horario especial salvo com sucesso.',
+                    'message' => 'Horário especial salvo com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'Horario especial salvo com sucesso.');
+            flash('success', 'Horário especial salvo com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1085,7 +1292,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Inativa um horario especial da agenda publica.
+     * Inativa um horário especial da agenda pública.
      */
     public function deactivateSpecialSchedule(): void
     {
@@ -1097,12 +1304,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Horario especial inativado com sucesso.',
+                    'message' => 'Horário especial inativado com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'Horario especial inativado com sucesso.');
+            flash('success', 'Horário especial inativado com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1118,7 +1325,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Atualiza um horario especial existente.
+     * Atualiza um horário especial existente.
      */
     public function updateSpecialSchedule(): void
     {
@@ -1135,12 +1342,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Horario especial atualizado com sucesso.',
+                    'message' => 'Horário especial atualizado com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'Horario especial atualizado com sucesso.');
+            flash('success', 'Horário especial atualizado com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1168,12 +1375,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'CEP de excecao salvo com sucesso.',
+                    'message' => 'CEP de exceção salvo com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'CEP de excecao salvo com sucesso.');
+            flash('success', 'CEP de exceção salvo com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1201,12 +1408,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'CEP de excecao removido com sucesso.',
+                    'message' => 'CEP de exceção removido com sucesso.',
                     'redirect' => url('/admin'),
                 ]);
             }
 
-            flash('success', 'CEP de excecao removido com sucesso.');
+            flash('success', 'CEP de exceção removido com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -1296,7 +1503,7 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => false,
-                    'message' => 'Faca login para acessar a area administrativa.',
+                    'message' => 'Faca login para acessar a área administrativa.',
                     'redirect' => login_modal_url('/admin'),
                 ], 401);
             }
@@ -1325,12 +1532,12 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => false,
-                    'message' => 'Complete primeiro seu cadastro para acessar a area administrativa.',
+                    'message' => 'Complete primeiro seu cadastro para acessar a área administrativa.',
                     'redirect' => profile_completion_modal_url('/admin'),
                 ], 403);
             }
 
-            flash('error', 'Complete primeiro seu cadastro para acessar a area administrativa.');
+            flash('error', 'Complete primeiro seu cadastro para acessar a área administrativa.');
             redirect_to_profile_completion_modal('/admin');
         }
 
@@ -1346,12 +1553,12 @@ class AdminController extends Controller
         if ($this->isAjaxRequest()) {
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'Seu nivel de acesso nao permite abrir a area administrativa.',
+                'message' => 'Seu nível de acesso não permite abrir a área administrativa.',
                 'redirect' => url('/dashboard'),
             ], 403);
         }
 
-        flash('error', 'Seu nivel de acesso nao permite abrir a area administrativa.');
+        flash('error', 'Seu nível de acesso não permite abrir a área administrativa.');
         redirect('/dashboard');
     }
 
@@ -1392,12 +1599,12 @@ class AdminController extends Controller
         if ($this->isAjaxRequest()) {
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'Somente Administrador Master e Administrador podem gerenciar papeis de usuario.',
+                'message' => 'Somente Administrador Master e Administrador podem gerenciar papéis de usuário.',
                 'redirect' => url('/admin'),
             ], 403);
         }
 
-        flash('error', 'Somente Administrador Master e Administrador podem gerenciar papeis de usuario.');
+        flash('error', 'Somente Administrador Master e Administrador podem gerenciar papéis de usuário.');
         redirect('/admin');
     }
 
@@ -1418,7 +1625,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Monta apenas os dados necessarios para a secao solicitada.
+     * Monta apenas os dados necessarios para a seção solicitada.
      */
     private function buildSectionData(string $sectionName, array $user): array
     {
@@ -1459,6 +1666,28 @@ class AdminController extends Controller
             }
 
             $data['trainingSpaces'] = $this->adminService->listTrainingSpacesForManagement();
+
+            if ($dailySpaceId > 0) {
+                $selectedDailySpace = null;
+
+                foreach ($data['trainingSpaces'] as $trainingSpace) {
+                    if ((int) ($trainingSpace['id'] ?? 0) === $dailySpaceId) {
+                        $selectedDailySpace = $trainingSpace;
+                        break;
+                    }
+                }
+
+                if (
+                    $selectedDailySpace === null
+                    || (
+                        $dailyLocationId > 0
+                        && (int) ($selectedDailySpace['local_treino_id'] ?? 0) !== $dailyLocationId
+                    )
+                ) {
+                    $dailySpaceId = 0;
+                }
+            }
+
             $data['modalities'] = $this->adminService->listModalitiesForManagement();
             $data['selectedLocationId'] = $locationId > 0 ? $locationId : 0;
             $data['selectedModalityId'] = $modalityId > 0 ? $modalityId : 0;
@@ -1490,7 +1719,25 @@ class AdminController extends Controller
         }
 
         if ($sectionName === 'locais-espacos') {
-            $data['trainingSpaces'] = $this->adminService->listTrainingSpacesForManagement();
+            $data['locationSearch'] = trim((string) ($_GET['location_search'] ?? ''));
+            $data['locationLimit'] = (int) ($_GET['location_limit'] ?? AdminService::DEFAULT_TRAINING_LOCATION_LIMIT);
+            $data['locationLimit'] = max(1, min(AdminService::MAX_TRAINING_LOCATION_LIMIT, (int) $data['locationLimit']));
+            $data['locationLimitMax'] = AdminService::MAX_TRAINING_LOCATION_LIMIT;
+            $data['trainingLocations'] = $this->adminService->listTrainingLocationsForManagement(
+                (string) $data['locationSearch'],
+                (int) $data['locationLimit']
+            );
+            $data['eligibleLocationManagers'] = $this->adminService->listEligibleLocationManagers();
+            $data['spaceSearch'] = trim((string) ($_GET['space_search'] ?? ''));
+            $data['spaceLimit'] = (int) ($_GET['space_limit'] ?? AdminService::DEFAULT_TRAINING_SPACE_LIMIT);
+            $data['spaceLimit'] = max(1, min(AdminService::MAX_TRAINING_SPACE_LIMIT, (int) $data['spaceLimit']));
+            $data['spaceLimitMax'] = AdminService::MAX_TRAINING_SPACE_LIMIT;
+            $data['spaceFormLocations'] = $this->adminService->listTrainingLocationsForSpaceForm();
+            $data['eligibleSpaceSupervisors'] = $this->adminService->listEligibleSpaceSupervisors();
+            $data['trainingSpaces'] = $this->adminService->listTrainingSpacesForManagement(
+                (string) $data['spaceSearch'],
+                (int) $data['spaceLimit']
+            );
             $data['spaceSuspensions'] = $this->adminService->listSpaceSuspensionsForManagement();
         }
 
@@ -1503,7 +1750,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Renderiza o modal de validacao administrativa de condicao.
+     * Renderiza o modal de validação administrativa de condicao.
      */
     private function renderConditionValidationModalHtml(array $modalData): string
     {
@@ -1524,7 +1771,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Renderiza o modal de validacao administrativa de atestado de saude.
+     * Renderiza o modal de validação administrativa de atestado de saude.
      */
     private function renderHealthCertificateValidationModalHtml(array $modalData): string
     {
@@ -1552,5 +1799,30 @@ class AdminController extends Controller
         ob_start();
         require ROOT_PATH . '/app/Views/admin/partials/health_certificate_validation_panel.php';
         return (string) ob_get_clean();
+    }
+
+    /**
+     * Renderiza os fragmentos atualizados da gestão de espaços e suspensões.
+     */
+    private function renderSpaceManagementFragments(): array
+    {
+        $spaceSearch = trim((string) ($_POST['space_search'] ?? ''));
+        $spaceLimit = (int) ($_POST['space_limit'] ?? AdminService::DEFAULT_TRAINING_SPACE_LIMIT);
+        $spaceLimit = max(1, min(AdminService::MAX_TRAINING_SPACE_LIMIT, $spaceLimit));
+        $trainingSpaces = $this->adminService->listTrainingSpacesForManagement($spaceSearch, $spaceLimit);
+        $spaceSuspensions = $this->adminService->listSpaceSuspensionsForManagement();
+
+        ob_start();
+        require ROOT_PATH . '/app/Views/admin/partials/training_space_rows.php';
+        $spacesHtml = (string) ob_get_clean();
+
+        ob_start();
+        require ROOT_PATH . '/app/Views/admin/partials/location_suspension_rows.php';
+        $suspensionsHtml = (string) ob_get_clean();
+
+        return [
+            'spaces_html' => $spacesHtml,
+            'suspensions_html' => $suspensionsHtml,
+        ];
     }
 }

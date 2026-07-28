@@ -32,28 +32,28 @@
             const $popup = $('#popup-mensagem');
             const $titulo = $('#popup-titulo');
             const $texto = $('#popup-texto');
-            const titulo = tipo === 'erro' ? 'Erro no formulario' : 'Mensagem do sistema';
+            const titulo = tipo === 'erro' ? 'Erro no formulário' : 'Mensagem do sistema';
 
             App.state.popupCloseCallback = typeof onClose === 'function' ? onClose : null;
 
             $popup.removeClass('popup-erro popup-sucesso hidden').addClass(tipo === 'erro' ? 'popup-erro' : 'popup-sucesso');
             $popup.attr('aria-hidden', 'false');
             $titulo.text(titulo);
-            $texto.text(mensagem || 'Operacao concluida.');
+            $texto.text(mensagem || 'Operacao concluída.');
         },
 
         abrirPopupHtml: function (tipo, html, onClose) {
             const $popup = $('#popup-mensagem');
             const $titulo = $('#popup-titulo');
             const $texto = $('#popup-texto');
-            const titulo = tipo === 'erro' ? 'Erro no formulario' : 'Mensagem do sistema';
+            const titulo = tipo === 'erro' ? 'Erro no formulário' : 'Mensagem do sistema';
 
             App.state.popupCloseCallback = typeof onClose === 'function' ? onClose : null;
 
             $popup.removeClass('popup-erro popup-sucesso hidden').addClass(tipo === 'erro' ? 'popup-erro' : 'popup-sucesso');
             $popup.attr('aria-hidden', 'false');
             $titulo.text(titulo);
-            $texto.html(String(html || 'Operacao concluida.'));
+            $texto.html(String(html || 'Operacao concluída.'));
         },
 
         abrirPopupCustomizado: function (selector) {
@@ -79,7 +79,12 @@
             const normalizedMethod = String(method || 'GET').toUpperCase();
             const normalizedUrl = App.core.getAppRelativePath(String(url || ''));
 
-            if (normalizedUrl.indexOf('/api/ceps/validar') === 0 || normalizedUrl.indexOf('/api/cpf/cadastro-status') === 0) {
+            if (
+                normalizedUrl.indexOf('/api/ceps/validar') === 0 ||
+                normalizedUrl.indexOf('/api/ceps/endereco') === 0 ||
+                normalizedUrl.indexOf('/admin/locais/lista') === 0 ||
+                normalizedUrl.indexOf('/api/cpf/cadastro-status') === 0
+            ) {
                 return true;
             }
 
@@ -189,10 +194,14 @@
         },
 
         profileCompletionMessage: function () {
-            return String($('body').attr('data-profile-completion-message') || 'Antes de acessar esta area, voce precisa completar seu cadastro.');
+            return String($('body').attr('data-profile-completion-message') || 'Antes de acessar esta área, você precisa completar seu cadastro.');
         },
 
         abrirConfirmacaoCompletarCadastro: function (returnTo) {
+            // A navegação para a área protegida é interrompida para exibir este
+            // diálogo. Portanto, qualquer loading iniciado pelo clique anterior
+            // precisa ser encerrado antes de abrir a confirmação.
+            App.core.hideLoading(true);
             App.state.profileCompletionReturnTo = App.core.getAppRelativePath(returnTo || App.core.buildUrl('/dashboard'));
             $('#popup-profile-completion-texto').text(App.core.profileCompletionMessage());
             App.core.abrirPopupCustomizado('#popup-profile-completion-confirm');
@@ -300,7 +309,7 @@
         },
 
         extrairMensagemErroAjax: function (xhr) {
-            const mensagemPadrao = 'Nao foi possivel concluir a operacao agora.';
+            const mensagemPadrao = 'Não foi possível concluir a operação agora.';
             let mensagem = mensagemPadrao;
             let redirectUrl = '';
 
@@ -458,12 +467,16 @@
                     event.shiftKey ||
                     event.altKey ||
                     $(this).is('[data-open-route-modal]') ||
+                    (
+                        $(this).is('[data-profile-completion-link="1"]') &&
+                        App.core.pageRequiresProfileCompletion()
+                    ) ||
                     App.core.isModalRouteUrl(href)
                 ) {
                     return;
                 }
 
-                App.core.showLoading('Carregando pagina...');
+                App.core.showLoading('Carregando página...');
             });
 
             $(document).on('submit', 'form:not([data-ajax-form="1"]):not([data-manual-submit="1"])', function (event) {
@@ -474,6 +487,46 @@
                         App.core.showLoading('Enviando dados...');
                     }
                 }, 0);
+            });
+        },
+
+        iniciarConfirmacoesExclusao: function () {
+            function solicitarConfirmacao(element) {
+                const $element = $(element);
+                const message = String(
+                    $element.attr('data-confirm-delete-message')
+                    || $element.closest('form').attr('data-confirm-delete-message')
+                    || 'Tem certeza de que deseja excluir este registro? Esta ação não poderá ser desfeita.'
+                );
+
+                return window.confirm(message);
+            }
+
+            $(document).on('submit', 'form', function (event) {
+                const $form = $(this);
+                const action = String($form.attr('action') || '').toLowerCase();
+                const isDeleteAction = $form.is('[data-confirm-delete="1"]')
+                    || /\/(?:excluir|remover|delete)(?:[/?#]|$)/.test(action);
+
+                if (
+                    !isDeleteAction
+                    || $form.is('[data-skip-delete-confirmation="1"]')
+                    || solicitarConfirmacao($form)
+                ) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            });
+
+            $(document).on('click', '[data-confirm-delete="1"]:not(form)', function (event) {
+                if (solicitarConfirmacao(this)) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopImmediatePropagation();
             });
         },
 
@@ -494,12 +547,12 @@
                 const $message = obterMensagem($(this));
 
                 if (rawValue.length === 0) {
-                    $message.text('Aceito automaticamente para o intervalo de CEPs de Sao Bernardo do Campo: 09600000 a 09899999. Excecoes dependem de cadastro administrativo.');
+                    $message.text('Aceito automaticamente para o intervalo de CEPs de São Bernardo do Campo: 09600000 a 09899999. Exceções dependem de cadastro administrativo.');
                     return;
                 }
 
                 if (rawValue.length < 8) {
-                    $message.text('Complete os 8 digitos do CEP.');
+                    $message.text('Complete os 8 dígitos do CEP.');
                     return;
                 }
 
@@ -508,14 +561,14 @@
                 $.getJSON(App.core.buildUrl('/api/ceps/validar'), { cep: rawValue })
                     .done(function (response) {
                         if (!response || typeof response.mensagem === 'undefined') {
-                            $message.text('Nao foi possivel validar o CEP neste momento.');
+                            $message.text('Não foi possível validar o CEP neste momento.');
                             return;
                         }
 
                         $message.text(response.mensagem);
                     })
                     .fail(function () {
-                        $message.text('Nao foi possivel validar o CEP neste momento.');
+                        $message.text('Não foi possível validar o CEP neste momento.');
                     });
             });
         },
@@ -539,24 +592,24 @@
                 if (rawValue.length === 0) {
                     $input.data('cpfCadastroPermitido', false);
                     $input.data('cpfCadastroStatus', '');
-                    $message.text('Ao informar o CPF, o sistema avisara imediatamente se a conta ja existe, se o CPF pertence a um dependente ou se a criacao da conta esta liberada.');
+                    $message.text('Ao informar o CPF, o sistema avisará imediatamente se a conta já existe, se o CPF pertence a um dependente ou se a criação da conta está liberada.');
                     return;
                 }
 
                 if (rawValue.length < 11) {
                     $input.data('cpfCadastroPermitido', false);
                     $input.data('cpfCadastroStatus', '');
-                    $message.text('Digite os 11 numeros do CPF para validar o cadastro.');
+                    $message.text('Digite os 11 números do CPF para validar o cadastro.');
                     return;
                 }
 
-                $message.text('Consultando a situacao deste CPF no sistema...');
+                $message.text('Consultando a situação deste CPF no sistema...');
 
                 $.getJSON(App.core.buildUrl('/api/cpf/cadastro-status'), { cpf: rawValue })
                     .done(function (response) {
                         if (!response || typeof response.status === 'undefined') {
                             $input.data('cpfCadastroPermitido', false);
-                            $message.text('Nao foi possivel validar este CPF agora.');
+                            $message.text('Não foi possível validar este CPF agora.');
                             return;
                         }
 
@@ -569,7 +622,7 @@
 
                         $input.data('cpfCadastroPermitido', podeCriarConta);
                         $input.data('cpfCadastroStatus', status);
-                        $message.text(mensagemHelper || 'Situacao do CPF atualizada.');
+                        $message.text(mensagemHelper || 'Situação do CPF atualizada.');
 
                         if (mensagemPopup !== '' && lastAlertKey !== alertKey && status !== 'disponivel') {
                             App.core.abrirPopup(podeCriarConta ? 'sucesso' : 'erro', mensagemPopup);
@@ -578,7 +631,7 @@
                     })
                     .fail(function () {
                         $input.data('cpfCadastroPermitido', false);
-                        $message.text('Nao foi possivel validar este CPF agora.');
+                        $message.text('Não foi possível validar este CPF agora.');
                     });
             }
 
@@ -606,7 +659,7 @@
 
                 if (status === 'cpf_invalido' || status === 'dependente_menor_sem_conta' || status === 'conta_existente') {
                     event.preventDefault();
-                    App.core.abrirPopup('erro', 'Nao e possivel concluir a criacao da conta com este CPF. Confira o aviso exibido pelo sistema.');
+                    App.core.abrirPopup('erro', 'Não é possível concluir a criacao da conta com este CPF. Confira o aviso exibido pelo sistema.');
                 }
             });
         },
@@ -620,7 +673,7 @@
                     return;
                 }
 
-                $warning.toggleClass('hidden', value !== 'Sexo nÃ£o declarado');
+                $warning.toggleClass('hidden', value !== 'Sexo nao declarado');
             }
 
             $(document).on('change', selector, function () {
@@ -643,7 +696,7 @@
                 }
 
                 if ($helper.length > 0) {
-                    $helper.text('Somente uma condicao pode ser selecionada por pessoa: PCD, PVS ou PLM.');
+                    $helper.text('Somente uma condição pode ser selecionada por pessoa: PCD, PVS ou PLM.');
                 }
             }
 
@@ -708,6 +761,370 @@
             }
         },
 
+        iniciarTabelasResponsivas: function () {
+            let updateTimer = null;
+
+            function applyLabels(scope) {
+                const $scope = scope ? $(scope) : $(document);
+                let $tables = $scope.is('.data-table') ? $scope : $scope.find('.data-table');
+
+                if ($scope.closest('.data-table').length > 0) {
+                    $tables = $tables.add($scope.closest('.data-table'));
+                }
+
+                $tables.each(function () {
+                    const $table = $(this);
+                    const labels = $table.find('thead tr').first().children('th').map(function () {
+                        return String($(this).text() || '').replace(/\s+/g, ' ').trim();
+                    }).get();
+
+                    $table.find('tbody tr').each(function () {
+                        $(this).children('td').each(function (index) {
+                            const $cell = $(this);
+                            const colspan = Number($cell.attr('colspan') || 1);
+
+                            if (colspan > 1) {
+                                $cell.addClass('responsive-table-full-cell').removeAttr('data-label');
+                                return;
+                            }
+
+                            $cell
+                                .removeClass('responsive-table-full-cell')
+                                .attr('data-label', labels[index] || 'Dado');
+                        });
+                    });
+                });
+            }
+
+            applyLabels(document);
+
+            if (!window.MutationObserver || !document.body) {
+                return;
+            }
+
+            const observer = new window.MutationObserver(function (mutations) {
+                window.clearTimeout(updateTimer);
+                updateTimer = window.setTimeout(function () {
+                    mutations.forEach(function (mutation) {
+                        mutation.addedNodes.forEach(function (node) {
+                            if (node.nodeType === 1) {
+                                applyLabels(node);
+                            }
+                        });
+                    });
+                }, 0);
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        },
+
+        iniciarImportacaoPessoaExterna: function () {
+            const fieldMap = {
+                nome_completo: ['full_name'],
+                data_nascimento: ['birth_date'],
+                sexo: ['sexo'],
+                telefone_whatsapp: ['phone_whatsapp'],
+                email: ['email'],
+                numero_cartao_sus: ['numero_cartao_sus'],
+                cep: ['zip_code'],
+                logradouro: ['street'],
+                numero_endereco: ['address_number'],
+                complemento: ['address_complement'],
+                bairro: ['neighborhood'],
+                cidade: ['city'],
+                uf: ['state'],
+                contato_emergencia_nome: ['emergency_contact_name'],
+                contato_emergencia_telefone: ['emergency_contact_phone'],
+                responsavel1_nome: ['responsavel1_nome', 'parent1_name'],
+                responsavel1_cpf: ['responsavel1_cpf', 'parent1_cpf'],
+                responsavel2_nome: ['responsavel2_nome', 'parent2_name'],
+                responsavel2_cpf: ['responsavel2_cpf', 'parent2_cpf']
+            };
+
+            function escapeHtml(value) {
+                return $('<div>').text(String(value || '')).html();
+            }
+
+            function getCpf($form) {
+                const fixedCpf = String($form.attr('data-external-person-cpf') || '');
+                return (fixedCpf || String($form.find('[name="cpf"]').first().val() || '')).replace(/\D+/g, '');
+            }
+
+            function fillForm($form, record) {
+                $.each(fieldMap, function (sourceField, targetNames) {
+                    const value = String(record[sourceField] || '');
+
+                    targetNames.some(function (targetName) {
+                        const $field = $form.find('[name="' + targetName + '"]').first();
+
+                        if ($field.length === 0) {
+                            return false;
+                        }
+
+                        $field.val(value).trigger('input').trigger('change');
+                        return true;
+                    });
+                });
+            }
+
+            $(document).on('click', '[data-external-person-search="1"]', function () {
+                const $button = $(this);
+                const $form = $button.closest('[data-external-person-form="1"]');
+                const $results = $form.find('[data-external-person-results="1"]').first();
+                const cpf = getCpf($form);
+
+                if (cpf.length !== 11) {
+                    App.core.abrirPopup('erro', 'Informe um CPF válido antes de procurar os dados.');
+                    return;
+                }
+
+                $button.prop('disabled', true);
+                $results.removeClass('hidden').html('<p class="muted">Procurando registros...</p>');
+
+                $.getJSON(App.core.buildUrl('/api/pessoas-externas/registros'), { cpf: cpf })
+                    .done(function (response) {
+                        const records = response && Array.isArray(response.registros) ? response.registros : [];
+
+                        if (!response || response.success === false) {
+                            $results.html('<p class="muted">' + escapeHtml(response && response.message ? response.message : 'Não foi possível realizar a consulta.') + '</p>');
+                            return;
+                        }
+
+                        if (records.length === 0) {
+                            $results.html('<p class="muted">Nenhum registro foi encontrado para este CPF.</p>');
+                            return;
+                        }
+
+                        $results.html(records.map(function (record) {
+                            const details = [
+                                record.data_nascimento_resumida,
+                                record.unidade,
+                                record.situacao
+                            ].filter(Boolean).map(escapeHtml).join(' • ');
+
+                            return [
+                                '<div class="external-person-result">',
+                                '<div><strong>', escapeHtml(record.nome_completo || 'Registro encontrado'), '</strong>',
+                                details ? '<p class="muted">' + details + '</p>' : '',
+                                '</div>',
+                                '<button type="button" class="btn btn-primary" data-external-person-select="1" data-record-id="',
+                                Number(record.registro_id || 0), '">Usar estes dados</button>',
+                                '</div>'
+                            ].join('');
+                        }).join(''));
+                    })
+                    .fail(function (xhr) {
+                        const error = App.core.extrairMensagemErroAjax(xhr);
+                        $results.html('<p class="muted">' + escapeHtml(error.mensagem) + '</p>');
+                    })
+                    .always(function () {
+                        $button.prop('disabled', false);
+                    });
+            });
+
+            $(document).on('click', '[data-external-person-inline-select="1"]', function () {
+                const $button = $(this);
+                const $form = $button.closest('[data-external-person-form="1"]');
+                const cpf = getCpf($form);
+                const recordId = Number($button.attr('data-record-id') || 0);
+
+                if (!window.confirm('Deseja preencher o formulário com os dados deste registro? Os campos atuais serão substituídos, mas nada será salvo até você revisar e enviar o formulário.')) {
+                    return;
+                }
+
+                $button.prop('disabled', true).text('Carregando...');
+
+                $.getJSON(App.core.buildUrl('/api/pessoas-externas/registro'), {
+                    cpf: cpf,
+                    registro_id: recordId
+                }).done(function (response) {
+                    if (!response || response.success === false || !response.registro) {
+                        App.core.abrirPopup('erro', response && response.message ? response.message : 'Não foi possível carregar o registro.');
+                        return;
+                    }
+
+                    fillForm($form, response.registro);
+                    $form.find('[data-external-person-results="1"]').addClass('hidden').empty();
+                    App.core.abrirPopup('sucesso', 'Dados preenchidos. Revise todas as informações antes de salvar.');
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () {
+                    $button.prop('disabled', false).text('Usar estes dados');
+                });
+            });
+
+            let $activeExternalPersonForm = $();
+            let restoreRouteModalAfterChoice = false;
+
+            function closeExternalPersonChoice() {
+                App.core.fecharPopupCustomizado('#external-person-choice-modal');
+                $('#external-person-choice-results').empty();
+
+                if (restoreRouteModalAfterChoice) {
+                    App.core.abrirPopupCustomizado('#popup-route-modal');
+                }
+
+                restoreRouteModalAfterChoice = false;
+                $activeExternalPersonForm = $();
+            }
+
+            function showExternalPersonChoices($form, records) {
+                $activeExternalPersonForm = $form;
+                restoreRouteModalAfterChoice = $form.closest('#popup-route-modal').length > 0
+                    && !$('#popup-route-modal').hasClass('hidden');
+
+                if (restoreRouteModalAfterChoice) {
+                    App.core.fecharPopupCustomizado('#popup-route-modal');
+                }
+
+                $('#external-person-choice-results').html(records.map(function (record) {
+                    const birthDate = String(record.data_nascimento_resumida || '');
+                    const email = String(record.email || '');
+                    const inclusionDate = String(record.data_inclusao || '');
+
+                    return [
+                        '<div class="external-person-result">',
+                        '<div><strong>', escapeHtml(record.nome_completo || 'Pessoa encontrada'), '</strong>',
+                        '<p class="muted">',
+                        birthDate ? 'Nascimento: ' + escapeHtml(birthDate) + '<br>' : '',
+                        email ? 'E-mail: ' + escapeHtml(email) + '<br>' : 'E-mail não informado<br>',
+                        inclusionDate
+                            ? 'Incluído no sistema em: ' + escapeHtml(inclusionDate)
+                            : 'Data de inclusão não informada',
+                        '</p></div>',
+                        '<button type="button" class="btn btn-primary" data-external-person-select="1" data-record-id="',
+                        Number(record.registro_id || 0), '">Selecionar pessoa</button>',
+                        '</div>'
+                    ].join('');
+                }).join(''));
+
+                App.core.abrirPopupCustomizado('#external-person-choice-modal');
+            }
+
+            function searchExternalPersonRecords($form) {
+                const cpf = getCpf($form);
+                const previousCpf = String($form.data('externalPersonSearchedCpf') || '');
+
+                if (cpf.length !== 11 || previousCpf === cpf || $form.data('externalPersonSearching')) {
+                    return;
+                }
+
+                $form.data('externalPersonSearching', true);
+                $form.data('externalPersonSearchedCpf', cpf);
+
+                $.getJSON(App.core.buildUrl('/api/pessoas-externas/registros'), { cpf: cpf })
+                    .done(function (response) {
+                        const records = response && Array.isArray(response.registros) ? response.registros : [];
+
+                        if (response && response.success !== false && records.length > 0) {
+                            showExternalPersonChoices($form, records);
+                            return;
+                        }
+
+                        if (!response || response.success === false) {
+                            App.core.abrirPopup(
+                                'erro',
+                                response && response.message
+                                    ? response.message
+                                    : 'Não foi possível consultar os dados existentes.'
+                            );
+                        }
+                    })
+                    .fail(function (xhr) {
+                        App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                    })
+                    .always(function () {
+                        $form.data('externalPersonSearching', false);
+                    });
+            }
+
+            function scanExternalPersonForms() {
+                $('[data-external-person-auto-search="1"]').each(function () {
+                    const $form = $(this);
+
+                    if (!$form.data('externalPersonAutoStarted')) {
+                        $form.data('externalPersonAutoStarted', true);
+                        searchExternalPersonRecords($form);
+                    }
+                });
+            }
+
+            $(document).on('input', '[data-external-person-form="1"] input[name="cpf"]', function () {
+                const $form = $(this).closest('[data-external-person-form="1"]');
+
+                if (getCpf($form).length < 11) {
+                    $form.removeData('externalPersonSearchedCpf');
+                    return;
+                }
+
+                searchExternalPersonRecords($form);
+            });
+
+            $(document).on('click', '#external-person-choice-manual, [data-external-person-choice-close="1"]', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                closeExternalPersonChoice();
+            });
+
+            $(document).on('click', '#external-person-choice-modal', function (event) {
+                if (event.target === this) {
+                    closeExternalPersonChoice();
+                }
+            });
+
+            $(document).on('keydown', function (event) {
+                if (event.key === 'Escape' && !$('#external-person-choice-modal').hasClass('hidden')) {
+                    closeExternalPersonChoice();
+                }
+            });
+
+            $(document).on('click', '[data-external-person-select="1"]', function () {
+                const $button = $(this);
+                const $form = $activeExternalPersonForm;
+                const cpf = getCpf($form);
+                const recordId = Number($button.attr('data-record-id') || 0);
+
+                if ($form.length === 0 || cpf.length !== 11 || recordId < 1) {
+                    closeExternalPersonChoice();
+                    App.core.abrirPopup('erro', 'Não foi possível identificar o formulário desta pessoa.');
+                    return;
+                }
+
+                $button.prop('disabled', true).text('Carregando...');
+
+                $.getJSON(App.core.buildUrl('/api/pessoas-externas/registro'), {
+                    cpf: cpf,
+                    registro_id: recordId
+                }).done(function (response) {
+                    if (!response || response.success === false || !response.registro) {
+                        App.core.abrirPopup(
+                            'erro',
+                            response && response.message
+                                ? response.message
+                                : 'Não foi possível carregar os dados selecionados.'
+                        );
+                        return;
+                    }
+
+                    fillForm($form, response.registro);
+                    closeExternalPersonChoice();
+                    App.core.abrirPopup('sucesso', 'Dados encontrados e preenchidos. Revise todas as informações antes de salvar.');
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () {
+                    $button.prop('disabled', false).text('Selecionar pessoa');
+                });
+            });
+
+            scanExternalPersonForms();
+            $(document).ajaxComplete(function () {
+                window.setTimeout(scanExternalPersonForms, 0);
+            });
+        },
+
         init: function () {
             App.core.mascararCpf('input[name="cpf"], input[name="parent1_cpf"], input[name="parent2_cpf"], input[name="responsavel1_cpf"], input[name="responsavel2_cpf"], input[name="new_responsible_cpf"]');
             App.core.mascararTelefone('input[name="phone_whatsapp"], input[name="emergency_contact_phone"]');
@@ -720,7 +1137,10 @@
             App.core.iniciarAvisoSexoNaoDeclarado('select[data-sexo-select="1"]');
             App.core.iniciarSelecaoExclusivaCondicoes('input[data-condition-exclusive="1"]');
             App.core.iniciarSitePopups();
+            App.core.iniciarConfirmacoesExclusao();
             App.core.iniciarLoadingGlobal();
+            App.core.iniciarTabelasResponsivas();
+            App.core.iniciarImportacaoPessoaExterna();
         }
     });
 

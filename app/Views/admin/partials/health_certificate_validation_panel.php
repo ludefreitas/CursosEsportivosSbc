@@ -3,28 +3,28 @@ $healthCertificateValidationRows = $healthCertificateValidationRows ?? [];
 ?>
 
 <article class="content-card top-gap" id="admin-health-certificate-validation-panel">
-    <h2>Atestados de saude para validar</h2>
-    <p class="muted">Esta fila mostra os atestados clinicos e dermatologicos enviados pelos usuarios e dependentes que ainda aguardam analise administrativa.</p>
+    <h2>Atestados de saúde para validar</h2>
+    <p class="muted">Esta fila mostra os atestados clínicos e dermatológicos enviados pelos usuários e dependentes que ainda aguardam análise administrativa.</p>
 
     <div class="table-wrap">
         <table class="data-table">
             <thead>
                 <tr>
                     <th>Nome</th>
-                    <th>Responsavel</th>
+                    <th>Responsável</th>
                     <th>Tipo</th>
                     <th>Emissao declarada</th>
                     <th>CRM</th>
                     <th>Atendimento</th>
                     <th>Status</th>
                     <th>Pendencia</th>
-                    <th>Acao</th>
+                    <th>Ação</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if ($healthCertificateValidationRows === []) { ?>
                     <tr>
-                        <td colspan="9" class="muted">Nenhum atestado aguardando validacao neste momento.</td>
+                        <td colspan="9" class="muted">Nenhum atestado aguardando validação neste momento.</td>
                     </tr>
                 <?php } ?>
 

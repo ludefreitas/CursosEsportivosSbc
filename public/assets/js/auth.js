@@ -2,24 +2,35 @@
     const App = window.App || {};
 
     App.auth = Object.assign(App.auth || {}, {
-        sincronizarCabecalhoAutenticado: function () {
+        sincronizarCabecalhoAutenticado: function (adminAccessAllowed) {
             const $nav = $('.site-nav').first();
             const profileCompletionRequired = App.core.pageRequiresProfileCompletion() ? '1' : '0';
+            const canAccessAdmin = typeof adminAccessAllowed === 'boolean'
+                ? adminAccessAllowed
+                : String($('body').attr('data-admin-access-allowed') || '') === '1';
 
             if ($nav.length === 0) {
                 return;
             }
 
+            $('.header-login-form').remove();
+
             $nav.html([
-                '<a href="' + App.core.buildUrl('/') + '">Inicio</a>',
-                '<a href="' + App.core.buildUrl('/agenda') + '">Agenda</a>',
-                '<a href="' + App.core.buildUrl('/blog') + '">Blog</a>',
-                '<a href="' + App.core.buildUrl('/dashboard') + '" data-profile-completion-link="' + profileCompletionRequired + '">Meu painel</a>',
-                '<a href="' + App.core.buildUrl('/admin') + '" data-profile-completion-link="' + profileCompletionRequired + '">Admin</a>',
+                '<a href="' + App.core.buildUrl('/') + '" class="nav-color-orange">Início</a>',
+                '<a href="' + App.core.buildUrl('/agenda') + '" class="nav-color-green">Agenda</a>',
+                '<a href="' + App.core.buildUrl('/blog') + '" class="nav-color-red">Blog</a>',
+                '<a href="' + App.core.buildUrl('/dashboard') + '" class="nav-color-teal" data-profile-completion-link="' + profileCompletionRequired + '">Meu painel</a>',
+                '<a href="' + App.core.buildUrl('/admin') + '" class="nav-color-orange" data-profile-completion-link="' + profileCompletionRequired + '">Admin</a>',
                 '<form method="POST" action="' + App.core.buildUrl('/logout') + '" class="inline-form">',
-                '<button type="submit" class="link-button">Sair</button>',
+                '<button type="submit" class="link-button nav-color-green">Sair</button>',
                 '</form>'
             ].join(''));
+
+            $('body').attr('data-admin-access-allowed', canAccessAdmin ? '1' : '0');
+
+            if (!canAccessAdmin || profileCompletionRequired === '1') {
+                $nav.find('a[href="' + App.core.buildUrl('/admin') + '"]').remove();
+            }
 
             const $heroPrimaryButton = $('.hero-actions .btn-primary').first();
 
@@ -202,7 +213,7 @@
                     }
                 }).done(function (response) {
                     if (response && response.success === false) {
-                        const mensagemErro = String(response.message || 'Nao foi possivel concluir a operacao agora.');
+                        const mensagemErro = String(response.message || 'Não foi possível concluir a operação agora.');
                         const redirectErro = String(response.redirect || '');
 
                         App.core.abrirPopup('erro', mensagemErro, function () {
@@ -226,7 +237,8 @@
                         );
 
                         $('body').attr('data-profile-completion-required', authenticationNeedsProfileCompletion ? '1' : '0');
-                        App.auth.sincronizarCabecalhoAutenticado();
+                        App.auth.sincronizarCabecalhoAutenticado(!!response.admin_access_allowed);
+                        $('main.page-content > .flash').remove();
                         $personOptions.data('agendaAuthenticated', '1');
                         $calendar.attr('data-agenda-authenticated', '1');
                         $calendar.attr('data-agenda-needs-profile-completion', authenticationNeedsProfileCompletion ? '1' : '0');
@@ -234,7 +246,7 @@
                         if ($agendaHelper.length > 0) {
                             $agendaHelper.text(
                                 authenticationNeedsProfileCompletion
-                                    ? 'Complete seu cadastro para liberar os nomes disponiveis para agendamento.'
+                                    ? 'Complete seu cadastro para liberar os nomes disponíveis para agendamento.'
                                     : 'Selecione a pessoa que deseja agendar.'
                             );
                             $agendaHelper.toggleClass('hidden', !authenticationNeedsProfileCompletion);
@@ -243,7 +255,7 @@
                         if (authenticationNeedsProfileCompletion) {
                             $('#agenda-access-warning')
                                 .removeClass('hidden')
-                                .text('Para agendar um horario, voce precisa completar seu cadastro.');
+                                .text('Para agendar um horário, você precisa completar seu cadastro.');
                         }
 
                         App.core.fecharPopupCustomizado('#agenda-login-reminder');
@@ -265,7 +277,7 @@
 
                             if ($form.attr('id') === 'form-agendamento') {
                                 $form.addClass('hidden');
-                                $('#painel-evento').html('<p class="muted">Clique em um horario no calendario para ver local, vagas e regras.</p>');
+                                $('#painel-evento').html('<p class="muted">Clique em um horário no calendário para ver local, vagas e regras.</p>');
                             }
 
                             if ($form.attr('id') === 'form-site-popup') {

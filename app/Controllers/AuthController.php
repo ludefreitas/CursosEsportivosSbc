@@ -35,12 +35,13 @@ class AuthController extends Controller
 
         $this->view('auth/login', [
             'title' => 'Entrar',
+            'pageClass' => 'pagina-auth',
             'returnTo' => safe_internal_path((string) ($_GET['return_to'] ?? '/dashboard'), '/dashboard'),
         ]);
     }
 
     /**
-     * Efetua o login do usuario.
+     * Efetua o login do usuário.
      */
     public function login(): void
     {
@@ -68,11 +69,25 @@ class AuthController extends Controller
                 $successMessage = 'Login realizado com sucesso. Complete agora seu cadastro para continuar.';
             }
 
+            $adminAccessAllowed = false;
+
+            if ($registrationBlock === null && $person && (int) ($person['cadastro_completo'] ?? 0) === 1) {
+                $authenticatedUser = (new \App\Services\UserService())->currentAccountWithRoles();
+
+                foreach (['master_admin', 'admin', 'supervisor', 'coordinator'] as $roleSlug) {
+                    if (has_role($authenticatedUser['roles'] ?? [], $roleSlug)) {
+                        $adminAccessAllowed = true;
+                        break;
+                    }
+                }
+            }
+
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
                     'message' => $successMessage,
                     'redirect' => $redirectUrl,
+                    'admin_access_allowed' => $adminAccessAllowed,
                 ]);
             }
 
@@ -92,7 +107,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Exibe a tela de cadastro do responsavel.
+     * Exibe a tela de cadastro do responsável.
      */
     public function showRegister(): void
     {
@@ -100,11 +115,14 @@ class AuthController extends Controller
             redirect('/dashboard');
         }
 
-        $this->view('auth/register', ['title' => 'Cadastro do Responsavel']);
+        $this->view('auth/register', [
+            'title' => 'Cadastro do Responsável',
+            'pageClass' => 'pagina-auth',
+        ]);
     }
 
     /**
-     * Cria uma nova conta de responsavel maior de idade.
+     * Cria uma nova conta de responsável maior de idade.
      */
     public function register(): void
     {
@@ -123,11 +141,11 @@ class AuthController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => false,
-                    'message' => 'Confirme que voce e uma pessoa maior de 18 anos. Se nao for uma pessoa maior de 18 anos, peca para o seu responsavel cadastrar voce. Somente pessoas maiores de 18 anos podem se cadastrar neste formulario.',
+                    'message' => 'Confirme que você é uma pessoa maior de 18 anos. Se não for uma pessoa maior de 18 anos, peça para o seu responsável cadastrar você. Somente pessoas maiores de 18 anos podem se cadastrar neste formulário.',
                 ]);
             }
 
-            flash('error', 'Confirme que voce e uma pessoa maior de 18 anos. Se nao for uma pessoa maior de 18 anos, peca para o seu responsavel cadastrar voce. Somente pessoas maiores de 18 anos podem se cadastrar neste formulario.');
+            flash('error', 'Confirme que você é uma pessoa maior de 18 anos. Se não for uma pessoa maior de 18 anos, peça para o seu responsável cadastrar você. Somente pessoas maiores de 18 anos podem se cadastrar neste formulário.');
             redirect('/cadastro');
         }
 
@@ -135,11 +153,11 @@ class AuthController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => false,
-                    'message' => 'Voce precisa aceitar as politicas de privacidade e os termos de uso para prosseguir.',
+                    'message' => 'Você precisa aceitar as politicas de privacidade e os termos de uso para prosseguir.',
                 ]);
             }
 
-            flash('error', 'Voce precisa aceitar as politicas de privacidade e os termos de uso para prosseguir.');
+            flash('error', 'Você precisa aceitar as politicas de privacidade e os termos de uso para prosseguir.');
             redirect('/cadastro');
         }
 
@@ -164,12 +182,12 @@ class AuthController extends Controller
                 if ($this->isAjaxRequest()) {
                     $this->jsonResponse([
                         'success' => true,
-                        'message' => 'Conta criada com sucesso. O cadastro complementar esta temporariamente bloqueado porque este CPF ainda esta vinculado como dependente de outro responsavel. Solicite a transferencia de responsabilidade para o seu CPF.',
+                        'message' => 'Conta criada com sucesso. O cadastro complementar está temporariamente bloqueado porque este CPF ainda está vinculado como dependente de outro responsável. Solicite a transferência de responsabilidade para o seu CPF.',
                         'redirect' => url('/perfil/completar'),
                     ]);
                 }
 
-                flash('success', 'Conta criada com sucesso. O cadastro complementar esta temporariamente bloqueado porque este CPF ainda esta vinculado como dependente de outro responsavel. Solicite a transferencia de responsabilidade para o seu CPF.');
+                flash('success', 'Conta criada com sucesso. O cadastro complementar está temporariamente bloqueado porque este CPF ainda está vinculado como dependente de outro responsável. Solicite a transferência de responsabilidade para o seu CPF.');
                 redirect('/perfil/completar');
             }
 
@@ -177,23 +195,23 @@ class AuthController extends Controller
                 if ($this->isAjaxRequest()) {
                     $this->jsonResponse([
                         'success' => true,
-                        'message' => 'Conta criada com sucesso. Seu cadastro de pessoa ja estava completo e o acesso ao sistema foi liberado.',
+                        'message' => 'Conta criada com sucesso. Seu cadastro de pessoa já estava completo e o acesso ao sistema foi liberado.',
                         'redirect' => url('/dashboard'),
                     ]);
                 }
 
-                flash('success', 'Conta criada com sucesso. Seu cadastro de pessoa ja estava completo e o acesso ao sistema foi liberado.');
+                flash('success', 'Conta criada com sucesso. Seu cadastro de pessoa já estava completo e o acesso ao sistema foi liberado.');
                 redirect('/dashboard');
             } else {
                 if ($this->isAjaxRequest()) {
                     $this->jsonResponse([
                         'success' => true,
-                        'message' => 'Cadastro criado. Complete agora seu perfil obrigatorio.',
+                        'message' => 'Cadastro criado. Complete agora seu perfil obrigatório.',
                         'redirect' => url('/perfil/completar'),
                     ]);
                 }
 
-                flash('success', 'Cadastro criado. Complete agora seu perfil obrigatorio.');
+                flash('success', 'Cadastro criado. Complete agora seu perfil obrigatório.');
                 redirect('/perfil/completar');
             }
         } catch (\Throwable $e) {
@@ -210,7 +228,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Retorna em JSON a situacao do CPF para criacao de conta.
+     * Retorna em JSON a situação do CPF para criacao de conta.
      */
     public function checkRegisterCpf(): void
     {
@@ -224,12 +242,12 @@ class AuthController extends Controller
     }
 
     /**
-     * Encerra a sessao autenticada.
+     * Encerra a sessão autenticada.
      */
     public function logout(): void
     {
         Auth::logout();
-        flash('success', 'Sessao encerrada.');
+        flash('success', 'Sessão encerrada.');
         redirect('/');
     }
 }

@@ -5,7 +5,7 @@ $updatedAt = trim((string) ($communication['updated_at'] ?? ''));
 <article class="content-card admin-official-communication-card">
     <div class="section-head">
         <div>
-            <span class="eyebrow"><?php echo e((string) ($communication['nome_quadro'] ?? 'Comunicacao oficial')); ?></span>
+            <span class="eyebrow"><?php echo e((string) ($communication['nome_quadro'] ?? 'Comunicação oficial')); ?></span>
             <h2><?php echo e((string) ($communication['titulo'] ?? '')); ?></h2>
             <p><?php echo e((string) ($communication['texto_breve'] ?? '')); ?></p>
             <?php if (!empty($communication['link_url']) && !empty($communication['link_titulo'])) { ?>
@@ -17,9 +17,9 @@ $updatedAt = trim((string) ($communication['updated_at'] ?? ''));
             <?php } ?>
             <small class="muted">
                 <?php if ($updatedAt !== '') { ?>
-                    Ultima atualizacao em <?php echo e(date('d/m/Y H:i', strtotime($updatedAt))); ?>.
+                    Última atualização em <?php echo e(date('d/m/Y H:i', strtotime($updatedAt))); ?>.
                 <?php } else { ?>
-                    Quadro ainda usando o conteudo padrao.
+                    Quadro ainda usando o conteúdo padrão.
                 <?php } ?>
             </small>
         </div>

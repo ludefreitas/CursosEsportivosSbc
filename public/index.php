@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+// Toda resposta textual da aplicação usa UTF-8 e português do Brasil.
+ini_set('default_charset', 'UTF-8');
+if (function_exists('mb_internal_encoding')) {
+    mb_internal_encoding('UTF-8');
+}
+
 if (!headers_sent()) {
     header('Content-Type: text/html; charset=utf-8');
 }
