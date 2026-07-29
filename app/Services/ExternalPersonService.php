@@ -163,7 +163,17 @@ class ExternalPersonService
             );
         }
 
-        $database = require $configFile;
+        ob_start();
+
+        try {
+            $database = require $configFile;
+        } finally {
+            $unexpectedConfigOutput = (string) ob_get_clean();
+
+            if (trim($unexpectedConfigOutput) !== '') {
+                error_log('[Configuração] O arquivo config/external_database.local.php gerou uma saída inesperada.');
+            }
+        }
 
         if (!is_array($database)) {
             throw new RuntimeException('O arquivo de configuração do banco de origem é inválido.');

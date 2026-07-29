@@ -31,7 +31,20 @@ if (str_starts_with($requestPath, '/public/')) {
     exit;
 }
 
-session_name((require dirname(__DIR__) . '/config/app.php')['session_name']);
+$appConfigFile = dirname(__DIR__) . '/config/app.php';
+ob_start();
+
+try {
+    $appConfig = require $appConfigFile;
+} finally {
+    $unexpectedConfigOutput = (string) ob_get_clean();
+
+    if (trim($unexpectedConfigOutput) !== '') {
+        error_log('[Configuração] O arquivo config/app.php gerou uma saída inesperada.');
+    }
+}
+
+session_name($appConfig['session_name']);
 session_start();
 
 define('ROOT_PATH', dirname(__DIR__));

@@ -22,7 +22,17 @@ function db_config(string $key, $default = null)
     static $config;
 
     if ($config === null) {
-        $config = require ROOT_PATH . '/config/database.php';
+        ob_start();
+
+        try {
+            $config = require ROOT_PATH . '/config/database.php';
+        } finally {
+            $unexpectedConfigOutput = (string) ob_get_clean();
+
+            if (trim($unexpectedConfigOutput) !== '') {
+                error_log('[Configuração] O arquivo config/database.php gerou uma saída inesperada.');
+            }
+        }
     }
 
     return $config[$key] ?? $default;
