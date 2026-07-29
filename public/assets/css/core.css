@@ -304,6 +304,39 @@ body.pagina-error .site-header::after {
     height: 27px;
 }
 
+.site-header-menu-toggle {
+    display: none;
+    width: 46px;
+    height: 42px;
+    padding: 7px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    cursor: pointer;
+}
+.site-header-menu-toggle span {
+    display: block;
+    width: 30px;
+    height: 4px;
+    margin: 4px auto;
+    border-radius: 999px;
+    background: var(--accent-orange);
+    transition: transform 0.18s ease, opacity 0.18s ease;
+}
+.site-header-menu-toggle:hover,
+.site-header-menu-toggle:focus-visible {
+    background: rgba(255, 255, 255, 0.14);
+}
+.site-header.is-menu-open .site-header-menu-toggle span:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+}
+.site-header.is-menu-open .site-header-menu-toggle span:nth-child(2) {
+    opacity: 0;
+}
+.site-header.is-menu-open .site-header-menu-toggle span:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+}
+
 .header-login-form {
     position: relative;
     display: grid;
@@ -1130,6 +1163,54 @@ body.pagina-error label span {
     .brand-logo {
         width: clamp(86px, 28vw, 132px);
     }
+
+    .site-header,
+    body.pagina-home .site-header,
+    body.pagina-blog .site-header,
+    body.pagina-agenda .site-header,
+    body.pagina-auth .site-header,
+    body.pagina-error .site-header {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px 16px;
+        padding: 16px 18px;
+    }
+
+    .site-header-menu-toggle {
+        display: block;
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: end;
+    }
+
+    .site-header-access {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .site-header .site-nav {
+        display: none;
+        grid-column: 1 / -1;
+        grid-row: 2;
+        width: 100%;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.24);
+    }
+
+    .site-header.is-menu-open .site-nav {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .site-header.is-menu-open .site-nav > a,
+    .site-header.is-menu-open .site-nav > .inline-form,
+    .site-header.is-menu-open .site-nav > .inline-form .link-button {
+        width: 100%;
+    }
 }
 
 @media (max-width: 760px) {
@@ -1336,7 +1417,7 @@ body.pagina-error label span {
         grid-template-columns: minmax(90px, 1fr) minmax(90px, 1fr) auto;
     }
 
-    .site-header .site-nav {
+    .site-header.is-menu-open .site-nav {
         display: grid;
         width: 100%;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1358,6 +1439,20 @@ body.pagina-error label span {
     .site-header .site-nav > .inline-form {
         display: block;
         min-width: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .site-header,
+    body.pagina-home .site-header,
+    body.pagina-blog .site-header,
+    body.pagina-agenda .site-header,
+    body.pagina-auth .site-header,
+    body.pagina-error .site-header {
+        width: calc(100% - 20px);
+        margin-top: 10px;
+        padding: 14px;
+        border-radius: 22px;
     }
 }
 

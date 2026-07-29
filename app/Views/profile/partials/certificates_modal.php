@@ -49,7 +49,7 @@ $conditions = $conditions ?? [];
                             ?>
                             <p><strong>Deficiencias marcadas:</strong> <?php echo e($typeLabels !== [] ? implode(', ', $typeLabels) : '-'); ?></p>
                         <?php } ?>
-                        <p><strong>Data de emissao:</strong> <?php echo e(!empty($certificate['data_emissao']) ? date('d/m/Y', strtotime((string) $certificate['data_emissao'])) : '-'); ?></p>
+                        <p><strong>Data de emissão:</strong> <?php echo e(!empty($certificate['data_emissao']) ? date('d/m/Y', strtotime((string) $certificate['data_emissao'])) : '-'); ?></p>
                         <p><strong>Validade:</strong> <?php echo e(!empty($certificate['validade_certificado']) ? date('d/m/Y', strtotime((string) $certificate['validade_certificado'])) : 'Definida na validação pelo professor ou administrador'); ?></p>
                     </div>
 
@@ -131,7 +131,7 @@ $conditions = $conditions ?? [];
                             $typeOptions = $condition['disability_type_options'] ?? [];
                             ?>
                             <fieldset class="dashboard-certificate-fieldset">
-                                <legend>Tipos de deficiencia (PCD)</legend>
+                                <legend>Tipos de deficiência (PCD)</legend>
                                 <div class="dashboard-certificate-checkbox-grid">
                                     <?php foreach ($typeOptions as $typeValue => $typeLabel) { ?>
                                         <label class="checkbox-chip">
@@ -145,12 +145,12 @@ $conditions = $conditions ?? [];
                                         </label>
                                     <?php } ?>
                                 </div>
-                                <small class="muted">Para PCD, marque obrigatoriamente ao menos uma deficiencia.</small>
+                                <small class="muted">Para PCD, marque obrigatoriamente ao menos uma deficiência.</small>
                             </fieldset>
                         <?php } ?>
 
                         <label>
-                            <span>Data de emissao do documento</span>
+                            <span>Data de emissão do documento</span>
                             <input type="date" name="data_emissao" value="<?php echo e((string) ($certificate['data_emissao'] ?? '')); ?>">
                             <small class="muted">A validade não é preenchida por você neste envio. Ela será definida no processo de validação.</small>
                         </label>

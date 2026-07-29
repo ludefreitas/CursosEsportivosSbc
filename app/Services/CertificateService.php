@@ -124,7 +124,7 @@ class CertificateService
         }
 
         if ($conditionSlug === 'pcd' && $selectedDisabilityTypes === []) {
-            throw new RuntimeException('Para PCD, marque obrigatoriamente ao menos um tipo de deficiencia.');
+            throw new RuntimeException('Para PCD, marque obrigatoriamente ao menos um tipo de deficiência.');
         }
 
         if ($conditionSlug === 'pvs' && $nisNumber === '') {

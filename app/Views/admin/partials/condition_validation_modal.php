@@ -43,7 +43,7 @@ foreach ($selectedDisabilityTypes as $selectedType) {
             <p><strong>Deficiencias declaradas:</strong> <?php echo e($selectedDisabilityLabels !== [] ? implode(', ', $selectedDisabilityLabels) : '-'); ?></p>
         <?php } ?>
         <p><strong>Observações informadas pela pessoa:</strong> <?php echo e((string) ($certificate['observacoes'] ?? '-')); ?></p>
-        <p><strong>Data de emissao:</strong> <?php echo e(!empty($certificate['data_emissao']) ? date('d/m/Y', strtotime((string) $certificate['data_emissao'])) : '-'); ?></p>
+        <p><strong>Data de emissão:</strong> <?php echo e(!empty($certificate['data_emissao']) ? date('d/m/Y', strtotime((string) $certificate['data_emissao'])) : '-'); ?></p>
         <p><strong>Pendencia atual:</strong> <?php echo e((string) ($pendingReason ?? 'Nenhuma')); ?></p>
     </div>
 

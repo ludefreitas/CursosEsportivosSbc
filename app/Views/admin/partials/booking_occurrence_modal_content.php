@@ -25,8 +25,8 @@ $currentAdminName = (string) ($currentAdminName ?? '');
                 <tr>
                     <th>Pessoa</th>
                     <th>Idade</th>
-                    <th>Condicoes</th>
-                    <th>Publico</th>
+                    <th>Condições</th>
+                    <th>Público</th>
                     <th>Chamada</th>
                     <th>Status</th>
                     <th>Fez a chamada</th>

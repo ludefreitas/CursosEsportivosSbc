@@ -16,8 +16,8 @@ class ProfileService
     ];
     private const HEALTH_CERTIFICATE_SERVICE_LOCATIONS = [
         'servico_publico' => 'Serviço público',
-        'clinica_particular' => 'Clinica particular',
-        'clinica_convenio' => 'Clinica convenio medico',
+        'clinica_particular' => 'Clínica particular',
+        'clinica_convenio' => 'Clínica de convênio médico',
     ];
 
     public function __construct()
@@ -73,7 +73,7 @@ class ProfileService
         }
 
         if (!validar_nome_cadastro((string) ($data['full_name'] ?? ''))) {
-            throw new RuntimeException('Informe um nome completo sem caracteres especiais e com no minimo 14 caracteres.');
+            throw new RuntimeException('Informe um nome completo sem caracteres especiais e com no mínimo 14 caracteres.');
         }
 
         $this->validarSelecaoUnicaCondicao($data);
@@ -116,7 +116,7 @@ class ProfileService
             ');
             $stmt->execute($this->mapearDadosPessoa($data, (int) $person['id'], false));
 
-            $this->vincularResponsavel($pdo, (int) $person['id'], (int) $person['id'], 'Vinculo inicial do próprio usuario como seu dependente.');
+            $this->vincularResponsavel($pdo, (int) $person['id'], (int) $person['id'], 'Vínculo inicial do próprio usuário como seu dependente.');
 
             $pdo->commit();
 
@@ -185,7 +185,7 @@ class ProfileService
         }
 
         if (!validar_nome_cadastro((string) ($data['full_name'] ?? ''))) {
-            throw new RuntimeException('Informe um nome completo sem caracteres especiais e com no minimo 14 caracteres para o dependente.');
+            throw new RuntimeException('Informe um nome completo sem caracteres especiais e com no mínimo 14 caracteres para o dependente.');
         }
 
         $this->validarSelecaoUnicaCondicao($data);
@@ -343,7 +343,7 @@ class ProfileService
         $dependent = $this->getManagedDependent($personId);
 
         if (!validar_nome_cadastro((string) ($data['full_name'] ?? ''))) {
-            throw new RuntimeException('Informe um nome completo sem caracteres especiais e com no minimo 14 caracteres para o dependente.');
+            throw new RuntimeException('Informe um nome completo sem caracteres especiais e com no mínimo 14 caracteres para o dependente.');
         }
 
         $this->validarSelecaoUnicaCondicao($data);
@@ -456,7 +456,7 @@ class ProfileService
             }
 
             if ((int) $link['dependente_pessoa_id'] === (int) $currentResponsible['id']) {
-                throw new RuntimeException('O próprio usuário responsável não pode transferir sua auto responsabilidade por este formulario.');
+                throw new RuntimeException('O próprio usuário responsável não pode transferir sua autorresponsabilidade por este formulário.');
             }
 
             $stmtNewResponsible = $pdo->prepare('
@@ -850,7 +850,7 @@ class ProfileService
         if ((int) ($person['cadastro_completo'] ?? 0) !== 1) {
             return [
                 'tipo' => 'proprio_cadastro_incompleto',
-                'mensagem' => 'O cadastro de ' . $person['nome_completo'] . ' ainda não esta completo. Complete-o antes de fazer agendamentos ou inscrições.',
+                'mensagem' => 'O cadastro de ' . $person['nome_completo'] . ' ainda não está completo. Complete-o antes de fazer agendamentos ou inscrições.',
                 'person_id' => (int) $person['id'],
                 'nome_pessoa' => (string) $person['nome_completo'],
             ];
@@ -879,8 +879,8 @@ class ProfileService
             return [
                 'tipo' => $isSelf ? 'proprio_cadastro_incompleto' : 'dependente_cadastro_incompleto',
                 'mensagem' => $isSelf
-                    ? 'O cadastro de ' . $linkedPerson['nome_completo'] . ' ainda não esta completo. Complete-o antes de fazer agendamentos ou inscrições.'
-                    : 'O cadastro de ' . $linkedPerson['nome_completo'] . ' ainda não esta completo. Complete os dados dessa pessoa no seu painel antes de fazer agendamentos ou inscrições.',
+                    ? 'O cadastro de ' . $linkedPerson['nome_completo'] . ' ainda não está completo. Complete-o antes de fazer agendamentos ou inscrições.'
+                    : 'O cadastro de ' . $linkedPerson['nome_completo'] . ' ainda não está completo. Complete os dados dessa pessoa no seu painel antes de fazer agendamentos ou inscrições.',
                 'person_id' => (int) $linkedPerson['id'],
                 'nome_pessoa' => (string) $linkedPerson['nome_completo'],
             ];
@@ -922,7 +922,7 @@ class ProfileService
 
         return [
             'tipo' => 'dependente_de_outro_responsavel',
-            'mensagem' => 'Seu CPF esta cadastrado como dependente de ' . $row['nome_responsavel'] . '. Antes de continuar, esta pessoa precisa transferir a responsabilidade para o seu CPF pelo formulario próprio do sistema.',
+            'mensagem' => 'Seu CPF está cadastrado como dependente de ' . $row['nome_responsavel'] . '. Antes de continuar, esta pessoa precisa transferir a responsabilidade para o seu CPF pelo formulário próprio do sistema.',
             'nome_responsavel' => $row['nome_responsavel'],
             'cpf_responsavel' => $row['cpf_responsavel'],
         ];

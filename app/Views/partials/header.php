@@ -56,8 +56,19 @@
                     </form>
                 <?php } ?>
             </div>
-            <nav class="site-nav">
-                <a href="<?php echo e(url('/')); ?>" class="nav-color-orange">Início</a>
+            <button
+                type="button"
+                class="site-header-menu-toggle"
+                aria-expanded="false"
+                aria-controls="site-header-navigation"
+                aria-label="Abrir menu de navegação"
+                title="Abrir menu"
+            >
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <nav class="site-nav" id="site-header-navigation">
                 <a href="<?php echo e(url('/agenda')); ?>" class="nav-color-green">Agenda</a>
                 <a href="<?php echo e(url('/blog')); ?>" class="nav-color-red">Blog</a>
                 <?php if ($isAuthenticated) { ?>

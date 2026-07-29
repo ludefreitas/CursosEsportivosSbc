@@ -47,7 +47,7 @@ class AdminController extends Controller
         $user = $this->assertAdminAccess();
 
         $this->view('admin/index', [
-            'title' => 'Area Administrativa',
+            'title' => 'Área Administrativa',
             'user' => $user,
         ]);
     }

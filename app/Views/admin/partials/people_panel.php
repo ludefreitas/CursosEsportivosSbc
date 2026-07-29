@@ -214,7 +214,7 @@
                     <p><strong>Data de nascimento:</strong> <span id="admin-person-details-birth-date">-</span></p>
                     <p><strong>Cadastro:</strong> <span id="admin-person-details-registration">-</span></p>
                     <p><strong>Conta:</strong> <span id="admin-person-details-account">-</span></p>
-                    <p><strong>Condicoes declaradas:</strong> <span id="admin-person-details-conditions">-</span></p>
+                    <p><strong>Condições declaradas:</strong> <span id="admin-person-details-conditions">-</span></p>
                     <p><strong>Situação dos certificados:</strong> <span id="admin-person-details-certificates">-</span></p>
                     <p><strong>Responsável atual:</strong> <span id="admin-person-details-responsible">-</span></p>
                     <p><strong>WhatsApp:</strong> <span id="admin-person-details-phone">-</span></p>
@@ -311,7 +311,7 @@
                     <div class="grid-three">
                         <label class="checkbox-chip">
                             <input type="checkbox" name="eh_pcd" value="1" id="admin-person-eh-pcd" data-condition-exclusive="1">
-                            <span>E pessoa com deficiencia (PCD)</span>
+                            <span>É pessoa com deficiência (PCD)</span>
                         </label>
                         <label class="checkbox-chip">
                             <input type="checkbox" name="eh_pvs" value="1" id="admin-person-eh-pvs" data-condition-exclusive="1">
@@ -447,7 +447,7 @@
                     <th>Cadastro</th>
                     <th>Conta</th>
                     <th>Papéis</th>
-                    <th>Ultima atribuicao</th>
+                    <th>Última atribuição</th>
                     <th>Dependentes</th>
                     <th>Ações</th>
                 </tr>
@@ -542,7 +542,7 @@
                 <p><strong>Dependentes vinculados:</strong> <span id="admin-user-details-dependents-count">0</span></p>
                 <p><strong>Conta criada em:</strong> <span id="admin-user-details-created-at">-</span></p>
                 <p><strong>Ultimo acesso:</strong> <span id="admin-user-details-last-access">-</span></p>
-                <p><strong>IP do ultimo acesso:</strong> <span id="admin-user-details-last-ip">-</span></p>
+                <p><strong>IP do último acesso:</strong> <span id="admin-user-details-last-ip">-</span></p>
             </div>
 
             <div class="popup-actions">
@@ -591,7 +591,7 @@
                 <div class="admin-user-role-meta">
                     <p><strong>Usuário:</strong> <span id="admin-user-roles-account-name">-</span></p>
                     <p><strong>Ultimo acesso conhecido:</strong> <span id="admin-user-roles-last-access">-</span></p>
-                    <p><strong>Situação para atribuicao:</strong> <span id="admin-user-roles-status">-</span></p>
+                    <p><strong>Situação para atribuição:</strong> <span id="admin-user-roles-status">-</span></p>
                 </div>
 
                 <div class="admin-role-checkbox-grid">

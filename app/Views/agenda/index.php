@@ -128,7 +128,7 @@
                         <input type="date" name="data_nascimento" id="agenda-special-schedule-birth-date" required>
                     </label>
                     <label>
-                        <span>Publico da vaga</span>
+                        <span>Público da vaga</span>
                         <select name="publico_alvo" id="agenda-special-schedule-publico">
                             <option value="geral">Geral</option>
                             <option value="pcd">PCD</option>
@@ -179,9 +179,9 @@
                     </small>
                 </div>
                 <label>
-                    <span>Publico alvo da vaga</span>
+                    <span>Público-alvo da vaga</span>
                     <select name="publico_alvo" id="publico_alvo" required>
-                        <option value="geral">Publico geral</option>
+                        <option value="geral">Público geral</option>
                         <option value="pcd">PCD</option>
                         <option value="plm">PLM</option>
                         <option value="pvs">PVS</option>

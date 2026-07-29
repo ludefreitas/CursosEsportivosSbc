@@ -44,9 +44,9 @@ $serviceLocationOptions = $service_location_options ?? [];
 
                     <div class="dashboard-certificate-meta">
                         <p><strong>Arquivo atual:</strong> <?php echo e($record ? (string) ($record['nome_arquivo'] ?? '-') : '-'); ?></p>
-                        <p><strong>Data de emissao declarada:</strong> <?php echo e(!empty($record['data_emissao']) ? date('d/m/Y', strtotime((string) $record['data_emissao'])) : '-'); ?></p>
-                        <p><strong>Data de emissao validada:</strong> <?php echo e(!empty($record['data_emissao_validada']) ? date('d/m/Y', strtotime((string) $record['data_emissao_validada'])) : '-'); ?></p>
-                        <p><strong>CRM do medico:</strong> <?php echo e((string) (($record['crm_medico'] ?? '') !== '' ? $record['crm_medico'] : '-')); ?></p>
+                        <p><strong>Data de emissão declarada:</strong> <?php echo e(!empty($record['data_emissao']) ? date('d/m/Y', strtotime((string) $record['data_emissao'])) : '-'); ?></p>
+                        <p><strong>Data de emissão validada:</strong> <?php echo e(!empty($record['data_emissao_validada']) ? date('d/m/Y', strtotime((string) $record['data_emissao_validada'])) : '-'); ?></p>
+                        <p><strong>CRM do médico:</strong> <?php echo e((string) (($record['crm_medico'] ?? '') !== '' ? $record['crm_medico'] : '-')); ?></p>
                         <p><strong>Local do atendimento:</strong> <?php echo e((string) ($serviceLocationOptions[$record['local_atendimento'] ?? ''] ?? '-')); ?></p>
                         <p><strong>Prazo validado:</strong> <?php echo !empty($record['validade_meses']) ? e((string) $record['validade_meses'] . ' meses') : '-'; ?></p>
                         <p><strong>Validade:</strong> <?php echo e(!empty($record['validade_certificado']) ? date('d/m/Y', strtotime((string) $record['validade_certificado'])) : '-'); ?></p>
@@ -54,11 +54,11 @@ $serviceLocationOptions = $service_location_options ?? [];
 
                     <div class="grid-two">
                         <label>
-                            <span>Data de emissao declarada</span>
+                            <span>Data de emissão declarada</span>
                             <input type="date" name="<?php echo e((string) ($certificate['slug'] ?? '')); ?>_data_emissao" value="<?php echo e((string) ($record['data_emissao'] ?? '')); ?>">
                         </label>
                         <label>
-                            <span>CRM do medico</span>
+                            <span>CRM do médico</span>
                             <input type="text" name="<?php echo e((string) ($certificate['slug'] ?? '')); ?>_crm_medico" maxlength="40" placeholder="Ex.: CRM 123456" value="<?php echo e((string) ($record['crm_medico'] ?? '')); ?>">
                         </label>
                     </div>

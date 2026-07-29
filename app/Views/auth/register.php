@@ -26,7 +26,7 @@
                     <input type="password" name="password" minlength="6" required>
                 </label>
                 <label>
-                    <span>Confirmacao de senha</span>
+                    <span>Confirmação de senha</span>
                     <input type="password" name="password_confirmation" minlength="6" required>
                 </label>
             </div>

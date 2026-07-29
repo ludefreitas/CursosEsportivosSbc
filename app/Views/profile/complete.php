@@ -1,6 +1,6 @@
 <section class="auth-wrap modal-page-wrap">
     <div class="content-card modal-page-card modal-page-card-wide">
-        <h1>Completar Cadastro Obrigatorio</h1>
+        <h1>Completar Cadastro Obrigatório</h1>
         <p class="muted">
             Para acessar agendas, inscrições, perfis e demais áreas autenticadas, complete agora seu cadastro.
             Nesta etapa você também passa a existir como seu próprio dependente dentro do sistema.
@@ -10,7 +10,7 @@
                 <?php echo e($registrationBlock['mensagem']); ?>
             </div>
             <p class="muted">
-                Assim que a transferencia de responsabilidade for concluída para o seu CPF, você poderá voltar e continuar seu cadastro normalmente.
+                Assim que a transferência de responsabilidade for concluída para o seu CPF, você poderá voltar e continuar seu cadastro normalmente.
             </p>
         <?php } ?>
         <div class="alert-inline">
@@ -69,14 +69,14 @@
             <label>
                 <span>Número do cartão SUS</span>
                 <input type="text" name="numero_cartao_sus" data-sus-card="1" maxlength="19" value="<?php echo old('numero_cartao_sus', $person['numero_cartao_sus'] ?? ''); ?>">
-                <small class="muted">Campo opcional. Se informado, deve conter exatamente 16 números.</small>
+                <small class="muted">Este dado deve conter exatamente 16 números.</small>
             </label>
         </div>
 
         <div class="grid-three">
             <label class="checkbox-chip">
                 <input type="checkbox" name="eh_pcd" value="1" data-condition-exclusive="1" <?php echo (string) old('eh_pcd', $person['eh_pcd'] ?? '0') === '1' ? 'checked' : ''; ?>>
-                <span>E pessoa com deficiencia (PCD)</span>
+                <span>É pessoa com deficiência (PCD)</span>
             </label>
             <label class="checkbox-chip">
                 <input type="checkbox" name="eh_pvs" value="1" data-condition-exclusive="1" <?php echo (string) old('eh_pvs', $person['eh_pvs'] ?? '0') === '1' ? 'checked' : ''; ?>>
@@ -90,16 +90,16 @@
         <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condição pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>
 
         <div class="alert-inline">
-            Se alguma dessas condicoes for marcada, a pessoa precisara manter a documentação correspondente e o certificado validado para liberar agendamentos e inscrições em qualquer tipo de vaga.
+            Se uma das condições sociais ou de saúde acima for declarada (PCD, PVS ou PLM), a pessoa precisará manter a documentação correspondente e o certificado validado para realizar agendamentos e inscrições em qualquer tipo de vaga.
         </div>
 
         <div class="grid-five">
             <label>
                 <span>CEP</span>
-                <input type="text" name="zip_code" value="<?php echo old('zip_code', $person['cep'] ?? ''); ?>" data-cep-sbc="1" required>
+                <input type="text" name="   " value="<?php echo old('  ', $person['cep'] ?? ''); ?>" data-cep-sbc="1" required>
             </label>
             <label class="span-2">
-                <span>Endereco</span>
+                <span>Endereço</span>
                 <input type="text" name="street" value="<?php echo old('street', $person['logradouro'] ?? ''); ?>" required>
             </label>
             <label>
@@ -112,7 +112,7 @@
             </label>
         </div>
 
-        <div class="grid-four">
+        <div class="grid-three">
             <label>
                 <span>Bairro</span>
                 <input type="text" name="neighborhood" value="<?php echo old('neighborhood', $person['bairro'] ?? ''); ?>" required>
@@ -125,16 +125,7 @@
                 <span>UF</span>
                 <input type="text" name="state" value="<?php echo old('state', $person['uf'] ?? ''); ?>" maxlength="2" required>
             </label>
-            <label>
-                <span>Contato de emergência</span>
-                <input type="text" name="emergency_contact_name" value="<?php echo old('emergency_contact_name', $person['contato_emergencia_nome'] ?? ''); ?>" required>
-            </label>
         </div>
-
-        <label>
-            <span>Telefone do contato de emergência</span>
-            <input type="text" name="emergency_contact_phone" value="<?php echo old('emergency_contact_phone', $person['contato_emergencia_telefone'] ?? ''); ?>" required>
-        </label>
 
         <div class="grid-two">
             <label>
@@ -155,6 +146,16 @@
             <label>
                 <span>CPF do responsável 2</span>
                 <input type="text" name="parent2_cpf" value="<?php echo old('parent2_cpf', $person['responsavel2_cpf'] ?? ''); ?>">
+            </label>
+        </div>
+        <div class="grid-two">
+            <label>
+                <span>Contato de emergência</span>
+                <input type="text" name="emergency_contact_name" value="<?php echo old('emergency_contact_name', $person['contato_emergencia_nome'] ?? ''); ?>" required>
+            </label>
+            <label>
+                <span>Telefone do contato de emergência</span>
+                <input type="text" name="emergency_contact_phone" value="<?php echo old('emergency_contact_phone', $person['contato_emergencia_telefone'] ?? ''); ?>" required>
             </label>
         </div>
 

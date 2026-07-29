@@ -21,8 +21,8 @@ class AdminService
     ];
     private const HEALTH_CERTIFICATE_SERVICE_LOCATIONS = [
         'servico_publico' => 'Serviço público',
-        'clinica_particular' => 'Clinica particular',
-        'clinica_convenio' => 'Clinica convenio medico',
+        'clinica_particular' => 'Clínica particular',
+        'clinica_convenio' => 'Clínica de convênio médico',
     ];
 
     public function __construct()
@@ -1102,7 +1102,7 @@ class AdminService
         }
 
         if ($status === 'validado' && !$this->isValidDate($validatedIssueDate)) {
-            throw new RuntimeException('Informe a data de emissao validada para concluir a validação do atestado.');
+            throw new RuntimeException('Informe a data de emissão validada para concluir a validação do atestado.');
         }
 
         if ($status === 'validado' && !in_array($validityMonths, $allowedMonthOptions, true)) {
@@ -1194,7 +1194,7 @@ class AdminService
         }
 
         if (!validar_nome_cadastro($fullName)) {
-            throw new RuntimeException('Informe um nome completo sem caracteres especiais e com no minimo 14 caracteres.');
+            throw new RuntimeException('Informe um nome completo sem caracteres especiais e com no mínimo 14 caracteres.');
         }
 
         if (!validar_cpf($cpf)) {

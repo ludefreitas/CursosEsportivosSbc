@@ -247,7 +247,7 @@ class SitePopupService
         }
 
         if (($payload['rotulo_acao'] === null) !== ($payload['url_acao'] === null)) {
-            throw new RuntimeException('Informe juntos o rotulo e a URL do botao ou link do pop-up.');
+            throw new RuntimeException('Informe juntos o rótulo e a URL do botão ou link do pop-up.');
         }
 
         if ($payload['data_inicio'] === null || $payload['data_fim'] === null) {

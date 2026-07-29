@@ -886,7 +886,7 @@
                 const $panel = getPanel();
 
                 if ($panel.length === 0) {
-                    App.core.abrirPopup('erro', 'O formulario de edição de pessoa não está disponível nesta tela.');
+                    App.core.abrirPopup('erro', 'O formulário de edição de pessoa não está disponível nesta tela.');
                     return;
                 }
 
@@ -1209,7 +1209,7 @@
                                     '<th>CPF</th>' +
                                     '<th>Nascimento</th>' +
                                     '<th>Cadastro</th>' +
-                                    '<th>Vinculo desde</th>' +
+                                    '<th>Vínculo desde</th>' +
                                     '<th>Observações</th>' +
                                 '</tr>' +
                             '</thead>' +
@@ -1356,7 +1356,7 @@
                 $('#admin-user-roles-account-name').text(String(user.nome_completo || '-'));
                 $('#admin-user-roles-last-access').text(formatDateTime(user.ultimo_acesso_em));
                 $('#admin-user-roles-subtitle').text('Defina os papéis ativos de ' + String(user.nome_completo || 'este usuário') + '.');
-                $('#admin-user-roles-status').text(blockReason !== '' ? 'Bloqueado: ' + blockReason : 'Liberado para atribuicao');
+                $('#admin-user-roles-status').text(blockReason !== '' ? 'Bloqueado: ' + blockReason : 'Liberado para atribuição');
                 $('#admin-user-roles-reason').val('');
 
                 $('#admin-user-roles-form input[type="checkbox"][data-role-id]').each(function () {

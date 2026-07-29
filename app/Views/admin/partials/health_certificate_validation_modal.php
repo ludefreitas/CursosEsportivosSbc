@@ -25,8 +25,8 @@ $currentValidationNote = (string) ($certificate['observacao_validacao'] ?? '');
         <p><strong>Responsável:</strong> <?php echo e((string) (($person['nome_responsavel'] ?? '') !== '' ? $person['nome_responsavel'] : '-')); ?></p>
         <p><strong>Tipo de atestado:</strong> <?php echo e((string) ($certificateType['label'] ?? '-')); ?></p>
         <p><strong>Status atual:</strong> <?php echo e(ucfirst((string) ($certificate['status_validacao'] ?? 'pendente'))); ?></p>
-        <p><strong>Data de emissao declarada:</strong> <?php echo e(!empty($certificate['data_emissao']) ? date('d/m/Y', strtotime((string) $certificate['data_emissao'])) : '-'); ?></p>
-        <p><strong>CRM do medico:</strong> <?php echo e((string) (($certificate['crm_medico'] ?? '') !== '' ? $certificate['crm_medico'] : '-')); ?></p>
+        <p><strong>Data de emissão declarada:</strong> <?php echo e(!empty($certificate['data_emissao']) ? date('d/m/Y', strtotime((string) $certificate['data_emissao'])) : '-'); ?></p>
+        <p><strong>CRM do médico:</strong> <?php echo e((string) (($certificate['crm_medico'] ?? '') !== '' ? $certificate['crm_medico'] : '-')); ?></p>
         <p><strong>Local do atendimento:</strong> <?php echo e((string) $serviceLocationLabel); ?></p>
         <p><strong>Arquivo enviado:</strong> <?php echo e((string) (($certificate['nome_arquivo'] ?? '') !== '' ? $certificate['nome_arquivo'] : '-')); ?></p>
         <p><strong>Pendencia atual:</strong> <?php echo e((string) ($pendingReason !== '' ? $pendingReason : 'Nenhuma')); ?></p>
@@ -58,14 +58,14 @@ $currentValidationNote = (string) ($certificate['observacao_validacao'] ?? '');
                 </select>
             </label>
             <label>
-                <span>Data de emissao validada</span>
+                <span>Data de emissão validada</span>
                 <input type="date" name="data_emissao_validada" id="admin-health-certificate-validation-issued-at" value="<?php echo e($currentValidatedIssueDate); ?>">
                 <small class="muted">Essa data será usada para calcular a validade final do atestado.</small>
             </label>
         </div>
 
         <label>
-            <span>Prazo de validade apos a emissao validada</span>
+            <span>Prazo de validade após a emissão validada</span>
             <select name="validade_meses" id="admin-health-certificate-validation-months">
                 <option value="">Selecione</option>
                 <?php foreach ($validityMonthOptions as $monthOption) { ?>
@@ -74,7 +74,7 @@ $currentValidationNote = (string) ($certificate['observacao_validacao'] ?? '');
                     </option>
                 <?php } ?>
             </select>
-            <small class="muted">Opcoes disponíveis: 6, 12, 18 ou 24 meses.</small>
+            <small class="muted">Opções disponíveis: 6, 12, 18 ou 24 meses.</small>
         </label>
 
         <label>

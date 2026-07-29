@@ -117,7 +117,7 @@
                 <div class="dashboard-dependent-edit-grid dashboard-dependent-edit-grid-3">
                     <label class="checkbox-chip">
                         <input type="checkbox" name="eh_pcd" value="1" data-condition-exclusive="1" <?php echo (int) ($dependent['eh_pcd'] ?? 0) === 1 ? 'checked' : ''; ?>>
-                        <span>E pessoa com deficiencia (PCD)</span>
+                        <span>É pessoa com deficiência (PCD)</span>
                     </label>
                     <label class="checkbox-chip">
                         <input type="checkbox" name="eh_pvs" value="1" data-condition-exclusive="1" <?php echo (int) ($dependent['eh_pvs'] ?? 0) === 1 ? 'checked' : ''; ?>>
@@ -132,14 +132,14 @@
             </section>
 
             <section class="dashboard-dependent-edit-section">
-                <h4>Endereco</h4>
+                <h4>Endereço</h4>
                 <div class="dashboard-dependent-edit-grid dashboard-dependent-edit-grid-address">
                     <label>
                         <span>CEP</span>
                         <input type="text" name="zip_code" value="<?php echo e((string) ($dependent['cep'] ?? '')); ?>" data-cep-sbc="1" required>
                     </label>
                     <label class="dashboard-dependent-edit-span-2">
-                        <span>Endereco</span>
+                        <span>Endereço</span>
                         <input type="text" name="street" value="<?php echo e((string) ($dependent['logradouro'] ?? '')); ?>" required>
                     </label>
                     <label>
@@ -166,7 +166,7 @@
             </section>
 
             <section class="dashboard-dependent-edit-section">
-                <h4>Responsaveis</h4>
+                <h4>Responsáveis</h4>
                 <div class="dashboard-dependent-edit-grid dashboard-dependent-edit-grid-2">
                     <label>
                         <span>Nome do responsável 1</span>

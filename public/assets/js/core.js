@@ -242,7 +242,7 @@
                 finalUrl = String(url || '');
             }
 
-            $content.html('<p class="muted">Carregando formulario...</p>');
+            $content.html('<p class="muted">Carregando formulário...</p>');
             App.core.abrirPopupCustomizado('#popup-route-modal');
 
             $.ajax({
@@ -547,12 +547,12 @@
                 const $message = obterMensagem($(this));
 
                 if (rawValue.length === 0) {
-                    $message.text('Aceito automaticamente para o intervalo de CEPs de São Bernardo do Campo: 09600000 a 09899999. Exceções dependem de cadastro administrativo.');
+                    $message.text('Aceito automaticamente somente CEPs de São Bernardo do Campo.');
                     return;
                 }
 
                 if (rawValue.length < 8) {
-                    $message.text('Complete os 8 dígitos do CEP.');
+                    $message.text('Somente números, 8 dígitos.');
                     return;
                 }
 
@@ -659,7 +659,7 @@
 
                 if (status === 'cpf_invalido' || status === 'dependente_menor_sem_conta' || status === 'conta_existente') {
                     event.preventDefault();
-                    App.core.abrirPopup('erro', 'Não é possível concluir a criacao da conta com este CPF. Confira o aviso exibido pelo sistema.');
+                    App.core.abrirPopup('erro', 'Não é possível concluir a criação da conta com este CPF. Confira o aviso exibido pelo sistema.');
                 }
             });
         },
@@ -818,6 +818,52 @@
             observer.observe(document.body, {
                 childList: true,
                 subtree: true
+            });
+        },
+
+        iniciarMenuHeader: function () {
+            const $header = $('.site-header').first();
+            const $toggle = $header.find('.site-header-menu-toggle').first();
+            const $navigation = $header.find('.site-nav').first();
+
+            if ($header.length === 0 || $toggle.length === 0 || $navigation.length === 0) {
+                return;
+            }
+
+            function setMenuOpen(open) {
+                const isOpen = Boolean(open);
+
+                $header.toggleClass('is-menu-open', isOpen);
+                $toggle
+                    .attr('aria-expanded', isOpen ? 'true' : 'false')
+                    .attr('aria-label', isOpen ? 'Fechar menu de navegação' : 'Abrir menu de navegação')
+                    .attr('title', isOpen ? 'Fechar menu' : 'Abrir menu');
+            }
+
+            $toggle.on('click', function () {
+                setMenuOpen(!$header.hasClass('is-menu-open'));
+            });
+
+            $navigation.on('click', 'a, button[type="submit"]', function () {
+                setMenuOpen(false);
+            });
+
+            $(document).on('click.siteHeaderMenu', function (event) {
+                if ($header.hasClass('is-menu-open') && $(event.target).closest('.site-header').length === 0) {
+                    setMenuOpen(false);
+                }
+            });
+
+            $(document).on('keydown.siteHeaderMenu', function (event) {
+                if (event.key === 'Escape') {
+                    setMenuOpen(false);
+                }
+            });
+
+            $(window).on('resize.siteHeaderMenu', function () {
+                if (window.innerWidth > 980) {
+                    setMenuOpen(false);
+                }
             });
         },
 
@@ -1140,6 +1186,7 @@
             App.core.iniciarConfirmacoesExclusao();
             App.core.iniciarLoadingGlobal();
             App.core.iniciarTabelasResponsivas();
+            App.core.iniciarMenuHeader();
             App.core.iniciarImportacaoPessoaExterna();
         }
     });

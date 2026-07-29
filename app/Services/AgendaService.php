@@ -1422,7 +1422,7 @@ class AgendaService
         ]);
 
         if ((int) $stmtCount->fetchColumn() >= (int) ($schedule[$campo] ?? 0)) {
-            throw new RuntimeException('Não há mais vagas disponíveis para o publico selecionado neste horário especial.');
+            throw new RuntimeException('Não há mais vagas disponíveis para o público selecionado neste horário especial.');
         }
     }
 
@@ -1772,7 +1772,7 @@ class AgendaService
         ]);
 
         if ((int) $stmtCount->fetchColumn() >= (int) $schedule[$campo]) {
-            throw new RuntimeException('Não há mais vagas disponíveis para o publico selecionado neste horário.');
+            throw new RuntimeException('Não há mais vagas disponíveis para o público selecionado neste horário.');
         }
     }
 

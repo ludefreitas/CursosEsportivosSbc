@@ -1,7 +1,7 @@
 <section class="error-shell">
     <article class="error-card error-test-card">
         <span class="eyebrow">Arquivo de testes</span>
-        <h1>Central de testes das paginas de erro</h1>
+        <h1>Central de testes das páginas de erro</h1>
         <p class="error-message">Use esta página para verificar rapidamente como os erros mais comuns aparecem para o usuário final.</p>
         <div class="error-test-grid">
             <?php foreach (($errors ?? []) as $error) { ?>

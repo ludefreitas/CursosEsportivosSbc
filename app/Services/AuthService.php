@@ -215,7 +215,7 @@ class AuthService
                 'pode_criar_conta' => true,
                 'bloquear_cadastro_complementar' => true,
                 'mensagem_popup' => $mensagem,
-                'mensagem_helper' => 'CPF de dependente maior de idade. A conta pode ser criada, mas o cadastro ficara bloqueado até a transferencia de responsabilidade.',
+                'mensagem_helper' => 'CPF de dependente maior de idade. A conta pode ser criada, mas o cadastro ficará bloqueado até a transferência de responsabilidade.',
                 'mensagem_bloqueio' => $mensagem,
                 'pessoa_id' => (int) $person['id'],
                 'cadastro_ja_completo' => (int) ($person['cadastro_completo'] ?? 0) === 1,
