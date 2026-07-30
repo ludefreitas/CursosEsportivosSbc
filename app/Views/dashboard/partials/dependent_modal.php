@@ -98,8 +98,8 @@
                     </label>
                     <label>
                         <span>Número do cartão SUS</span>
-                        <input type="text" name="numero_cartao_sus" data-sus-card="1" maxlength="19" value="<?php echo e((string) ($dependent['numero_cartao_sus'] ?? '')); ?>">
-                        <small class="muted">Campo opcional. Se informado, deve conter exatamente 16 números.</small>
+                        <input type="text" name="numero_cartao_sus" data-sus-card="1" inputmode="numeric" maxlength="18" value="<?php echo e((string) ($dependent['numero_cartao_sus'] ?? '')); ?>">
+                        <small class="muted">Campo opcional. Se informado, deve conter exatamente 15 dígitos.</small>
                     </label>
                     <label>
                         <span>Contato de emergência</span>

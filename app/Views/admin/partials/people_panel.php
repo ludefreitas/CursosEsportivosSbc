@@ -304,8 +304,8 @@
 
                     <label>
                         <span>Número do cartão SUS</span>
-                        <input type="text" name="numero_cartao_sus" id="admin-person-numero-cartao-sus" data-sus-card="1" maxlength="19">
-                        <small class="muted">Campo opcional. Se informado, deve conter exatamente 16 números.</small>
+                        <input type="text" name="numero_cartao_sus" id="admin-person-numero-cartao-sus" data-sus-card="1" inputmode="numeric" maxlength="18">
+                        <small class="muted">Campo opcional. Se informado, deve conter exatamente 15 dígitos.</small>
                     </label>
 
                     <div class="grid-three">

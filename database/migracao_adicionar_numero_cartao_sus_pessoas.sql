@@ -8,7 +8,7 @@ SET @column_exists := (
 
 SET @sql := IF(
     @column_exists = 0,
-    'ALTER TABLE pessoas ADD COLUMN numero_cartao_sus CHAR(16) NULL AFTER telefone_whatsapp',
+    'ALTER TABLE pessoas ADD COLUMN numero_cartao_sus CHAR(15) NULL AFTER telefone_whatsapp',
     'SELECT 1'
 );
 

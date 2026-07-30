@@ -415,7 +415,7 @@
 
         mascararCartaoSus: function (selector) {
             $(document).on('input', selector, function () {
-                const digits = String($(this).val() || '').replace(/\D+/g, '').slice(0, 16);
+                const digits = String($(this).val() || '').replace(/\D+/g, '').slice(0, 15);
                 let formatted = '';
 
                 for (let index = 0; index < digits.length; index += 1) {

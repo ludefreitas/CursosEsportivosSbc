@@ -68,8 +68,8 @@
             </label>
             <label>
                 <span>Número do cartão SUS</span>
-                <input type="text" name="numero_cartao_sus" data-sus-card="1" maxlength="19" value="<?php echo old('numero_cartao_sus', $person['numero_cartao_sus'] ?? ''); ?>">
-                <small class="muted">Este dado deve conter exatamente 16 números.</small>
+                <input type="text" name="numero_cartao_sus" data-sus-card="1" inputmode="numeric" maxlength="18" value="<?php echo old('numero_cartao_sus', $person['numero_cartao_sus'] ?? ''); ?>">
+                <small class="muted">Este dado deve conter exatamente 15 dígitos.</small>
             </label>
         </div>
 

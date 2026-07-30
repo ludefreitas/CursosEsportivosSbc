@@ -817,8 +817,8 @@ class ProfileService
     {
         $normalized = $this->normalizeNumeroCartaoSus($value);
 
-        if ($normalized !== '' && strlen($normalized) !== 16) {
-            throw new RuntimeException('Quando informado, o número do cartão SUS deve conter exatamente 16 números.');
+        if ($normalized !== '' && strlen($normalized) !== 15) {
+            throw new RuntimeException('Quando informado, o número do cartão SUS deve conter exatamente 15 dígitos.');
         }
     }
 

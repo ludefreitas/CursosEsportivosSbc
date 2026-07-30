@@ -23,8 +23,8 @@
         <div class="grid-two">
             <label>
                 <span>Número do cartão SUS</span>
-                <input type="text" name="numero_cartao_sus" data-sus-card="1" maxlength="19">
-                <small class="muted">Este dado deve conter exatamente 16 números.</small>
+                <input type="text" name="numero_cartao_sus" data-sus-card="1" inputmode="numeric" maxlength="18">
+                <small class="muted">Este dado deve conter exatamente 15 dígitos.</small>
             </label>
             <label>
                 <span>Sexo</span>

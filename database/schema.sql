@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS pessoas (
     data_nascimento DATE NULL,
     email VARCHAR(180) NULL,
     telefone_whatsapp VARCHAR(30) NULL,
-    numero_cartao_sus CHAR(16) NULL,
+    numero_cartao_sus CHAR(15) NULL,
     cep VARCHAR(10) NULL,
     logradouro VARCHAR(180) NULL,
     numero_endereco VARCHAR(20) NULL,
@@ -30,7 +30,9 @@ CREATE TABLE IF NOT EXISTS pessoas (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT NULL,
     INDEX idx_pessoas_nome (nome_completo),
-    INDEX idx_pessoas_cadastro (cadastro_completo)
+    INDEX idx_pessoas_cadastro (cadastro_completo),
+    CONSTRAINT chk_pessoas_cartao_sus_15_digitos
+        CHECK (numero_cartao_sus IS NULL OR numero_cartao_sus REGEXP '^[0-9]{15}$')
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS contas (
