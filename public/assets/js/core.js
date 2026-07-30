@@ -334,6 +334,221 @@
             return { mensagem, redirectUrl };
         },
 
+        validarCampoInline: function (field, forceMessage) {
+            const $field = $(field);
+            const type = String($field.attr('type') || '').toLowerCase();
+            const name = String($field.attr('name') || '').trim();
+            const value = String($field.val() == null ? '' : $field.val()).trim();
+            const digits = value.replace(/\D+/g, '');
+            const isRequired = $field.is('[required]');
+            let message = '';
+
+            if (!field || field.disabled || type === 'hidden' || $field.closest('.hidden').length > 0) {
+                return true;
+            }
+
+            field.setCustomValidity('');
+
+            if (isRequired) {
+                if (
+                    type === 'radio' &&
+                    !$field.closest('form').find('input[type="radio"][name="' + name + '"]:checked').length
+                ) {
+                    message = 'Selecione uma opção para continuar.';
+                } else if (type === 'checkbox' && !field.checked) {
+                    message = 'Marque esta opção para continuar.';
+                } else if (value === '') {
+                    message = $field.is('select') ? 'Selecione uma opção.' : 'Preencha este campo obrigatório.';
+                }
+            }
+
+            if (message === '' && value !== '') {
+                if ([
+                    'cpf',
+                    'parent1_cpf',
+                    'parent2_cpf',
+                    'responsavel1_cpf',
+                    'responsavel2_cpf',
+                    'new_responsible_cpf'
+                ].indexOf(name) >= 0) {
+                    if (!App.core.cpfValido(digits)) {
+                        message = 'Informe um CPF válido com 11 dígitos.';
+                    }
+                } else if (
+                    $field.is('[data-cep-sbc="1"], [data-cep-address-search="1"]') ||
+                    ['zip_code', 'cep', 'cep_inicio', 'cep_fim'].indexOf(name) >= 0
+                ) {
+                    if (digits.length !== 8) {
+                        message = 'Informe um CEP válido com 8 dígitos.';
+                    }
+                } else if ($field.is('[data-sus-card="1"]') || name === 'numero_cartao_sus') {
+                    if (digits.length !== 15) {
+                        message = 'Informe exatamente os 15 dígitos do Cartão SUS.';
+                    }
+                } else if ($field.is('[data-nis-number="1"]') && digits.length !== 11) {
+                    message = 'Informe exatamente os 11 dígitos do NIS.';
+                } else if (
+                    $field.is('[data-cid-code="1"]') &&
+                    !/^[A-Z][0-9]{2}\.[0-9]$/.test(value.toUpperCase())
+                ) {
+                    message = 'Informe um código CID válido no formato A00.0.';
+                } else if (
+                    ['phone_whatsapp', 'emergency_contact_phone', 'contato_emergencia_telefone'].indexOf(name) >= 0 &&
+                    (digits.length < 10 || digits.length > 11)
+                ) {
+                    message = 'Informe um telefone válido com DDD.';
+                } else if (
+                    (name === 'state' || name === 'uf') &&
+                    !/^[A-Za-z]{2}$/.test(value)
+                ) {
+                    message = 'Informe a UF com duas letras.';
+                } else if (
+                    name === 'password_confirmation' &&
+                    value !== String($field.closest('form').find('[name="password"]').val() || '')
+                ) {
+                    message = 'A confirmação deve ser igual à senha informada.';
+                }
+            }
+
+            const remoteMessage = String($field.attr('data-remote-validation-error') || '').trim();
+
+            if (message === '' && remoteMessage !== '') {
+                message = remoteMessage;
+            }
+
+            if (message === '' && field.validity) {
+                if (field.validity.typeMismatch) {
+                    message = type === 'email' ? 'Informe um endereço de e-mail válido.' : 'Informe um valor válido.';
+                } else if (field.validity.tooShort) {
+                    message = 'Digite pelo menos ' + String($field.attr('minlength') || '') + ' caracteres.';
+                } else if (field.validity.tooLong) {
+                    message = 'Digite no máximo ' + String($field.attr('maxlength') || '') + ' caracteres.';
+                } else if (field.validity.rangeUnderflow) {
+                    message = 'Informe um valor maior ou igual a ' + String($field.attr('min') || '') + '.';
+                } else if (field.validity.rangeOverflow) {
+                    message = 'Informe um valor menor ou igual a ' + String($field.attr('max') || '') + '.';
+                } else if (field.validity.stepMismatch || field.validity.badInput || field.validity.patternMismatch) {
+                    message = 'Informe um valor no formato solicitado.';
+                }
+            }
+
+            field.setCustomValidity(message);
+
+            const $label = $field.closest('label');
+            const isChoice = type === 'checkbox' || type === 'radio';
+            let $message = isChoice && $label.length > 0
+                ? $label.next('.field-validation-message').first()
+                : $field.siblings('.field-validation-message').first();
+
+            if ($message.length === 0) {
+                $message = $('<small class="field-validation-message" aria-live="polite"></small>');
+
+                if (isChoice && $label.length > 0) {
+                    $label.after($message);
+                } else {
+                    $field.after($message);
+                }
+            }
+
+            const shouldShow = message !== '' && (
+                !!forceMessage ||
+                $field.attr('data-validation-touched') === '1'
+            );
+
+            $field
+                .toggleClass('field-invalid', shouldShow)
+                .attr('aria-invalid', shouldShow ? 'true' : 'false');
+            $message.text(shouldShow ? message : '').toggleClass('hidden', !shouldShow);
+
+            return message === '';
+        },
+
+        cpfValido: function (cpf) {
+            const digits = String(cpf || '').replace(/\D+/g, '');
+
+            if (digits.length !== 11 || /^(\d)\1{10}$/.test(digits)) {
+                return false;
+            }
+
+            function calcularDigito(length) {
+                let sum = 0;
+
+                for (let index = 0; index < length; index += 1) {
+                    sum += Number(digits.charAt(index)) * (length + 1 - index);
+                }
+
+                const remainder = (sum * 10) % 11;
+                return remainder === 10 ? 0 : remainder;
+            }
+
+            return calcularDigito(9) === Number(digits.charAt(9))
+                && calcularDigito(10) === Number(digits.charAt(10));
+        },
+
+        validarFormularioInline: function (form) {
+            const $form = $(form);
+            let firstInvalid = null;
+
+            $form.find('input, select, textarea').each(function () {
+                const valid = App.core.validarCampoInline(this, true);
+
+                if (!valid && firstInvalid === null) {
+                    firstInvalid = this;
+                }
+            });
+
+            if (firstInvalid !== null) {
+                firstInvalid.focus({ preventScroll: true });
+                firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return false;
+            }
+
+            return true;
+        },
+
+        iniciarValidacaoFormularios: function () {
+            document.addEventListener('invalid', function (event) {
+                if (!$(event.target).is('input, select, textarea')) {
+                    return;
+                }
+
+                event.preventDefault();
+                $(event.target).attr('data-validation-touched', '1');
+                App.core.validarCampoInline(event.target, true);
+            }, true);
+
+            document.addEventListener('submit', function (event) {
+                if (!App.core.validarFormularioInline(event.target)) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                }
+            }, true);
+
+            $(document).on('blur change', 'input, select, textarea', function () {
+                $(this).attr('data-validation-touched', '1');
+                App.core.validarCampoInline(this, true);
+            });
+
+            $(document).on('input', 'input, textarea', function () {
+                $(this).removeAttr('data-remote-validation-error');
+
+                if ($(this).attr('data-validation-touched') === '1') {
+                    App.core.validarCampoInline(this, true);
+                }
+            });
+
+            $(document).on('reset', 'form', function () {
+                const $form = $(this);
+
+                window.setTimeout(function () {
+                    $form.find('.field-invalid')
+                        .removeClass('field-invalid')
+                        .removeAttr('aria-invalid data-validation-touched data-remote-validation-error');
+                    $form.find('.field-validation-message').addClass('hidden').text('');
+                }, 0);
+            });
+        },
+
         mascararCpf: function (selector) {
             $(document).on('input', selector, function () {
                 let value = $(this).val().replace(/\D+/g, '').slice(0, 11);
@@ -543,8 +758,9 @@
             }
 
             $(document).on('input blur', selector, function () {
-                const rawValue = String($(this).val() || '').replace(/\D+/g, '');
-                const $message = obterMensagem($(this));
+                const $input = $(this);
+                const rawValue = String($input.val() || '').replace(/\D+/g, '');
+                const $message = obterMensagem($input);
 
                 if (rawValue.length === 0) {
                     $message.text('Aceito automaticamente somente CEPs de São Bernardo do Campo.');
@@ -558,16 +774,29 @@
 
                 $message.text('Consultando regras de aceitacao do CEP...');
 
+                $input.attr('data-remote-validation-error', 'Aguarde a validação do CEP.');
+
                 $.getJSON(App.core.buildUrl('/api/ceps/validar'), { cep: rawValue })
                     .done(function (response) {
+                        if (String($input.val() || '').replace(/\D+/g, '') !== rawValue) {
+                            return;
+                        }
+
                         if (!response || typeof response.mensagem === 'undefined') {
+                            $input.attr('data-remote-validation-error', 'Não foi possível validar o CEP neste momento.');
                             $message.text('Não foi possível validar o CEP neste momento.');
                             return;
                         }
 
                         $message.text(response.mensagem);
+                        $input.attr(
+                            'data-remote-validation-error',
+                            response.aceito === false ? String(response.mensagem || '') : ''
+                        );
+                        App.core.validarCampoInline($input[0], response.aceito === false);
                     })
                     .fail(function () {
+                        $input.attr('data-remote-validation-error', 'Não foi possível validar o CEP neste momento.');
                         $message.text('Não foi possível validar o CEP neste momento.');
                     });
             });
@@ -605,10 +834,17 @@
 
                 $message.text('Consultando a situação deste CPF no sistema...');
 
+                $input.attr('data-remote-validation-error', 'Aguarde a validação do CPF.');
+
                 $.getJSON(App.core.buildUrl('/api/cpf/cadastro-status'), { cpf: rawValue })
                     .done(function (response) {
+                        if (String($input.val() || '').replace(/\D+/g, '') !== rawValue) {
+                            return;
+                        }
+
                         if (!response || typeof response.status === 'undefined') {
                             $input.data('cpfCadastroPermitido', false);
+                            $input.attr('data-remote-validation-error', 'Não foi possível validar este CPF agora.');
                             $message.text('Não foi possível validar este CPF agora.');
                             return;
                         }
@@ -617,20 +853,19 @@
                         const podeCriarConta = !!response.pode_criar_conta;
                         const mensagemPopup = String(response.mensagem_popup || '');
                         const mensagemHelper = String(response.mensagem_helper || '');
-                        const lastAlertKey = String($input.data('cpfCadastroAlertKey') || '');
-                        const alertKey = rawValue + ':' + status;
-
                         $input.data('cpfCadastroPermitido', podeCriarConta);
                         $input.data('cpfCadastroStatus', status);
                         $message.text(mensagemHelper || 'Situação do CPF atualizada.');
 
-                        if (mensagemPopup !== '' && lastAlertKey !== alertKey && status !== 'disponivel') {
-                            App.core.abrirPopup(podeCriarConta ? 'sucesso' : 'erro', mensagemPopup);
-                            $input.data('cpfCadastroAlertKey', alertKey);
-                        }
+                        $input.attr(
+                            'data-remote-validation-error',
+                            podeCriarConta ? '' : (mensagemHelper || mensagemPopup || 'Este CPF não pode ser utilizado.')
+                        );
+                        App.core.validarCampoInline($input[0], !podeCriarConta);
                     })
                     .fail(function () {
                         $input.data('cpfCadastroPermitido', false);
+                        $input.attr('data-remote-validation-error', 'Não foi possível validar este CPF agora.');
                         $message.text('Não foi possível validar este CPF agora.');
                     });
             }
@@ -659,7 +894,9 @@
 
                 if (status === 'cpf_invalido' || status === 'dependente_menor_sem_conta' || status === 'conta_existente') {
                     event.preventDefault();
-                    App.core.abrirPopup('erro', 'Não é possível concluir a criação da conta com este CPF. Confira o aviso exibido pelo sistema.');
+                    $cpfInput.attr('data-validation-touched', '1');
+                    App.core.validarCampoInline($cpfInput[0], true);
+                    $cpfInput.trigger('focus');
                 }
             });
         },
@@ -1172,6 +1409,7 @@
         },
 
         init: function () {
+            App.core.iniciarValidacaoFormularios();
             App.core.mascararCpf('input[name="cpf"], input[name="parent1_cpf"], input[name="parent2_cpf"], input[name="responsavel1_cpf"], input[name="responsavel2_cpf"], input[name="new_responsible_cpf"]');
             App.core.mascararTelefone('input[name="phone_whatsapp"], input[name="emergency_contact_phone"]');
             App.core.mascararCep('input[name="zip_code"], input[name="cep"], input[name="cep_inicio"], input[name="cep_fim"]');

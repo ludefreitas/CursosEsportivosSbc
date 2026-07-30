@@ -96,7 +96,7 @@
         <div class="grid-five">
             <label>
                 <span>CEP</span>
-                <input type="text" name="   " value="<?php echo old('  ', $person['cep'] ?? ''); ?>" data-cep-sbc="1" required>
+                <input type="text" name="zip_code" value="<?php echo old('zip_code', $person['cep'] ?? ''); ?>" data-cep-sbc="1" required>
             </label>
             <label class="span-2">
                 <span>Endereço</span>
