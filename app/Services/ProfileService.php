@@ -957,12 +957,12 @@ class ProfileService
     private function mapearDadosPessoa(array $data, ?int $id = null, bool $includeCpf = false): array
     {
         $payload = [
-            ':id' => $id,
             ':nome_completo' => normalize_nome_completo((string) ($data['full_name'] ?? $data['nome_completo'] ?? '')),
             ':sexo' => trim((string) ($data['sexo'] ?? '')),
             ':data_nascimento' => trim((string) ($data['birth_date'] ?? '')),
             ':telefone_whatsapp' => trim((string) ($data['phone_whatsapp'] ?? '')),
             ':email' => trim((string) ($data['email'] ?? '')),
+            ':numero_cartao_sus' => $this->normalizeNumeroCartaoSus((string) ($data['numero_cartao_sus'] ?? '')) ?: null,
             ':cep' => normalize_cep((string) ($data['zip_code'] ?? '')),
             ':logradouro' => trim((string) ($data['street'] ?? '')),
             ':numero_endereco' => trim((string) ($data['address_number'] ?? '')),
@@ -980,6 +980,10 @@ class ProfileService
             ':eh_pvs' => (int) (($data['eh_pvs'] ?? 0) === '1' || (int) ($data['eh_pvs'] ?? 0) === 1 ? 1 : 0),
             ':eh_plm' => (int) (($data['eh_plm'] ?? 0) === '1' || (int) ($data['eh_plm'] ?? 0) === 1 ? 1 : 0),
         ];
+
+        if ($id !== null) {
+            $payload[':id'] = $id;
+        }
 
         if ($includeCpf) {
             $payload[':cpf'] = normalize_cpf((string) ($data['cpf'] ?? ''));
