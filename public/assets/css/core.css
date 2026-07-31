@@ -846,6 +846,17 @@ body.pagina-error .site-nav > .inline-form .link-button,
     padding: 10px 0 42px 0;
 }
 
+/* Mantém os quadros principais separados e preserva seus cantos superiores. */
+.page-content > section {
+    margin-bottom: 0;
+}
+
+.page-content > section + section,
+.page-content > section + .admin-sections-shell,
+.page-content > .admin-sections-shell + section {
+    margin-top: 22px;
+}
+
 .hero-copy, .hero-card, .auth-card, .content-card, .info-card, .post-card {
     background: var(--panel);
     border: 1px solid rgba(221, 212, 198, 0.82);
@@ -1280,6 +1291,12 @@ body.pagina-error label span {
         width: calc(100% - 20px);
         padding-top: 8px;
         padding-bottom: 28px;
+    }
+
+    .page-content > section + section,
+    .page-content > section + .admin-sections-shell,
+    .page-content > .admin-sections-shell + section {
+        margin-top: 18px;
     }
 
     .hero-card,
