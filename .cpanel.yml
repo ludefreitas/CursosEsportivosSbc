@@ -1,5 +1,5 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/cur52199/agenda.cursosesportivossbc.com
+    - export DEPLOYPATH=/home/cur52199/saobernardo.cursosesportivossbc.com
     - /bin/cp -R * $DEPLOYPATH
