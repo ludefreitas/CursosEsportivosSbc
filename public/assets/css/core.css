@@ -624,6 +624,27 @@ body.pagina-error .site-nav > .inline-form .link-button,
 .dashboard-certificate-meta p {
     margin: 0;
 }
+.dashboard-certificate-current-file {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.dashboard-certificate-current-file a {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+}
+.dashboard-certificate-current-file a:hover,
+.dashboard-certificate-current-file a:focus-visible {
+    outline: 3px solid rgba(214, 69, 69, 0.22);
+    outline-offset: 2px;
+}
+.dashboard-certificate-pdf-symbol {
+    display: block;
+    width: 28px;
+    height: 34px;
+    filter: drop-shadow(0 2px 3px rgba(18, 69, 89, 0.18));
+}
 .dashboard-certificate-files {
     display: grid;
     gap: 8px;
@@ -674,6 +695,9 @@ body.pagina-error .site-nav > .inline-form .link-button,
     background: #ffe7bf;
     border: 1px solid #e0b15c;
     color: #7b4d00;
+}
+.dashboard-certificate-guidance-fallback {
+    display: none;
 }
 .dashboard-health-status-list {
     display: grid;

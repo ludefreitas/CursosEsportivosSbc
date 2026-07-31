@@ -163,12 +163,21 @@
                 const $content = getHealthCertificatesContent();
                 const $cards = $content.find('[data-health-certificate-section]');
                 const $title = $content.find('#dashboard-health-certificates-modal-title');
+                const $guidance = $content.find('[data-health-certificate-guidance="1"]').first();
+                const personName = String($guidance.data('personName') || '').trim();
 
                 $cards.removeClass('is-targeted hidden');
 
                 if (!normalizedType) {
                     if ($title.length > 0) {
                         $title.text('Atualizar atestados');
+                    }
+
+                    if ($guidance.length > 0) {
+                        $guidance.text(
+                            'Envie ou atualize aqui os atestados clínico e dermatológico de ' + personName +
+                            '. Ao enviar um novo PDF, o arquivo anterior do mesmo tipo será substituído e voltará para o status pendente.'
+                        );
                     }
                     return;
                 }
@@ -180,11 +189,22 @@
                 }
 
                 if ($title.length > 0) {
-                    if (normalizedType === 'clinico') {
-                        $title.text('Atualizar atestado clínico');
-                    } else if (normalizedType === 'dermatologico') {
-                        $title.text('Atualizar atestado dermatológico');
-                    }
+                    $title.text(
+                        normalizedType === 'dermatologico'
+                            ? 'Atualizar atestado dermatológico'
+                            : 'Atualizar atestado clínico'
+                    );
+                }
+
+                if ($guidance.length > 0) {
+                    const certificateLabel = normalizedType === 'dermatologico'
+                        ? 'atestado dermatológico'
+                        : 'atestado clínico';
+
+                    $guidance.text(
+                        'Envie ou atualize aqui o ' + certificateLabel + ' de ' + personName +
+                        '. Ao enviar um novo PDF, o arquivo anterior será substituído e voltará para o status pendente.'
+                    );
                 }
 
                 $content.find('input[name="target_certificate_type"]').val(normalizedType);
