@@ -129,6 +129,23 @@
     overflow-wrap: normal;
     word-break: keep-all;
 }
+.admin-home-preview-card { margin-top: 18px; }
+.admin-home-preview-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.admin-home-small-button { min-height: 34px; padding: 7px 12px; border-radius: 10px; font-size: 13px; white-space: nowrap; }
+.admin-home-content-preview { margin-top: 16px; }
+.admin-home-content-preview .section-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.admin-home-full-preview-card { margin-bottom: 18px; }
+.admin-home-full-preview { width: 100%; min-height: 720px; border: 1px solid var(--line); border-radius: 16px; background: #fff; }
+.admin-home-page-preview { display: grid; gap: 18px; }
+.admin-home-inline-actions { display: flex; justify-content: flex-end; gap: 6px; margin-bottom: 8px; }
+.admin-home-highlight-actions { grid-column: 1 / -1; margin-bottom: 0; }
+.admin-home-page-preview .home-banner-visual,
+.admin-home-page-preview .home-whatsapp-row,
+.admin-home-page-preview .hero-copy,
+.admin-home-page-preview .hero-card,
+.admin-home-page-preview .info-card { position: relative; }
+.admin-home-logo-upload-preview { display: flex; justify-content: center; padding: 12px; border: 1px solid #d8e3ea; border-radius: 12px; background: #fff; }
+.admin-home-logo-upload-preview img { display: block; width: auto; max-width: min(100%, 460px); max-height: 240px; object-fit: contain; }
 .admin-inline-links {
     display: flex;
     flex-wrap: wrap;

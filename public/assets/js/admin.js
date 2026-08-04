@@ -17,6 +17,9 @@
                 $('select[data-sexo-select="1"]').trigger('change');
                 syncDailyBookingSpaceOptions();
                 initAdminAgendaCalendar();
+                if (typeof App.admin.montarPreviaConteudoHome === 'function') {
+                    App.admin.montarPreviaConteudoHome();
+                }
             }
 
             function syncActiveButton(target) {
@@ -3606,6 +3609,215 @@
             });
         },
 
+        iniciarEditorConteudoHome: function () {
+            function renderPreview(key, $form, $target) {
+                $target.empty();
+                if (key === 'apresentacao') {
+                    $target.append($('<span>', { class: 'eyebrow', text: String($form.find('[name="selo"]').val() || '') }));
+                    $target.append($('<h2>').text(String($form.find('[name="titulo"]').val() || '')));
+                    $target.append($('<p>').text(String($form.find('[name="texto"]').val() || '')));
+                } else if (key === 'destaques') {
+                    const $grid = $('<div>', { class: 'section-grid' });
+                    for (let index = 1; index <= 3; index += 1) {
+                        $grid.append($('<article>', { class: 'info-card' })
+                            .append($('<h3>').text(String($form.find('[name="destaque_' + index + '_titulo"]').val() || '')))
+                            .append($('<p>').text(String($form.find('[name="destaque_' + index + '_texto"]').val() || ''))));
+                    }
+                    $target.append($grid);
+                } else {
+                    $target.append($('<h2>').text(String($form.find('[name="titulo"]').val() || '')));
+                    const $list = $('<div>', { class: 'home-info-list' });
+                    for (let index = 1; index <= 5; index += 1) {
+                        const text = String($form.find('[name="paragrafo_' + index + '"]').val() || '').trim();
+                        if (text !== '') {
+                            $list.append($('<p>').text('• ' + text));
+                        }
+                    }
+                    $target.append($list);
+                }
+            }
+
+            App.admin.montarPreviaConteudoHome = function () {
+                const configs = [
+                    { selector: '#admin-home-logo-form', key: 'logotipo', title: 'Logotipo' },
+                    { selector: '#admin-home-contact-form', key: 'contato', title: 'Faixa de contato' },
+                    { selector: '#admin-home-hero-form', key: 'apresentacao', title: 'Quadro principal' },
+                    { selector: '#admin-home-highlights-form', key: 'destaques', title: 'Quadros destacados' },
+                    { selector: '#admin-home-info-form', key: 'quadro_informativo', title: 'Quadro informativo' }
+                ];
+                configs.forEach(function (config) {
+                    const $form = $(config.selector);
+                    if ($form.length === 0 || $form.attr('data-preview-mounted') === '1') return;
+                    $form.attr('data-preview-mounted', '1').attr('data-manual-submit', '1').removeAttr('data-ajax-form');
+                    const $container = $form.closest('section').first();
+                    const modalId = 'admin-home-editor-' + config.key.replace('_', '-');
+                    const $modal = $('<div>', { id: modalId, class: 'popup-overlay hidden', 'aria-hidden': 'true' });
+                    const $card = $('<div>', { class: 'popup-card popup-admin-card', role: 'dialog', 'aria-modal': 'true' });
+                    $card.append($('<div>', { class: 'popup-head admin-popup-head' })
+                        .append($('<h3>').text('Editar ' + config.title.toLowerCase()))
+                        .append($('<button>', { type: 'button', class: 'popup-close-icon', 'data-home-editor-close': '1', text: '×' })));
+                    $card.append($('<div>', { class: 'popup-body admin-popup-body' }).append($form.detach()));
+                    $modal.append($card);
+
+                    const directPreview = $('[data-home-admin-preview="1"]').length > 0;
+                    const $previewBody = $('<div>', { class: 'admin-home-content-preview', 'data-home-preview-body': config.key });
+                    const $preview = $('<section>', { class: 'content-card admin-home-preview-card', 'data-home-preview': config.key })
+                        .append($('<div>', { class: 'section-head' })
+                            .append($('<h2>').text(config.title))
+                            .append($('<div>', { class: 'admin-home-preview-actions' })
+                                .append($('<button>', { type: 'button', class: 'btn btn-secondary admin-home-small-button', 'data-home-edit': config.key, text: 'Editar' }))
+                                .append($('<button>', { type: 'button', class: 'btn btn-primary admin-home-small-button', 'data-home-publish': config.key, text: 'Publicar' }))))
+                        .append($previewBody);
+                    $('[data-admin-section="pagina-home"]').append($modal);
+                    if (directPreview) {
+                        $container.remove();
+                    } else {
+                        $container.replaceWith($preview);
+                        renderPreview(config.key, $form, $previewBody);
+                    }
+                });
+            };
+
+            $(document).on('click', '[data-home-edit]', function () {
+                const key = String($(this).attr('data-home-edit') || '').replace('_', '-');
+                $('#admin-home-editor-' + key).removeClass('hidden').attr('aria-hidden', 'false');
+            });
+
+            $(document).on('click', '[data-home-editor-close]', function () {
+                $(this).closest('.popup-overlay').addClass('hidden').attr('aria-hidden', 'true');
+            });
+
+            $(document).on('change', '#admin-home-logo-form [name="logo_arquivo"]', function () {
+                const file = this.files && this.files[0];
+                const preview = document.getElementById('admin-home-logo-preview');
+                if (!file || !preview) return;
+                const temporaryUrl = URL.createObjectURL(file);
+                preview.addEventListener('load', function releaseTemporaryUrl() {
+                    URL.revokeObjectURL(temporaryUrl);
+                    preview.removeEventListener('load', releaseTemporaryUrl);
+                });
+                preview.src = temporaryUrl;
+            });
+
+            $(document).on('submit', '#admin-home-logo-form, #admin-home-contact-form, #admin-home-info-form, #admin-home-highlights-form, #admin-home-hero-form', function (event) {
+                event.preventDefault();
+                const $form = $(this);
+                const key = $form.is('#admin-home-logo-form') ? 'logotipo' : ($form.is('#admin-home-contact-form') ? 'contato' : ($form.is('#admin-home-info-form') ? 'quadro_informativo' : ($form.is('#admin-home-highlights-form') ? 'destaques' : 'apresentacao')));
+                const isUpload = $form.is('#admin-home-logo-form');
+                const request = { url: String($form.attr('action')), method: 'POST', dataType: 'json', data: isUpload ? new FormData(this) : $form.serialize(), headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } };
+                if (isUpload) {
+                    request.processData = false;
+                    request.contentType = false;
+                }
+                $.ajax(request)
+                    .done(function (response) {
+                        if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar o rascunho.')); return; }
+                        if ($('[data-home-admin-preview="1"]').length > 0 && typeof App.admin.activateSection === 'function') {
+                            App.admin.activateSection('pagina-home');
+                        } else {
+                            renderPreview(key, $form, $('[data-home-preview-body="' + key + '"]'));
+                            $form.closest('.popup-overlay').addClass('hidden').attr('aria-hidden', 'true');
+                        }
+                        App.core.abrirPopup('sucesso', String(response.message || 'Rascunho salvo.'));
+                    }).fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); });
+            });
+
+            $(document).on('click', '[data-home-publish]', function () {
+                const $button = $(this);
+                $.ajax({ url: App.core.buildUrl('/admin/home-publicar'), method: 'POST', dataType: 'json', data: { chave: String($button.attr('data-home-publish') || '') }, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+                    .done(function (response) { if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível publicar.')); return; } App.core.abrirPopup('sucesso', String(response.message || 'Conteúdo publicado.')); })
+                    .fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); });
+            });
+
+            function linkPairs($form) {
+                const type = String($form.attr('data-conditional-links-form') || '');
+                const pairs = [];
+                if (type === 'popup') {
+                    pairs.push([$form.find('[name="rotulo_acao"]'), $form.find('[name="url_acao"]')]);
+                } else if (type === 'home-info') {
+                    for (let index = 1; index <= 5; index += 1) {
+                        pairs.push([$form.find('[name="paragrafo_' + index + '_link_rotulo"]'), $form.find('[name="paragrafo_' + index + '_link_url"]')]);
+                    }
+                } else if (type === 'highlights') {
+                    for (let index = 1; index <= 3; index += 1) {
+                        pairs.push([$form.find('[name="destaque_' + index + '_link_rotulo"]'), $form.find('[name="destaque_' + index + '_link_url"]')]);
+                    }
+                }
+                return pairs;
+            }
+
+            function validatePair($label, $url, forceMessage) {
+                if ($label.length === 0 || $url.length === 0) {
+                    return true;
+                }
+                const labelFilled = String($label.val() || '').trim() !== '';
+                const urlFilled = String($url.val() || '').trim() !== '';
+                const active = labelFilled || urlFilled;
+                $label.prop('required', active);
+                $url.prop('required', active);
+                App.core.validarCampoInline($label[0], forceMessage === true);
+                App.core.validarCampoInline($url[0], forceMessage === true);
+                return !active || (labelFilled && urlFilled);
+            }
+
+            function validateConditionalForm(form, forceMessage) {
+                const $form = $(form);
+                let valid = true;
+                linkPairs($form).forEach(function (pair) {
+                    valid = validatePair(pair[0], pair[1], forceMessage) && valid;
+                });
+
+                if (String($form.attr('data-conditional-links-form') || '') === 'hero') {
+                    const count = Math.max(0, Math.min(2, Number($form.find('[name="quantidade_botoes"]').val() || 0)));
+                    for (let index = 1; index <= 2; index += 1) {
+                        const enabled = index <= count;
+                        const $label = $form.find('[name="botao_' + index + '_rotulo"]');
+                        const $url = $form.find('[name="botao_' + index + '_url"]');
+                        $label.prop('required', enabled);
+                        $url.prop('required', enabled);
+                        if (enabled) {
+                            App.core.validarCampoInline($label[0], forceMessage === true);
+                            App.core.validarCampoInline($url[0], forceMessage === true);
+                            valid = (String($label.val() || '').trim() !== '' && String($url.val() || '').trim() !== '') && valid;
+                        }
+                    }
+                }
+                return valid;
+            }
+
+            $(document).on('change', '#admin-home-hero-button-count', function () {
+                const count = Math.max(0, Math.min(2, Number($(this).val() || 0)));
+                $('[data-home-hero-button-fields]').each(function () {
+                    const index = Number($(this).attr('data-home-hero-button-fields') || 0);
+                    const enabled = index <= count;
+                    $(this).toggleClass('hidden', !enabled);
+                    $(this).find('input').prop('required', enabled);
+                });
+            });
+
+            $(document).on('input change', '[data-conditional-links-form] input, [data-conditional-links-form] select', function () {
+                validateConditionalForm($(this).closest('form')[0], false);
+            });
+
+            if (!document.documentElement.hasAttribute('data-home-conditional-validation')) {
+                document.documentElement.setAttribute('data-home-conditional-validation', '1');
+                document.addEventListener('submit', function (event) {
+                    const form = event.target;
+                    if (!form || !form.matches || !form.matches('[data-conditional-links-form]')) {
+                        return;
+                    }
+                    if (!validateConditionalForm(form, true)) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        const invalid = form.querySelector('.field-invalid');
+                        if (invalid) {
+                            invalid.focus();
+                        }
+                    }
+                }, true);
+            }
+        },
+
         iniciarMigracaoCadastrosExternos: function () {
             let filterTimer = null;
             let filterRequest = null;
@@ -3813,6 +4025,7 @@
             App.admin.iniciarFiltroEspacosTreino();
             App.admin.iniciarEditorEspacosTreino();
             App.admin.iniciarModalSuspensoesLocal();
+            App.admin.iniciarEditorConteudoHome();
             App.admin.iniciarMigracaoCadastrosExternos();
         }
     });

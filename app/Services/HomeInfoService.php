@@ -14,12 +14,26 @@ class HomeInfoService
     public const MAX_PARAGRAPH_LENGTH = 110;
     public const MAX_LINK_LABEL_LENGTH = 40;
     public const MAX_LINK_URL_LENGTH = 255;
+    public const MAX_HIGHLIGHT_TITLE_LENGTH = 80;
+    public const MAX_HIGHLIGHT_TEXT_LENGTH = 320;
+    public const MAX_HERO_BADGE_LENGTH = 80;
+    public const MAX_HERO_TITLE_LENGTH = 220;
+    public const MAX_HERO_TEXT_LENGTH = 600;
+
+    public function __construct()
+    {
+        $this->ensureContentSchema();
+    }
 
     /**
      * Retorna o quadro configurado para a home.
      */
     public function getHomeInfoBox(): array
     {
+        $configured = $this->getConfiguredContent('quadro_informativo', [], false);
+        if (!empty($configured['titulo']) && isset($configured['paragrafos'])) {
+            return $configured;
+        }
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
             SELECT *
@@ -94,12 +108,8 @@ class HomeInfoService
                 throw new RuntimeException('A URL do link do quadro da home deve ter no máximo ' . self::MAX_LINK_URL_LENGTH . ' caracteres.');
             }
 
-            if ($linkLabel !== '' && $linkUrl === '') {
-                throw new RuntimeException('Informe a URL sempre que preencher o texto do link do quadro da home.');
-            }
-
-            if ($linkLabel === '' && $linkUrl !== '') {
-                throw new RuntimeException('Informe o texto do link sempre que preencher a URL do quadro da home.');
+            if (($linkLabel === '') !== ($linkUrl === '')) {
+                throw new RuntimeException('Informe juntos o texto e a URL do link do quadro da home.');
             }
 
             $paragraphs[$i] = $value !== '' ? $value : null;
@@ -110,6 +120,15 @@ class HomeInfoService
         if (count(array_filter($paragraphs)) === 0) {
             throw new RuntimeException('Informe pelo menos um parágrafo para o quadro da home.');
         }
+
+        $content = ['titulo' => $title, 'paragrafos' => []];
+        for ($i = 1; $i <= self::MAX_PARAGRAPHS; $i++) {
+            if ($paragraphs[$i] !== null) {
+                $content['paragrafos'][] = ['texto' => $paragraphs[$i], 'link_rotulo' => $linkLabels[$i] ?? '', 'link_url' => $linkUrls[$i] ?? ''];
+            }
+        }
+        $this->saveConfiguredContent('quadro_informativo', $content, $accountId);
+        return;
 
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
@@ -178,6 +197,205 @@ class HomeInfoService
         ]);
     }
 
+    public function getHighlightCards(): array
+    {
+        return $this->getConfiguredContent('destaques', [
+            ['titulo' => 'Locais e espaços', 'texto' => 'Os locais de treino podem conter vários espaços, como quadras, piscinas e salas, vinculados a modalidades terrestres ou aquáticas.', 'link_rotulo' => '', 'link_url' => ''],
+            ['titulo' => 'Perfis de acesso', 'texto' => 'Administrador Master, Administrador, Supervisor, Coordenador, Professor, Estagiário e usuário comum podem coexistir na mesma conta.', 'link_rotulo' => '', 'link_url' => ''],
+            ['titulo' => 'Fluxo centrado no usuário', 'texto' => 'A agenda pública continua visível sem login. O acesso autenticado entra apenas quando a pessoa decide agendar ou administrar dados.', 'link_rotulo' => '', 'link_url' => ''],
+        ]);
+    }
+
+    public function getHomeInfoBoxForAdmin(): array
+    {
+        return $this->getConfiguredContent('quadro_informativo', $this->getHomeInfoBox(), true);
+    }
+
+    public function getHighlightCardsForAdmin(): array
+    {
+        return $this->getConfiguredContent('destaques', $this->getHighlightCards(), true);
+    }
+
+    public function saveHighlightCards(int $accountId, array $data): void
+    {
+        $cards = [];
+        for ($i = 1; $i <= 3; $i++) {
+            $title = trim((string) ($data['destaque_' . $i . '_titulo'] ?? ''));
+            $text = trim((string) ($data['destaque_' . $i . '_texto'] ?? ''));
+            $label = trim((string) ($data['destaque_' . $i . '_link_rotulo'] ?? ''));
+            $url = trim((string) ($data['destaque_' . $i . '_link_url'] ?? ''));
+            if ($title === '' || $text === '') {
+                throw new RuntimeException('Informe o título e o texto dos três quadros destacados.');
+            }
+            if (mb_strlen($title, 'UTF-8') > self::MAX_HIGHLIGHT_TITLE_LENGTH || mb_strlen($text, 'UTF-8') > self::MAX_HIGHLIGHT_TEXT_LENGTH) {
+                throw new RuntimeException('Um dos quadros destacados ultrapassou o limite de caracteres.');
+            }
+            if (($label === '') !== ($url === '')) {
+                throw new RuntimeException('Informe juntos o texto e a URL do link de cada quadro destacado.');
+            }
+            $cards[] = [
+                'titulo' => $title,
+                'texto' => $text,
+                'link_rotulo' => mb_substr($label, 0, self::MAX_LINK_LABEL_LENGTH, 'UTF-8'),
+                'link_url' => $url !== '' ? $this->normalizeLinkUrl($url) : '',
+            ];
+        }
+        $this->saveConfiguredContent('destaques', $cards, $accountId);
+    }
+
+    public function getHeroContent(): array
+    {
+        return $this->getConfiguredContent('apresentacao', [
+            'selo' => 'Primeira fase funcional !!!',
+            'titulo' => 'Um sistema esportivo pensado para crescer sem excesso de redirecionamentos e reloads.',
+            'texto' => 'Esta entrega já organiza cadastro por CPF, autenticação segura, dependentes, área administrativa inicial, blog institucional e agenda visual com FullCalendar para avaliações, treinos e aulas.',
+            'quantidade_botoes' => 2,
+            'botao_1_rotulo' => 'Abrir meu painel',
+            'botao_1_url' => '/dashboard',
+            'botao_2_rotulo' => 'Ver agenda pública',
+            'botao_2_url' => '/agenda',
+        ]);
+    }
+
+    public function getHeroContentForAdmin(): array
+    {
+        return $this->getConfiguredContent('apresentacao', $this->getHeroContent(), true);
+    }
+
+    public function getHeaderContent(): array
+    {
+        return $this->getConfiguredContent('cabecalho', [
+            'logo_url' => '/assets/img/cursosesportivossbc.jpg',
+            'logo_alt' => 'Cursos Esportivos SBC',
+            'contato_rotulo' => 'Dúvidas, sugestões e reclamações:',
+            'contato_texto' => 'Cursos Esportivos SBC no whatsapp',
+            'contato_url' => 'https://wa.me/551126307421',
+        ], false);
+    }
+
+    public function getHeaderContentForAdmin(): array
+    {
+        return $this->getConfiguredContent('cabecalho', $this->getHeaderContent(), true);
+    }
+
+    public function getLogoContent(bool $draft = false): array
+    {
+        $header = $draft ? $this->getHeaderContentForAdmin() : $this->getHeaderContent();
+        $content = $this->getConfiguredContent('logotipo', ['logo_url' => $header['logo_url'], 'logo_alt' => $header['logo_alt']], $draft);
+        $content['logo_url'] = $this->resolveLogoPublicUrl((string) ($content['logo_url'] ?? ''));
+        return $content;
+    }
+
+    public function getContactContent(bool $draft = false): array
+    {
+        $header = $draft ? $this->getHeaderContentForAdmin() : $this->getHeaderContent();
+        return $this->getConfiguredContent('contato', ['contato_rotulo' => $header['contato_rotulo'], 'contato_texto' => $header['contato_texto'], 'contato_url' => $header['contato_url']], $draft);
+    }
+
+    public function saveLogoContent(int $accountId, array $data, array $files): void
+    {
+        $current = $this->getLogoContent(true);
+        $url = trim((string) ($data['logo_url'] ?? $current['logo_url'] ?? ''));
+        $file = $files['logo_arquivo'] ?? null;
+        if (is_array($file) && (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+            $url = $this->storeLogoImage($file);
+        }
+        $alt = trim((string) ($data['logo_alt'] ?? ''));
+        if ($url === '' || $alt === '') throw new RuntimeException('Informe a imagem e o texto alternativo do logotipo.');
+        $this->saveConfiguredContent('logotipo', ['logo_url' => $url, 'logo_alt' => $alt], $accountId);
+    }
+
+    public function saveContactContent(int $accountId, array $data): void
+    {
+        $content = ['contato_rotulo' => trim((string) ($data['contato_rotulo'] ?? '')), 'contato_texto' => trim((string) ($data['contato_texto'] ?? '')), 'contato_url' => trim((string) ($data['contato_url'] ?? ''))];
+        if (in_array('', $content, true)) throw new RuntimeException('Preencha o texto e a URL da faixa de contato.');
+        $content['contato_url'] = $this->normalizeLinkUrl($content['contato_url']);
+        $this->saveConfiguredContent('contato', $content, $accountId);
+    }
+
+    public function saveHeaderContent(int $accountId, array $data): void
+    {
+        $content = [
+            'logo_url' => trim((string) ($data['logo_url'] ?? '')),
+            'logo_alt' => trim((string) ($data['logo_alt'] ?? '')),
+            'contato_rotulo' => trim((string) ($data['contato_rotulo'] ?? '')),
+            'contato_texto' => trim((string) ($data['contato_texto'] ?? '')),
+            'contato_url' => trim((string) ($data['contato_url'] ?? '')),
+        ];
+        if ($content['logo_url'] === '' || $content['logo_alt'] === '' || $content['contato_rotulo'] === '' || $content['contato_texto'] === '' || $content['contato_url'] === '') {
+            throw new RuntimeException('Preencha os dados do logotipo e da faixa de contato.');
+        }
+        $content['logo_url'] = $this->normalizeLinkUrl($content['logo_url']);
+        $content['contato_url'] = $this->normalizeLinkUrl($content['contato_url']);
+        $this->saveConfiguredContent('cabecalho', $content, $accountId);
+    }
+
+    public function publishContent(string $key, int $accountId): array
+    {
+        if (!in_array($key, ['logotipo', 'contato', 'cabecalho', 'quadro_informativo', 'destaques', 'apresentacao'], true)) {
+            throw new RuntimeException('Quadro da Home inválido para publicação.');
+        }
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('UPDATE home_conteudos_configurados SET conteudo_json = rascunho_json, atualizado_por_conta_id = :conta, updated_at = NOW() WHERE chave = :chave AND rascunho_json IS NOT NULL');
+        $stmt->execute([':conta' => $accountId, ':chave' => $key]);
+        if ($stmt->rowCount() < 1) {
+            throw new RuntimeException('Salve um rascunho antes de publicar este quadro.');
+        }
+        return $this->getConfiguredContent($key, [], false);
+    }
+
+    public function saveHeroContent(int $accountId, array $data): void
+    {
+        $content = [
+            'selo' => trim((string) ($data['selo'] ?? '')),
+            'titulo' => trim((string) ($data['titulo'] ?? '')),
+            'texto' => trim((string) ($data['texto'] ?? '')),
+            'quantidade_botoes' => max(0, min(2, (int) ($data['quantidade_botoes'] ?? 0))),
+            'botao_1_rotulo' => trim((string) ($data['botao_1_rotulo'] ?? '')),
+            'botao_1_url' => trim((string) ($data['botao_1_url'] ?? '')),
+            'botao_2_rotulo' => trim((string) ($data['botao_2_rotulo'] ?? '')),
+            'botao_2_url' => trim((string) ($data['botao_2_url'] ?? '')),
+        ];
+        if ($content['selo'] === '' || $content['titulo'] === '' || $content['texto'] === '') {
+            throw new RuntimeException('Informe o selo, o título e o texto do quadro principal.');
+        }
+        if (mb_strlen($content['selo'], 'UTF-8') > self::MAX_HERO_BADGE_LENGTH || mb_strlen($content['titulo'], 'UTF-8') > self::MAX_HERO_TITLE_LENGTH || mb_strlen($content['texto'], 'UTF-8') > self::MAX_HERO_TEXT_LENGTH) {
+            throw new RuntimeException('O conteúdo do quadro principal ultrapassou o limite de caracteres.');
+        }
+        for ($i = 1; $i <= $content['quantidade_botoes']; $i++) {
+            if ($content['botao_' . $i . '_rotulo'] === '' || $content['botao_' . $i . '_url'] === '') {
+                throw new RuntimeException('Informe o texto e a URL de cada botão habilitado.');
+            }
+            $content['botao_' . $i . '_url'] = $this->normalizeLinkUrl($content['botao_' . $i . '_url']);
+        }
+        $this->saveConfiguredContent('apresentacao', $content, $accountId);
+    }
+
+    private function getConfiguredContent(string $key, array $default, bool $draft = false): array
+    {
+        $column = $draft ? 'COALESCE(rascunho_json, conteudo_json)' : 'conteudo_json';
+        $stmt = Database::connection()->prepare('SELECT ' . $column . ' FROM home_conteudos_configurados WHERE chave = :chave LIMIT 1');
+        $stmt->execute([':chave' => $key]);
+        $decoded = json_decode((string) $stmt->fetchColumn(), true);
+        return is_array($decoded) ? $decoded : $default;
+    }
+
+    private function saveConfiguredContent(string $key, array $content, int $accountId): void
+    {
+        $stmt = Database::connection()->prepare('INSERT INTO home_conteudos_configurados (chave, conteudo_json, rascunho_json, atualizado_por_conta_id, updated_at) VALUES (:chave, NULL, :conteudo, :conta, NOW()) ON DUPLICATE KEY UPDATE rascunho_json = VALUES(rascunho_json), atualizado_por_conta_id = VALUES(atualizado_por_conta_id), updated_at = NOW()');
+        $stmt->execute([':chave' => $key, ':conteudo' => json_encode($content, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ':conta' => $accountId]);
+    }
+
+    private function ensureContentSchema(): void
+    {
+        $pdo = Database::connection();
+        $pdo->exec('CREATE TABLE IF NOT EXISTS home_conteudos_configurados (chave VARCHAR(60) PRIMARY KEY, conteudo_json LONGTEXT NULL, rascunho_json LONGTEXT NULL, atualizado_por_conta_id BIGINT UNSIGNED NULL, updated_at DATETIME NOT NULL, CONSTRAINT fk_home_conteudo_conta FOREIGN KEY (atualizado_por_conta_id) REFERENCES contas(id) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+        $check = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'home_conteudos_configurados' AND COLUMN_NAME = 'rascunho_json'");
+        if ((int) $check->fetchColumn() === 0) {
+            $pdo->exec('ALTER TABLE home_conteudos_configurados MODIFY conteudo_json LONGTEXT NULL, ADD COLUMN rascunho_json LONGTEXT NULL AFTER conteudo_json');
+        }
+    }
+
     /**
      * Normaliza e valida links relativos ou absolutos.
      */
@@ -192,5 +410,46 @@ class HomeInfoService
         }
 
         return $url;
+    }
+
+    private function storeLogoImage(array $file): string
+    {
+        if ((int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) throw new RuntimeException('Não foi possível enviar a imagem do logotipo.');
+        $tmp = (string) ($file['tmp_name'] ?? '');
+        if ($tmp === '' || !is_uploaded_file($tmp)) throw new RuntimeException('Arquivo de imagem inválido.');
+        $mime = mime_content_type($tmp) ?: '';
+        $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+        if (!isset($allowed[$mime])) throw new RuntimeException('Envie o logotipo em JPG, PNG ou WebP.');
+        if ((int) ($file['size'] ?? 0) > 5 * 1024 * 1024) throw new RuntimeException('A imagem do logotipo deve ter no máximo 5 MB.');
+        $directory = ROOT_PATH . '/public/assets/img/home';
+        if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) throw new RuntimeException('Não foi possível preparar a pasta do logotipo.');
+        $name = 'logotipo-' . date('YmdHis') . '-' . bin2hex(random_bytes(4)) . '.' . $allowed[$mime];
+        if (!move_uploaded_file($tmp, $directory . DIRECTORY_SEPARATOR . $name)) throw new RuntimeException('Não foi possível salvar o logotipo.');
+        return '/assets/img/home/' . $name;
+    }
+
+    private function resolveLogoPublicUrl(string $url): string
+    {
+        if (!str_starts_with($url, '/uploads/home/')) {
+            return $url;
+        }
+
+        $fileName = basename($url);
+        $source = ROOT_PATH . '/public/uploads/home/' . $fileName;
+        if (!is_file($source)) {
+            return $url;
+        }
+
+        $targetDirectory = ROOT_PATH . '/public/assets/img/home';
+        if (!is_dir($targetDirectory) && !mkdir($targetDirectory, 0775, true) && !is_dir($targetDirectory)) {
+            return $url;
+        }
+
+        $target = $targetDirectory . DIRECTORY_SEPARATOR . $fileName;
+        if (!is_file($target) && !copy($source, $target)) {
+            return $url;
+        }
+
+        return '/assets/img/home/' . $fileName;
     }
 }

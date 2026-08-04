@@ -1187,21 +1187,27 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
     </section>
 <?php } ?>
 
-<?php if ($sectionName === 'pagina-home') { ?>
-    <section class="admin-section-panel" data-admin-section="pagina-home">
+<?php if (in_array($sectionName, ['pagina-home', 'pop-ups'], true)) { ?>
+    <section class="admin-section-panel" data-admin-section="<?php echo e($sectionName); ?>">
         <div class="section-head admin-section-head">
             <div>
-                <h2>Página home</h2>
-                <p class="muted">Quadro informativo e pop-ups institucionais da home e demais páginas públicas.</p>
+                <h2><?php echo $sectionName === 'pop-ups' ? 'Pop-ups' : 'Página home'; ?></h2>
+                <p class="muted"><?php echo $sectionName === 'pop-ups' ? 'Crie e gerencie os pop-ups das páginas públicas.' : 'Visualize, edite como rascunho e publique o conteúdo da página inicial.'; ?></p>
             </div>
         </div>
 
-        <?php if (!empty($canManageSitePopups)) { ?>
+        <?php if ($sectionName === 'pagina-home') { ?>
+            <div class="pagina-home admin-home-page-preview" data-home-admin-preview="1">
+                <?php $homeAdminMode = true; require ROOT_PATH . '/app/Views/home/index.php'; ?>
+            </div>
+        <?php } ?>
+
+        <?php if ($sectionName === 'pop-ups' && !empty($canManageSitePopups)) { ?>
             <section class="grid-two">
                 <article class="content-card">
                     <h2>Novo pop-up do site</h2>
                     <p class="muted">Todos os campos do pop-up são opcionais, exceto o período de exibição e a escolha das páginas.</p>
-                    <form method="POST" action="<?php echo e(url('/admin/site-popups')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1" id="form-site-popup">
+                    <form method="POST" action="<?php echo e(url('/admin/site-popups')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1" id="form-site-popup" data-conditional-links-form="popup">
                         <div class="grid-two">
                             <label><span>Título</span><input type="text" name="titulo" maxlength="180" placeholder="Ex.: Inscrições abertas"></label>
                             <label><span>Status inicial</span>
@@ -1323,10 +1329,34 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             </section>
         <?php } ?>
 
+        <?php if ($sectionName === 'pagina-home') { ?>
+        <?php
+            $adminHomeLogoPath = (string) ($homeHeaderContent['logo_url'] ?? '/assets/img/cursosesportivossbc.jpg');
+            $adminHomeLogoUrl = str_starts_with($adminHomeLogoPath, '/') ? url($adminHomeLogoPath) : $adminHomeLogoPath;
+        ?>
+        <section class="content-card top-gap">
+            <form method="POST" action="<?php echo e(url('/admin/home-logotipo')); ?>" class="stack-form" id="admin-home-logo-form" enctype="multipart/form-data">
+                <input type="hidden" name="logo_url" value="<?php echo e((string) ($homeHeaderContent['logo_url'] ?? '')); ?>">
+                <div class="admin-home-logo-upload-preview">
+                    <img src="<?php echo e($adminHomeLogoUrl); ?>" alt="Prévia do logotipo" id="admin-home-logo-preview">
+                </div>
+                <label><span>Arquivo do logotipo</span><input type="file" name="logo_arquivo" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"></label>
+                <label><span>Texto alternativo do logotipo</span><input type="text" name="logo_alt" value="<?php echo e((string) ($homeHeaderContent['logo_alt'] ?? '')); ?>" required></label>
+                <button type="submit" class="btn btn-primary">Salvar rascunho do logotipo</button>
+            </form>
+        </section>
+        <section class="content-card top-gap">
+            <form method="POST" action="<?php echo e(url('/admin/home-contato')); ?>" class="stack-form" id="admin-home-contact-form">
+                <label><span>Chamada da faixa de contato</span><input type="text" name="contato_rotulo" value="<?php echo e((string) ($homeHeaderContent['contato_rotulo'] ?? '')); ?>" required></label>
+                <label><span>Texto do link de contato</span><input type="text" name="contato_texto" value="<?php echo e((string) ($homeHeaderContent['contato_texto'] ?? '')); ?>" required></label>
+                <label><span>URL do contato</span><input type="text" name="contato_url" value="<?php echo e((string) ($homeHeaderContent['contato_url'] ?? '')); ?>" required></label>
+                <button type="submit" class="btn btn-primary">Salvar rascunho do contato</button>
+            </form>
+        </section>
         <section class="grid-two">
             <article class="content-card">
                 <h2>Quadro da home</h2>
-                <form method="POST" action="<?php echo e(url('/admin/home-info')); ?>" class="stack-form" data-ajax-form="1">
+                <form method="POST" action="<?php echo e(url('/admin/home-info')); ?>" class="stack-form" data-ajax-form="1" id="admin-home-info-form" data-conditional-links-form="home-info">
                     <label>
                         <span>Titulo do quadro</span>
                         <input type="text" name="titulo" maxlength="<?php echo e((string) ($homeInfoMaxTitleLength ?? 0)); ?>" value="<?php echo e((string) (($homeInfoBox['titulo'] ?? ''))); ?>" required>
@@ -1345,7 +1375,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 <input type="text" name="paragrafo_<?php echo e((string) $i); ?>_link_rotulo" maxlength="40" value="<?php echo e((string) (($homeInfoBox['paragrafos'][$i - 1]['link_rotulo'] ?? ''))); ?>" placeholder="Ex.: clique aqui">
                             </label>
                             <label>
-                                <span>URL do link do parágrafo <?php echo e((string) $i); ?></span>
+                                <span>URL do link do parágrafo <?php echo e((string) $i); ?> (opcional)</span>
                                 <input type="text" name="paragrafo_<?php echo e((string) $i); ?>_link_url" maxlength="255" value="<?php echo e((string) (($homeInfoBox['paragrafos'][$i - 1]['link_url'] ?? ''))); ?>" placeholder="/agenda ou https://...">
                             </label>
                         </div>
@@ -1355,6 +1385,87 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 </form>
             </article>
         </section>
+
+        <section class="content-card top-gap">
+            <div class="section-head">
+                <div>
+                    <h2>Quadros destacados da home</h2>
+                    <p class="muted">Edite os três quadros de apresentação. O link de cada quadro é opcional.</p>
+                </div>
+            </div>
+            <form method="POST" action="<?php echo e(url('/admin/home-destaques')); ?>" class="stack-form" data-ajax-form="1" id="admin-home-highlights-form" data-conditional-links-form="highlights">
+                <?php for ($i = 1; $i <= 3; $i++) { ?>
+                    <?php $highlight = $homeHighlightCards[$i - 1] ?? []; ?>
+                    <fieldset class="content-card">
+                        <legend>Quadro destacado <?php echo e((string) $i); ?></legend>
+                        <label>
+                            <span>Título</span>
+                            <input type="text" name="destaque_<?php echo e((string) $i); ?>_titulo" maxlength="<?php echo e((string) \App\Services\HomeInfoService::MAX_HIGHLIGHT_TITLE_LENGTH); ?>" value="<?php echo e((string) ($highlight['titulo'] ?? '')); ?>" required>
+                        </label>
+                        <label>
+                            <span>Texto</span>
+                            <textarea name="destaque_<?php echo e((string) $i); ?>_texto" rows="4" maxlength="<?php echo e((string) \App\Services\HomeInfoService::MAX_HIGHLIGHT_TEXT_LENGTH); ?>" required><?php echo e((string) ($highlight['texto'] ?? '')); ?></textarea>
+                        </label>
+                        <div class="grid-two">
+                            <label>
+                                <span>Texto do link (opcional)</span>
+                                <input type="text" name="destaque_<?php echo e((string) $i); ?>_link_rotulo" maxlength="<?php echo e((string) \App\Services\HomeInfoService::MAX_LINK_LABEL_LENGTH); ?>" value="<?php echo e((string) ($highlight['link_rotulo'] ?? '')); ?>">
+                            </label>
+                            <label>
+                                <span>URL do link (opcional)</span>
+                                <input type="text" name="destaque_<?php echo e((string) $i); ?>_link_url" maxlength="<?php echo e((string) \App\Services\HomeInfoService::MAX_LINK_URL_LENGTH); ?>" value="<?php echo e((string) ($highlight['link_url'] ?? '')); ?>" placeholder="/agenda ou https://...">
+                            </label>
+                        </div>
+                    </fieldset>
+                <?php } ?>
+                <button type="submit" class="btn btn-primary">Salvar quadros destacados</button>
+            </form>
+        </section>
+
+        <section class="content-card top-gap">
+            <div class="section-head">
+                <div>
+                    <h2>Quadro principal da home</h2>
+                    <p class="muted">Edite o quadro que começa com “Primeira fase funcional” e escolha se ele terá zero, um ou dois botões.</p>
+                </div>
+            </div>
+            <form method="POST" action="<?php echo e(url('/admin/home-apresentacao')); ?>" class="stack-form" data-ajax-form="1" id="admin-home-hero-form" data-conditional-links-form="hero">
+                <label>
+                    <span>Texto do selo</span>
+                    <input type="text" name="selo" maxlength="<?php echo e((string) \App\Services\HomeInfoService::MAX_HERO_BADGE_LENGTH); ?>" value="<?php echo e((string) ($homeHeroContent['selo'] ?? '')); ?>" required>
+                </label>
+                <label>
+                    <span>Título principal</span>
+                    <textarea name="titulo" rows="3" maxlength="<?php echo e((string) \App\Services\HomeInfoService::MAX_HERO_TITLE_LENGTH); ?>" required><?php echo e((string) ($homeHeroContent['titulo'] ?? '')); ?></textarea>
+                </label>
+                <label>
+                    <span>Texto de apresentação</span>
+                    <textarea name="texto" rows="5" maxlength="<?php echo e((string) \App\Services\HomeInfoService::MAX_HERO_TEXT_LENGTH); ?>" required><?php echo e((string) ($homeHeroContent['texto'] ?? '')); ?></textarea>
+                </label>
+                <label>
+                    <span>Quantidade de botões</span>
+                    <select name="quantidade_botoes" id="admin-home-hero-button-count">
+                        <?php for ($buttonCount = 0; $buttonCount <= 2; $buttonCount++) { ?>
+                            <option value="<?php echo e((string) $buttonCount); ?>" <?php echo (int) ($homeHeroContent['quantidade_botoes'] ?? 0) === $buttonCount ? 'selected' : ''; ?>><?php echo e((string) $buttonCount); ?></option>
+                        <?php } ?>
+                    </select>
+                </label>
+                <?php for ($i = 1; $i <= 2; $i++) { ?>
+                    <div class="grid-two <?php echo (int) ($homeHeroContent['quantidade_botoes'] ?? 0) < $i ? 'hidden' : ''; ?>" data-home-hero-button-fields="<?php echo e((string) $i); ?>">
+                        <label>
+                            <span>Texto do botão <?php echo e((string) $i); ?></span>
+                            <input type="text" name="botao_<?php echo e((string) $i); ?>_rotulo" maxlength="<?php echo e((string) \App\Services\HomeInfoService::MAX_LINK_LABEL_LENGTH); ?>" value="<?php echo e((string) ($homeHeroContent['botao_' . $i . '_rotulo'] ?? '')); ?>">
+                        </label>
+                        <label>
+                            <span>URL do botão <?php echo e((string) $i); ?></span>
+                            <input type="text" name="botao_<?php echo e((string) $i); ?>_url" maxlength="<?php echo e((string) \App\Services\HomeInfoService::MAX_LINK_URL_LENGTH); ?>" value="<?php echo e((string) ($homeHeroContent['botao_' . $i . '_url'] ?? '')); ?>" placeholder="/dashboard ou /agenda">
+                        </label>
+                    </div>
+                <?php } ?>
+                <button type="submit" class="btn btn-primary">Salvar quadro principal</button>
+            </form>
+        </section>
+        <?php } ?>
     </section>
 <?php } ?>
 

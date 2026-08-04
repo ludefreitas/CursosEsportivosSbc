@@ -40,6 +40,9 @@ class HomeController extends Controller
             'homeSpecialEvents' => $adminService->listPublishedSpecialSchedules('home', 3),
             'blogSpecialEvents' => $adminService->listPublishedSpecialSchedules('blog', 6),
             'homeInfoBox' => $homeInfoService->getHomeInfoBox(),
+            'homeHighlightCards' => $homeInfoService->getHighlightCards(),
+            'homeHeroContent' => $homeInfoService->getHeroContent(),
+            'homeHeaderContent' => array_merge($homeInfoService->getLogoContent(), $homeInfoService->getContactContent()),
         ]);
     }
 }

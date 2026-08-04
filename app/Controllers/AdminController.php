@@ -6,6 +6,7 @@ use App\Core\Auth;
 use App\Core\Controller;
 use App\Services\AccountAccessService;
 use App\Services\AdminService;
+use App\Services\AgendaService;
 use App\Services\BlogService;
 use App\Services\CepService;
 use App\Services\ProfileService;
@@ -73,6 +74,7 @@ class AdminController extends Controller
                 'migracao-cadastros',
                 'agenda',
                 'pagina-home',
+                'pop-ups',
                 'blog',
                 'locais-espacos',
                 'configuracoes',
@@ -119,8 +121,8 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Quadro da home salvo com sucesso.',
-                    'redirect' => url('/admin'),
+                    'message' => 'Rascunho do quadro salvo com sucesso.',
+                    'content' => $this->homeInfoService->getHomeInfoBoxForAdmin(),
                 ]);
             }
 
@@ -997,6 +999,82 @@ class AdminController extends Controller
         redirect('/admin');
     }
 
+    public function saveHomeHighlightCards(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $this->homeInfoService->saveHighlightCards((int) $user['conta_id'], $_POST);
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse(['success' => true, 'message' => 'Rascunho dos destaques salvo com sucesso.', 'content' => $this->homeInfoService->getHighlightCardsForAdmin()]);
+            }
+            flash('success', 'Quadros destacados salvos com sucesso.');
+        } catch (\Throwable $e) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+            }
+            flash('error', $e->getMessage());
+        }
+        redirect('/admin');
+    }
+
+    public function saveHomeHeroContent(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $this->homeInfoService->saveHeroContent((int) $user['conta_id'], $_POST);
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse(['success' => true, 'message' => 'Rascunho do quadro principal salvo com sucesso.', 'content' => $this->homeInfoService->getHeroContentForAdmin()]);
+            }
+            flash('success', 'Quadro principal salvo com sucesso.');
+        } catch (\Throwable $e) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+            }
+            flash('error', $e->getMessage());
+        }
+        redirect('/admin');
+    }
+
+    public function saveHomeHeaderContent(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $this->homeInfoService->saveHeaderContent((int) $user['conta_id'], $_POST);
+            $this->jsonResponse(['success' => true, 'message' => 'Rascunho do logotipo e contato salvo.', 'content' => $this->homeInfoService->getHeaderContentForAdmin()]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function saveHomeLogoContent(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $this->homeInfoService->saveLogoContent((int) $user['conta_id'], $_POST, $_FILES);
+            $this->jsonResponse(['success' => true, 'message' => 'Rascunho do logotipo salvo.', 'content' => $this->homeInfoService->getLogoContent(true)]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function saveHomeContactContent(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $this->homeInfoService->saveContactContent((int) $user['conta_id'], $_POST);
+            $this->jsonResponse(['success' => true, 'message' => 'Rascunho do contato salvo.', 'content' => $this->homeInfoService->getContactContent(true)]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function publishHomeContent(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $content = $this->homeInfoService->publishContent((string) ($_POST['chave'] ?? ''), (int) $user['conta_id']);
+            $this->jsonResponse(['success' => true, 'message' => 'Conteúdo publicado na página Home.', 'content' => $content]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
     /** Lista os locais copiados do sistema anterior para selecao no cadastro. */
     public function externalTrainingLocations(): void
     {
@@ -1864,11 +1942,22 @@ class AdminController extends Controller
             $data['currentAdminName'] = (string) ($user['nome_completo'] ?? '');
         }
 
-        if ($sectionName === 'pagina-home') {
+        if ($sectionName === 'pop-ups') {
             $data['canManageSitePopups'] = $this->canManageSitePopups($user);
             $data['sitePopups'] = $this->sitePopupService->listAll();
             $data['popupPages'] = $this->sitePopupService->availablePages();
-            $data['homeInfoBox'] = $this->homeInfoService->getHomeInfoBox();
+        }
+
+        if ($sectionName === 'pagina-home') {
+            $data['homeInfoBox'] = $this->homeInfoService->getHomeInfoBoxForAdmin();
+            $data['homeHighlightCards'] = $this->homeInfoService->getHighlightCardsForAdmin();
+            $data['homeHeroContent'] = $this->homeInfoService->getHeroContentForAdmin();
+            $data['homeHeaderContent'] = array_merge($this->homeInfoService->getLogoContent(true), $this->homeInfoService->getContactContent(true));
+            $data['locations'] = (new AgendaService())->listLocations();
+            $data['suggestedLocations'] = array_slice($data['locations'], 0, 3);
+            $data['posts'] = $this->blogService->listPublishedPosts(['limit' => 3]);
+            $data['homeSpecialEvents'] = $this->adminService->listPublishedSpecialSchedules('home', 3);
+            $data['blogSpecialEvents'] = $this->adminService->listPublishedSpecialSchedules('blog', 6);
             $data['homeInfoMaxParagraphs'] = HomeInfoService::MAX_PARAGRAPHS;
             $data['homeInfoMaxTitleLength'] = HomeInfoService::MAX_TITLE_LENGTH;
             $data['homeInfoMaxParagraphLength'] = HomeInfoService::MAX_PARAGRAPH_LENGTH;
