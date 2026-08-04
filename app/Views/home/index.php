@@ -68,18 +68,50 @@
     </article>
 </section>
 
-<section class="content-card split-card">
-    <div>
-        <h2>Locais sugeridos no sistema</h2>
-        <p class="muted">A etapa seguinte pode usar geolocalização do navegador para ordenar esta lista por proximidade do aluno.</p>
-        <p class="location-status muted">Se o navegador permitir, o sistema pode usar sua localização apenas para sugerir locais mais próximos.</p>
+<section
+    class="content-card home-locations-card"
+    id="home-locations-card"
+    data-locations="<?php echo e((string) json_encode($locations, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
+>
+    <div class="home-locations-copy">
+        <h2 id="home-locations-title">Locais sugeridos do sistema</h2>
+        <p class="location-status muted">Compartilhe sua localização para ver os locais mais próximos. Se preferir não compartilhar, exibiremos três sugestões aleatórias.</p>
     </div>
-    <div class="chips-wrap">
-        <?php foreach ($locations as $location) { ?>
-            <span class="chip"><?php echo e(format_training_location_name($location) . ' - ' . $location['cidade'] . '/' . $location['uf']); ?></span>
+    <div class="home-location-suggestions" id="home-location-suggestions">
+        <?php foreach (($suggestedLocations ?? []) as $location) { ?>
+            <article class="home-location-suggestion" data-location-id="<?php echo e((string) $location['id']); ?>">
+                <strong><?php echo e((string) ($location['apelido_local'] ?: $location['nome_local'])); ?></strong>
+                <small>(<?php echo e((string) $location['nome_local']); ?>)</small>
+            </article>
         <?php } ?>
     </div>
+    <div class="home-locations-footer">
+        <button type="button" class="btn btn-primary" id="home-all-locations-open">Todos os locais</button>
+    </div>
 </section>
+
+<div id="home-all-locations-modal" class="popup-overlay hidden" aria-hidden="true">
+    <div class="popup-card home-all-locations-modal-card" role="dialog" aria-modal="true" aria-labelledby="home-all-locations-title">
+        <div class="popup-head">
+            <div>
+                <h3 id="home-all-locations-title">Todos os locais</h3>
+                <p class="muted">Locais ordenados pelo apelido.</p>
+            </div>
+            <button type="button" class="popup-close-icon" data-home-all-locations-close="1" aria-label="Fechar todos os locais">&times;</button>
+        </div>
+        <div class="popup-body home-all-locations-list">
+            <?php foreach ($locations as $location) { ?>
+                <button type="button" class="home-all-location-button" data-home-location-select="<?php echo e((string) $location['id']); ?>">
+                    <strong><?php echo e((string) ($location['apelido_local'] ?: $location['nome_local'])); ?></strong>
+                    <small><?php echo e((string) $location['nome_local']); ?></small>
+                </button>
+            <?php } ?>
+        </div>
+        <div class="popup-actions">
+            <button type="button" class="btn btn-secondary" data-home-all-locations-close="1">Fechar</button>
+        </div>
+    </div>
+</div>
 
 <?php if (!empty($homeSpecialEvents)) { ?>
 <section class="content-card">

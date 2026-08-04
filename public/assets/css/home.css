@@ -356,6 +356,117 @@ body.pagina-home {
     border: 1px solid rgba(31, 118, 181, 0.12);
 }
 
+.pagina-home .home-locations-card {
+    display: grid;
+    grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
+    gap: 22px 28px;
+    align-items: start;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.97) 0%, rgba(245, 250, 255, 0.98) 100%);
+    border: 1px solid rgba(31, 118, 181, 0.12);
+}
+
+.pagina-home .home-location-suggestions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+}
+
+.pagina-home .home-location-suggestion {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    padding: 9px 14px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    color: #fff;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #1f76b5 0%, #0e5e95 100%);
+    box-shadow: 0 10px 20px rgba(20, 48, 67, 0.12);
+}
+
+.pagina-home .home-location-suggestion:nth-child(4n + 1) {
+    background: linear-gradient(135deg, #1f76b5 0%, #0e5e95 100%);
+}
+
+.pagina-home .home-location-suggestion:nth-child(4n + 2) {
+    background: linear-gradient(135deg, #d96b1f 0%, #bf5412 100%);
+}
+
+.pagina-home .home-location-suggestion:nth-child(4n + 3) {
+    background: linear-gradient(135deg, #1ca746 0%, #108739 100%);
+}
+
+.pagina-home .home-location-suggestion:nth-child(4n + 4) {
+    background: linear-gradient(135deg, #d62b45 0%, #b21d37 100%);
+}
+
+.pagina-home .home-location-suggestion strong,
+.pagina-home .home-all-location-button strong {
+    font-size: 16px;
+    line-height: 1.2;
+}
+
+.pagina-home .home-location-suggestion strong {
+    white-space: nowrap;
+}
+
+.pagina-home .home-location-suggestion small {
+    min-width: 0;
+    font-size: 12px;
+    line-height: 1.3;
+    font-weight: 400;
+    opacity: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pagina-home .home-locations-footer {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.pagina-home .home-all-locations-modal-card {
+    width: min(820px, 100%);
+}
+
+.pagina-home .home-all-locations-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    max-height: min(62vh, 620px);
+    overflow-y: auto;
+}
+
+.pagina-home .home-all-location-button {
+    display: flex;
+    min-width: 0;
+    padding: 14px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    color: #fff;
+    text-align: left;
+    border: 0;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #1f76b5 0%, #0e5e95 100%);
+    cursor: pointer;
+}
+
+.pagina-home .home-all-location-button small {
+    font-size: 12px;
+    line-height: 1.3;
+    font-weight: 400;
+    opacity: 0.88;
+}
+
+.pagina-home .home-all-location-button:hover {
+    background: linear-gradient(135deg, #2787c9 0%, #126da8 100%);
+}
+
 .pagina-home .chip {
     border: 1px solid transparent;
     color: #fff;
@@ -414,6 +525,12 @@ body.pagina-home {
     .pagina-home .section-grid {
         grid-template-columns: 1fr;
     }
+    .pagina-home .home-locations-card {
+        grid-template-columns: 1fr;
+    }
+    .pagina-home .home-location-suggestions {
+        grid-template-columns: 1fr;
+    }
     .home-whatsapp-row {
         justify-content: flex-start;
         width: 100%;
@@ -440,6 +557,9 @@ body.pagina-home {
 }
 
 @media (max-width: 560px) {
+    .pagina-home .home-all-locations-list {
+        grid-template-columns: 1fr;
+    }
     .hero-copy h1 {
         max-width: none;
         font-size: clamp(28px, 9vw, 36px);

@@ -2784,8 +2784,8 @@
                     const $button = $('<button>', { type: 'button', class: 'btn btn-primary admin-external-location-select', text: 'Usar dados' });
                     $button.data('location', location);
                     $body.append($('<tr>')
-                        .append($('<td>').text(String(location.nome_local || '')))
                         .append($('<td>').text(String(location.apelido_local || '')))
+                        .append($('<td>').text(String(location.nome_local || '')))
                         .append($('<td>').text([location.cidade, location.uf].filter(Boolean).join(' - ')))
                         .append($('<td>').append($button)));
                 });
@@ -2905,6 +2905,55 @@
                 if (event.target === this) {
                     closeLocationModal();
                 }
+            });
+
+            $(document).on('submit', '#admin-training-location-form', function (event) {
+                event.preventDefault();
+
+                const $form = $(this);
+                const $button = $form.find('button[type="submit"]').first();
+                const $filter = $('#admin-training-location-filter-form');
+                const isCreate = Number($form.find('input[name="local_treino_id"]').val() || 0) === 0;
+                const data = $form.serialize() + '&' + $.param({
+                    location_search: String($filter.find('input[name="location_search"]').val() || ''),
+                    location_limit: String($filter.find('input[name="location_limit"]').val() || '10').trim()
+                });
+
+                $button.prop('disabled', true);
+                $.ajax({
+                    url: String($form.attr('action') || ''),
+                    method: 'POST',
+                    dataType: 'json',
+                    data: data,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar o local.'));
+                        return;
+                    }
+                    if (typeof response.locations_html === 'string') {
+                        $('#admin-training-location-list-body').html(response.locations_html);
+                    }
+                    if (isCreate && response.location && response.location.id) {
+                        const location = response.location;
+                        const value = String(location.id);
+                        const label = String(location.apelido_local || location.nome_local || '') + ' — ' + String(location.nome_local || '');
+                        const $select = $('#admin-training-space-form select[name="local_treino_id"]');
+                        if ($select.find('option[value="' + value + '"]').length === 0) {
+                            $select.append($('<option>', { value: value, text: label }));
+                        }
+                    }
+                    closeLocationModal();
+                    App.core.abrirPopup('sucesso', String(response.message || 'Local salvo com sucesso.'));
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                }).always(function () {
+                    $button.prop('disabled', false);
+                });
             });
 
             $(document).on('keydown', function (event) {
@@ -3159,7 +3208,7 @@
                     $button.data('space', space);
                     $body.append($('<tr>')
                         .append($('<td>').text(String(space.nome_espaco || '')))
-                        .append($('<td>').text(String(space.nome_local || space.apelido_local || '')))
+                        .append($('<td>').text(String(space.apelido_local || space.nome_local || '')))
                         .append($('<td>').text(String(space.descricao || '')))
                         .append($('<td>').text(area > 0 ? area.toLocaleString('pt-BR') + ' m²' : 'Não informada'))
                         .append($('<td>').append($button)));
@@ -3228,7 +3277,7 @@
                 $('#admin-external-space-modal').addClass('hidden').attr('aria-hidden', 'true');
                 getModal().removeClass('hidden').attr('aria-hidden', 'false');
                 if (!space.local_treino_id) {
-                    App.core.abrirPopup('erro', 'O local “' + String(space.nome_local || '') + '” ainda não está vinculado. Selecione o local correspondente antes de salvar.');
+                    App.core.abrirPopup('erro', 'O local “' + String(space.apelido_local || space.nome_local || '') + '” ainda não está vinculado. Selecione o local correspondente antes de salvar.');
                 }
                 $form.find('input[name="nome"]').trigger('focus');
             });

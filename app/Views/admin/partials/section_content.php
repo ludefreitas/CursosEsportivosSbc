@@ -1768,7 +1768,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     <p class="muted" id="admin-external-location-status">Carregando locais...</p>
                     <div class="table-wrap">
                         <table class="data-table">
-                            <thead><tr><th>Nome do local</th><th>Apelido</th><th>Cidade</th><th>Selecionar</th></tr></thead>
+                            <thead><tr><th>Apelido do local</th><th>Nome completo</th><th>Cidade</th><th>Selecionar</th></tr></thead>
                             <tbody id="admin-external-location-list"></tbody>
                         </table>
                     </div>
@@ -1796,9 +1796,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         data-create-action="<?php echo e(url('/admin/locais')); ?>"
                         data-update-action="<?php echo e(url('/admin/locais/atualizar')); ?>"
                         class="stack-form"
-                        data-ajax-form="1"
-                        data-success-reset="1"
-                        data-follow-redirect="1"
+                        data-manual-submit="1"
                         id="admin-training-location-form"
                     >
                         <input type="hidden" name="local_treino_id" value="">

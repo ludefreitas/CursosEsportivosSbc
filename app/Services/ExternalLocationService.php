@@ -88,7 +88,7 @@ class ExternalLocationService
             $params[':search_name'] = '%' . $search . '%';
             $params[':search_nickname'] = '%' . $search . '%';
         }
-        $sql .= ' ORDER BY nome_local LIMIT 100';
+        $sql .= ' ORDER BY apelido_local, nome_local LIMIT 100';
         $stmt = Database::connection()->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

@@ -973,7 +973,12 @@ class AdminController extends Controller
                 $this->jsonResponse([
                     'success' => true,
                     'message' => 'Local de treino cadastrado com sucesso.',
-                    'redirect' => url('/admin'),
+                    'locations_html' => $this->renderTrainingLocationRows(),
+                    'location' => [
+                        'id' => $locationId,
+                        'nome_local' => trim((string) ($_POST['nome_local'] ?? '')),
+                        'apelido_local' => trim((string) ($_POST['apelido_local'] ?? '')),
+                    ],
                 ]);
             }
 
@@ -1040,7 +1045,7 @@ class AdminController extends Controller
                 $this->jsonResponse([
                     'success' => true,
                     'message' => 'Local de treino atualizado com sucesso.',
-                    'redirect' => url('/admin'),
+                    'locations_html' => $this->renderTrainingLocationRows(),
                 ]);
             }
 
@@ -1983,5 +1988,18 @@ class AdminController extends Controller
             'spaces_html' => $spacesHtml,
             'suspensions_html' => $suspensionsHtml,
         ];
+    }
+
+    /** Renderiza novamente as linhas da lista de locais apos salvar por AJAX. */
+    private function renderTrainingLocationRows(): string
+    {
+        $locationSearch = trim((string) ($_POST['location_search'] ?? ''));
+        $locationLimit = (int) ($_POST['location_limit'] ?? AdminService::DEFAULT_TRAINING_LOCATION_LIMIT);
+        $locationLimit = max(1, min(AdminService::MAX_TRAINING_LOCATION_LIMIT, $locationLimit));
+        $trainingLocations = $this->adminService->listTrainingLocationsForManagement($locationSearch, $locationLimit);
+
+        ob_start();
+        require ROOT_PATH . '/app/Views/admin/partials/training_location_rows.php';
+        return (string) ob_get_clean();
     }
 }
