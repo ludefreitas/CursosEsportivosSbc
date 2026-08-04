@@ -1,6 +1,6 @@
 <?php
 $selectedCategory = trim((string) ($selectedCategory ?? ''));
-$search = trim((string) ($search ?? ''));
+$search = (string) ($search ?? '');
 ?>
 
 <section class="blog-shell">

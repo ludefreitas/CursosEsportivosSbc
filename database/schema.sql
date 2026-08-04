@@ -35,6 +35,85 @@ CREATE TABLE IF NOT EXISTS pessoas (
         CHECK (numero_cartao_sus IS NULL OR numero_cartao_sus REGEXP '^[0-9]{15}$')
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS cadastros_externos_migracao (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_externo BIGINT UNSIGNED NOT NULL,
+    cpf CHAR(11) NOT NULL,
+    nome_completo VARCHAR(180) NOT NULL,
+    data_nascimento DATE NULL,
+    sexo VARCHAR(40) NULL,
+    telefone_whatsapp VARCHAR(30) NULL,
+    email VARCHAR(180) NULL,
+    numero_cartao_sus VARCHAR(30) NULL,
+    cep VARCHAR(10) NULL,
+    logradouro VARCHAR(180) NULL,
+    numero_endereco VARCHAR(30) NULL,
+    complemento VARCHAR(120) NULL,
+    bairro VARCHAR(120) NULL,
+    cidade VARCHAR(120) NULL,
+    uf CHAR(2) NULL,
+    contato_emergencia_nome VARCHAR(180) NULL,
+    contato_emergencia_telefone VARCHAR(30) NULL,
+    responsavel1_nome VARCHAR(180) NULL,
+    responsavel1_cpf CHAR(11) NULL,
+    responsavel2_nome VARCHAR(180) NULL,
+    responsavel2_cpf CHAR(11) NULL,
+    situacao_origem VARCHAR(80) NULL,
+    data_inclusao_origem DATETIME NULL,
+    data_alteracao_origem DATETIME NULL,
+    status_migracao VARCHAR(20) NOT NULL DEFAULT 'pendente',
+    pessoa_id BIGINT UNSIGNED NULL,
+    importado_por_conta_id BIGINT UNSIGNED NULL,
+    importado_em DATETIME NOT NULL,
+    migrado_em DATETIME NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT NULL,
+    UNIQUE KEY uk_cadastros_externos_id (id_externo),
+    INDEX idx_cadastros_externos_cpf_status (cpf, status_migracao),
+    INDEX idx_cadastros_externos_nome (nome_completo),
+    INDEX idx_cadastros_externos_status (status_migracao)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS migracoes_fontes_externas (
+    chave VARCHAR(80) PRIMARY KEY,
+    concluida_em DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS locais_externos_migracao (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_externo BIGINT UNSIGNED NOT NULL,
+    apelido_local VARCHAR(100) NULL,
+    nome_local VARCHAR(150) NOT NULL,
+    logradouro VARCHAR(180) NULL,
+    numero_endereco VARCHAR(20) NULL,
+    complemento VARCHAR(120) NULL,
+    bairro VARCHAR(120) NULL,
+    cidade VARCHAR(120) NULL,
+    uf CHAR(2) NULL,
+    telefone VARCHAR(30) NULL,
+    cep CHAR(8) NULL,
+    ativo TINYINT(1) NOT NULL DEFAULT 1,
+    importado_em DATETIME NOT NULL,
+    UNIQUE KEY uk_local_externo (id_externo),
+    INDEX idx_local_externo_nome (nome_local)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS espacos_externos_migracao (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_externo BIGINT UNSIGNED NOT NULL,
+    local_id_externo BIGINT UNSIGNED NOT NULL,
+    nome_espaco VARCHAR(150) NOT NULL,
+    descricao VARCHAR(255) NULL,
+    observacao VARCHAR(255) NULL,
+    area_espaco DECIMAL(12,2) NULL,
+    nome_local VARCHAR(150) NOT NULL,
+    apelido_local VARCHAR(100) NULL,
+    importado_em DATETIME NOT NULL,
+    UNIQUE KEY uk_espaco_externo (id_externo),
+    INDEX idx_espaco_externo_nome (nome_espaco),
+    INDEX idx_espaco_externo_local (nome_local)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS contas (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     cpf CHAR(11) NOT NULL UNIQUE,
@@ -236,6 +315,14 @@ CREATE TABLE IF NOT EXISTS locais_treino (
     CONSTRAINT fk_locais_treino_admin_local FOREIGN KEY (admin_local) REFERENCES contas(id) ON DELETE SET NULL,
     CONSTRAINT fk_locais_treino_coord_local FOREIGN KEY (coord_local) REFERENCES contas(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS locais_externos_vinculos (
+    id_externo BIGINT UNSIGNED PRIMARY KEY,
+    local_treino_id BIGINT UNSIGNED NOT NULL,
+    vinculado_em DATETIME NOT NULL,
+    UNIQUE KEY uk_local_externo_vinculo_atual (local_treino_id),
+    CONSTRAINT fk_local_externo_vinculo_atual FOREIGN KEY (local_treino_id) REFERENCES locais_treino(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS espacos_treino (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

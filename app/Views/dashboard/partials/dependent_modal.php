@@ -134,9 +134,9 @@
             <section class="dashboard-dependent-edit-section">
                 <h4>Endereço</h4>
                 <div class="dashboard-dependent-edit-grid dashboard-dependent-edit-grid-address">
-                    <label>
+                    <label class="cep-autocomplete-field">
                         <span>CEP</span>
-                        <input type="text" name="zip_code" value="<?php echo e((string) ($dependent['cep'] ?? '')); ?>" data-cep-sbc="1" required>
+                        <input type="text" name="zip_code" value="<?php echo e((string) ($dependent['cep'] ?? '')); ?>" data-cep-sbc="1" data-person-cep-address="1" autocomplete="postal-code" aria-autocomplete="list" aria-expanded="false" required>
                     </label>
                     <label class="dashboard-dependent-edit-span-2">
                         <span>Endereço</span>

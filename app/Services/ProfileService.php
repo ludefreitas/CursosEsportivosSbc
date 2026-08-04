@@ -10,6 +10,7 @@ use RuntimeException;
 class ProfileService
 {
     private CepService $cepService;
+    private ExternalPersonService $externalPersonService;
     private const HEALTH_CERTIFICATE_TYPES = [
         'clinico' => 'Atestado clínico',
         'dermatologico' => 'Atestado dermatológico',
@@ -23,6 +24,7 @@ class ProfileService
     public function __construct()
     {
         $this->cepService = new CepService();
+        $this->externalPersonService = new ExternalPersonService();
         $this->ensureHealthCertificateSchema();
     }
 
@@ -117,6 +119,7 @@ class ProfileService
             $stmt->execute($this->mapearDadosPessoa($data, (int) $person['id'], false));
 
             $this->vincularResponsavel($pdo, (int) $person['id'], (int) $person['id'], 'Vínculo inicial do próprio usuário como seu dependente.');
+            $this->externalPersonService->markCpfAsMigrated((string) $person['cpf'], (int) $person['id']);
 
             $pdo->commit();
 
@@ -198,56 +201,31 @@ class ProfileService
         $pdo->beginTransaction();
 
         try {
-            $stmtExisting = $pdo->prepare('SELECT id FROM pessoas WHERE cpf = :cpf LIMIT 1');
+            $stmtExisting = $pdo->prepare('
+                SELECT p.id, p.nome_completo, rp.nome_completo AS nome_responsavel
+                FROM pessoas p
+                LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id = p.id
+                LEFT JOIN pessoas rp ON rp.id = vr.responsavel_pessoa_id
+                WHERE p.cpf = :cpf
+                LIMIT 1
+            ');
             $stmtExisting->execute([':cpf' => $cpf]);
-            $existingId = $stmtExisting->fetchColumn();
+            $existingPerson = $stmtExisting->fetch(PDO::FETCH_ASSOC);
 
-            if ($existingId) {
-                $dependentId = (int) $existingId;
-                $stmtCurrentLink = $pdo->prepare('
-                    SELECT responsavel_pessoa_id
-                    FROM vinculos_responsaveis
-                    WHERE dependente_pessoa_id = :dependente_pessoa_id
-                    LIMIT 1
-                ');
-                $stmtCurrentLink->execute([':dependente_pessoa_id' => $dependentId]);
-                $linkedResponsibleId = $stmtCurrentLink->fetchColumn();
-
-                if ($linkedResponsibleId && (int) $linkedResponsibleId !== (int) $responsible['id']) {
-                    throw new RuntimeException('Este CPF já pertence a um dependente vinculado a outro responsável e não pode ser alterado por esta conta.');
+            if ($existingPerson) {
+                $responsibleName = trim((string) ($existingPerson['nome_responsavel'] ?? ''));
+                if ($responsibleName === '') {
+                    $responsibleName = trim((string) ($existingPerson['nome_completo'] ?? ''));
                 }
+                throw new RuntimeException(
+                    'Este CPF já está cadastrado no sistema.'
+                    . ' Pessoa cadastrada: ' . trim((string) ($existingPerson['nome_completo'] ?? '')) . '.'
+                    . ($responsibleName !== '' ? ' Responsável: ' . $responsibleName . '.' : '')
+                    . ' Não é possível prosseguir com um novo cadastro para este CPF.'
+                );
+            }
 
-                $stmtUpdate = $pdo->prepare('
-                    UPDATE pessoas
-                    SET nome_completo = :nome_completo,
-                        sexo = :sexo,
-                        data_nascimento = :data_nascimento,
-                        telefone_whatsapp = :telefone_whatsapp,
-                        email = :email,
-                        numero_cartao_sus = :numero_cartao_sus,
-                        cep = :cep,
-                        logradouro = :logradouro,
-                        numero_endereco = :numero_endereco,
-                        complemento = :complemento,
-                        bairro = :bairro,
-                        cidade = :cidade,
-                        uf = :uf,
-                        contato_emergencia_nome = :contato_emergencia_nome,
-                        contato_emergencia_telefone = :contato_emergencia_telefone,
-                        responsavel1_nome = :responsavel1_nome,
-                        responsavel1_cpf = :responsavel1_cpf,
-                        responsavel2_nome = :responsavel2_nome,
-                        responsavel2_cpf = :responsavel2_cpf,
-                        eh_pcd = :eh_pcd,
-                        eh_pvs = :eh_pvs,
-                        eh_plm = :eh_plm,
-                        cadastro_completo = 1,
-                        updated_at = NOW()
-                    WHERE id = :id
-                ');
-                $stmtUpdate->execute($this->mapearDadosPessoa($data, $dependentId, false));
-            } else {
-                $stmtInsert = $pdo->prepare('
+            $stmtInsert = $pdo->prepare('
                     INSERT INTO pessoas (
                         nome_completo, cpf, sexo, data_nascimento, telefone_whatsapp, email, numero_cartao_sus, cep, logradouro,
                         numero_endereco, complemento, bairro, cidade, uf, contato_emergencia_nome,
@@ -259,12 +237,12 @@ class ProfileService
                         :contato_emergencia_telefone, :responsavel1_nome, :responsavel1_cpf,
                         :responsavel2_nome, :responsavel2_cpf, :eh_pcd, :eh_pvs, :eh_plm, 1
                     )
-                ');
-                $stmtInsert->execute($this->mapearDadosPessoa($data, null, true));
-                $dependentId = (int) $pdo->lastInsertId();
-            }
+            ');
+            $stmtInsert->execute($this->mapearDadosPessoa($data, null, true));
+            $dependentId = (int) $pdo->lastInsertId();
 
             $this->vincularResponsavel($pdo, $dependentId, (int) $responsible['id'], 'Cadastro ou atualizacao de dependente pelo responsavel atual.');
+            $this->externalPersonService->markCpfAsMigrated($cpf, $dependentId);
 
             $pdo->commit();
 
@@ -403,6 +381,8 @@ class ProfileService
             ':eh_pvs' => (int) (($data['eh_pvs'] ?? 0) === '1' || (int) ($data['eh_pvs'] ?? 0) === 1 ? 1 : 0),
             ':eh_plm' => (int) (($data['eh_plm'] ?? 0) === '1' || (int) ($data['eh_plm'] ?? 0) === 1 ? 1 : 0),
         ]);
+
+        $this->externalPersonService->markCpfAsMigrated((string) $dependent['cpf'], (int) $dependent['id']);
 
         AuditLogService::record('dependente.atualizado', 'pessoas', (int) $dependent['id'], [
             'responsavel_pessoa_id' => (int) $responsible['id'],

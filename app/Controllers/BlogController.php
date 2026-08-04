@@ -17,7 +17,7 @@ class BlogController extends Controller
         $blogService = new BlogService();
         $adminService = new AdminService();
         $officialCommunicationService = new OfficialCommunicationService();
-        $search = trim((string) ($_GET['busca'] ?? ''));
+        $search = (string) ($_GET['busca'] ?? '');
         $category = trim((string) ($_GET['categoria'] ?? ''));
 
         $this->view('blog/index', [
@@ -26,7 +26,7 @@ class BlogController extends Controller
             'search' => $search,
             'selectedCategory' => $category,
             'posts' => $blogService->listPublishedPosts([
-                'search' => $search,
+                'search' => trim($search),
                 'category' => $category,
                 'limit' => 12,
             ]),

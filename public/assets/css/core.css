@@ -1696,3 +1696,41 @@ body.pagina-error label span {
         flex-direction: column;
     }
 }
+.cep-autocomplete-field {
+    position: relative;
+}
+
+.cep-address-results {
+    position: absolute;
+    z-index: 30;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 0.25rem;
+    padding: 0.35rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.6rem;
+    background: #fff;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.16);
+}
+
+.cep-address-results.hidden {
+    display: none;
+}
+
+.cep-address-option {
+    width: 100%;
+    padding: 0.7rem 0.8rem;
+    border: 0;
+    border-radius: 0.45rem;
+    background: transparent;
+    color: #0f172a;
+    text-align: left;
+    cursor: pointer;
+}
+
+.cep-address-option:hover,
+.cep-address-option:focus {
+    background: #e8f1ff;
+    outline: none;
+}

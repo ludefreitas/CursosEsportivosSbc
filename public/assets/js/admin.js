@@ -1464,23 +1464,46 @@
 
         iniciarFiltroPessoasAdmin: function () {
             let peopleFilterTimer = null;
+            let peopleFilterRequest = null;
+            let peopleFilterSequence = 0;
 
             function refreshPeoplePanel($form, options) {
                 const settings = Object.assign({
                     preserveSearchFocus: false
                 }, options || {});
-                const limit = String($form.find('input[name="people_limit"]').val() || '').trim();
-                const search = String($form.find('input[name="people_search"]').val() || '').trim();
-                const $searchField = $form.find('input[name="people_search"]').first();
+                const $peopleForm = $('#admin-people-filter-form');
+                const $usersForm = $('#admin-users-filter-form');
+                const peopleLimit = String($peopleForm.find('input[name="people_limit"]').val() || '').trim();
+                const usersLimit = String($usersForm.find('input[name="users_limit"]').val() || '').trim();
+                const peopleSearch = String($peopleForm.find('input[name="people_search"]').val() || '');
+                const usersSearch = String($usersForm.find('input[name="users_search"]').val() || '');
+                const $searchField = $form.find('.admin-people-search-input').first();
                 const selectionStart = settings.preserveSearchFocus ? Number($searchField[0] && $searchField[0].selectionStart) : null;
                 const selectionEnd = settings.preserveSearchFocus ? Number($searchField[0] && $searchField[0].selectionEnd) : null;
                 const focusFormId = settings.preserveSearchFocus ? String($form.attr('id') || '') : '';
+                const requestSequence = ++peopleFilterSequence;
 
-                $.getJSON(App.core.buildUrl('/admin/pessoas/lista'), {
-                    people_limit: limit,
-                    people_search: search
+                if (peopleFilterRequest) {
+                    peopleFilterRequest.abort();
+                }
+
+                peopleFilterRequest = $.ajax({
+                    url: App.core.buildUrl('/admin/pessoas/lista'),
+                    method: 'GET',
+                    dataType: 'json',
+                    data: {
+                        people_limit: peopleLimit,
+                        people_search: peopleSearch,
+                        users_limit: usersLimit,
+                        users_search: usersSearch
+                    },
+                    suppressGlobalLoading: settings.preserveSearchFocus
                 })
                     .done(function (response) {
+                        if (requestSequence !== peopleFilterSequence) {
+                            return;
+                        }
+
                         if (!response || response.success === false || !response.html) {
                             App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar a lista agora.'));
                             return;
@@ -1493,7 +1516,7 @@
                                 let $searchInput = $();
 
                                 if (focusFormId !== '') {
-                                    $searchInput = $('#' + focusFormId).find('input[name="people_search"]').first();
+                                    $searchInput = $('#' + focusFormId).find('.admin-people-search-input').first();
                                 }
 
                                 if ($searchInput.length === 0) {
@@ -1507,16 +1530,23 @@
                                 $searchInput.trigger('focus');
 
                                 if ($searchInput[0] && typeof $searchInput[0].setSelectionRange === 'function') {
-                                    const start = Number.isFinite(selectionStart) ? selectionStart : search.length;
-                                    const end = Number.isFinite(selectionEnd) ? selectionEnd : search.length;
+                                    const currentSearch = focusFormId === 'admin-users-filter-form' ? usersSearch : peopleSearch;
+                                    const start = Number.isFinite(selectionStart) ? selectionStart : currentSearch.length;
+                                    const end = Number.isFinite(selectionEnd) ? selectionEnd : currentSearch.length;
                                     $searchInput[0].setSelectionRange(start, end);
                                 }
                             });
                         }
                     })
-                    .fail(function (xhr) {
-                        const erro = App.core.extrairMensagemErroAjax(xhr);
-                        App.core.abrirPopup('erro', erro.mensagem);
+                    .fail(function (xhr, status) {
+                        if (status !== 'abort') {
+                            const erro = App.core.extrairMensagemErroAjax(xhr);
+                            App.core.abrirPopup('erro', erro.mensagem);
+                        }
+                    }).always(function () {
+                        if (requestSequence === peopleFilterSequence) {
+                            peopleFilterRequest = null;
+                        }
                     });
             }
 
@@ -1545,7 +1575,7 @@
                 }, 250);
             });
 
-            $(document).on('change', '[data-admin-people-filter="1"] input[name="people_limit"]', function () {
+            $(document).on('change', '[data-admin-people-filter="1"] input[name="people_limit"], [data-admin-people-filter="1"] input[name="users_limit"]', function () {
                 const $form = $(this).closest('form');
 
                 if ($form.length === 0) {
@@ -2705,6 +2735,7 @@
                 $form[0].reset();
                 $form.attr('action', String($form.data('createAction') || ''));
                 $form.find('input[name="local_treino_id"]').val('');
+                $form.find('input[name="local_externo_migracao_id"]').val('');
                 $form.find('[data-address-field]').val('');
                 $form.find('.cep-address-results').addClass('hidden').empty();
                 $form.find('.cep-address-status').text('Digite os 8 números do CEP.');
@@ -2727,7 +2758,10 @@
                 $modal.addClass('hidden').attr('aria-hidden', 'true');
             }
 
-            $(document).on('click', '#admin-training-location-open', function () {
+            let externalLocationTimer = null;
+            let externalLocationRequest = null;
+
+            function openBlankLocationForm() {
                 const $modal = getLocationModal();
 
                 prepareCreateLocationForm();
@@ -2735,6 +2769,94 @@
                 window.setTimeout(function () {
                     $('#admin-training-location-form input[name="nome_local"]').trigger('focus');
                 }, 0);
+            }
+
+            function renderExternalLocations(locations) {
+                const $body = $('#admin-external-location-list').empty();
+                const records = Array.isArray(locations) ? locations : [];
+
+                if (records.length === 0) {
+                    $body.append($('<tr>').append($('<td>', { colspan: 4, text: 'Nenhum local pendente foi encontrado.' })));
+                    return;
+                }
+
+                records.forEach(function (location) {
+                    const $button = $('<button>', { type: 'button', class: 'btn btn-primary admin-external-location-select', text: 'Usar dados' });
+                    $button.data('location', location);
+                    $body.append($('<tr>')
+                        .append($('<td>').text(String(location.nome_local || '')))
+                        .append($('<td>').text(String(location.apelido_local || '')))
+                        .append($('<td>').text([location.cidade, location.uf].filter(Boolean).join(' - ')))
+                        .append($('<td>').append($button)));
+                });
+            }
+
+            function loadExternalLocations(search) {
+                const $modal = $('#admin-external-location-modal');
+                const url = String($modal.data('listUrl') || '');
+                $('#admin-external-location-status').text('Carregando locais...');
+                if (externalLocationRequest) {
+                    externalLocationRequest.abort();
+                }
+                externalLocationRequest = $.getJSON(url, { search: String(search || '') }).done(function (response) {
+                    if (!response || !response.success) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar os locais anteriores.'));
+                        return;
+                    }
+                    renderExternalLocations(response.locations);
+                    const count = Array.isArray(response.locations) ? response.locations.length : 0;
+                    $('#admin-external-location-status').text(count + (count === 1 ? ' local disponível.' : ' locais disponíveis.'));
+                }).fail(function (xhr, status) {
+                    if (status !== 'abort') {
+                        const erro = App.core.extrairMensagemErroAjax(xhr);
+                        App.core.abrirPopup('erro', erro.mensagem);
+                    }
+                }).always(function () {
+                    externalLocationRequest = null;
+                });
+            }
+
+            $(document).on('click', '#admin-training-location-open', function () {
+                const $chooser = $('#admin-external-location-modal');
+                $('#admin-external-location-search').val('');
+                $chooser.removeClass('hidden').attr('aria-hidden', 'false');
+                loadExternalLocations('');
+            });
+
+            $(document).on('input', '#admin-external-location-search', function () {
+                const value = String($(this).val() || '');
+                window.clearTimeout(externalLocationTimer);
+                externalLocationTimer = window.setTimeout(function () { loadExternalLocations(value); }, 250);
+            });
+
+            $(document).on('click', '.admin-external-location-select', function () {
+                const location = $(this).data('location') || {};
+                const $form = $('#admin-training-location-form');
+                prepareCreateLocationForm();
+                $form.find('input[name="local_externo_migracao_id"]').val(String(location.id || ''));
+                $form.find('input[name="nome_local"]').val(String(location.nome_local || ''));
+                $form.find('input[name="apelido_local"]').val(String(location.apelido_local || ''));
+                $form.find('input[name="cep"]').val(String(location.cep || '').replace(/(\d{5})(\d{3})/, '$1-$2'));
+                $form.find('input[name="logradouro"]').val(String(location.logradouro || ''));
+                $form.find('input[name="numero_endereco"]').val(String(location.numero_endereco || ''));
+                $form.find('input[name="complemento"]').val(String(location.complemento || ''));
+                $form.find('input[name="bairro"]').val(String(location.bairro || ''));
+                $form.find('input[name="cidade"]').val(String(location.cidade || ''));
+                $form.find('input[name="uf"]').val(String(location.uf || ''));
+                $form.find('select[name="ativo"]').val(String(Number(location.ativo || 0)));
+                $form.find('.cep-address-status').text('Dados do sistema anterior carregados. Confira antes de cadastrar.');
+                $('#admin-external-location-modal').addClass('hidden').attr('aria-hidden', 'true');
+                getLocationModal().removeClass('hidden').attr('aria-hidden', 'false');
+                $form.find('input[name="nome_local"]').trigger('focus');
+            });
+
+            $(document).on('click', '#admin-external-location-manual', function () {
+                $('#admin-external-location-modal').addClass('hidden').attr('aria-hidden', 'true');
+                openBlankLocationForm();
+            });
+
+            $(document).on('click', '#admin-external-location-close, #admin-external-location-cancel', function () {
+                $('#admin-external-location-modal').addClass('hidden').attr('aria-hidden', 'true');
             });
 
             $(document).on('click', '.admin-training-location-edit', function () {
@@ -2894,7 +3016,7 @@
             let filterRequest = null;
 
             function refreshTrainingLocations($form) {
-                const search = String($form.find('input[name="location_search"]').val() || '').trim();
+                const search = String($form.find('input[name="location_search"]').val() || '');
                 const $limitInput = $form.find('input[name="location_limit"]').first();
                 const requestedLimit = Number.parseInt(String($limitInput.val() || '10'), 10);
                 const limit = Math.max(1, Math.min(20, Number.isFinite(requestedLimit) ? requestedLimit : 10));
@@ -2964,7 +3086,7 @@
             let filterRequest = null;
 
             function refreshTrainingSpaces($form) {
-                const search = String($form.find('input[name="space_search"]').val() || '').trim();
+                const search = String($form.find('input[name="space_search"]').val() || '');
                 const $limitInput = $form.find('input[name="space_limit"]').first();
                 const requestedLimit = Number.parseInt(String($limitInput.val() || '10'), 10);
                 const limit = Math.max(1, Math.min(20, Number.isFinite(requestedLimit) ? requestedLimit : 10));
@@ -3017,9 +3139,105 @@
         },
 
         iniciarEditorEspacosTreino: function () {
+            let externalSpaceTimer = null;
+            let externalSpaceRequest = null;
+
             function getModal() {
                 return $('#admin-training-space-modal');
             }
+
+            function renderExternalSpaces(spaces) {
+                const $body = $('#admin-external-space-list').empty();
+                const records = Array.isArray(spaces) ? spaces : [];
+                if (records.length === 0) {
+                    $body.append($('<tr>').append($('<td>', { colspan: 5, text: 'Nenhum espaço pendente foi encontrado.' })));
+                    return;
+                }
+                records.forEach(function (space) {
+                    const area = Number(space.area_espaco || 0);
+                    const $button = $('<button>', { type: 'button', class: 'btn btn-primary admin-external-space-select', text: 'Usar dados' });
+                    $button.data('space', space);
+                    $body.append($('<tr>')
+                        .append($('<td>').text(String(space.nome_espaco || '')))
+                        .append($('<td>').text(String(space.nome_local || space.apelido_local || '')))
+                        .append($('<td>').text(String(space.descricao || '')))
+                        .append($('<td>').text(area > 0 ? area.toLocaleString('pt-BR') + ' m²' : 'Não informada'))
+                        .append($('<td>').append($button)));
+                });
+            }
+
+            function loadExternalSpaces(search) {
+                const $modal = $('#admin-external-space-modal');
+                $('#admin-external-space-status').text('Carregando espaços...');
+                if (externalSpaceRequest) {
+                    externalSpaceRequest.abort();
+                }
+                externalSpaceRequest = $.getJSON(String($modal.data('listUrl') || ''), { search: String(search || '') }).done(function (response) {
+                    if (!response || !response.success) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar os espaços anteriores.'));
+                        return;
+                    }
+                    renderExternalSpaces(response.spaces);
+                    const count = Array.isArray(response.spaces) ? response.spaces.length : 0;
+                    $('#admin-external-space-status').text(count + (count === 1 ? ' espaço encontrado.' : ' espaços encontrados.'));
+                }).fail(function (xhr, status) {
+                    if (status !== 'abort') {
+                        const erro = App.core.extrairMensagemErroAjax(xhr);
+                        App.core.abrirPopup('erro', erro.mensagem);
+                    }
+                }).always(function () {
+                    externalSpaceRequest = null;
+                });
+            }
+
+            function openBlankSpaceForm() {
+                prepareCreate();
+                getModal().removeClass('hidden').attr('aria-hidden', 'false');
+            }
+
+            $(document).on('click', '#admin-training-space-create', function () {
+                $('#admin-external-space-search').val('');
+                $('#admin-external-space-modal').removeClass('hidden').attr('aria-hidden', 'false');
+                loadExternalSpaces('');
+            });
+
+            $(document).on('input', '#admin-external-space-search', function () {
+                const value = String($(this).val() || '');
+                window.clearTimeout(externalSpaceTimer);
+                externalSpaceTimer = window.setTimeout(function () { loadExternalSpaces(value); }, 250);
+            });
+
+            $(document).on('click', '#admin-external-space-close, #admin-external-space-cancel', function () {
+                $('#admin-external-space-modal').addClass('hidden').attr('aria-hidden', 'true');
+            });
+
+            $(document).on('click', '#admin-external-space-manual', function () {
+                $('#admin-external-space-modal').addClass('hidden').attr('aria-hidden', 'true');
+                openBlankSpaceForm();
+            });
+
+            $(document).on('click', '.admin-external-space-select', function () {
+                const space = $(this).data('space') || {};
+                const $form = $('#admin-training-space-form');
+                prepareCreate();
+                $form.find('input[name="espaco_externo_migracao_id"]').val(String(space.id || ''));
+                $form.find('select[name="local_treino_id"]').val(String(space.local_treino_id || ''));
+                $form.find('input[name="nome"]').val(String(space.nome_espaco || ''));
+                $form.find('input[name="tipo_espaco"]').val(String(space.descricao || 'Espaço esportivo').slice(0, 80));
+                $form.find('input[name="capacidade_base"]').val('0');
+                $('#admin-external-space-modal').addClass('hidden').attr('aria-hidden', 'true');
+                getModal().removeClass('hidden').attr('aria-hidden', 'false');
+                if (!space.local_treino_id) {
+                    App.core.abrirPopup('erro', 'O local “' + String(space.nome_local || '') + '” ainda não está vinculado. Selecione o local correspondente antes de salvar.');
+                }
+                $form.find('input[name="nome"]').trigger('focus');
+            });
+
+            $(document).on('click', '#admin-external-space-modal', function (event) {
+                if (event.target === this) {
+                    $(this).addClass('hidden').attr('aria-hidden', 'true');
+                }
+            });
 
             function closeModal() {
                 getModal().addClass('hidden').attr('aria-hidden', 'true');
@@ -3033,14 +3251,10 @@
                 }
                 $form.attr('action', String($form.data('createAction') || ''));
                 $form.find('input[name="espaco_treino_id"]').val('');
+                $form.find('input[name="espaco_externo_migracao_id"]').val('');
                 $('#admin-training-space-modal-title').text('Criar espaço de treino');
                 $('#admin-training-space-submit').text('Cadastrar espaço');
             }
-
-            $(document).on('click', '#admin-training-space-create', function () {
-                prepareCreate();
-                getModal().removeClass('hidden').attr('aria-hidden', 'false');
-            });
 
             $(document).on('click', '.admin-training-space-edit', function () {
                 const $form = $('#admin-training-space-form');
@@ -3074,7 +3288,7 @@
                 const $button = $form.find('button[type="submit"]').first();
                 const $filterForm = $('#admin-training-space-filter-form');
                 const data = $form.serialize() + '&' + $.param({
-                    space_search: String($filterForm.find('input[name="space_search"]').val() || '').trim(),
+                    space_search: String($filterForm.find('input[name="space_search"]').val() || ''),
                     space_limit: String($filterForm.find('input[name="space_limit"]').val() || '10').trim()
                 });
 
@@ -3120,7 +3334,7 @@
                 const $filterForm = $('#admin-training-space-filter-form');
 
                 return {
-                    space_search: String($filterForm.find('input[name="space_search"]').val() || '').trim(),
+                    space_search: String($filterForm.find('input[name="space_search"]').val() || ''),
                     space_limit: String($filterForm.find('input[name="space_limit"]').val() || '10').trim()
                 };
             }
@@ -3343,6 +3557,196 @@
             });
         },
 
+        iniciarMigracaoCadastrosExternos: function () {
+            let filterTimer = null;
+            let filterRequest = null;
+            let filterSequence = 0;
+
+            function currentFilters($form, skipSummary) {
+                const $panel = $('#admin-external-migration-panel');
+                return {
+                    migration_search: String($form.find('[name="migration_search"]').val() || ''),
+                    migration_limit: String($form.find('[name="migration_limit"]').val() || '20'),
+                    skip_summary: skipSummary === true ? '1' : '0',
+                    summary_total: String($panel.data('summaryTotal') || '0'),
+                    summary_cpfs: String($panel.data('summaryCpfs') || '0'),
+                    summary_pendentes: String($panel.data('summaryPendentes') || '0'),
+                    summary_migrados: String($panel.data('summaryMigrados') || '0')
+                };
+            }
+
+            function refreshPanel($form, preserveFocus) {
+                const filters = currentFilters($form, preserveFocus === true);
+                const requestSequence = ++filterSequence;
+                const selectionStart = $form.find('[name="migration_search"]')[0]
+                    ? $form.find('[name="migration_search"]')[0].selectionStart
+                    : null;
+
+                if (filterRequest) {
+                    filterRequest.abort();
+                }
+
+                filterRequest = $.ajax({
+                    url: App.core.buildUrl('/admin/migracao-cadastros/lista'),
+                    method: 'GET',
+                    dataType: 'json',
+                    data: filters,
+                    suppressGlobalLoading: preserveFocus === true
+                }).done(function (response) {
+                    if (requestSequence !== filterSequence) {
+                        return;
+                    }
+
+                    if (!response || response.success === false || !response.html) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar a lista.'));
+                        return;
+                    }
+
+                    $('#admin-external-migration-panel').replaceWith(String(response.html));
+                    if (preserveFocus === true) {
+                        window.requestAnimationFrame(function () {
+                            const $search = $('.admin-external-migration-search').first();
+                            $search.trigger('focus');
+                            if ($search[0] && typeof $search[0].setSelectionRange === 'function') {
+                                const position = Number.isFinite(selectionStart) ? selectionStart : filters.migration_search.length;
+                                $search[0].setSelectionRange(position, position);
+                            }
+                        });
+                    }
+                }).fail(function (xhr, status) {
+                    if (status !== 'abort') {
+                        App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                    }
+                }).always(function () {
+                    if (requestSequence === filterSequence) {
+                        filterRequest = null;
+                    }
+                });
+            }
+
+            function closeDetailsModal() {
+                $('#admin-external-migration-modal').addClass('hidden').attr('aria-hidden', 'true');
+                $('[data-external-migration-modal-content="1"]').empty();
+            }
+
+            function importMigrationBatch($button, cursor, totalProcessed, batchNumber, baseMaxExternalId, changedSince) {
+                $button.prop('disabled', true).text('Importando lote ' + String(batchNumber) + '...');
+
+                $.ajax({
+                    url: App.core.buildUrl('/admin/migracao-cadastros/importar'),
+                    method: 'POST',
+                    dataType: 'json',
+                    data: {
+                        cursor: String(cursor || 0),
+                        base_max_id_externo: baseMaxExternalId == null ? '' : String(baseMaxExternalId),
+                        alterado_desde: changedSince == null ? '' : String(changedSince)
+                    },
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        $button.prop('disabled', false).text('Importar ou atualizar dados');
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível importar os dados.'));
+                        return;
+                    }
+
+                    const processed = Number(response.processados || 0);
+                    const accumulated = totalProcessed + (Number.isFinite(processed) ? processed : 0);
+
+                    if (response.tem_mais === true && Number(response.proximo_cursor || 0) > Number(cursor || 0)) {
+                        importMigrationBatch(
+                            $button,
+                            Number(response.proximo_cursor),
+                            accumulated,
+                            batchNumber + 1,
+                            Number(response.base_max_id_externo || 0),
+                            String(response.alterado_desde || '')
+                        );
+                        return;
+                    }
+
+                    $button.prop('disabled', false).text('Importar ou atualizar dados');
+                    App.core.abrirPopup('sucesso', String(accumulated) + ' registros externos foram processados em lotes de até 100 linhas.');
+                    refreshPanel($('[data-external-migration-filter="1"]').first(), false);
+                }).fail(function (xhr) {
+                    $button.prop('disabled', false).text('Importar ou atualizar dados');
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                });
+            }
+
+            $(document).on('submit', '[data-external-migration-filter="1"]', function (event) {
+                event.preventDefault();
+                refreshPanel($(this), false);
+            });
+
+            $(document).on('input', '.admin-external-migration-search', function () {
+                const $form = $(this).closest('form');
+                window.clearTimeout(filterTimer);
+                filterTimer = window.setTimeout(function () {
+                    refreshPanel($form, true);
+                }, 400);
+            });
+
+            $(document).on('change', '[data-external-migration-filter="1"] [name="migration_limit"]', function () {
+                refreshPanel($(this).closest('form'), false);
+            });
+
+            $(document).on('click', '[data-external-migration-details="1"]', function () {
+                const id = String($(this).data('migrationId') || '0');
+                const $modal = $('#admin-external-migration-modal');
+                const $content = $('[data-external-migration-modal-content="1"]');
+
+                $content.html('<p class="muted">Carregando dados...</p>');
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+                $.getJSON(App.core.buildUrl('/admin/migracao-cadastros/detalhe'), { id: id })
+                    .done(function (response) {
+                        if (!response || response.success === false || !response.html) {
+                            closeDetailsModal();
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar os dados.'));
+                            return;
+                        }
+                        $content.html(String(response.html));
+                    }).fail(function (xhr) {
+                        closeDetailsModal();
+                        App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                    });
+            });
+
+            $(document).on('click', '[data-external-migration-modal-close="1"], #admin-external-migration-modal', function (event) {
+                if ($(event.target).is('#admin-external-migration-modal') || $(event.target).is('[data-external-migration-modal-close="1"]')) {
+                    closeDetailsModal();
+                }
+            });
+
+            $(document).on('click', '[data-external-migration-import="1"]', function () {
+                const $button = $(this);
+                importMigrationBatch($button, 0, 0, 1, null, null);
+            });
+
+            $(document).on('click', '[data-external-migration-delete="1"]', function () {
+                const $button = $(this);
+                const name = String($button.data('migrationName') || 'este registro');
+                if (!window.confirm('Deseja excluir da tabela de migração o registro de ' + name + '?')) {
+                    return;
+                }
+                $.ajax({
+                    url: App.core.buildUrl('/admin/migracao-cadastros/remover'),
+                    method: 'POST',
+                    dataType: 'json',
+                    data: { id: String($button.data('migrationId') || '0') },
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível remover o registro.'));
+                        return;
+                    }
+                    App.core.abrirPopup('sucesso', String(response.message || 'Registro removido.'));
+                    refreshPanel($('[data-external-migration-filter="1"]').first(), false);
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                });
+            });
+        },
+
         init: function () {
             App.admin.iniciarSecoesAdmin();
             App.admin.iniciarEditorPessoaAdmin();
@@ -3360,6 +3764,7 @@
             App.admin.iniciarFiltroEspacosTreino();
             App.admin.iniciarEditorEspacosTreino();
             App.admin.iniciarModalSuspensoesLocal();
+            App.admin.iniciarMigracaoCadastrosExternos();
         }
     });
 

@@ -132,6 +132,8 @@ class AuthService
                 'mensagem_helper' => 'Informe um CPF válido para continuar.',
                 'mensagem_bloqueio' => '',
                 'pessoa_id' => null,
+                'nome_pessoa' => null,
+                'nome_responsavel' => null,
                 'cadastro_ja_completo' => false,
             ];
         }
@@ -166,6 +168,8 @@ class AuthService
                 'mensagem_helper' => 'CPF disponível para criar uma nova conta.',
                 'mensagem_bloqueio' => '',
                 'pessoa_id' => null,
+                'nome_pessoa' => null,
+                'nome_responsavel' => null,
                 'cadastro_ja_completo' => false,
             ];
         }
@@ -179,6 +183,8 @@ class AuthService
                 'mensagem_helper' => 'Este CPF já possui uma conta criada no sistema.',
                 'mensagem_bloqueio' => '',
                 'pessoa_id' => (int) $person['id'],
+                'nome_pessoa' => (string) $person['nome_completo'],
+                'nome_responsavel' => (string) ($person['nome_responsavel'] ?: $person['nome_completo']),
                 'cadastro_ja_completo' => (int) ($person['cadastro_completo'] ?? 0) === 1,
             ];
         }
@@ -202,6 +208,8 @@ class AuthService
                 'mensagem_helper' => 'CPF de menor de idade. A conta não pode ser criada.',
                 'mensagem_bloqueio' => '',
                 'pessoa_id' => (int) $person['id'],
+                'nome_pessoa' => (string) $person['nome_completo'],
+                'nome_responsavel' => (string) ($person['nome_responsavel'] ?: $person['nome_completo']),
                 'cadastro_ja_completo' => (int) ($person['cadastro_completo'] ?? 0) === 1,
             ];
         }
@@ -218,6 +226,8 @@ class AuthService
                 'mensagem_helper' => 'CPF de dependente maior de idade. A conta pode ser criada, mas o cadastro ficará bloqueado até a transferência de responsabilidade.',
                 'mensagem_bloqueio' => $mensagem,
                 'pessoa_id' => (int) $person['id'],
+                'nome_pessoa' => (string) $person['nome_completo'],
+                'nome_responsavel' => (string) ($person['nome_responsavel'] ?: $person['nome_completo']),
                 'cadastro_ja_completo' => (int) ($person['cadastro_completo'] ?? 0) === 1,
             ];
         }
@@ -230,6 +240,8 @@ class AuthService
             'mensagem_helper' => 'CPF já cadastrado como pessoa, mas sem conta. A criação da conta está liberada.',
             'mensagem_bloqueio' => '',
             'pessoa_id' => (int) $person['id'],
+            'nome_pessoa' => (string) $person['nome_completo'],
+            'nome_responsavel' => (string) ($person['nome_responsavel'] ?: $person['nome_completo']),
             'cadastro_ja_completo' => (int) ($person['cadastro_completo'] ?? 0) === 1,
         ];
     }

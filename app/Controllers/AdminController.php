@@ -13,6 +13,8 @@ use App\Services\SitePopupService;
 use App\Services\UserService;
 use App\Services\HomeInfoService;
 use App\Services\OfficialCommunicationService;
+use App\Services\ExternalPersonService;
+use App\Services\ExternalLocationService;
 use DateTimeImmutable;
 
 class AdminController extends Controller
@@ -24,6 +26,8 @@ class AdminController extends Controller
     private HomeInfoService $homeInfoService;
     private BlogService $blogService;
     private OfficialCommunicationService $officialCommunicationService;
+    private ExternalPersonService $externalPersonService;
+    private ExternalLocationService $externalLocationService;
 
     /**
      * Inicializa servicos da área administrativa.
@@ -37,6 +41,8 @@ class AdminController extends Controller
         $this->homeInfoService = new HomeInfoService();
         $this->blogService = new BlogService();
         $this->officialCommunicationService = new OfficialCommunicationService();
+        $this->externalPersonService = new ExternalPersonService();
+        $this->externalLocationService = new ExternalLocationService();
     }
 
     /**
@@ -64,6 +70,7 @@ class AdminController extends Controller
             $allowedSections = [
                 'inicio',
                 'usuarios-pessoas',
+                'migracao-cadastros',
                 'agenda',
                 'pagina-home',
                 'blog',
@@ -404,9 +411,12 @@ class AdminController extends Controller
             (new AccountAccessService())->revokeExpiredRoles();
             $peopleLimit = (int) ($_GET['people_limit'] ?? AdminService::DEFAULT_PEOPLE_LIMIT);
             $peopleLimit = max(1, min(AdminService::MAX_PEOPLE_LIMIT, $peopleLimit));
-            $peopleSearch = trim((string) ($_GET['people_search'] ?? ''));
+            $usersLimit = (int) ($_GET['users_limit'] ?? AdminService::DEFAULT_PEOPLE_LIMIT);
+            $usersLimit = max(1, min(AdminService::MAX_PEOPLE_LIMIT, $usersLimit));
+            $peopleSearch = (string) ($_GET['people_search'] ?? '');
+            $usersSearch = (string) ($_GET['users_search'] ?? '');
             $people = $this->adminService->listUsersAndDependents($peopleLimit, $peopleSearch);
-            $usersOnly = $this->adminService->listUsersOnly($peopleLimit, $peopleSearch);
+            $usersOnly = $this->adminService->listUsersOnly($usersLimit, $usersSearch);
             $conditionValidationRows = $this->adminService->listPeopleRequiringConditionValidation();
             $availableRoles = $this->adminService->listRolesForManagement();
             $peopleLimitMax = AdminService::MAX_PEOPLE_LIMIT;
@@ -430,6 +440,102 @@ class AdminController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ]);
+        }
+    }
+
+    /** Retorna somente a lista administrativa da migração externa. */
+    public function externalMigrationPanel(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $migrationLimit = max(1, min(
+                ExternalPersonService::MAX_LIST_LIMIT,
+                (int) ($_GET['migration_limit'] ?? ExternalPersonService::DEFAULT_LIST_LIMIT)
+            ));
+            $migrationSearch = (string) ($_GET['migration_search'] ?? '');
+            $migrationLimitMax = ExternalPersonService::MAX_LIST_LIMIT;
+            $migrationRows = $this->externalPersonService->listForAdmin($migrationLimit, $migrationSearch);
+            if ((string) ($_GET['skip_summary'] ?? '') === '1') {
+                $migrationSummary = [
+                    'total' => max(0, (int) ($_GET['summary_total'] ?? 0)),
+                    'cpfs' => max(0, (int) ($_GET['summary_cpfs'] ?? 0)),
+                    'pendentes' => max(0, (int) ($_GET['summary_pendentes'] ?? 0)),
+                    'migrados' => max(0, (int) ($_GET['summary_migrados'] ?? 0)),
+                ];
+            } else {
+                $migrationSummary = $this->externalPersonService->adminSummary();
+            }
+
+            ob_start();
+            require ROOT_PATH . '/app/Views/admin/partials/external_migration_panel.php';
+            $this->jsonResponse(['success' => true, 'html' => (string) ob_get_clean()]);
+        } catch (\Throwable $e) {
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /** Retorna todos os dados de uma linha importada. */
+    public function externalMigrationDetails(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $migrationRecord = $this->externalPersonService->getAdminDetails((int) ($_GET['id'] ?? 0));
+            ob_start();
+            require ROOT_PATH . '/app/Views/admin/partials/external_migration_details.php';
+            $this->jsonResponse(['success' => true, 'html' => (string) ob_get_clean()]);
+        } catch (\Throwable $e) {
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /** Importa ou atualiza a tabela local a partir do banco de origem. */
+    public function importExternalMigration(): void
+    {
+        $user = $this->assertAdminAccess();
+
+        try {
+            $result = $this->externalPersonService->importBatch(
+                (int) ($user['conta_id'] ?? 0),
+                max(0, (int) ($_POST['cursor'] ?? 0)),
+                isset($_POST['base_max_id_externo']) && $_POST['base_max_id_externo'] !== ''
+                    ? max(0, (int) $_POST['base_max_id_externo'])
+                    : null,
+                isset($_POST['alterado_desde']) && trim((string) $_POST['alterado_desde']) !== ''
+                    ? trim((string) $_POST['alterado_desde'])
+                    : null
+            );
+            $this->jsonResponse([
+                'success' => true,
+                'processados' => (int) ($result['processados'] ?? 0),
+                'proximo_cursor' => (int) ($result['proximo_cursor'] ?? 0),
+                'tem_mais' => !empty($result['tem_mais']),
+                'base_max_id_externo' => (int) ($result['base_max_id_externo'] ?? 0),
+                'alterado_desde' => (string) ($result['alterado_desde'] ?? ''),
+                'message' => (int) ($result['processados'] ?? 0) . ' registros externos foram processados neste lote.',
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /** Exclui uma linha da tabela local de migração. */
+    public function deleteExternalMigration(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $this->externalPersonService->deleteForAdmin((int) ($_POST['id'] ?? 0));
+            $this->jsonResponse(['success' => true, 'message' => 'Registro de migração removido com sucesso.']);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
         }
     }
 
@@ -857,7 +963,11 @@ class AdminController extends Controller
         $this->assertAdminAccess();
 
         try {
-            $this->adminService->createTrainingLocation($_POST);
+            $locationId = $this->adminService->createTrainingLocation($_POST);
+            $this->externalLocationService->consumeLocation(
+                (int) ($_POST['local_externo_migracao_id'] ?? 0),
+                $locationId
+            );
 
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -880,6 +990,40 @@ class AdminController extends Controller
         }
 
         redirect('/admin');
+    }
+
+    /** Lista os locais copiados do sistema anterior para selecao no cadastro. */
+    public function externalTrainingLocations(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $summary = $this->externalLocationService->importOnce();
+            $this->jsonResponse([
+                'success' => true,
+                'summary' => $summary,
+                'locations' => $this->externalLocationService->listLocations((string) ($_GET['search'] ?? '')),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /** Lista os espacos do sistema anterior apenas para consulta. */
+    public function externalTrainingSpaces(): void
+    {
+        $this->assertAdminAccess();
+
+        try {
+            $summary = $this->externalLocationService->importOnce();
+            $this->jsonResponse([
+                'success' => true,
+                'summary' => $summary,
+                'spaces' => $this->externalLocationService->listSpaces((string) ($_GET['search'] ?? '')),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 
     /**
@@ -991,6 +1135,7 @@ class AdminController extends Controller
 
         try {
             $this->adminService->createTrainingSpace($_POST);
+            $this->externalLocationService->consumeSpace((int) ($_POST['espaco_externo_migracao_id'] ?? 0));
             $this->jsonResponse([
                 'success' => true,
                 'message' => 'Espaço de treino cadastrado com sucesso.',
@@ -1637,16 +1782,30 @@ class AdminController extends Controller
             (new AccountAccessService())->revokeExpiredRoles();
             $peopleLimit = (int) ($_GET['people_limit'] ?? AdminService::DEFAULT_PEOPLE_LIMIT);
             $peopleLimit = max(1, min(AdminService::MAX_PEOPLE_LIMIT, $peopleLimit));
-            $data['peopleSearch'] = trim((string) ($_GET['people_search'] ?? ''));
+            $usersLimit = (int) ($_GET['users_limit'] ?? AdminService::DEFAULT_PEOPLE_LIMIT);
+            $usersLimit = max(1, min(AdminService::MAX_PEOPLE_LIMIT, $usersLimit));
+            $data['peopleSearch'] = (string) ($_GET['people_search'] ?? '');
+            $data['usersSearch'] = (string) ($_GET['users_search'] ?? '');
 
             $data['people'] = $this->adminService->listUsersAndDependents($peopleLimit, (string) $data['peopleSearch']);
-            $data['usersOnly'] = $this->adminService->listUsersOnly($peopleLimit, (string) $data['peopleSearch']);
+            $data['usersOnly'] = $this->adminService->listUsersOnly($usersLimit, (string) $data['usersSearch']);
             $data['conditionValidationRows'] = $this->adminService->listPeopleRequiringConditionValidation();
             $data['healthCertificateValidationRows'] = $this->adminService->listPeopleRequiringHealthCertificateValidation();
             $data['availableRoles'] = $this->adminService->listRolesForManagement();
             $data['canManageRoles'] = $this->canManageUserRoles($user);
             $data['peopleLimit'] = $peopleLimit;
+            $data['usersLimit'] = $usersLimit;
             $data['peopleLimitMax'] = AdminService::MAX_PEOPLE_LIMIT;
+        }
+
+        if ($sectionName === 'migracao-cadastros') {
+            $migrationLimit = (int) ($_GET['migration_limit'] ?? ExternalPersonService::DEFAULT_LIST_LIMIT);
+            $migrationLimit = max(1, min(ExternalPersonService::MAX_LIST_LIMIT, $migrationLimit));
+            $data['migrationSearch'] = (string) ($_GET['migration_search'] ?? '');
+            $data['migrationLimit'] = $migrationLimit;
+            $data['migrationLimitMax'] = ExternalPersonService::MAX_LIST_LIMIT;
+            $data['migrationRows'] = $this->externalPersonService->listForAdmin($migrationLimit, (string) $data['migrationSearch']);
+            $data['migrationSummary'] = $this->externalPersonService->adminSummary();
         }
 
         if ($sectionName === 'agenda') {
@@ -1719,7 +1878,7 @@ class AdminController extends Controller
         }
 
         if ($sectionName === 'locais-espacos') {
-            $data['locationSearch'] = trim((string) ($_GET['location_search'] ?? ''));
+            $data['locationSearch'] = (string) ($_GET['location_search'] ?? '');
             $data['locationLimit'] = (int) ($_GET['location_limit'] ?? AdminService::DEFAULT_TRAINING_LOCATION_LIMIT);
             $data['locationLimit'] = max(1, min(AdminService::MAX_TRAINING_LOCATION_LIMIT, (int) $data['locationLimit']));
             $data['locationLimitMax'] = AdminService::MAX_TRAINING_LOCATION_LIMIT;
@@ -1728,7 +1887,7 @@ class AdminController extends Controller
                 (int) $data['locationLimit']
             );
             $data['eligibleLocationManagers'] = $this->adminService->listEligibleLocationManagers();
-            $data['spaceSearch'] = trim((string) ($_GET['space_search'] ?? ''));
+            $data['spaceSearch'] = (string) ($_GET['space_search'] ?? '');
             $data['spaceLimit'] = (int) ($_GET['space_limit'] ?? AdminService::DEFAULT_TRAINING_SPACE_LIMIT);
             $data['spaceLimit'] = max(1, min(AdminService::MAX_TRAINING_SPACE_LIMIT, (int) $data['spaceLimit']));
             $data['spaceLimitMax'] = AdminService::MAX_TRAINING_SPACE_LIMIT;

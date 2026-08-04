@@ -119,6 +119,18 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
     </section>
 <?php } ?>
 
+<?php if ($sectionName === 'migracao-cadastros') { ?>
+    <section class="admin-section-panel" data-admin-section="migracao-cadastros">
+        <div class="section-head admin-section-head">
+            <div>
+                <h2>Migração de cadastros</h2>
+                <p class="muted">Acompanhe os dados importados do sistema anterior e a utilização durante os novos cadastros.</p>
+            </div>
+        </div>
+        <?php require ROOT_PATH . '/app/Views/admin/partials/external_migration_panel.php'; ?>
+    </section>
+<?php } ?>
+
 <?php if ($sectionName === 'agenda') { ?>
     <?php
     $trainingLocations = [];
@@ -1686,7 +1698,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <h2>Locais cadastrados</h2>
                         <p class="muted">Consulte os locais existentes ou abra o cadastro de um novo local.</p>
                     </div>
-                    <button type="button" class="btn btn-primary" id="admin-training-location-open">Criar Local</button>
+                    <button type="button" class="btn btn-primary" id="admin-training-location-open">Criar local</button>
                 </div>
                 <form method="GET" action="<?php echo e(url('/admin/locais/lista')); ?>" class="admin-people-filter-form admin-training-location-filter-row" id="admin-training-location-filter-form" data-manual-submit="1">
                     <label>
@@ -1718,7 +1730,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     </div>
                 </form>
                 <div class="table-wrap">
-                    <table class="data-table">
+                    <table class="data-table admin-training-locations-table">
                         <thead>
                             <tr>
                                 <th>Nome<br><small class="muted">(nome completo)</small></th>
@@ -1738,6 +1750,35 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 </div>
             </article>
         </section>
+
+        <div id="admin-external-location-modal" class="popup-overlay hidden" aria-hidden="true" data-list-url="<?php echo e(url('/admin/migracao-locais/lista')); ?>">
+            <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-external-location-title">
+                <div class="popup-head admin-popup-head">
+                    <div>
+                        <h3 id="admin-external-location-title">Escolha um local do sistema anterior</h3>
+                        <p class="muted">Ao escolher um local, os dados serão levados ao formulário para conferência. Ele só sairá desta lista depois que o cadastro for salvo.</p>
+                    </div>
+                    <button type="button" class="popup-close-icon" id="admin-external-location-close" aria-label="Fechar lista de locais">&times;</button>
+                </div>
+                <div class="popup-body admin-popup-body">
+                    <label>
+                        <span>Buscar local</span>
+                        <input type="text" id="admin-external-location-search" placeholder="Digite o nome ou apelido" autocomplete="off">
+                    </label>
+                    <p class="muted" id="admin-external-location-status">Carregando locais...</p>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead><tr><th>Nome do local</th><th>Apelido</th><th>Cidade</th><th>Selecionar</th></tr></thead>
+                            <tbody id="admin-external-location-list"></tbody>
+                        </table>
+                    </div>
+                    <div class="popup-actions">
+                        <button type="button" class="btn btn-secondary" id="admin-external-location-manual">Cadastrar manualmente</button>
+                        <button type="button" class="btn btn-secondary" id="admin-external-location-cancel">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div id="admin-training-location-modal" class="popup-overlay hidden" aria-hidden="true">
             <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-training-location-modal-title">
@@ -1761,6 +1802,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         id="admin-training-location-form"
                     >
                         <input type="hidden" name="local_treino_id" value="">
+                        <input type="hidden" name="local_externo_migracao_id" value="">
                         <label>
                             <span>Nome completo do local</span>
                             <input type="text" name="nome_local" maxlength="150" placeholder="Ex.: Complexo Aquático Senador José Silva" required>
@@ -1916,6 +1958,35 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             </article>
         </section>
 
+        <div id="admin-external-space-modal" class="popup-overlay hidden" aria-hidden="true" data-list-url="<?php echo e(url('/admin/migracao-espacos/lista')); ?>">
+            <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-external-space-title">
+                <div class="popup-head admin-popup-head">
+                    <div>
+                        <h3 id="admin-external-space-title">Escolha um espaço do sistema anterior</h3>
+                        <p class="muted">Ao escolher um espaço, os dados serão levados ao formulário para conferência. Ele só sairá desta lista depois que o cadastro for salvo.</p>
+                    </div>
+                    <button type="button" class="popup-close-icon" id="admin-external-space-close" aria-label="Fechar lista de espaços">&times;</button>
+                </div>
+                <div class="popup-body admin-popup-body">
+                    <label>
+                        <span>Buscar espaço ou local</span>
+                        <input type="text" id="admin-external-space-search" placeholder="Digite o espaço ou o nome do local" autocomplete="off">
+                    </label>
+                    <p class="muted" id="admin-external-space-status">Carregando espaços...</p>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead><tr><th>Espaço</th><th>Local</th><th>Descrição</th><th>Área</th><th>Selecionar</th></tr></thead>
+                            <tbody id="admin-external-space-list"></tbody>
+                        </table>
+                    </div>
+                    <div class="popup-actions">
+                        <button type="button" class="btn btn-secondary" id="admin-external-space-manual">Cadastrar manualmente</button>
+                        <button type="button" class="btn btn-secondary" id="admin-external-space-cancel">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="admin-training-space-modal" class="popup-overlay hidden" aria-hidden="true">
             <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-training-space-modal-title">
                 <div class="popup-head admin-popup-head">
@@ -1928,6 +1999,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 <div class="popup-body admin-popup-body">
                     <form method="POST" action="<?php echo e(url('/admin/espacos')); ?>" data-create-action="<?php echo e(url('/admin/espacos')); ?>" data-update-action="<?php echo e(url('/admin/espacos/atualizar')); ?>" class="stack-form" id="admin-training-space-form" data-manual-submit="1">
                         <input type="hidden" name="espaco_treino_id" value="">
+                        <input type="hidden" name="espaco_externo_migracao_id" value="">
                         <label>
                             <span>Local de treino</span>
                             <select name="local_treino_id" required>

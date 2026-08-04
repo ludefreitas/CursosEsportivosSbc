@@ -116,6 +116,19 @@
     gap: 10px;
     white-space: nowrap;
 }
+.admin-training-locations-table th:last-child,
+.admin-training-locations-table td:last-child {
+    width: 92px;
+    min-width: 92px;
+    text-align: center;
+}
+.admin-training-locations-table .admin-training-location-edit {
+    min-width: 78px;
+    padding-inline: 14px;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: keep-all;
+}
 .admin-inline-links {
     display: flex;
     flex-wrap: wrap;
@@ -1097,4 +1110,24 @@
 .cep-address-option:focus {
     background: #d9eef7;
     outline: 2px solid #1d83b4;
+}
+.admin-migration-summary {
+    margin: 1rem 0;
+}
+
+.admin-migration-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem 1.25rem;
+}
+
+.admin-migration-details-grid p {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+    .admin-migration-details-grid {
+        grid-template-columns: 1fr;
+    }
 }

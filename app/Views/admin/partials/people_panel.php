@@ -325,9 +325,9 @@
                     <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condição pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>
 
                     <div class="grid-five">
-                        <label>
+                        <label class="cep-autocomplete-field">
                             <span>CEP</span>
-                            <input type="text" name="zip_code" id="admin-person-zip-code" required>
+                            <input type="text" name="zip_code" id="admin-person-zip-code" data-cep-sbc="1" data-person-cep-address="1" autocomplete="postal-code" aria-autocomplete="list" aria-expanded="false" required>
                         </label>
                         <label class="span-2">
                             <span>Endereço</span>
@@ -419,9 +419,9 @@
                 <span>Buscar por nome ou CPF</span>
                 <input
                     type="text"
-                    name="people_search"
+                    name="users_search"
                     class="admin-people-search-input"
-                    value="<?php echo e((string) ($peopleSearch ?? '')); ?>"
+                    value="<?php echo e((string) ($usersSearch ?? '')); ?>"
                     placeholder="Digite um nome ou CPF"
                     autocomplete="off"
                 >
@@ -429,7 +429,7 @@
             </label>
             <label>
                 <span>Quantidade de nomes para listar</span>
-                <input type="number" name="people_limit" min="1" max="<?php echo e((string) $peopleLimitMax); ?>" value="<?php echo e((string) $peopleLimit); ?>" required>
+                <input type="number" name="users_limit" min="1" max="<?php echo e((string) $peopleLimitMax); ?>" value="<?php echo e((string) ($usersLimit ?? $peopleLimit)); ?>" required>
                 <small class="muted">Limite máximo aplicado nesta tela: <?php echo e((string) $peopleLimitMax); ?> nomes por consulta.</small>
             </label>
             <div class="admin-filter-actions">

@@ -41,7 +41,7 @@
             <label><span>WhatsApp</span><input type="text" name="phone_whatsapp" required></label>
             <label><span>E-mail</span><input type="email" name="email" required></label>
         </div>
-
+        
         <div class="grid-three">
             <label class="checkbox-chip">
                 <input type="checkbox" name="eh_pcd" value="1" data-condition-exclusive="1">
@@ -69,12 +69,12 @@
             <label><span>CPF do responsável 2</span><input type="text" name="responsavel2_cpf"></label>
         </div>
         <div class="grid-three">
-            <label><span>CEP</span><input type="text" name="zip_code" data-cep-sbc="1" required></label>
+            <label class="cep-autocomplete-field"><span>CEP</span><input type="text" name="zip_code" data-cep-sbc="1" data-person-cep-address="1" autocomplete="postal-code" aria-autocomplete="list" aria-expanded="false" required></label>
             <label><span>Endereço</span><input type="text" name="street" required></label>
             <label><span>Número</span><input type="text" name="address_number" required></label>
         </div>
         <div class="grid-three">
-
+            
             <label><span>Bairro</span><input type="text" name="neighborhood" required></label>
             <label><span>Cidade</span><input type="text" name="city" required></label>
             <label><span>UF</span><input type="text" name="state" maxlength="2" required></label>
@@ -85,7 +85,7 @@
             <label><span>Telefone de emergência</span><input type="text" name="emergency_contact_phone" required></label>
         </div>
     </form>
-</div>
+</div>      
 <div class="popup-actions">
     <button type="button" class="btn btn-secondary" id="dashboard-dependent-create-modal-close-footer">Fechar</button>
     <button type="submit" class="btn btn-primary" form="dashboard-dependent-create-form">Salvar dependente</button>
