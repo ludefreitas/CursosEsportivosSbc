@@ -131,6 +131,18 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
     </section>
 <?php } ?>
 
+<?php if ($sectionName === 'migracao-atestados') { ?>
+    <section class="admin-section-panel" data-admin-section="migracao-atestados">
+        <div class="section-head admin-section-head">
+            <div>
+                <h2>Migração de atestados</h2>
+                <p class="muted">Importe e acompanhe separadamente os atestados clínicos e dermatológicos do sistema anterior.</p>
+            </div>
+        </div>
+        <?php require ROOT_PATH . '/app/Views/admin/partials/external_health_migration_panel.php'; ?>
+    </section>
+<?php } ?>
+
 <?php if ($sectionName === 'agenda') { ?>
     <?php
     $trainingLocations = [];
@@ -486,10 +498,16 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             </div>
         </div>
 
-        <section class="grid-two">
-            <article class="content-card">
-                <h2>Criar horário semanal</h2>
-                <p class="muted">O local é inferido automaticamente a partir do espaço selecionado.</p>
+        <div id="admin-weekly-schedule-create-modal" class="popup-overlay hidden" aria-hidden="true">
+            <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-weekly-schedule-create-title">
+                <div class="popup-head admin-popup-head">
+                    <div>
+                        <h3 id="admin-weekly-schedule-create-title">Criar horário semanal</h3>
+                        <p class="muted">O local é inferido automaticamente a partir do espaço selecionado.</p>
+                    </div>
+                    <button type="button" class="popup-close-icon" id="admin-weekly-schedule-create-close" aria-label="Fechar criação">&times;</button>
+                </div>
+                <div class="popup-body admin-popup-body">
                 <form method="POST" action="<?php echo e(url('/admin/horarios-semanais')); ?>" class="stack-form" id="admin-weekly-schedule-create-form" data-manual-submit="1">
                     <div class="grid-two">
                         <label>
@@ -650,12 +668,23 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         </select>
                     </label>
 
-                    <button type="submit" class="btn btn-primary">Salvar horário semanal</button>
+                    <div class="popup-actions">
+                        <button type="button" class="btn btn-secondary" id="admin-weekly-schedule-create-cancel">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar horário semanal</button>
+                    </div>
                 </form>
-            </article>
+                </div>
+            </div>
+        </div>
 
-            <article class="content-card">
-                <h2>Horários semanais cadastrados</h2>
+            <article class="content-card admin-weekly-schedules-card">
+                <div class="section-head">
+                    <div>
+                        <h2>Horários semanais cadastrados</h2>
+                        <p class="muted">Consulte os horários existentes ou crie um novo horário semanal.</p>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="admin-weekly-schedule-create-open">Criar horário semanal</button>
+                </div>
                 <form class="stack-form admin-agenda-filter-form" id="admin-agenda-filter-form" data-admin-section-filter="agenda" data-manual-submit="1">
                     <div class="admin-agenda-filter-row">
                         <label>
@@ -691,11 +720,21 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     <?php foreach ($diasSemana as $dayValue => $dayLabel) { ?>
                         <?php $daySchedules = $weeklySchedulesByDay[$dayValue] ?? []; ?>
                         <section class="admin-weekday-group">
-                            <div class="admin-weekday-head">
-                                <h3><?php echo e($dayLabel); ?></h3>
+                            <button
+                                type="button"
+                                class="admin-weekday-head admin-weekday-toggle"
+                                data-weekday-toggle="1"
+                                aria-expanded="false"
+                                aria-controls="admin-weekday-schedules-<?php echo e((string) $dayValue); ?>"
+                            >
+                                <span class="admin-weekday-toggle-title">
+                                    <span class="admin-weekday-toggle-icon" aria-hidden="true">&#9656;</span>
+                                    <strong><?php echo e($dayLabel); ?></strong>
+                                </span>
                                 <span class="chip"><?php echo e((string) count($daySchedules)); ?> horário(s)</span>
-                            </div>
+                            </button>
 
+                            <div id="admin-weekday-schedules-<?php echo e((string) $dayValue); ?>" class="admin-weekday-schedules hidden" data-weekday-content="1">
                             <?php if (empty($daySchedules)) { ?>
                                 <p class="muted">Nenhum horário neste dia.</p>
                             <?php } else { ?>
@@ -766,11 +805,11 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                     </table>
                                 </div>
                             <?php } ?>
+                            </div>
                         </section>
                     <?php } ?>
                 </div>
             </article>
-        </section>
 
         <div id="admin-weekly-schedule-editor" class="popup-overlay hidden" aria-hidden="true">
             <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-weekly-schedule-editor-title">
@@ -951,11 +990,17 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             </div>
         </div>
 
-        <section class="grid-two top-gap">
-            <article class="content-card">
-                <h2>Horário especial ou avaliação especial</h2>
-                <p class="muted">Use este bloco para datas específicas do ano que não seguem recorrencia semanal. Elas aparecem na agenda pública como horário clicável com inscrição e controle de vagas por público.</p>
-                <form method="POST" action="<?php echo e(url('/admin/agenda-horarios-especiais')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1" enctype="multipart/form-data">
+        <div id="admin-special-schedule-create-modal" class="popup-overlay hidden" aria-hidden="true">
+            <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-special-schedule-create-title">
+                <div class="popup-head admin-popup-head">
+                    <div>
+                        <h3 id="admin-special-schedule-create-title">Criar horário especial ou avaliação especial</h3>
+                        <p class="muted">Cadastre datas específicas que não seguem a recorrência semanal.</p>
+                    </div>
+                    <button type="button" class="popup-close-icon" id="admin-special-schedule-create-close" aria-label="Fechar criação">&times;</button>
+                </div>
+                <div class="popup-body admin-popup-body">
+                <form method="POST" action="<?php echo e(url('/admin/agenda-horarios-especiais')); ?>" class="stack-form" id="admin-special-schedule-create-form" data-manual-submit="1" enctype="multipart/form-data">
                     <label><span>Título</span><input type="text" name="titulo" maxlength="180" required></label>
                     <label><span>Descrição</span><textarea name="descricao" rows="4" placeholder="Texto livre para orientar o usuário sobre a avaliação, inscrição ou critério especial."></textarea></label>
                     <div class="grid-two">
@@ -1029,12 +1074,23 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             <option value="0">Inativo</option>
                         </select>
                     </label>
-                    <button type="submit" class="btn btn-primary">Salvar horário especial</button>
+                    <div class="popup-actions">
+                        <button type="button" class="btn btn-secondary" id="admin-special-schedule-create-cancel">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar horário especial</button>
+                    </div>
                 </form>
-            </article>
+                </div>
+            </div>
+        </div>
 
-            <article class="content-card">
-                <h2>Horários especiais cadastrados</h2>
+            <article class="content-card admin-special-schedules-card top-gap">
+                <div class="section-head">
+                    <div>
+                        <h2>Horários especiais cadastrados</h2>
+                        <p class="muted">Consulte os horários especiais existentes ou crie um novo.</p>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="admin-special-schedule-create-open">Criar horário especial ou avaliação especial</button>
+                </div>
                 <div class="table-wrap">
                     <table class="data-table">
                         <thead>
@@ -1093,7 +1149,6 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     </table>
                 </div>
             </article>
-        </section>
 
         <div id="admin-special-schedule-editor" class="popup-overlay hidden" aria-hidden="true">
             <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-special-schedule-editor-title">
@@ -1199,6 +1254,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         <?php if ($sectionName === 'pagina-home') { ?>
             <div class="pagina-home admin-home-page-preview" data-home-admin-preview="1">
                 <?php $homeAdminMode = true; require ROOT_PATH . '/app/Views/home/index.php'; ?>
+                <?php $footerAdminMode = true; require ROOT_PATH . '/app/Views/partials/footer_content.php'; ?>
             </div>
         <?php } ?>
 
@@ -1334,6 +1390,23 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             $adminHomeLogoPath = (string) ($homeHeaderContent['logo_url'] ?? '/assets/img/cursosesportivossbc.jpg');
             $adminHomeLogoUrl = str_starts_with($adminHomeLogoPath, '/') ? url($adminHomeLogoPath) : $adminHomeLogoPath;
         ?>
+        <section class="content-card top-gap">
+            <form method="POST" action="<?php echo e(url('/admin/home-rodape')); ?>" class="stack-form" id="admin-home-footer-form">
+                <label><span>Nome da instituição</span><input type="text" name="instituicao" value="<?php echo e((string) ($footerContent['instituicao'] ?? '')); ?>" required></label>
+                <div class="grid-two">
+                    <label><span>Nome da personalidade</span><input type="text" name="personalidade_nome" value="<?php echo e((string) ($footerContent['personalidade_nome'] ?? '')); ?>"></label>
+                    <label><span>Cargo da personalidade</span><select name="personalidade_cargo" required><?php foreach (['Diretor', 'Secretário', 'Prefeito'] as $cargo) { ?><option value="<?php echo e($cargo); ?>" <?php echo ($footerContent['personalidade_cargo'] ?? 'Secretário') === $cargo ? 'selected' : ''; ?>><?php echo e($cargo); ?></option><?php } ?></select></label>
+                </div>
+                <div class="grid-two">
+                    <label><span>URL do Facebook</span><input type="url" name="facebook_url" value="<?php echo e((string) ($footerContent['facebook_url'] ?? '')); ?>" placeholder="https://facebook.com/..."></label>
+                    <label><span>URL do Instagram</span><input type="url" name="instagram_url" value="<?php echo e((string) ($footerContent['instagram_url'] ?? '')); ?>" placeholder="https://instagram.com/..."></label>
+                    <label><span>URL do YouTube</span><input type="url" name="youtube_url" value="<?php echo e((string) ($footerContent['youtube_url'] ?? '')); ?>" placeholder="https://youtube.com/..."></label>
+                    <label><span>URL do WhatsApp</span><input type="url" name="whatsapp_url" value="<?php echo e((string) ($footerContent['whatsapp_url'] ?? '')); ?>" placeholder="https://wa.me/..."></label>
+                    <label><span>URL do X</span><input type="url" name="x_url" value="<?php echo e((string) ($footerContent['x_url'] ?? '')); ?>" placeholder="https://x.com/..."></label>
+                </div>
+                <button type="submit" class="btn btn-primary">Salvar rascunho do rodapé</button>
+            </form>
+        </section>
         <section class="content-card top-gap">
             <form method="POST" action="<?php echo e(url('/admin/home-logotipo')); ?>" class="stack-form" id="admin-home-logo-form" enctype="multipart/form-data">
                 <input type="hidden" name="logo_url" value="<?php echo e((string) ($homeHeaderContent['logo_url'] ?? '')); ?>">
@@ -1481,7 +1554,11 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             </div>
         </div>
 
-        <section class="grid-two">
+        <div class="admin-blog-page-preview" data-admin-blog-preview="1">
+            <?php $blogAdminMode = true; require ROOT_PATH . '/app/Views/blog/index.php'; ?>
+        </div>
+
+        <section class="grid-two admin-blog-legacy-panel">
             <div id="admin-official-communication-card-shell">
                 <?php require ROOT_PATH . '/app/Views/admin/partials/official_communication_card.php'; ?>
             </div>
@@ -1561,14 +1638,14 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 
                         <div class="popup-actions">
                             <button type="button" class="btn btn-secondary" id="admin-official-communication-cancel">Cancelar</button>
-                            <button type="submit" class="btn btn-primary" id="admin-official-communication-submit">Salvar comunicação oficial</button>
+                            <button type="submit" class="btn btn-primary" id="admin-official-communication-submit">Salvar rascunho</button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
 
-        <section class="content-card top-gap">
+        <section class="content-card top-gap admin-blog-legacy-panel">
             <div class="section-head">
                 <div>
                     <h2>Postagens cadastradas</h2>
@@ -1590,10 +1667,10 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (empty($posts ?? [])) { ?>
+                        <?php if (empty($blogAdminPosts ?? [])) { ?>
                             <tr><td colspan="7">Nenhuma postagem cadastrada.</td></tr>
                         <?php } ?>
-                        <?php foreach (($posts ?? []) as $post) { ?>
+                        <?php foreach (($blogAdminPosts ?? []) as $post) { ?>
                             <tr data-admin-blog-row="1" data-post-id="<?php echo e((string) $post['id']); ?>">
                                 <td>
                                     <strong><?php echo e((string) $post['titulo']); ?></strong><br>
@@ -1621,7 +1698,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             </div>
         </section>
 
-        <section class="content-card top-gap">
+        <section class="content-card top-gap admin-blog-legacy-panel">
             <div class="section-head">
                 <div>
                     <h2>Horários especiais publicados no blog</h2>
@@ -1743,6 +1820,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     </form>
                 </div>
                 <div class="popup-actions">
+                    <button type="button" class="btn btn-danger hidden" id="admin-blog-post-deactivate">Desativar postagem</button>
                     <button
                         type="button"
                         class="btn btn-secondary"
@@ -1774,6 +1852,43 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 </div>
             </div>
         </template>
+
+        <section class="content-card top-gap admin-blog-inactive-section">
+            <div class="section-head">
+                <div>
+                    <h2>Postagens não ativas</h2>
+                    <p class="muted">Postagens com o campo ativo igual a 0. Visualize o conteúdo antes de editar ou reativar.</p>
+                </div>
+            </div>
+            <div class="post-grid" id="admin-blog-inactive-list">
+                <?php if (empty($blogInactivePosts ?? [])) { ?><p class="muted">Nenhuma postagem não ativa encontrada.</p><?php } ?>
+                <?php foreach (($blogInactivePosts ?? []) as $inactivePost) { ?>
+                    <article class="post-card">
+                        <span class="eyebrow eyebrow-soft">Não ativa</span>
+                        <h3><?php echo e((string) ($inactivePost['titulo'] ?? 'Postagem sem título')); ?></h3>
+                        <p><?php echo e((string) ($inactivePost['resumo'] ?? '')); ?></p>
+                        <small class="muted"><?php echo e((string) ($inactivePost['categoria'] ?? 'Sem categoria')); ?> · <?php echo e(date('d/m/Y H:i', strtotime((string) ($inactivePost['updated_at'] ?? 'now')))); ?></small>
+                        <div class="hero-actions top-gap">
+                            <button type="button" class="btn btn-secondary" data-admin-blog-inactive-preview="1" data-post-id="<?php echo e((string) $inactivePost['id']); ?>">Visualizar postagem</button>
+                        </div>
+                    </article>
+                <?php } ?>
+            </div>
+        </section>
+
+        <div id="admin-blog-inactive-preview-modal" class="popup-overlay hidden" aria-hidden="true">
+            <div class="popup-card admin-blog-inactive-preview-card" role="dialog" aria-modal="true" aria-labelledby="admin-blog-inactive-preview-title">
+                <div class="popup-head">
+                    <h3 id="admin-blog-inactive-preview-title">Prévia da postagem não ativa</h3>
+                    <button type="button" class="popup-close-icon" data-admin-blog-inactive-preview-close="1" aria-label="Fechar prévia">&times;</button>
+                </div>
+                <div class="popup-body" id="admin-blog-inactive-preview-body"></div>
+                <div class="popup-actions">
+                    <button type="button" class="btn btn-secondary" data-admin-blog-inactive-edit="1">Editar</button>
+                    <button type="button" class="btn btn-primary" data-admin-blog-inactive-activate="1">Ativar</button>
+                </div>
+            </div>
+        </div>
 
         <div id="admin-blog-delete-confirm-modal" class="popup-overlay hidden" aria-hidden="true">
             <div class="popup-card" role="dialog" aria-modal="true" aria-labelledby="admin-blog-delete-confirm-title">

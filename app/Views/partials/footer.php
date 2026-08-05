@@ -1,8 +1,6 @@
         </main>
     </div>
-    <div style="text-align: center; margin-bottom: 30px;">
-        Secretaria de Esportes e Lazer de São Bernardo do Campo
-    </div>
+    <?php $footerAdminMode = false; require ROOT_PATH . '/app/Views/partials/footer_content.php'; ?>
     <div id="popup-mensagem" class="popup-overlay hidden" aria-hidden="true">
         <div class="popup-card" role="dialog" aria-modal="true" aria-labelledby="popup-titulo">
             <div class="popup-head">

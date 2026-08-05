@@ -12,6 +12,7 @@ class AgendaService
 {
     public function __construct()
     {
+        new ExternalHealthCertificateService();
         $this->ensureWeeklyScheduleAgeRuleSchema();
         $this->ensureSpecialScheduleSchema();
     }
@@ -605,36 +606,83 @@ class AgendaService
         if ($this->shouldRequireCertificate($schedule, 'clinico')) {
             $stmtClinico = $pdo->prepare('
                 SELECT 1
-                FROM atestados_saude
-                WHERE pessoa_id = :pessoa_id
-                  AND tipo_atestado = "clinico"
-                  AND status_validacao = "validado"
-                  AND validade_certificado >= CURDATE()
+                FROM pessoas p
+                WHERE p.id = :pessoa_id
+                  AND (
+                    EXISTS (
+                        SELECT 1 FROM atestados_saude a
+                        WHERE a.pessoa_id = p.id AND a.tipo_atestado = "clinico"
+                          AND a.status_validacao = "validado" AND a.validade_certificado >= CURDATE()
+                    )
+                    OR EXISTS (
+                        SELECT 1 FROM atestados_saude_importados i
+                        WHERE i.cpf = p.cpf AND i.tipo_atestado = "clinico"
+                          AND i.status_importacao = "ativo" AND i.validade_certificado >= CURDATE()
+                    )
+                  )
                 LIMIT 1
             ');
             $stmtClinico->execute([':pessoa_id' => $personId]);
 
             if (!(bool) $stmtClinico->fetchColumn()) {
-                throw new RuntimeException('Sem atestado clínico validado não é possível agendar este horário.');
+                throw new RuntimeException($this->healthCertificateBlockMessage($pdo, $personId, 'clinico', 'clínico'));
             }
         }
 
         if ($this->shouldRequireCertificate($schedule, 'dermatologico')) {
             $stmtDermato = $pdo->prepare('
                 SELECT 1
-                FROM atestados_saude
-                WHERE pessoa_id = :pessoa_id
-                  AND tipo_atestado = "dermatologico"
-                  AND status_validacao = "validado"
-                  AND validade_certificado >= CURDATE()
+                FROM pessoas p
+                WHERE p.id = :pessoa_id
+                  AND (
+                    EXISTS (
+                        SELECT 1 FROM atestados_saude a
+                        WHERE a.pessoa_id = p.id AND a.tipo_atestado = "dermatologico"
+                          AND a.status_validacao = "validado" AND a.validade_certificado >= CURDATE()
+                    )
+                    OR EXISTS (
+                        SELECT 1 FROM atestados_saude_importados i
+                        WHERE i.cpf = p.cpf AND i.tipo_atestado = "dermatologico"
+                          AND i.status_importacao = "ativo" AND i.validade_certificado >= CURDATE()
+                    )
+                  )
                 LIMIT 1
             ');
             $stmtDermato->execute([':pessoa_id' => $personId]);
 
             if (!(bool) $stmtDermato->fetchColumn()) {
-                throw new RuntimeException('Sem atestado dermatológico validado não é possível agendar este horário.');
+                throw new RuntimeException($this->healthCertificateBlockMessage($pdo, $personId, 'dermatologico', 'dermatológico'));
             }
         }
+    }
+
+    private function healthCertificateBlockMessage(\PDO $pdo, int $personId, string $type, string $label): string
+    {
+        $stmt = $pdo->prepare('SELECT validade_certificado FROM (
+                SELECT a.validade_certificado
+                FROM atestados_saude a
+                WHERE a.pessoa_id = :pessoa_interna AND a.tipo_atestado = :tipo_interno
+                  AND a.status_validacao = "validado"
+                UNION ALL
+                SELECT i.validade_certificado
+                FROM atestados_saude_importados i
+                INNER JOIN pessoas p ON p.cpf = i.cpf
+                WHERE p.id = :pessoa_externa AND i.tipo_atestado = :tipo_externo
+                  AND i.status_importacao = "ativo"
+            ) certificados
+            WHERE validade_certificado IS NOT NULL
+            ORDER BY validade_certificado DESC LIMIT 1');
+        $stmt->execute([
+            ':pessoa_interna' => $personId,
+            ':tipo_interno' => $type,
+            ':pessoa_externa' => $personId,
+            ':tipo_externo' => $type,
+        ]);
+        $expiry = trim((string) ($stmt->fetchColumn() ?: ''));
+        if ($expiry !== '' && $expiry < date('Y-m-d')) {
+            return 'O atestado ' . $label . ' venceu em ' . date('d/m/Y', strtotime($expiry)) . '. Atualize o atestado para agendar este horário.';
+        }
+        return 'Sem atestado ' . $label . ' validado não é possível agendar este horário.';
     }
 
     /**

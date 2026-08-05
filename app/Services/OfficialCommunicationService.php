@@ -16,7 +16,7 @@ class OfficialCommunicationService
     public const MAX_LINK_TITLE_LENGTH = 90;
     public const MAX_LINK_URL_LENGTH = 255;
 
-    public function getBlogBlock(): array
+    public function getBlogBlock(bool $draft = false): array
     {
         $this->ensureSchema();
 
@@ -34,7 +34,7 @@ class OfficialCommunicationService
             return $this->defaultBlogBlock();
         }
 
-        return [
+        $published = [
             'slug' => (string) ($row['slug'] ?? self::SLUG_BLOG),
             'nome_quadro' => trim((string) ($row['nome_quadro'] ?? '')) ?: 'Comunicação oficial',
             'titulo' => trim((string) ($row['titulo'] ?? '')),
@@ -43,6 +43,15 @@ class OfficialCommunicationService
             'link_titulo' => trim((string) ($row['link_titulo'] ?? '')),
             'updated_at' => (string) ($row['updated_at'] ?? ''),
         ];
+
+        if ($draft) {
+            $draftContent = json_decode((string) ($row['rascunho_json'] ?? ''), true);
+            if (is_array($draftContent)) {
+                return array_merge($published, $draftContent);
+            }
+        }
+
+        return $published;
     }
 
     public function saveBlogBlock(int $accountId, array $data): array
@@ -50,6 +59,7 @@ class OfficialCommunicationService
         $this->ensureSchema();
 
         $block = $this->validatePayload($data);
+        $publishedDefault = $this->defaultBlogBlock();
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
             INSERT INTO comunicacoes_oficiais (
@@ -60,6 +70,7 @@ class OfficialCommunicationService
                 link_url,
                 link_titulo,
                 atualizado_por_conta_id,
+                rascunho_json,
                 updated_at
             ) VALUES (
                 :slug,
@@ -69,25 +80,23 @@ class OfficialCommunicationService
                 :link_url,
                 :link_titulo,
                 :atualizado_por_conta_id,
+                :rascunho_json,
                 NOW()
             )
             ON DUPLICATE KEY UPDATE
-                nome_quadro = VALUES(nome_quadro),
-                titulo = VALUES(titulo),
-                texto_breve = VALUES(texto_breve),
-                link_url = VALUES(link_url),
-                link_titulo = VALUES(link_titulo),
+                rascunho_json = VALUES(rascunho_json),
                 atualizado_por_conta_id = VALUES(atualizado_por_conta_id),
                 updated_at = NOW()
         ');
         $stmt->execute([
             ':slug' => self::SLUG_BLOG,
-            ':nome_quadro' => $block['nome_quadro'],
-            ':titulo' => $block['titulo'],
-            ':texto_breve' => $block['texto_breve'],
-            ':link_url' => $block['link_url'] !== '' ? $block['link_url'] : null,
-            ':link_titulo' => $block['link_titulo'] !== '' ? $block['link_titulo'] : null,
+            ':nome_quadro' => $publishedDefault['nome_quadro'],
+            ':titulo' => $publishedDefault['titulo'],
+            ':texto_breve' => $publishedDefault['texto_breve'],
+            ':link_url' => null,
+            ':link_titulo' => null,
             ':atualizado_por_conta_id' => $accountId,
+            ':rascunho_json' => json_encode($block, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         ]);
 
         AuditLogService::record('home.comunicacao_oficial_salva', 'comunicacoes_oficiais', null, [
@@ -97,6 +106,28 @@ class OfficialCommunicationService
             'possui_link' => $block['link_url'] !== '',
         ]);
 
+        return $this->getBlogBlock(true);
+    }
+
+    public function publishBlogBlock(int $accountId): array
+    {
+        $this->ensureSchema();
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('SELECT rascunho_json FROM comunicacoes_oficiais WHERE slug = :slug LIMIT 1');
+        $stmt->execute([':slug' => self::SLUG_BLOG]);
+        $block = json_decode((string) $stmt->fetchColumn(), true);
+        if (!is_array($block)) {
+            throw new RuntimeException('Salve um rascunho antes de publicar o quadro do blog.');
+        }
+
+        $block = $this->validatePayload($block);
+        $update = $pdo->prepare('UPDATE comunicacoes_oficiais SET nome_quadro = :nome, titulo = :titulo, texto_breve = :texto, link_url = :url, link_titulo = :link, atualizado_por_conta_id = :conta, updated_at = NOW() WHERE slug = :slug');
+        $update->execute([
+            ':nome' => $block['nome_quadro'], ':titulo' => $block['titulo'], ':texto' => $block['texto_breve'],
+            ':url' => $block['link_url'] !== '' ? $block['link_url'] : null,
+            ':link' => $block['link_titulo'] !== '' ? $block['link_titulo'] : null,
+            ':conta' => $accountId, ':slug' => self::SLUG_BLOG,
+        ]);
         return $this->getBlogBlock();
     }
 
@@ -200,12 +231,18 @@ class OfficialCommunicationService
                 link_url VARCHAR(255) NULL,
                 link_titulo VARCHAR(90) NULL,
                 atualizado_por_conta_id BIGINT UNSIGNED NULL,
+                rascunho_json LONGTEXT NULL,
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 UNIQUE KEY uq_comunicacoes_oficiais_slug (slug),
                 INDEX idx_comunicacoes_oficiais_conta (atualizado_por_conta_id)
             ) ENGINE=InnoDB
         ');
+
+        $check = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'comunicacoes_oficiais' AND COLUMN_NAME = 'rascunho_json'");
+        if ((int) $check->fetchColumn() === 0) {
+            $pdo->exec('ALTER TABLE comunicacoes_oficiais ADD COLUMN rascunho_json LONGTEXT NULL AFTER atualizado_por_conta_id');
+        }
 
         self::$schemaChecked = true;
     }

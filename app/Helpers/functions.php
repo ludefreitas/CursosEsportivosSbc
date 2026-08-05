@@ -470,8 +470,20 @@ function normalize_nome_completo(string $nome): string
 }
 
 /**
- * Valida nome de cadastro sem caracteres especiais e com tamanho minimo.
+ * Valida nomes de pessoas, preservando os separadores usuais de nomes compostos.
  */
+function validar_nome_pessoa(string $nome, bool $obrigatorio = false): bool
+{
+    $nome = normalize_nome_completo($nome);
+
+    if ($nome === '') {
+        return !$obrigatorio;
+    }
+
+    // Nomes podem conter letras acentuadas, espaços, hífen e apóstrofos.
+    return (bool) preg_match('/^\p{L}+(?:[ \x{0027}\x{2019}-]\p{L}+)*$/u', $nome);
+}
+
 function validar_nome_cadastro(string $nome): bool
 {
     $nome = normalize_nome_completo($nome);
@@ -480,7 +492,7 @@ function validar_nome_cadastro(string $nome): bool
         return false;
     }
 
-    return (bool) preg_match('/^[\p{L} ]+$/u', $nome);
+    return validar_nome_pessoa($nome, true);
 }
 
 /**

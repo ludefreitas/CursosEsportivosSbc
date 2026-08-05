@@ -102,10 +102,32 @@ class BlogService
         return array_map(function (array $post): array {
             $post['tags_array'] = $this->parseTags($post['tags'] ?? '');
             $post['share_channels_label'] = implode(', ', $this->availableShareChannelLabels($post));
+            $post['share_links'] = $this->buildShareLinks($post);
             $post['public_url'] = url('/blog/post?slug=' . rawurlencode((string) ($post['slug'] ?? '')));
             $post['gallery_images'] = $this->loadGalleryImages((int) ($post['id'] ?? 0));
             return $post;
         }, $posts);
+    }
+
+    public function listInactivePostsForAdmin(): array
+    {
+        $this->ensureSchema();
+        $stmt = Database::connection()->query('
+            SELECT pb.*, p.nome_completo AS autor_nome,
+                   COALESCE(pb.data_publicacao, pb.publicado_em, pb.created_at) AS data_publica_ordenacao
+            FROM postagens_blog pb
+            INNER JOIN contas c ON c.id = pb.criado_por_conta_id
+            INNER JOIN pessoas p ON p.cpf = c.cpf
+            WHERE pb.ativo = 0
+            ORDER BY pb.updated_at DESC, pb.id DESC
+        ');
+
+        return array_map(function (array $post): array {
+            $post['tags_array'] = $this->parseTags($post['tags'] ?? '');
+            $post['share_links'] = $this->buildShareLinks($post);
+            $post['gallery_images'] = $this->loadGalleryImages((int) ($post['id'] ?? 0));
+            return $post;
+        }, $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
 
     /**
@@ -124,7 +146,6 @@ class BlogService
             SELECT pb.*
             FROM postagens_blog pb
             WHERE pb.id = :id
-              AND pb.ativo = 1
             LIMIT 1
         ');
         $stmt->execute([':id' => $postId]);
@@ -139,6 +160,32 @@ class BlogService
         $post['public_url'] = url('/blog/post?slug=' . rawurlencode((string) ($post['slug'] ?? '')));
         $post['gallery_images'] = $this->loadGalleryImages($postId);
 
+        return $post;
+    }
+
+    public function publishPost(int $postId): array
+    {
+        $this->ensureSchema();
+        if ($postId <= 0) {
+            throw new RuntimeException('Postagem inválida.');
+        }
+
+        $stmt = Database::connection()->prepare("UPDATE postagens_blog SET status = 'publicado', data_publicacao = NOW(), publicado_em = NOW(), updated_at = NOW() WHERE id = :id AND ativo = 1");
+        $stmt->execute([':id' => $postId]);
+        return $this->getPostForAdmin($postId);
+    }
+
+    public function activatePost(int $postId): array
+    {
+        $this->ensureSchema();
+        if ($postId <= 0) {
+            throw new RuntimeException('Postagem inválida.');
+        }
+
+        $stmt = Database::connection()->prepare('UPDATE postagens_blog SET ativo = 1, updated_at = NOW() WHERE id = :id');
+        $stmt->execute([':id' => $postId]);
+        $post = $this->getPostForAdmin($postId);
+        AuditLogService::record('blog.postagem_ativada', 'postagens_blog', $postId, ['titulo' => $post['titulo'] ?? '']);
         return $post;
     }
 

@@ -16,6 +16,7 @@ use App\Services\HomeInfoService;
 use App\Services\OfficialCommunicationService;
 use App\Services\ExternalPersonService;
 use App\Services\ExternalLocationService;
+use App\Services\ExternalHealthCertificateService;
 use DateTimeImmutable;
 
 class AdminController extends Controller
@@ -29,6 +30,7 @@ class AdminController extends Controller
     private OfficialCommunicationService $officialCommunicationService;
     private ExternalPersonService $externalPersonService;
     private ExternalLocationService $externalLocationService;
+    private ExternalHealthCertificateService $externalHealthCertificateService;
 
     /**
      * Inicializa servicos da área administrativa.
@@ -44,6 +46,7 @@ class AdminController extends Controller
         $this->officialCommunicationService = new OfficialCommunicationService();
         $this->externalPersonService = new ExternalPersonService();
         $this->externalLocationService = new ExternalLocationService();
+        $this->externalHealthCertificateService = new ExternalHealthCertificateService();
     }
 
     /**
@@ -72,6 +75,7 @@ class AdminController extends Controller
                 'inicio',
                 'usuarios-pessoas',
                 'migracao-cadastros',
+                'migracao-atestados',
                 'agenda',
                 'pagina-home',
                 'pop-ups',
@@ -154,13 +158,13 @@ class AdminController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Comunicação oficial salva com sucesso.',
+                    'message' => 'Rascunho do quadro do blog salvo com sucesso.',
                     'communication' => $officialCommunication,
                     'card_html' => $this->renderOfficialCommunicationCardHtml($officialCommunication),
                 ]);
             }
 
-            flash('success', 'Comunicação oficial salva com sucesso.');
+            flash('success', 'Rascunho do quadro do blog salvo com sucesso.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -468,7 +472,6 @@ class AdminController extends Controller
             } else {
                 $migrationSummary = $this->externalPersonService->adminSummary();
             }
-
             ob_start();
             require ROOT_PATH . '/app/Views/admin/partials/external_migration_panel.php';
             $this->jsonResponse(['success' => true, 'html' => (string) ob_get_clean()]);
@@ -522,6 +525,35 @@ class AdminController extends Controller
                 'base_max_id_externo' => (int) ($result['base_max_id_externo'] ?? 0),
                 'alterado_desde' => (string) ($result['alterado_desde'] ?? ''),
                 'message' => (int) ($result['processados'] ?? 0) . ' registros externos foram processados neste lote.',
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /** Importa, em lotes de 100, somente o atestado mais atualizado de cada CPF. */
+    public function importExternalHealthCertificates(): void
+    {
+        $user = $this->assertAdminAccess();
+
+        try {
+            $result = $this->externalHealthCertificateService->importBatch(
+                trim((string) ($_POST['tipo_atestado'] ?? '')),
+                (int) ($user['conta_id'] ?? 0),
+                trim((string) ($_POST['cursor_data'] ?? '')),
+                max(0, (int) ($_POST['cursor_id'] ?? 0)),
+                trim((string) ($_POST['snapshot_data'] ?? '')) !== '' ? trim((string) $_POST['snapshot_data']) : null,
+                isset($_POST['snapshot_id']) && $_POST['snapshot_id'] !== '' ? max(0, (int) $_POST['snapshot_id']) : null
+            );
+            $this->jsonResponse([
+                'success' => true,
+                'processados' => (int) ($result['processados'] ?? 0),
+                'proxima_data' => (string) ($result['proxima_data'] ?? ''),
+                'proximo_id' => (int) ($result['proximo_id'] ?? 0),
+                'tem_mais' => !empty($result['tem_mais']),
+                'snapshot_data' => (string) ($result['snapshot_data'] ?? ''),
+                'snapshot_id' => (int) ($result['snapshot_id'] ?? 0),
+                'message' => (int) ($result['processados'] ?? 0) . ' atestados foram processados neste lote.',
             ]);
         } catch (\Throwable $e) {
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
@@ -999,6 +1031,44 @@ class AdminController extends Controller
         redirect('/admin');
     }
 
+    public function publishPost(): void
+    {
+        $this->assertAdminAccess();
+        try {
+            $post = $this->blogService->publishPost((int) ($_POST['post_id'] ?? 0));
+            $this->jsonResponse(['success' => true, 'message' => 'Postagem publicada com sucesso.', 'post' => $post]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function activatePost(): void
+    {
+        $this->assertAdminAccess();
+        try {
+            $post = $this->blogService->activatePost((int) ($_POST['post_id'] ?? 0));
+            $this->jsonResponse(['success' => true, 'message' => 'Postagem ativada com sucesso.', 'post' => $post]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function publishOfficialCommunication(): void
+    {
+        $user = $this->assertAdminAccess();
+
+        try {
+            $communication = $this->officialCommunicationService->publishBlogBlock((int) $user['conta_id']);
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Quadro publicado no blog com sucesso.',
+                'communication' => $communication,
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
     public function saveHomeHighlightCards(): void
     {
         $user = $this->assertAdminAccess();
@@ -1061,6 +1131,15 @@ class AdminController extends Controller
         try {
             $this->homeInfoService->saveContactContent((int) $user['conta_id'], $_POST);
             $this->jsonResponse(['success' => true, 'message' => 'Rascunho do contato salvo.', 'content' => $this->homeInfoService->getContactContent(true)]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function saveHomeFooterContent(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $this->homeInfoService->saveFooterContent((int) $user['conta_id'], $_POST);
+            $this->jsonResponse(['success' => true, 'message' => 'Rascunho do rodapé salvo.', 'content' => $this->homeInfoService->getFooterContent(true)]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
@@ -1891,6 +1970,22 @@ class AdminController extends Controller
             $data['migrationSummary'] = $this->externalPersonService->adminSummary();
         }
 
+        if ($sectionName === 'migracao-atestados') {
+            foreach (['clinico', 'dermatologico'] as $type) {
+                $prefix = $type === 'clinico' ? 'clinical' : 'dermatological';
+                $limit = max(1, min(
+                    ExternalHealthCertificateService::MAX_LIST_LIMIT,
+                    (int) ($_GET[$prefix . '_limit'] ?? ExternalHealthCertificateService::DEFAULT_LIST_LIMIT)
+                ));
+                $search = trim((string) ($_GET[$prefix . '_search'] ?? ''));
+                $data[$prefix . 'Limit'] = $limit;
+                $data[$prefix . 'Search'] = $search;
+                $data[$prefix . 'Rows'] = $this->externalHealthCertificateService->listForAdmin($limit, $search, $type);
+            }
+            $data['healthMigrationLimitMax'] = ExternalHealthCertificateService::MAX_LIST_LIMIT;
+            $data['healthMigrationSummary'] = $this->externalHealthCertificateService->summary();
+        }
+
         if ($sectionName === 'agenda') {
             $locationId = (int) ($_GET['local_treino_id'] ?? 0);
             $modalityId = (int) ($_GET['modalidade_id'] ?? 0);
@@ -1953,6 +2048,7 @@ class AdminController extends Controller
             $data['homeHighlightCards'] = $this->homeInfoService->getHighlightCardsForAdmin();
             $data['homeHeroContent'] = $this->homeInfoService->getHeroContentForAdmin();
             $data['homeHeaderContent'] = array_merge($this->homeInfoService->getLogoContent(true), $this->homeInfoService->getContactContent(true));
+            $data['footerContent'] = $this->homeInfoService->getFooterContent(true);
             $data['locations'] = (new AgendaService())->listLocations();
             $data['suggestedLocations'] = array_slice($data['locations'], 0, 3);
             $data['posts'] = $this->blogService->listPublishedPosts(['limit' => 3]);
@@ -1964,8 +2060,15 @@ class AdminController extends Controller
         }
 
         if ($sectionName === 'blog') {
-            $data['officialCommunication'] = $this->officialCommunicationService->getBlogBlock();
-            $data['posts'] = $this->blogService->listPostsForAdmin();
+            $data['officialCommunication'] = $this->officialCommunicationService->getBlogBlock(true);
+            $data['blogAdminPosts'] = $this->blogService->listPostsForAdmin();
+            $data['blogInactivePosts'] = $this->blogService->listInactivePostsForAdmin();
+            $data['posts'] = $data['blogAdminPosts'];
+            $data['featuredPosts'] = array_slice(array_values(array_filter($data['blogAdminPosts'], static fn (array $post): bool => (int) ($post['destaque'] ?? 0) === 1)), 0, 3);
+            $data['categories'] = $this->blogService->listPublicCategories();
+            $data['archiveMonths'] = $this->blogService->listArchiveMonths();
+            $data['search'] = '';
+            $data['selectedCategory'] = '';
             $data['blogSummary'] = $this->blogService->adminSummary();
             $data['blogCategories'] = $this->blogService->listPublicCategories();
             $data['blogSpecialEvents'] = $this->adminService->listPublishedSpecialSchedules('blog', 20);

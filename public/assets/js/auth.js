@@ -16,7 +16,6 @@
             $('.header-login-form').remove();
 
             $nav.html([
-                '<a href="' + App.core.buildUrl('/') + '" class="nav-color-orange">Início</a>',
                 '<a href="' + App.core.buildUrl('/agenda') + '" class="nav-color-green">Agenda</a>',
                 '<a href="' + App.core.buildUrl('/blog') + '" class="nav-color-red">Blog</a>',
                 '<a href="' + App.core.buildUrl('/dashboard') + '" class="nav-color-teal" data-profile-completion-link="' + profileCompletionRequired + '">Meu painel</a>',

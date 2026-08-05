@@ -137,6 +137,8 @@
 .admin-home-full-preview-card { margin-bottom: 18px; }
 .admin-home-full-preview { width: 100%; min-height: 720px; border: 1px solid var(--line); border-radius: 16px; background: #fff; }
 .admin-home-page-preview { display: grid; gap: 18px; }
+.admin-home-page-preview .site-footer-content { width: 100%; margin: 0; }
+.site-footer-admin-actions { grid-column: 1 / -1; }
 .admin-home-inline-actions { display: flex; justify-content: flex-end; gap: 6px; margin-bottom: 8px; }
 .admin-home-highlight-actions { grid-column: 1 / -1; margin-bottom: 0; }
 .admin-home-page-preview .home-banner-visual,
@@ -146,6 +148,20 @@
 .admin-home-page-preview .info-card { position: relative; }
 .admin-home-logo-upload-preview { display: flex; justify-content: center; padding: 12px; border: 1px solid #d8e3ea; border-radius: 12px; background: #fff; }
 .admin-home-logo-upload-preview img { display: block; width: auto; max-width: min(100%, 460px); max-height: 240px; object-fit: contain; }
+.admin-blog-page-preview { margin-top: 16px; }
+.admin-blog-legacy-panel { display: none !important; }
+.admin-blog-inline-actions { display: flex; justify-content: flex-end; gap: 6px; margin-bottom: 8px; position: relative; z-index: 2; }
+.admin-blog-page-preview .blog-post-card > .admin-blog-inline-actions,
+.admin-blog-page-preview .blog-featured-card > .admin-blog-inline-actions { position: absolute; top: 14px; right: 14px; margin: 0; z-index: 4; }
+.admin-blog-page-preview .admin-blog-inline-actions .btn { width: auto; min-width: 0; min-height: 0; padding: 6px 10px; line-height: 1.1; font-size: 12px; white-space: nowrap; }
+.admin-blog-page-preview .blog-post-card { padding-top: 58px; }
+.admin-blog-page-preview .blog-section-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.admin-blog-inactive-section { margin-top: 22px; }
+.admin-blog-inactive-preview-card { display: flex; flex-direction: column; width: min(900px, calc(100vw - 32px)); height: calc(100dvh - 40px); max-height: calc(100vh - 40px); margin: 0 auto; overflow: hidden; }
+.admin-blog-inactive-preview-card .popup-head,
+.admin-blog-inactive-preview-card .popup-actions { flex: 0 0 auto; background: #fffdf8; position: relative; z-index: 2; }
+.admin-blog-inactive-preview-card .popup-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.admin-blog-inactive-cover { display: block; width: 100%; max-height: 360px; object-fit: cover; border-radius: 16px; margin-bottom: 16px; }
 .admin-inline-links {
     display: flex;
     flex-wrap: wrap;
@@ -469,6 +485,38 @@
 }
 .admin-weekday-head h3 {
     margin: 0;
+}
+.admin-weekday-toggle {
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.admin-weekday-toggle-title {
+    display: inline-flex;
+    gap: 9px;
+    align-items: center;
+    font-size: 18px;
+}
+.admin-weekday-toggle-icon {
+    display: inline-block;
+    color: var(--brand-700);
+    transition: transform 0.18s ease;
+}
+.admin-weekday-toggle[aria-expanded="true"] .admin-weekday-toggle-icon {
+    transform: rotate(90deg);
+}
+.admin-weekday-toggle:focus-visible {
+    outline: 3px solid rgba(28, 126, 165, 0.28);
+    outline-offset: 6px;
+    border-radius: 8px;
+}
+.admin-weekday-schedules {
+    min-width: 0;
 }
 .admin-daily-bookings-summary {
     display: grid;

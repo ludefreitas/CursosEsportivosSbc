@@ -1286,6 +1286,26 @@ body.pagina-error label span {
     }
 }
 
+.site-footer-content {
+    width: min(1180px, calc(100% - 32px));
+    margin: 20px auto 30px;
+    padding: 24px;
+    border-radius: 26px;
+    color: #fff;
+    background: #177ab5;
+    box-shadow: 0 6px 18px rgba(18, 69, 89, 0.16);
+}
+.site-footer-grid { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.4fr); gap: 24px; align-items: start; }
+.site-footer-social { display: flex; flex-wrap: wrap; gap: 10px 16px; justify-content: flex-start; }
+.site-footer-social a { color: #fff; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.site-footer-institution { display: grid; gap: 7px; text-align: right; }
+.site-footer-institution strong { color: #fff; font-size: 18px; }
+.site-footer-institution span { color: rgba(255, 255, 255, 0.9); }
+@media (max-width: 700px) {
+    .site-footer-grid { grid-template-columns: 1fr; }
+    .site-footer-institution { text-align: left; }
+}
+
 @media (max-width: 760px) {
     .page-content {
         width: calc(100% - 20px);

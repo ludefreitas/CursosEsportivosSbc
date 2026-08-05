@@ -157,10 +157,16 @@ body.pagina-blog {
     color: #1767c4;
 }
 
-.blog-share-inline a:nth-child(2),
-.blog-share-grid a:nth-child(2) {
+.blog-share-inline a.blog-share-whatsapp,
+.blog-share-grid a.blog-share-whatsapp {
     background: rgba(37, 164, 91, 0.10);
     color: #1e8a4b;
+}
+
+.blog-share-inline a.blog-share-facebook,
+.blog-share-grid a.blog-share-facebook {
+    background: rgba(23, 103, 196, 0.12);
+    color: #1767c4;
 }
 
 .blog-share-inline a:nth-child(3),
@@ -327,6 +333,8 @@ body.pagina-blog {
     text-decoration: underline;
     text-underline-offset: 2px;
 }
+.blog-share-inline a.blog-share-whatsapp { color: #1e8a4b; }
+.blog-share-inline a.blog-share-facebook { color: #1767c4; }
 
 .blog-tag-row {
     display: flex;

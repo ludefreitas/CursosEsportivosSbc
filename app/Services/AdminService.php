@@ -1143,6 +1143,15 @@ class AdminService
             ':id' => (int) ($certificate['id'] ?? 0),
         ]);
 
+        if ($status === 'validado') {
+            (new ExternalHealthCertificateService())->markAsReplaced(
+                $personId,
+                $certificateType,
+                (int) ($certificate['id'] ?? 0),
+                $accountId
+            );
+        }
+
         AuditLogService::record('atestado_saude.validacao_admin_atualizada', 'atestados_saude', (int) ($certificate['id'] ?? 0), [
             'pessoa_id' => $personId,
             'tipo_atestado' => $certificateType,
@@ -1194,7 +1203,19 @@ class AdminService
         }
 
         if (!validar_nome_cadastro($fullName)) {
-            throw new RuntimeException('Informe um nome completo sem caracteres especiais e com no mínimo 14 caracteres.');
+            throw new RuntimeException('Informe um nome completo com no mínimo 14 caracteres, usando apenas letras, espaços, hífen ou apóstrofo.');
+        }
+
+        if (!validar_nome_pessoa($emergencyContactName, true)) {
+            throw new RuntimeException('Use apenas letras, espaços, hífen ou apóstrofo no nome do contato de emergência.');
+        }
+
+        if (!validar_nome_pessoa($parent1Name, true)) {
+            throw new RuntimeException('Use apenas letras, espaços, hífen ou apóstrofo no nome do responsável 1.');
+        }
+
+        if (!validar_nome_pessoa($parent2Name)) {
+            throw new RuntimeException('Use apenas letras, espaços, hífen ou apóstrofo no nome do responsável 2.');
         }
 
         if (!validar_cpf($cpf)) {

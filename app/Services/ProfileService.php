@@ -75,7 +75,7 @@ class ProfileService
         }
 
         if (!validar_nome_cadastro((string) ($data['full_name'] ?? ''))) {
-            throw new RuntimeException('Informe um nome completo sem caracteres especiais e com no mínimo 14 caracteres.');
+            throw new RuntimeException('Informe um nome completo com no mínimo 14 caracteres, usando apenas letras, espaços, hífen ou apóstrofo.');
         }
 
         $this->validarSelecaoUnicaCondicao($data);
@@ -188,7 +188,7 @@ class ProfileService
         }
 
         if (!validar_nome_cadastro((string) ($data['full_name'] ?? ''))) {
-            throw new RuntimeException('Informe um nome completo sem caracteres especiais e com no mínimo 14 caracteres para o dependente.');
+            throw new RuntimeException('Informe um nome completo com no mínimo 14 caracteres para o dependente, usando apenas letras, espaços, hífen ou apóstrofo.');
         }
 
         $this->validarSelecaoUnicaCondicao($data);
@@ -321,7 +321,7 @@ class ProfileService
         $dependent = $this->getManagedDependent($personId);
 
         if (!validar_nome_cadastro((string) ($data['full_name'] ?? ''))) {
-            throw new RuntimeException('Informe um nome completo sem caracteres especiais e com no mínimo 14 caracteres para o dependente.');
+            throw new RuntimeException('Informe um nome completo com no mínimo 14 caracteres para o dependente, usando apenas letras, espaços, hífen ou apóstrofo.');
         }
 
         $this->validarSelecaoUnicaCondicao($data);
@@ -509,15 +509,18 @@ class ProfileService
     {
         $person = $this->getManagedDependent($personId);
         $records = $this->loadHealthCertificatesIndexedByType((int) $person['id']);
+        $importedRecords = $this->loadImportedHealthCertificatesIndexedByType((string) ($person['cpf'] ?? ''));
         $certificates = [];
 
         foreach (self::HEALTH_CERTIFICATE_TYPES as $slug => $label) {
             $certificate = $records[$slug] ?? null;
-            $statusMeta = $this->buildHealthCertificateStatusMeta($certificate);
+            $importedCertificate = $importedRecords[$slug] ?? null;
+            $statusMeta = $this->buildHealthCertificateStatusMeta($importedCertificate ?? $certificate);
             $certificates[] = [
                 'slug' => $slug,
                 'label' => $label,
                 'record' => $certificate,
+                'imported_record' => $importedCertificate,
                 'status_key' => $statusMeta['key'],
                 'status_icon' => $statusMeta['icon'],
                 'status_class' => $statusMeta['class'],
@@ -530,6 +533,21 @@ class ProfileService
             'certificates' => $certificates,
             'service_location_options' => self::HEALTH_CERTIFICATE_SERVICE_LOCATIONS,
         ];
+    }
+
+    private function loadImportedHealthCertificatesIndexedByType(string $cpf): array
+    {
+        $cpf = normalize_cpf($cpf);
+        if (!validar_cpf($cpf)) return [];
+        $stmt = Database::connection()->prepare('SELECT *, "validado" AS status_validacao
+            FROM atestados_saude_importados
+            WHERE cpf = :cpf AND status_importacao = "ativo"');
+        $stmt->execute([':cpf' => $cpf]);
+        $indexed = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $indexed[(string) ($row['tipo_atestado'] ?? '')] = $row;
+        }
+        return $indexed;
     }
 
     /**
@@ -753,6 +771,19 @@ class ProfileService
         $responsavel1Cpf = normalize_cpf((string) ($data['responsavel1_cpf'] ?? $data['parent1_cpf'] ?? ''));
         $responsavel2Nome = trim((string) ($data['responsavel2_nome'] ?? $data['parent2_name'] ?? ''));
         $responsavel2Cpf = normalize_cpf((string) ($data['responsavel2_cpf'] ?? $data['parent2_cpf'] ?? ''));
+        $contatoEmergenciaNome = trim((string) ($data['emergency_contact_name'] ?? $data['contato_emergencia_nome'] ?? ''));
+
+        if (!validar_nome_pessoa($responsavel1Nome)) {
+            throw new RuntimeException('Use apenas letras, espaços, hífen ou apóstrofo no nome do responsável 1.');
+        }
+
+        if (!validar_nome_pessoa($responsavel2Nome)) {
+            throw new RuntimeException('Use apenas letras, espaços, hífen ou apóstrofo no nome do responsável 2.');
+        }
+
+        if (!validar_nome_pessoa($contatoEmergenciaNome)) {
+            throw new RuntimeException('Use apenas letras, espaços, hífen ou apóstrofo no nome do contato de emergência.');
+        }
 
         $ok1 = $responsavel1Nome !== '' && validar_cpf($responsavel1Cpf);
         $ok2 = $responsavel2Nome !== '' && validar_cpf($responsavel2Cpf);
@@ -1219,6 +1250,21 @@ class ProfileService
             }
 
             $indexed[$personId][$slug] = $row;
+        }
+
+        $stmtImported = Database::connection()->prepare('SELECT i.*, p.id AS pessoa_id, "validado" AS status_validacao
+            FROM atestados_saude_importados i
+            INNER JOIN pessoas p ON p.cpf = i.cpf
+            WHERE p.id IN (' . implode(', ', $placeholders) . ')
+              AND i.status_importacao = "ativo"');
+        $stmtImported->execute($params);
+        foreach ($stmtImported->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $personId = (int) ($row['pessoa_id'] ?? 0);
+            $slug = (string) ($row['tipo_atestado'] ?? '');
+            if ($personId > 0 && $slug !== '') {
+                // Enquanto não for substituído por validação interna, o legado é o certificado efetivo.
+                $indexed[$personId][$slug] = $row;
+            }
         }
 
         return $indexed;

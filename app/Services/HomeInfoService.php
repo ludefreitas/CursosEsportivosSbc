@@ -292,6 +292,37 @@ class HomeInfoService
         return $this->getConfiguredContent('contato', ['contato_rotulo' => $header['contato_rotulo'], 'contato_texto' => $header['contato_texto'], 'contato_url' => $header['contato_url']], $draft);
     }
 
+    public function getFooterContent(bool $draft = false): array
+    {
+        return $this->getConfiguredContent('rodape', [
+            'instituicao' => 'Secretaria de Esportes e Lazer de São Bernardo do Campo',
+            'personalidade_nome' => '',
+            'personalidade_cargo' => 'Secretário',
+            'facebook_url' => '', 'instagram_url' => '', 'youtube_url' => '', 'whatsapp_url' => '', 'x_url' => '',
+        ], $draft);
+    }
+
+    public function saveFooterContent(int $accountId, array $data): void
+    {
+        $content = [
+            'instituicao' => trim((string) ($data['instituicao'] ?? '')),
+            'personalidade_nome' => trim((string) ($data['personalidade_nome'] ?? '')),
+            'personalidade_cargo' => trim((string) ($data['personalidade_cargo'] ?? '')),
+            'facebook_url' => trim((string) ($data['facebook_url'] ?? '')),
+            'instagram_url' => trim((string) ($data['instagram_url'] ?? '')),
+            'youtube_url' => trim((string) ($data['youtube_url'] ?? '')),
+            'whatsapp_url' => trim((string) ($data['whatsapp_url'] ?? '')),
+            'x_url' => trim((string) ($data['x_url'] ?? '')),
+        ];
+        if ($content['instituicao'] === '') throw new RuntimeException('Informe o nome da instituição.');
+        if (!validar_nome_pessoa($content['personalidade_nome'])) throw new RuntimeException('Use apenas letras, espaços, hífen ou apóstrofo no nome da personalidade.');
+        if (!in_array($content['personalidade_cargo'], ['Diretor', 'Secretário', 'Prefeito'], true)) throw new RuntimeException('Selecione Diretor, Secretário ou Prefeito.');
+        foreach (['facebook_url', 'instagram_url', 'youtube_url', 'whatsapp_url', 'x_url'] as $field) {
+            if ($content[$field] !== '') $content[$field] = $this->normalizeLinkUrl($content[$field]);
+        }
+        $this->saveConfiguredContent('rodape', $content, $accountId);
+    }
+
     public function saveLogoContent(int $accountId, array $data, array $files): void
     {
         $current = $this->getLogoContent(true);
@@ -332,7 +363,7 @@ class HomeInfoService
 
     public function publishContent(string $key, int $accountId): array
     {
-        if (!in_array($key, ['logotipo', 'contato', 'cabecalho', 'quadro_informativo', 'destaques', 'apresentacao'], true)) {
+        if (!in_array($key, ['logotipo', 'contato', 'rodape', 'cabecalho', 'quadro_informativo', 'destaques', 'apresentacao'], true)) {
             throw new RuntimeException('Quadro da Home inválido para publicação.');
         }
         $pdo = Database::connection();

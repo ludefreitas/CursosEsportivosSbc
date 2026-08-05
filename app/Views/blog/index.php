@@ -1,11 +1,15 @@
 <?php
 $selectedCategory = trim((string) ($selectedCategory ?? ''));
 $search = (string) ($search ?? '');
+$blogAdminMode = !empty($blogAdminMode);
 ?>
 
 <section class="blog-shell">
     <div class="blog-hero">
         <div class="blog-hero-copy">
+            <?php if ($blogAdminMode) { ?>
+                <div class="admin-blog-inline-actions"><button type="button" class="btn btn-secondary admin-home-small-button" data-admin-official-communication-open="1">Editar</button><button type="button" class="btn btn-primary admin-home-small-button" data-admin-blog-communication-publish="1">Publicar</button></div>
+            <?php } ?>
             <span class="eyebrow"><?php echo e((string) (($officialCommunication['nome_quadro'] ?? 'Comunicação oficial'))); ?></span>
             <h1><?php echo e((string) (($officialCommunication['titulo'] ?? 'Blog dos Cursos Esportivos SBC'))); ?></h1>
             <p><?php echo e((string) (($officialCommunication['texto_breve'] ?? ''))); ?></p>
@@ -17,7 +21,7 @@ $search = (string) ($search ?? '');
                 </div>
             <?php } ?>
         </div>
-        <form method="GET" action="<?php echo e(url('/blog')); ?>" class="blog-search-card">
+        <form method="GET" action="<?php echo e($blogAdminMode ? '#' : url('/blog')); ?>" class="blog-search-card" <?php echo $blogAdminMode ? 'data-admin-blog-preview-filter="1"' : ''; ?>>
             <label>
                 <span>Buscar no blog</span>
                 <input type="text" name="busca" value="<?php echo e($search); ?>" placeholder="Digite um assunto, termo ou campanha">
@@ -41,6 +45,7 @@ $search = (string) ($search ?? '');
         <section class="blog-featured-strip">
             <?php foreach ($featuredPosts as $featuredPost) { ?>
                 <article class="blog-featured-card">
+                    <?php if ($blogAdminMode) { ?><div class="admin-blog-inline-actions"><button type="button" class="btn btn-secondary admin-home-small-button" data-admin-blog-edit="1" data-post-id="<?php echo e((string) $featuredPost['id']); ?>">Editar</button><button type="button" class="btn btn-primary admin-home-small-button" data-admin-blog-publish="1" data-post-id="<?php echo e((string) $featuredPost['id']); ?>">Publicar</button></div><?php } ?>
                     <span class="blog-meta-tag">Destaque</span>
                     <h2><?php echo e((string) $featuredPost['titulo']); ?></h2>
                     <p><?php echo e((string) $featuredPost['resumo']); ?></p>
@@ -51,11 +56,12 @@ $search = (string) ($search ?? '');
     <?php } ?>
 
     <nav class="blog-category-tabs" aria-label="Categorias do blog">
-        <a href="<?php echo e(url('/blog')); ?>" class="blog-category-tab<?php echo $selectedCategory === '' ? ' is-active' : ''; ?>">Página inicial</a>
+        <a href="<?php echo e($blogAdminMode ? '#' : url('/blog')); ?>" data-admin-blog-category="" class="blog-category-tab<?php echo $selectedCategory === '' ? ' is-active' : ''; ?>">Página inicial</a>
         <?php foreach (($categories ?? []) as $category) { ?>
             <?php $categoryName = (string) ($category['categoria'] ?? ''); ?>
             <a
-                href="<?php echo e(url('/blog?categoria=' . rawurlencode($categoryName))); ?>"
+                href="<?php echo e($blogAdminMode ? '#' : url('/blog?categoria=' . rawurlencode($categoryName))); ?>"
+                data-admin-blog-category="<?php echo e($categoryName); ?>"
                 class="blog-category-tab<?php echo $selectedCategory === $categoryName ? ' is-active' : ''; ?>"
             >
                 <?php echo e($categoryName); ?>
@@ -69,8 +75,9 @@ $search = (string) ($search ?? '');
                 <div class="blog-section-head">
                     <div>
                         <h2>Postagens</h2>
-                        <p class="muted"><?php echo e((string) count($posts)); ?> resultado(s)<?php if ($search !== '') { ?> para "<?php echo e($search); ?>"<?php } else { ?> publicado(s) no momento<?php } ?>.</p>
+                        <p class="muted" data-admin-blog-result-count="1"><?php echo e((string) count($posts)); ?> resultado(s)<?php if ($search !== '') { ?> para "<?php echo e($search); ?>"<?php } else { ?> publicado(s) no momento<?php } ?>.</p>
                     </div>
+                    <?php if ($blogAdminMode) { ?><button type="button" class="btn btn-primary admin-home-small-button" data-admin-blog-create="1">Nova postagem</button><?php } ?>
                 </div>
 
                 <?php if (empty($posts)) { ?>
@@ -79,7 +86,8 @@ $search = (string) ($search ?? '');
 
                 <div class="blog-post-list">
                     <?php foreach (($posts ?? []) as $post) { ?>
-                        <article class="blog-post-card">
+                        <article class="blog-post-card" data-admin-blog-preview-post="1" data-post-category="<?php echo e((string) ($post['categoria'] ?? '')); ?>" data-post-search="<?php echo e(mb_strtolower((string) (($post['titulo'] ?? '') . ' ' . ($post['resumo'] ?? '') . ' ' . ($post['tags'] ?? '')), 'UTF-8')); ?>">
+                            <?php if ($blogAdminMode) { ?><div class="admin-blog-inline-actions"><button type="button" class="btn btn-secondary admin-home-small-button" data-admin-blog-edit="1" data-post-id="<?php echo e((string) $post['id']); ?>">Editar</button><button type="button" class="btn btn-primary admin-home-small-button" data-admin-blog-publish="1" data-post-id="<?php echo e((string) $post['id']); ?>">Publicar</button></div><?php } ?>
                             <?php if (!empty($post['capa_imagem_url'])) { ?>
                                 <a href="<?php echo e(url('/blog/post?slug=' . rawurlencode((string) $post['slug']))); ?>" class="blog-post-image-wrap">
                                     <img src="<?php echo e((string) $post['capa_imagem_url']); ?>" alt="<?php echo e((string) $post['titulo']); ?>" class="blog-post-image">
@@ -106,8 +114,8 @@ $search = (string) ($search ?? '');
                                     <a href="<?php echo e(url('/blog/post?slug=' . rawurlencode((string) $post['slug']))); ?>" class="btn btn-primary">Ler postagem</a>
                                     <?php if (!empty($post['share_links'])) { ?>
                                         <div class="blog-share-inline">
-                                            <?php if (!empty($post['share_links']['whatsapp'])) { ?><a href="<?php echo e((string) $post['share_links']['whatsapp']); ?>" target="_blank" rel="noopener noreferrer">WhatsApp</a><?php } ?>
-                                            <?php if (!empty($post['share_links']['facebook'])) { ?><a href="<?php echo e((string) $post['share_links']['facebook']); ?>" target="_blank" rel="noopener noreferrer">Facebook</a><?php } ?>
+                                            <?php if (!empty($post['share_links']['whatsapp'])) { ?><a class="blog-share-whatsapp" href="<?php echo e((string) $post['share_links']['whatsapp']); ?>" target="_blank" rel="noopener noreferrer">WhatsApp</a><?php } ?>
+                                            <?php if (!empty($post['share_links']['facebook'])) { ?><a class="blog-share-facebook" href="<?php echo e((string) $post['share_links']['facebook']); ?>" target="_blank" rel="noopener noreferrer">Facebook</a><?php } ?>
                                             <?php if (!empty($post['share_links']['linkedin'])) { ?><a href="<?php echo e((string) $post['share_links']['linkedin']); ?>" target="_blank" rel="noopener noreferrer">LinkedIn</a><?php } ?>
                                             <?php if (!empty($post['share_links']['x'])) { ?><a href="<?php echo e((string) $post['share_links']['x']); ?>" target="_blank" rel="noopener noreferrer">X</a><?php } ?>
                                         </div>

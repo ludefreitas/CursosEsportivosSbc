@@ -55,8 +55,8 @@
             <section class="blog-section-card">
                 <h2>Compartilhar esta postagem</h2>
                 <div class="blog-share-grid">
-                    <?php if (!empty($post['share_links']['whatsapp'])) { ?><a href="<?php echo e((string) $post['share_links']['whatsapp']); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">WhatsApp</a><?php } ?>
-                    <?php if (!empty($post['share_links']['facebook'])) { ?><a href="<?php echo e((string) $post['share_links']['facebook']); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">Facebook</a><?php } ?>
+                    <?php if (!empty($post['share_links']['whatsapp'])) { ?><a href="<?php echo e((string) $post['share_links']['whatsapp']); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-secondary blog-share-whatsapp">WhatsApp</a><?php } ?>
+                    <?php if (!empty($post['share_links']['facebook'])) { ?><a href="<?php echo e((string) $post['share_links']['facebook']); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-secondary blog-share-facebook">Facebook</a><?php } ?>
                     <?php if (!empty($post['share_links']['linkedin'])) { ?><a href="<?php echo e((string) $post['share_links']['linkedin']); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">LinkedIn</a><?php } ?>
                     <?php if (!empty($post['share_links']['x'])) { ?><a href="<?php echo e((string) $post['share_links']['x']); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">X</a><?php } ?>
                     <?php if (!empty($post['share_links']['copiar'])) { ?><a href="<?php echo e((string) $post['share_links']['copiar']); ?>" class="btn btn-primary">Link direto</a><?php } ?>

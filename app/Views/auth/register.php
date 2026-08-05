@@ -3,7 +3,7 @@
         <h1>Cadastro do Responsável</h1>
 
         <p class="muted" style="font-size: 14px;">Somente pessoas maiores de 18 anos podem criar conta. Menores de 18 anos serão adicionados, no sistema, como dependentes de um responsável maior de idade.</p>
-        <p class="muted" style="font-size: 14px;">O nome completo deve ter no mínimo 14 caracteres, sem caracteres especiais, e os espaços no início e no fim são removidos automaticamente.</p>
+        <p class="muted" style="font-size: 14px;">O nome completo deve ter no mínimo 14 caracteres e pode conter letras, espaços, hífen e apóstrofo. Os espaços no início e no fim são removidos automaticamente.</p>
         <div class="alert-inline dashboard-dependent-attention">
             Preencha o CPF com atenção. Depois de vinculado ao cadastro da pessoa, qualquer correção desse dado pode depender do suporte.
         </div>

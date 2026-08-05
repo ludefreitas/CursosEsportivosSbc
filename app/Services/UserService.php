@@ -8,6 +8,11 @@ use PDO;
 
 class UserService
 {
+    public function __construct()
+    {
+        new ExternalHealthCertificateService();
+    }
+
     /**
      * Retorna a conta atual com seus papeis.
      */
@@ -108,16 +113,16 @@ class UserService
 
         $pdo = Database::connection();
         $stmtPeople = $pdo->prepare('
-            SELECT DISTINCT base.id, base.nome_completo, base.eh_pcd, base.eh_pvs, base.eh_plm
+            SELECT DISTINCT base.id, base.nome_completo, base.cpf, base.eh_pcd, base.eh_pvs, base.eh_plm
             FROM (
-                SELECT p.id, p.nome_completo, p.eh_pcd, p.eh_pvs, p.eh_plm
+                SELECT p.id, p.nome_completo, p.cpf, p.eh_pcd, p.eh_pvs, p.eh_plm
                 FROM contas c
                 INNER JOIN pessoas p ON p.cpf = c.cpf
                 WHERE c.id = :conta_id_titular
 
                 UNION
 
-                SELECT p.id, p.nome_completo, p.eh_pcd, p.eh_pvs, p.eh_plm
+                SELECT p.id, p.nome_completo, p.cpf, p.eh_pcd, p.eh_pvs, p.eh_plm
                 FROM contas c
                 INNER JOIN pessoas responsavel ON responsavel.cpf = c.cpf
                 INNER JOIN vinculos_responsaveis vr ON vr.responsavel_pessoa_id = responsavel.id
@@ -228,6 +233,28 @@ class UserService
                         'level' => 'warning',
                         'message' => 'O certificado de ' . $meta['label'] . ' de ' . $person['nome_completo'] . ' vence em ' . $expiryDate->format('d/m/Y') . '.',
                     ];
+                }
+            }
+
+            $stmtImported = $pdo->prepare('SELECT tipo_atestado, validade_certificado
+                FROM atestados_saude_importados
+                WHERE cpf = :cpf AND status_importacao = "ativo"');
+            $stmtImported->execute([':cpf' => (string) ($person['cpf'] ?? '')]);
+            foreach ($stmtImported->fetchAll(PDO::FETCH_ASSOC) as $imported) {
+                $expiry = trim((string) ($imported['validade_certificado'] ?? ''));
+                if ($expiry === '') continue;
+                try {
+                    $expiryDate = new \DateTimeImmutable($expiry);
+                    $today = new \DateTimeImmutable('today');
+                } catch (\Throwable $e) {
+                    continue;
+                }
+                $label = ($imported['tipo_atestado'] ?? '') === 'dermatologico'
+                    ? 'atestado dermatológico' : 'atestado clínico';
+                if ($expiryDate < $today) {
+                    $alerts[] = ['level' => 'error', 'message' => 'O ' . $label . ' de ' . $person['nome_completo'] . ' venceu em ' . $expiryDate->format('d/m/Y') . '.'];
+                } elseif ($expiryDate <= $today->modify('+2 months')) {
+                    $alerts[] = ['level' => 'warning', 'message' => 'O ' . $label . ' de ' . $person['nome_completo'] . ' vence em ' . $expiryDate->format('d/m/Y') . '.'];
                 }
             }
         }

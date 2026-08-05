@@ -510,7 +510,10 @@
                 }
 
                 syncActiveButton(normalizedTarget);
-                $host.attr('data-admin-loading', '1').html('<section class="admin-section-panel"><article class="content-card"><p class="muted">Carregando conteúdo...</p></article></section>');
+                $host.attr('data-admin-loading', '1');
+                if (requestOptions.suppressGlobalLoading !== true) {
+                    $host.html('<section class="admin-section-panel"><article class="content-card"><p class="muted">Carregando conteúdo...</p></article></section>');
+                }
 
                 $.ajax({
                     url: sectionsUrl,
@@ -528,6 +531,21 @@
                         $host.html(String(response.html || ''));
                         hydrateDynamicSection();
                         updateHash(normalizedTarget);
+
+                        if (normalizedTarget === 'migracao-atestados' && App.state.healthMigrationFocus) {
+                            const focusState = App.state.healthMigrationFocus;
+                            const $focusField = $host.find('[name="' + String(focusState.name || '') + '"]').filter(':visible').last();
+
+                            if ($focusField.length > 0) {
+                                const input = $focusField[0];
+                                input.focus();
+                                if (typeof input.setSelectionRange === 'function') {
+                                    const position = Math.min(Number(focusState.position || 0), String($focusField.val() || '').length);
+                                    input.setSelectionRange(position, position);
+                                }
+                            }
+                            App.state.healthMigrationFocus = null;
+                        }
 
                         if (normalizedTarget === 'agenda' && String(requestData.abrir_resultado_agendamentos || '0') === '1') {
                             openDailyBookingsModal();
@@ -1463,6 +1481,7 @@
                     $submitButton.prop('disabled', false);
                 });
             });
+
         },
 
         iniciarFiltroPessoasAdmin: function () {
@@ -1631,6 +1650,10 @@
                 return $('#admin-weekly-schedule-editor');
             }
 
+            function getCreateModal() {
+                return $('#admin-weekly-schedule-create-modal');
+            }
+
             function getForm() {
                 return $('#admin-weekly-schedule-form');
             }
@@ -1678,6 +1701,30 @@
                 }
 
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
+            }
+
+            function closeCreateModal() {
+                const $modal = getCreateModal();
+                const $form = $('#admin-weekly-schedule-create-form');
+
+                $modal.addClass('hidden').attr('aria-hidden', 'true');
+                if ($form.length > 0) {
+                    $form[0].reset();
+                    syncWeeklyScheduleAgePreview($form);
+                }
+            }
+
+            function openCreateModal() {
+                const $modal = getCreateModal();
+
+                if ($modal.length === 0) {
+                    return;
+                }
+
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+                window.setTimeout(function () {
+                    $modal.find('select, input').filter(':visible').first().trigger('focus');
+                }, 0);
             }
 
             function setValue(selector, value) {
@@ -1745,6 +1792,24 @@
                 closeEditor();
             });
 
+            $(document).on('click', '[data-weekday-toggle="1"]', function () {
+                const $toggle = $(this);
+                const contentId = String($toggle.attr('aria-controls') || '');
+                const $content = contentId === '' ? $() : $('#' + contentId);
+                const willOpen = String($toggle.attr('aria-expanded') || 'false') !== 'true';
+
+                $toggle.attr('aria-expanded', willOpen ? 'true' : 'false');
+                $content.toggleClass('hidden', !willOpen);
+            });
+
+            $(document).on('click', '#admin-weekly-schedule-create-open', function () {
+                openCreateModal();
+            });
+
+            $(document).on('click', '#admin-weekly-schedule-create-close, #admin-weekly-schedule-create-cancel', function () {
+                closeCreateModal();
+            });
+
             $(document).on('input change', '#admin-weekly-schedule-create-form input[name="idade_minima"], #admin-weekly-schedule-create-form input[name="idade_maxima"], #admin-weekly-schedule-create-form select[name="criterio_faixa_etaria"], #admin-weekly-schedule-form input[name="idade_minima"], #admin-weekly-schedule-form input[name="idade_maxima"], #admin-weekly-schedule-form select[name="criterio_faixa_etaria"]', function () {
                 syncWeeklyScheduleAgePreview($(this).closest('form'));
             });
@@ -1755,9 +1820,16 @@
                 }
             });
 
+            $(document).on('click', '#admin-weekly-schedule-create-modal', function (event) {
+                if (event.target === this) {
+                    closeCreateModal();
+                }
+            });
+
             $(document).on('keydown', function (event) {
                 if (event.key === 'Escape') {
                     closeEditor();
+                    closeCreateModal();
                 }
             });
 
@@ -1786,7 +1858,7 @@
                         return;
                     }
 
-                    $createForm[0].reset();
+                    closeCreateModal();
                     App.admin.activateSection('agenda', currentAgendaFilters());
                     App.core.abrirPopup('sucesso', String(response.message || 'Horário semanal criado com sucesso.'));
                 }).fail(function (xhr) {
@@ -1912,6 +1984,10 @@
                 return $('#admin-special-schedule-editor');
             }
 
+            function getCreateModal() {
+                return $('#admin-special-schedule-create-modal');
+            }
+
             function getForm() {
                 return $('#admin-special-schedule-form');
             }
@@ -1959,6 +2035,24 @@
                 }
 
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
+            }
+
+            function closeCreateModal() {
+                const $modal = getCreateModal();
+                const $form = $('#admin-special-schedule-create-form');
+                $modal.addClass('hidden').attr('aria-hidden', 'true');
+                if ($form.length > 0) {
+                    $form[0].reset();
+                }
+            }
+
+            function openCreateModal() {
+                const $modal = getCreateModal();
+                if ($modal.length === 0) return;
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+                window.setTimeout(function () {
+                    $modal.find('input, textarea, select').filter(':visible').first().trigger('focus');
+                }, 0);
             }
 
             function setValue(selector, value) {
@@ -2025,10 +2119,52 @@
                 closeEditor();
             });
 
+            $(document).on('click', '#admin-special-schedule-create-open', function () {
+                openCreateModal();
+            });
+
+            $(document).on('click', '#admin-special-schedule-create-close, #admin-special-schedule-create-cancel', function () {
+                closeCreateModal();
+            });
+
             $(document).on('click', '#admin-special-schedule-editor', function (event) {
                 if (event.target === this) {
                     closeEditor();
                 }
+            });
+
+            $(document).on('click', '#admin-special-schedule-create-modal', function (event) {
+                if (event.target === this) closeCreateModal();
+            });
+
+            $(document).on('keydown', function (event) {
+                if (event.key === 'Escape') closeCreateModal();
+            });
+
+            $(document).on('submit', '#admin-special-schedule-create-form', function (event) {
+                event.preventDefault();
+                const $form = $(this);
+                const $button = $form.find('button[type="submit"]').first();
+                const formData = new FormData($form[0]);
+                $button.prop('disabled', true);
+
+                $.ajax({
+                    url: String($form.attr('action') || ''), method: 'POST', data: formData,
+                    processData: false, contentType: false,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível criar o horário especial.'));
+                        return;
+                    }
+                    closeCreateModal();
+                    App.admin.activateSection('agenda', currentAgendaFilters());
+                    App.core.abrirPopup('sucesso', String(response.message || 'Horário especial criado com sucesso.'));
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () {
+                    $button.prop('disabled', false);
+                });
             });
 
             $(document).on('submit', '#admin-special-schedule-form', function (event) {
@@ -2381,6 +2517,7 @@
                 $('#admin-blog-post-id').val('');
                 $('#admin-blog-post-modal-title').text('Nova postagem do blog');
                 $('#admin-blog-post-submit').text('Salvar postagem');
+                $('#admin-blog-post-deactivate').addClass('hidden').removeAttr('data-post-id');
                 setCoverCurrent('');
                 getGalleryList().empty();
                 addGalleryRow('', '');
@@ -2502,6 +2639,9 @@
 
                 $('#admin-blog-post-modal-title').text('Editar postagem do blog');
                 $('#admin-blog-post-submit').text('Salvar alterações');
+                $('#admin-blog-post-deactivate')
+                    .toggleClass('hidden', Number(post.ativo || 0) !== 1)
+                    .attr('data-post-id', String(post.id || ''));
                 syncShareOptions();
             }
 
@@ -2570,6 +2710,27 @@
                 syncShareOptions();
             });
 
+            $(document).on('click', '#admin-blog-post-deactivate', function () {
+                const $button = $(this);
+                const postId = String($button.attr('data-post-id') || '');
+                if (postId === '' || !window.confirm('Deseja desativar esta postagem?')) return;
+                $button.prop('disabled', true);
+                $.ajax({
+                    url: App.core.buildUrl('/admin/postagens/remover'), method: 'POST', dataType: 'json', data: { post_id: postId },
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível desativar a postagem.'));
+                        return;
+                    }
+                    closeModal();
+                    if (typeof App.admin.activateSection === 'function') App.admin.activateSection('blog');
+                    App.core.abrirPopup('sucesso', 'Postagem desativada com sucesso.');
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () { $button.prop('disabled', false); });
+            });
+
             $(document).on('click', '#admin-blog-delete-confirm-close, #admin-blog-delete-confirm-cancel', function () {
                 closeDeleteConfirmModal();
             });
@@ -2630,6 +2791,139 @@
             $(document).on('submit', 'form[data-admin-blog-delete-form="1"]', function (event) {
                 event.preventDefault();
                 openDeleteConfirmModal($(this));
+            });
+
+            function filterBlogPreview(search, category) {
+                const normalizedSearch = String(search || '').trim().toLocaleLowerCase('pt-BR');
+                const normalizedCategory = String(category || '').trim().toLocaleLowerCase('pt-BR');
+                let visible = 0;
+                $('[data-admin-blog-preview-post="1"]').each(function () {
+                    const postSearch = String($(this).attr('data-post-search') || '').toLocaleLowerCase('pt-BR');
+                    const postCategory = String($(this).attr('data-post-category') || '').trim().toLocaleLowerCase('pt-BR');
+                    const show = (normalizedSearch === '' || postSearch.indexOf(normalizedSearch) >= 0) && (normalizedCategory === '' || postCategory === normalizedCategory);
+                    $(this).toggleClass('hidden', !show);
+                    if (show) visible += 1;
+                });
+                $('[data-admin-blog-result-count="1"]').text(visible + (visible === 1 ? ' resultado publicado.' : ' resultados publicados.'));
+            }
+
+            $(document).on('submit', '[data-admin-blog-preview-filter="1"]', function (event) {
+                event.preventDefault();
+                filterBlogPreview($(this).find('[name="busca"]').val(), $(this).find('[name="categoria"]').val());
+            });
+
+            $(document).on('click', '[data-admin-blog-category]', function (event) {
+                event.preventDefault();
+                const category = String($(this).attr('data-admin-blog-category') || '');
+                const $form = $('[data-admin-blog-preview-filter="1"]');
+                $form.find('[name="categoria"]').val(category);
+                $('[data-admin-blog-category]').removeClass('is-active');
+                $(this).addClass('is-active');
+                filterBlogPreview($form.find('[name="busca"]').val(), category);
+            });
+
+            $(document).on('click', '[data-admin-blog-publish="1"]', function () {
+                const $button = $(this).prop('disabled', true);
+                $.ajax({
+                    url: App.core.buildUrl('/admin/postagens/publicar'),
+                    method: 'POST',
+                    dataType: 'json',
+                    data: { post_id: String($button.attr('data-post-id') || '') },
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível publicar a postagem.'));
+                        return;
+                    }
+                    if (typeof App.admin.activateSection === 'function') {
+                        App.admin.activateSection('blog');
+                    }
+                    App.core.abrirPopup('sucesso', String(response.message || 'Postagem publicada com sucesso.'));
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () {
+                    $button.prop('disabled', false);
+                });
+            });
+
+            function closeInactivePreview() {
+                $('#admin-blog-inactive-preview-modal').addClass('hidden').attr('aria-hidden', 'true').removeData('post');
+                $('#admin-blog-inactive-preview-body').empty();
+            }
+
+            function renderInactivePreview(post) {
+                const $body = $('#admin-blog-inactive-preview-body').empty();
+                if (String(post.capa_imagem_url || '').trim() !== '') {
+                    $body.append($('<img>', { class: 'admin-blog-inactive-cover', src: String(post.capa_imagem_url), alt: String(post.titulo || '') }));
+                }
+                $body.append($('<div>', { class: 'blog-post-meta' })
+                    .append($('<span>').text(String(post.categoria || 'Sem categoria')))
+                    .append($('<span>').text(String(post.status || 'rascunho'))));
+                $body.append($('<h2>').text(String(post.titulo || 'Postagem sem título')));
+                $body.append($('<p>', { class: 'blog-post-summary' }).text(String(post.resumo || '')));
+                const $content = $('<div>', { class: 'blog-rich-text' });
+                String(post.conteudo || '').split(/\r?\n(?:\s*\r?\n)*/).forEach(function (paragraph) {
+                    if (paragraph.trim() !== '') $content.append($('<p>').text(paragraph.trim()));
+                });
+                $body.append($content);
+                if (Array.isArray(post.gallery_images)) {
+                    post.gallery_images.forEach(function (item) {
+                        if (String(item.imagem_url || '').trim() === '') return;
+                        const $figure = $('<figure>', { class: 'blog-gallery-item' })
+                            .append($('<img>', { class: 'blog-gallery-image', src: String(item.imagem_url), alt: String(item.legenda || post.titulo || '') }));
+                        if (String(item.legenda || '').trim() !== '') $figure.append($('<figcaption>').text(String(item.legenda)));
+                        $body.append($figure);
+                    });
+                }
+            }
+
+            $(document).on('click', '[data-admin-blog-inactive-preview="1"]', function () {
+                const postId = String($(this).attr('data-post-id') || '');
+                $.ajax({
+                    url: App.core.buildUrl('/admin/postagens/detalhe'), method: 'GET', dataType: 'json', data: { id: postId },
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false || !response.post) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível abrir a postagem.'));
+                        return;
+                    }
+                    renderInactivePreview(response.post);
+                    $('#admin-blog-inactive-preview-modal').data('post', response.post).removeClass('hidden').attr('aria-hidden', 'false');
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                });
+            });
+
+            $(document).on('click', '[data-admin-blog-inactive-preview-close="1"], #admin-blog-inactive-preview-modal', function (event) {
+                if ($(event.target).is('#admin-blog-inactive-preview-modal') || $(event.target).is('[data-admin-blog-inactive-preview-close="1"]')) closeInactivePreview();
+            });
+
+            $(document).on('click', '[data-admin-blog-inactive-edit="1"]', function () {
+                const post = $('#admin-blog-inactive-preview-modal').data('post');
+                if (!post) return;
+                closeInactivePreview();
+                fillForm(post);
+                openModal();
+            });
+
+            $(document).on('click', '[data-admin-blog-inactive-activate="1"]', function () {
+                const post = $('#admin-blog-inactive-preview-modal').data('post');
+                if (!post || !post.id) return;
+                const $button = $(this).prop('disabled', true);
+                $.ajax({
+                    url: App.core.buildUrl('/admin/postagens/ativar'), method: 'POST', dataType: 'json', data: { post_id: String(post.id) },
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível ativar a postagem.'));
+                        return;
+                    }
+                    closeInactivePreview();
+                    if (typeof App.admin.activateSection === 'function') App.admin.activateSection('blog');
+                    App.core.abrirPopup('sucesso', String(response.message || 'Postagem ativada com sucesso.'));
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () { $button.prop('disabled', false); });
             });
         },
 
@@ -2701,21 +2995,40 @@
                         return;
                     }
 
-                    if (response.card_html) {
-                        $('#admin-official-communication-card-shell').html(String(response.card_html));
-                    }
-
                     if (response.communication) {
                         syncForm(response.communication);
                     }
 
                     closeModal();
-                    App.core.abrirPopup('sucesso', String(response.message || 'Comunicação oficial salva com sucesso.'));
+                    if (typeof App.admin.activateSection === 'function') {
+                        App.admin.activateSection('blog');
+                    }
+                    App.core.abrirPopup('sucesso', String(response.message || 'Rascunho salvo com sucesso.'));
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);
                 }).always(function () {
                     $submitButton.prop('disabled', false);
+                });
+            });
+
+            $(document).on('click', '[data-admin-blog-communication-publish="1"]', function () {
+                const $button = $(this).prop('disabled', true);
+                $.ajax({
+                    url: App.core.buildUrl('/admin/comunicacao-oficial/publicar'),
+                    method: 'POST',
+                    dataType: 'json',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível publicar o quadro.'));
+                        return;
+                    }
+                    App.core.abrirPopup('sucesso', String(response.message || 'Quadro publicado com sucesso.'));
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () {
+                    $button.prop('disabled', false);
                 });
             });
         },
@@ -3639,6 +3952,7 @@
 
             App.admin.montarPreviaConteudoHome = function () {
                 const configs = [
+                    { selector: '#admin-home-footer-form', key: 'rodape', title: 'Rodapé' },
                     { selector: '#admin-home-logo-form', key: 'logotipo', title: 'Logotipo' },
                     { selector: '#admin-home-contact-form', key: 'contato', title: 'Faixa de contato' },
                     { selector: '#admin-home-hero-form', key: 'apresentacao', title: 'Quadro principal' },
@@ -3699,10 +4013,10 @@
                 preview.src = temporaryUrl;
             });
 
-            $(document).on('submit', '#admin-home-logo-form, #admin-home-contact-form, #admin-home-info-form, #admin-home-highlights-form, #admin-home-hero-form', function (event) {
+            $(document).on('submit', '#admin-home-footer-form, #admin-home-logo-form, #admin-home-contact-form, #admin-home-info-form, #admin-home-highlights-form, #admin-home-hero-form', function (event) {
                 event.preventDefault();
                 const $form = $(this);
-                const key = $form.is('#admin-home-logo-form') ? 'logotipo' : ($form.is('#admin-home-contact-form') ? 'contato' : ($form.is('#admin-home-info-form') ? 'quadro_informativo' : ($form.is('#admin-home-highlights-form') ? 'destaques' : 'apresentacao')));
+                const key = $form.is('#admin-home-footer-form') ? 'rodape' : ($form.is('#admin-home-logo-form') ? 'logotipo' : ($form.is('#admin-home-contact-form') ? 'contato' : ($form.is('#admin-home-info-form') ? 'quadro_informativo' : ($form.is('#admin-home-highlights-form') ? 'destaques' : 'apresentacao'))));
                 const isUpload = $form.is('#admin-home-logo-form');
                 const request = { url: String($form.attr('action')), method: 'POST', dataType: 'json', data: isUpload ? new FormData(this) : $form.serialize(), headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } };
                 if (isUpload) {
@@ -3983,6 +4297,86 @@
                 importMigrationBatch($button, 0, 0, 1, null, null);
             });
 
+            function importHealthCertificateBatch($button, type, cursorDate, cursorId, total, snapshotDate, snapshotId) {
+                $button.prop('disabled', true).text('Importando... ' + total);
+                $.ajax({
+                    url: App.core.buildUrl('/admin/migracao-atestados/importar'),
+                    method: 'POST',
+                    dataType: 'json',
+                    data: {
+                        tipo_atestado: type, cursor_data: cursorDate, cursor_id: cursorId,
+                        snapshot_data: snapshotDate == null ? '' : snapshotDate,
+                        snapshot_id: snapshotId == null ? '' : snapshotId
+                    },
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        $button.prop('disabled', false).text(type === 'clinico' ? 'Importar clínicos' : 'Importar dermatológicos');
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível importar os atestados.'));
+                        return;
+                    }
+                    const accumulated = total + Number(response.processados || 0);
+                    const nextDate = String(response.proxima_data || '');
+                    const nextId = Number(response.proximo_id || 0);
+                    if (response.tem_mais && (nextDate !== String(cursorDate || '') || nextId !== Number(cursorId || 0))) {
+                        importHealthCertificateBatch(
+                            $button, type, nextDate, nextId, accumulated,
+                            String(response.snapshot_data || ''), Number(response.snapshot_id || 0)
+                        );
+                        return;
+                    }
+                    $button.prop('disabled', false).text(type === 'clinico' ? 'Importar clínicos' : 'Importar dermatológicos');
+                    App.core.abrirPopup('sucesso', accumulated + ' atestados foram processados.');
+                    $('[data-admin-nav-target="migracao-atestados"]').trigger('click');
+                }).fail(function (xhr) {
+                    $button.prop('disabled', false).text(type === 'clinico' ? 'Importar clínicos' : 'Importar dermatológicos');
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                });
+            }
+
+            $(document).on('click', '[data-health-migration-import]', function () {
+                const $button = $(this);
+                importHealthCertificateBatch($button, String($button.data('healthMigrationImport') || ''), '', 0, 0, null, null);
+            });
+
+            let healthMigrationSearchTimer = null;
+
+            function refreshHealthMigrationSection($form) {
+                if (!$form || $form.length === 0 || typeof App.admin.activateSection !== 'function') return;
+                const params = {};
+                const activeField = window.document.activeElement;
+
+                if (activeField && $form.has(activeField).length > 0 && activeField.name) {
+                    App.state.healthMigrationFocus = {
+                        name: String(activeField.name),
+                        position: typeof activeField.selectionStart === 'number'
+                            ? activeField.selectionStart
+                            : String($(activeField).val() || '').length
+                    };
+                }
+                $.each($form.serializeArray(), function (_, field) {
+                    params[field.name] = field.value;
+                });
+                App.admin.activateSection('migracao-atestados', params, { suppressGlobalLoading: true });
+            }
+
+            $(document).on('submit', '[data-health-migration-filter="1"]', function (event) {
+                event.preventDefault();
+                refreshHealthMigrationSection($(this));
+            });
+
+            $(document).on('input', '[data-health-migration-search="1"]', function () {
+                const $form = $(this).closest('form');
+                window.clearTimeout(healthMigrationSearchTimer);
+                healthMigrationSearchTimer = window.setTimeout(function () {
+                    refreshHealthMigrationSection($form);
+                }, 350);
+            });
+
+            $(document).on('change', '[data-health-migration-limit="1"]', function () {
+                refreshHealthMigrationSection($(this).closest('form'));
+            });
+
             $(document).on('click', '[data-external-migration-delete="1"]', function () {
                 const $button = $(this);
                 const name = String($button.data('migrationName') || 'este registro');
@@ -4006,6 +4400,7 @@
                     App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
                 });
             });
+
         },
 
         init: function () {

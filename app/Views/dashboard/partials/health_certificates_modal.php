@@ -32,6 +32,7 @@ $serviceLocationOptions = $service_location_options ?? [];
             <?php foreach ($certificates as $certificate) { ?>
                 <?php
                 $record = $certificate['record'] ?? null;
+                $importedRecord = $certificate['imported_record'] ?? null;
                 $currentFilePath = trim((string) ($record['caminho_arquivo'] ?? ''));
                 $currentFileName = trim((string) ($record['nome_arquivo'] ?? ''));
                 $currentFileExists = $currentFilePath !== '' && is_file(ROOT_PATH . '/public' . $currentFilePath);
@@ -53,6 +54,9 @@ $serviceLocationOptions = $service_location_options ?? [];
                     </div>
 
                     <div class="dashboard-certificate-meta">
+                        <?php if ($importedRecord) { ?>
+                            <p class="alert-inline"><strong>Atestado reconhecido do sistema anterior.</strong> Ele continuará válido até <?php echo e(!empty($importedRecord['validade_certificado']) ? date('d/m/Y', strtotime((string) $importedRecord['validade_certificado'])) : 'a data informada na origem'); ?> ou até um novo atestado ser validado neste sistema.</p>
+                        <?php } ?>
                         <p class="dashboard-certificate-current-file">
                             <strong>Arquivo atual:</strong>
                             <?php if ($currentFileExists) { ?>

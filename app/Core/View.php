@@ -7,11 +7,16 @@ use App\Services\AccountAccessService;
 use App\Services\ProfileService;
 use App\Services\SitePopupService;
 use App\Services\UserService;
+use App\Services\HomeInfoService;
 
 class View
 {
     public static function render(string $view, array $data = []): void
     {
+        if (!array_key_exists('footerContent', $data)) {
+            try { $data['footerContent'] = (new HomeInfoService())->getFooterContent(); }
+            catch (\Throwable $e) { $data['footerContent'] = []; }
+        }
         if (!array_key_exists('sitePopupAtivo', $data)) {
             try {
                 $data['sitePopupAtivo'] = (new SitePopupService())->findActiveForPath(current_path());

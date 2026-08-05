@@ -14,9 +14,9 @@
             <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Início</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-pessoas">Usuários e pessoas</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="migracao-cadastros">Migração de cadastros</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="migracao-atestados">Migração de atestados</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="agenda">Agenda</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="pagina-home">Página home</button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="pop-ups">Pop-ups</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="pop-ups">Pop-ups</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="blog">Blog</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="locais-espacos">Locais e espaços</button>

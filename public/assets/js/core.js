@@ -363,7 +363,30 @@
             }
 
             if (message === '' && value !== '') {
-                if ([
+                const personNameFields = [
+                    'full_name',
+                    'nome_completo',
+                    'parent1_name',
+                    'parent2_name',
+                    'responsavel1_nome',
+                    'responsavel2_nome',
+                    'emergency_contact_name',
+                    'contato_emergencia_nome',
+                    'personalidade_nome'
+                ];
+
+                if (personNameFields.indexOf(name) >= 0) {
+                    const normalizedName = value.replace(/\s+/g, ' ');
+
+                    if (!/^[\p{L}]+(?:[ '\u2019-][\p{L}]+)*$/u.test(normalizedName)) {
+                        message = 'Use apenas letras, espaços, hífen ou apóstrofo.';
+                    } else if (
+                        ['full_name', 'nome_completo'].indexOf(name) >= 0 &&
+                        normalizedName.length < 14
+                    ) {
+                        message = 'Informe o nome completo com no mínimo 14 caracteres.';
+                    }
+                } else if ([
                     'cpf',
                     'parent1_cpf',
                     'parent2_cpf',
