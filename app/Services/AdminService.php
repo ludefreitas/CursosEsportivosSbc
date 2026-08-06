@@ -15,6 +15,8 @@ class AdminService
     public const MAX_TRAINING_LOCATION_LIMIT = 20;
     public const DEFAULT_TRAINING_SPACE_LIMIT = 10;
     public const MAX_TRAINING_SPACE_LIMIT = 20;
+    public const DEFAULT_MODALITY_LIMIT = 10;
+    public const MAX_MODALITY_LIMIT = 50;
     private const HEALTH_CERTIFICATE_TYPES = [
         'clinico' => 'Atestado clínico',
         'dermatologico' => 'Atestado dermatológico',
@@ -1965,6 +1967,121 @@ class AdminService
         ');
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Lista modalidades para a seção administrativa de gerenciamento. */
+    public function listModalitiesForAdmin(string $search = '', int $limit = self::DEFAULT_MODALITY_LIMIT): array
+    {
+        $search = trim($search);
+        $limit = max(1, min(self::MAX_MODALITY_LIMIT, $limit));
+        $sql = 'SELECT m.id, m.nome, m.slug, m.tipo_ambiente, m.ativo,
+                    COUNT(DISTINCT hs.id) AS total_horarios,
+                    SUM(CASE WHEN hs.ativo = 1 THEN 1 ELSE 0 END) AS horarios_ativos
+                FROM modalidades m
+                LEFT JOIN horarios_semanais hs ON hs.modalidade_id = m.id';
+        $params = [];
+
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $sql .= ' WHERE m.nome LIKE :busca_nome
+                       OR m.tipo_ambiente LIKE :busca_ambiente
+                       OR (m.ativo = 1 AND :status_ativo LIKE :busca_status_ativo)
+                       OR (m.ativo = 0 AND :status_inativo LIKE :busca_status_inativo)';
+            $params = [
+                ':busca_nome' => $like,
+                ':busca_ambiente' => '%' . (slugify($search) ?: $search) . '%',
+                ':status_ativo' => 'ativo ativa',
+                ':busca_status_ativo' => $like,
+                ':status_inativo' => 'inativo inativa',
+                ':busca_status_inativo' => $like,
+            ];
+        }
+
+        $sql .= ' GROUP BY m.id, m.nome, m.slug, m.tipo_ambiente, m.ativo
+                  ORDER BY m.nome ASC LIMIT :limite';
+        $stmt = Database::connection()->prepare($sql);
+        foreach ($params as $key => $value) $stmt->bindValue($key, $value, PDO::PARAM_STR);
+        $stmt->bindValue(':limite', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function getModalityForManagement(int $modalityId): array
+    {
+        if ($modalityId <= 0) throw new RuntimeException('Modalidade inválida.');
+        $stmt = Database::connection()->prepare('SELECT id, nome, slug, tipo_ambiente, ativo FROM modalidades WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $modalityId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) throw new RuntimeException('Modalidade não encontrada.');
+        return $row;
+    }
+
+    public function createModality(int $accountId, array $data): array
+    {
+        $payload = $this->validateModalityPayload($data);
+        $this->assertUniqueModalityName($payload['nome']);
+        $slug = $this->generateUniqueModalitySlug($payload['nome']);
+        $stmt = Database::connection()->prepare('INSERT INTO modalidades (nome, slug, tipo_ambiente, ativo) VALUES (:nome, :slug, :tipo, :ativo)');
+        $stmt->execute([':nome' => $payload['nome'], ':slug' => $slug, ':tipo' => $payload['tipo_ambiente'], ':ativo' => $payload['ativo']]);
+        $id = (int) Database::connection()->lastInsertId();
+        AuditLogService::record('admin.modalidade_criada', 'modalidades', $id, ['nome' => $payload['nome'], 'tipo_ambiente' => $payload['tipo_ambiente'], 'ativo' => $payload['ativo'], 'conta_id' => $accountId]);
+        return $this->getModalityForManagement($id);
+    }
+
+    public function updateModality(int $accountId, array $data): array
+    {
+        $id = (int) ($data['modalidade_id'] ?? 0);
+        $current = $this->getModalityForManagement($id);
+        $payload = $this->validateModalityPayload($data);
+        $this->assertUniqueModalityName($payload['nome'], $id);
+
+        if ((int) $current['ativo'] === 1 && $payload['ativo'] === 0) {
+            $check = Database::connection()->prepare('SELECT COUNT(*) FROM horarios_semanais WHERE modalidade_id = :id AND ativo = 1');
+            $check->execute([':id' => $id]);
+            if ((int) $check->fetchColumn() > 0) {
+                throw new RuntimeException('Esta modalidade possui horários semanais ativos. Inative esses horários antes de desativar a modalidade.');
+            }
+        }
+
+        $stmt = Database::connection()->prepare('UPDATE modalidades SET nome = :nome, tipo_ambiente = :tipo, ativo = :ativo WHERE id = :id');
+        $stmt->execute([':id' => $id, ':nome' => $payload['nome'], ':tipo' => $payload['tipo_ambiente'], ':ativo' => $payload['ativo']]);
+        AuditLogService::record('admin.modalidade_atualizada', 'modalidades', $id, ['antes' => $current, 'depois' => $payload, 'conta_id' => $accountId]);
+        return $this->getModalityForManagement($id);
+    }
+
+    private function validateModalityPayload(array $data): array
+    {
+        $name = trim((string) ($data['nome'] ?? ''));
+        $environment = trim((string) ($data['tipo_ambiente'] ?? ''));
+        $active = (int) ($data['ativo'] ?? 1) === 1 ? 1 : 0;
+        if ($name === '') throw new RuntimeException('Informe o nome da modalidade.');
+        if (mb_strlen($name) > 150) throw new RuntimeException('O nome da modalidade deve ter no máximo 150 caracteres.');
+        if (!in_array($environment, ['aquatica', 'terrestre'], true)) throw new RuntimeException('Selecione um tipo de ambiente válido.');
+        return ['nome' => $name, 'tipo_ambiente' => $environment, 'ativo' => $active];
+    }
+
+    private function assertUniqueModalityName(string $name, int $ignoreId = 0): void
+    {
+        $sql = 'SELECT id FROM modalidades WHERE LOWER(TRIM(nome)) = LOWER(TRIM(:nome))';
+        $params = [':nome' => $name];
+        if ($ignoreId > 0) { $sql .= ' AND id <> :id'; $params[':id'] = $ignoreId; }
+        $sql .= ' LIMIT 1';
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute($params);
+        if ($stmt->fetchColumn()) throw new RuntimeException('Já existe uma modalidade cadastrada com esse nome.');
+    }
+
+    private function generateUniqueModalitySlug(string $name): string
+    {
+        $base = substr(slugify($name) ?: 'modalidade', 0, 140);
+        $slug = $base;
+        $suffix = 2;
+        $stmt = Database::connection()->prepare('SELECT COUNT(*) FROM modalidades WHERE slug = :slug');
+        while (true) {
+            $stmt->execute([':slug' => $slug]);
+            if ((int) $stmt->fetchColumn() === 0) return $slug;
+            $slug = $base . '-' . $suffix++;
+        }
     }
 
     /**

@@ -20,6 +20,7 @@
             <button type="button" class="admin-nav-button" data-admin-nav-target="pop-ups">Pop-ups</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="blog">Blog</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="locais-espacos">Locais e espaços</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="modalidades">Modalidades</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="configuracoes">Configurações</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="outras-areas">Outras áreas</button>
         </div>

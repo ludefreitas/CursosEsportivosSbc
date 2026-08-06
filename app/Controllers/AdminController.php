@@ -81,6 +81,7 @@ class AdminController extends Controller
                 'pop-ups',
                 'blog',
                 'locais-espacos',
+                'modalidades',
                 'configuracoes',
                 'outras-areas',
             ];
@@ -2099,6 +2100,13 @@ class AdminController extends Controller
             $data['spaceSuspensions'] = $this->adminService->listSpaceSuspensionsForManagement();
         }
 
+        if ($sectionName === 'modalidades') {
+            $data['modalitySearch'] = (string) ($_GET['modality_search'] ?? '');
+            $data['modalityLimit'] = max(1, min(AdminService::MAX_MODALITY_LIMIT, (int) ($_GET['modality_limit'] ?? AdminService::DEFAULT_MODALITY_LIMIT)));
+            $data['modalityLimitMax'] = AdminService::MAX_MODALITY_LIMIT;
+            $data['modalitiesManagement'] = $this->adminService->listModalitiesForAdmin($data['modalitySearch'], $data['modalityLimit']);
+        }
+
         if ($sectionName === 'configuracoes') {
             $data['acceptedRanges'] = $this->cepService->listAcceptedRanges();
             $data['cepExceptions'] = $this->cepService->listCepExceptions();
@@ -2182,6 +2190,55 @@ class AdminController extends Controller
             'spaces_html' => $spacesHtml,
             'suspensions_html' => $suspensionsHtml,
         ];
+    }
+
+    public function modalityList(): void
+    {
+        $this->assertAdminAccess();
+        try {
+            $modalities = $this->adminService->listModalitiesForAdmin(
+                (string) ($_GET['modality_search'] ?? ''),
+                (int) ($_GET['modality_limit'] ?? AdminService::DEFAULT_MODALITY_LIMIT)
+            );
+            ob_start();
+            require ROOT_PATH . '/app/Views/admin/partials/modality_rows.php';
+            $this->jsonResponse(['success' => true, 'html' => (string) ob_get_clean()]);
+        } catch (\Throwable $e) {
+            while (ob_get_level() > 0) ob_end_clean();
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function modalityDetails(): void
+    {
+        $this->assertAdminAccess();
+        try {
+            $this->jsonResponse(['success' => true, 'modality' => $this->adminService->getModalityForManagement((int) ($_GET['id'] ?? 0))]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function storeModality(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $modality = $this->adminService->createModality((int) ($user['conta_id'] ?? 0), $_POST);
+            $this->jsonResponse(['success' => true, 'message' => 'Modalidade cadastrada com sucesso.', 'modality' => $modality]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function updateModality(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $modality = $this->adminService->updateModality((int) ($user['conta_id'] ?? 0), $_POST);
+            $this->jsonResponse(['success' => true, 'message' => 'Modalidade atualizada com sucesso.', 'modality' => $modality]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 
     /** Renderiza novamente as linhas da lista de locais apos salvar por AJAX. */

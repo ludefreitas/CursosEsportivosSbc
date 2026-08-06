@@ -2339,6 +2339,82 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
     </section>
 <?php } ?>
 
+<?php if ($sectionName === 'modalidades') { ?>
+    <section class="admin-section-panel" data-admin-section="modalidades">
+        <div class="section-head admin-section-head">
+            <div>
+                <h2>Modalidades</h2>
+                <p class="muted">Crie e gerencie as modalidades disponíveis nos horários e calendários.</p>
+            </div>
+        </div>
+
+        <article class="content-card">
+            <div class="section-head">
+                <div>
+                    <h2>Modalidades cadastradas</h2>
+                    <p class="muted">Modalidades inativas deixam de aparecer em novos horários e nos filtros públicos.</p>
+                </div>
+                <button type="button" class="btn btn-primary" id="admin-modality-create">Criar modalidade</button>
+            </div>
+
+            <form class="admin-people-filter-form admin-training-location-filter-row" id="admin-modality-filter-form" data-manual-submit="1">
+                <label>
+                    <span>Buscar modalidade</span>
+                    <input type="text" name="modality_search" id="admin-modality-search" value="<?php echo e((string) ($modalitySearch ?? '')); ?>" placeholder="Digite nome, ambiente ou status" autocomplete="off">
+                </label>
+                <label>
+                    <span>Quantidade a listar</span>
+                    <input type="number" name="modality_limit" min="1" max="<?php echo e((string) ($modalityLimitMax ?? 50)); ?>" value="<?php echo e((string) ($modalityLimit ?? 10)); ?>">
+                </label>
+                <button type="submit" class="btn btn-secondary">Atualizar lista</button>
+            </form>
+
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead><tr><th>Nome</th><th>Ambiente</th><th>Horários ativos</th><th>Status</th><th>Ação</th></tr></thead>
+                    <tbody id="admin-modality-list-body">
+                        <?php $modalities = $modalitiesManagement ?? []; require ROOT_PATH . '/app/Views/admin/partials/modality_rows.php'; ?>
+                    </tbody>
+                </table>
+            </div>
+        </article>
+
+        <div class="popup-overlay hidden" id="admin-modality-modal" aria-hidden="true">
+            <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-modality-modal-title">
+                <div class="popup-head">
+                    <h3 id="admin-modality-modal-title">Criar modalidade</h3>
+                    <button type="button" class="popup-close-icon" data-admin-modality-close="1" aria-label="Fechar">&times;</button>
+                </div>
+                <div class="popup-body">
+                    <form class="stack-form" id="admin-modality-form" data-manual-submit="1">
+                        <input type="hidden" name="modalidade_id" value="">
+                        <label>
+                            <span>Nome da modalidade</span>
+                            <input type="text" name="nome" maxlength="150" required autocomplete="off">
+                            <small class="field-error hidden" data-modality-error="nome"></small>
+                        </label>
+                        <label>
+                            <span>Tipo de ambiente</span>
+                            <select name="tipo_ambiente" required>
+                                <option value="">Selecione</option>
+                                <option value="aquatica">Aquática</option>
+                                <option value="terrestre">Terrestre</option>
+                            </select>
+                            <small class="field-error hidden" data-modality-error="tipo_ambiente"></small>
+                        </label>
+                        <label>
+                            <span>Status</span>
+                            <select name="ativo"><option value="1">Ativa</option><option value="0">Inativa</option></select>
+                        </label>
+                        <div class="alert-inline hidden" id="admin-modality-form-error"></div>
+                        <button type="submit" class="btn btn-primary">Salvar modalidade</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+<?php } ?>
+
 <?php if ($sectionName === 'configuracoes') { ?>
     <section class="admin-section-panel" data-admin-section="configuracoes">
         <div class="section-head admin-section-head">

@@ -4146,6 +4146,106 @@
             }
         },
 
+        iniciarGerenciamentoModalidades: function () {
+            let filterTimer = null;
+            let filterRequest = null;
+
+            function $modal() { return $('#admin-modality-modal'); }
+            function closeModal() { $modal().addClass('hidden').attr('aria-hidden', 'true'); }
+            function clearErrors() {
+                $('[data-modality-error]').addClass('hidden').text('');
+                $('#admin-modality-form-error').addClass('hidden').text('');
+                $('#admin-modality-form [name]').removeClass('is-invalid');
+            }
+            function showFieldError(name, message) {
+                $('#admin-modality-form [name="' + name + '"]').addClass('is-invalid');
+                $('[data-modality-error="' + name + '"]').removeClass('hidden').text(message);
+            }
+            function refreshList($form) {
+                if (!$form || $form.length === 0) return;
+                const $limit = $form.find('[name="modality_limit"]');
+                const parsed = Number.parseInt(String($limit.val() || '10'), 10);
+                const limit = Math.max(1, Math.min(50, Number.isFinite(parsed) ? parsed : 10));
+                $limit.val(String(limit));
+                if (filterRequest) filterRequest.abort();
+                filterRequest = $.ajax({
+                    url: App.core.buildUrl('/admin/modalidades/lista'), method: 'GET', dataType: 'json', suppressGlobalLoading: true,
+                    data: { modality_search: String($form.find('[name="modality_search"]').val() || ''), modality_limit: limit }
+                }).done(function (response) {
+                    if (!response || response.success === false || typeof response.html !== 'string') {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar as modalidades.'));
+                        return;
+                    }
+                    $('#admin-modality-list-body').html(response.html);
+                }).fail(function (xhr, status) {
+                    if (status !== 'abort') App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () { filterRequest = null; });
+            }
+            function openCreateModal() {
+                const $form = $('#admin-modality-form');
+                $form[0].reset();
+                $form.find('[name="modalidade_id"]').val('');
+                $form.find('[name="ativo"]').val('1');
+                clearErrors();
+                $('#admin-modality-modal-title').text('Criar modalidade');
+                $modal().removeClass('hidden').attr('aria-hidden', 'false');
+                $form.find('[name="nome"]').trigger('focus');
+            }
+
+            $(document).on('submit', '#admin-modality-filter-form', function (event) { event.preventDefault(); refreshList($(this)); });
+            $(document).on('input', '#admin-modality-search, #admin-modality-filter-form [name="modality_limit"]', function () {
+                const $form = $(this).closest('form');
+                window.clearTimeout(filterTimer);
+                filterTimer = window.setTimeout(function () { refreshList($form); }, 300);
+            });
+            $(document).on('click', '#admin-modality-create', openCreateModal);
+            $(document).on('click', '[data-admin-modality-close="1"], #admin-modality-modal', function (event) {
+                if ($(event.target).is('#admin-modality-modal') || $(event.target).is('[data-admin-modality-close="1"]')) closeModal();
+            });
+            $(document).on('click', '.admin-modality-edit', function () {
+                const id = Number($(this).data('modalityId') || 0);
+                $.getJSON(App.core.buildUrl('/admin/modalidades/detalhe'), { id: id }).done(function (response) {
+                    if (!response || !response.success) { App.core.abrirPopup('erro', String((response && response.message) || 'Modalidade não encontrada.')); return; }
+                    const item = response.modality || {};
+                    const $form = $('#admin-modality-form');
+                    clearErrors();
+                    $form.find('[name="modalidade_id"]').val(String(item.id || ''));
+                    $form.find('[name="nome"]').val(String(item.nome || ''));
+                    $form.find('[name="tipo_ambiente"]').val(String(item.tipo_ambiente || ''));
+                    $form.find('[name="ativo"]').val(Number(item.ativo || 0) === 1 ? '1' : '0');
+                    $('#admin-modality-modal-title').text('Editar modalidade');
+                    $modal().removeClass('hidden').attr('aria-hidden', 'false');
+                }).fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); });
+            });
+            $(document).on('submit', '#admin-modality-form', function (event) {
+                event.preventDefault();
+                const $form = $(this);
+                clearErrors();
+                const name = String($form.find('[name="nome"]').val() || '').trim();
+                const environment = String($form.find('[name="tipo_ambiente"]').val() || '');
+                let valid = true;
+                if (!name) { showFieldError('nome', 'Informe o nome da modalidade.'); valid = false; }
+                if (!environment) { showFieldError('tipo_ambiente', 'Selecione o tipo de ambiente.'); valid = false; }
+                if (!valid) return;
+                const editing = Number($form.find('[name="modalidade_id"]').val() || 0) > 0;
+                $.ajax({
+                    url: App.core.buildUrl(editing ? '/admin/modalidades/atualizar' : '/admin/modalidades'),
+                    method: 'POST', dataType: 'json', data: $form.serialize(),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        $('#admin-modality-form-error').removeClass('hidden').text(String((response && response.message) || 'Não foi possível salvar a modalidade.'));
+                        return;
+                    }
+                    closeModal();
+                    refreshList($('#admin-modality-filter-form'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Modalidade salva com sucesso.'));
+                }).fail(function (xhr) {
+                    $('#admin-modality-form-error').removeClass('hidden').text(App.core.extrairMensagemErroAjax(xhr).mensagem);
+                });
+            });
+        },
+
         iniciarMigracaoCadastrosExternos: function () {
             let filterTimer = null;
             let filterRequest = null;
@@ -4435,6 +4535,7 @@
             App.admin.iniciarBuscaEnderecoCep();
             App.admin.iniciarFiltroLocaisTreino();
             App.admin.iniciarFiltroEspacosTreino();
+            App.admin.iniciarGerenciamentoModalidades();
             App.admin.iniciarEditorEspacosTreino();
             App.admin.iniciarModalSuspensoesLocal();
             App.admin.iniciarEditorConteudoHome();
