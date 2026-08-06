@@ -115,13 +115,18 @@
                                 <span class="muted">Não enviado</span>
                             <?php } else { ?>
                                 <div class="admin-condition-indicator-item">
-                                    <button
-                                        type="button"
-                                        class="link-button admin-condition-link"
-                                        data-open-health-certificate-validation="1"
-                                        data-person-id="<?php echo e((string) $person['id']); ?>"
-                                        data-certificate-type="clinico"
-                                    ><?php echo e((string) ($indicator['label'] ?? 'Atestado clínico')); ?></button>
+                                    <?php if (!empty($indicator['can_open_validation'])) { ?>
+                                        <button
+                                            type="button"
+                                            class="link-button admin-condition-link"
+                                            data-open-health-certificate-validation="1"
+                                            data-person-id="<?php echo e((string) $person['id']); ?>"
+                                            data-certificate-type="clinico"
+                                        ><?php echo e((string) ($indicator['label'] ?? 'Atestado clínico')); ?></button>
+                                    <?php } else { ?>
+                                        <strong><?php echo e((string) ($indicator['label'] ?? 'Atestado clínico')); ?></strong>
+                                        <small class="muted">(importado)</small>
+                                    <?php } ?>
                                     <span class="muted"><?php echo e((string) ($indicator['status_label'] ?? '')); ?></span>
                                     <?php if (($indicator['icon_type'] ?? '') === 'warning') { ?>
                                         <button
@@ -155,13 +160,18 @@
                                 <span class="muted">Não enviado</span>
                             <?php } else { ?>
                                 <div class="admin-condition-indicator-item">
-                                    <button
-                                        type="button"
-                                        class="link-button admin-condition-link"
-                                        data-open-health-certificate-validation="1"
-                                        data-person-id="<?php echo e((string) $person['id']); ?>"
-                                        data-certificate-type="dermatologico"
-                                    ><?php echo e((string) ($indicator['label'] ?? 'Atestado dermatológico')); ?></button>
+                                    <?php if (!empty($indicator['can_open_validation'])) { ?>
+                                        <button
+                                            type="button"
+                                            class="link-button admin-condition-link"
+                                            data-open-health-certificate-validation="1"
+                                            data-person-id="<?php echo e((string) $person['id']); ?>"
+                                            data-certificate-type="dermatologico"
+                                        ><?php echo e((string) ($indicator['label'] ?? 'Atestado dermatológico')); ?></button>
+                                    <?php } else { ?>
+                                        <strong><?php echo e((string) ($indicator['label'] ?? 'Atestado dermatológico')); ?></strong>
+                                        <small class="muted">(importado)</small>
+                                    <?php } ?>
                                     <span class="muted"><?php echo e((string) ($indicator['status_label'] ?? '')); ?></span>
                                     <?php if (($indicator['icon_type'] ?? '') === 'warning') { ?>
                                         <button

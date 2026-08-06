@@ -3889,6 +3889,7 @@ class AdminService
                 tipo_atestado,
                 status_validacao,
                 validade_certificado,
+                "interno" AS origem_atestado,
                 updated_at,
                 created_at
             FROM atestados_saude
@@ -3907,6 +3908,34 @@ class AdminService
             }
 
             $latestHealthByPersonAndType[$personId][$type] = $row;
+        }
+
+        $importedHealthStmt = $pdo->prepare('
+            SELECT
+                i.id,
+                p.id AS pessoa_id,
+                i.tipo_atestado,
+                "validado" AS status_validacao,
+                i.validade_certificado,
+                "importado" AS origem_atestado,
+                i.updated_at,
+                i.created_at
+            FROM atestados_saude_importados i
+            INNER JOIN pessoas p ON p.cpf = i.cpf
+            WHERE p.id IN (' . $placeholders . ')
+              AND i.status_importacao = "ativo"
+            ORDER BY p.id ASC, i.tipo_atestado ASC, i.data_atualizacao_origem DESC, i.id_externo DESC
+        ');
+        $importedHealthStmt->execute($personIds);
+
+        foreach ($importedHealthStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $personId = (int) ($row['pessoa_id'] ?? 0);
+            $type = (string) ($row['tipo_atestado'] ?? '');
+
+            if ($personId > 0 && $type !== '') {
+                // O legado ativo prevalece até ser substituído por uma validação interna.
+                $latestHealthByPersonAndType[$personId][$type] = $row;
+            }
         }
 
         foreach ($people as &$person) {
@@ -4057,6 +4086,8 @@ class AdminService
             'status_label' => $statusLabel,
             'icon_type' => $iconType,
             'icon_message' => $iconMessage,
+            'origem_atestado' => (string) ($certificate['origem_atestado'] ?? 'interno'),
+            'can_open_validation' => (string) ($certificate['origem_atestado'] ?? 'interno') !== 'importado',
         ];
     }
 
