@@ -1,13 +1,14 @@
 <section class="content-card">
     <div class="section-head">
         <div>
-            <span class="eyebrow">FullCalendar</span>
             <h1>Agenda de treinos e avaliações</h1>
-            <p class="muted">A agenda fica visível sem login. Para concluir um agendamento, o usuário precisa estar autenticado e com cadastro completo.</p>
-            <div class="alert-inline">
-                As inscrições para os cursos esportivos e os agendamentos para treinos são exclusivos para moradores de São Bernardo do Campo.
-                Será exigido comprovante de endereço ao se matricular e também no dia do agendamento.
-            </div>
+            <p class="muted">Para concluir um agendamento, o usuário precisa estar autenticado e com cadastro completo.</p>
+            <?php if (empty($profile) || (int) ($profile['cadastro_completo'] ?? 0) !== 1) { ?>
+                <div class="alert-inline">
+                    As inscrições para os cursos esportivos e os agendamentos para treinos são exclusivos para moradores de São Bernardo do Campo.
+                    Será exigido comprovante de endereço ao se matricular e também no dia do agendamento.
+                </div>
+            <?php } ?>
             <?php if (empty($profile)) { ?>
                 <div class="alert-inline">
                     Faca login para liberar os nomes disponíveis para agendamento nesta agenda.
@@ -25,43 +26,56 @@
             <form class="agenda-calendar-filter-form" id="agenda-calendar-filter-form">
                 <input type="hidden" name="local_treino_id" id="agenda-local-filter" value="0">
                 <input type="hidden" name="modalidade_id" id="agenda-modality-filter" value="0">
-                <input type="hidden" name="filter_mode" id="agenda-filter-mode" value="todos">
+                <input type="hidden" name="filter_mode" id="agenda-filter-mode" value="">
 
                 <div class="agenda-tab-filter">
                     <div class="agenda-tab-filter-head">
-                        <span>Filtrar horários</span>
-                        <small class="muted">Comece por todos os horários ou navegue pelas fichas de local e modalidade.</small>
+                        <small class="muted">Escolha um local e uma modalidade com horário semanal disponível.</small>
                     </div>
 
-                    <div class="agenda-primary-tabs" role="tablist" aria-label="Tipo de filtro da agenda">
-                        <button type="button" class="agenda-primary-tab is-active" data-agenda-filter-mode="todos">Todos os horários</button>
-                        <button type="button" class="agenda-primary-tab" data-agenda-filter-mode="local">Horários por local</button>
-                        <button type="button" class="agenda-primary-tab" data-agenda-filter-mode="modalidade">Horários por modalidade</button>
-                    </div>
+                    <div class="agenda-filter-accordion">
+                        <div class="agenda-filter-branch" data-agenda-filter-branch="local">
+                            <button type="button" class="agenda-primary-tab agenda-accordion-toggle" data-agenda-filter-mode="local" aria-expanded="false">Agenda por local</button>
+                            <div class="agenda-secondary-panel hidden" data-agenda-filter-panel="local">
+                                <span class="agenda-secondary-title">Escolha o local</span>
+                                <div class="agenda-secondary-tabs" role="list" aria-label="Locais da agenda">
+                                    <?php foreach (($scheduleFilterOptions['locations'] ?? []) as $location) { ?>
+                                        <button type="button" class="agenda-secondary-tab" data-agenda-filter-kind="local" data-agenda-filter-value="<?php echo e((string) $location['id']); ?>" data-agenda-filter-label="<?php echo e((string) (($location['apelido_local'] ?? '') !== '' ? $location['apelido_local'] : $location['nome_local'])); ?>"><?php echo e(format_training_location_name($location)); ?></button>
+                                    <?php } ?>
+                                </div>
+                            </div>
+                            <div class="agenda-secondary-panel agenda-filter-dependent hidden" data-agenda-filter-panel="modalidade">
+                                <span class="agenda-secondary-title">Modalidades disponíveis neste local</span>
+                                <div class="agenda-secondary-tabs" role="list" aria-label="Modalidades disponíveis no local">
+                                    <?php foreach (($scheduleFilterOptions['modalities'] ?? []) as $modality) { ?>
+                                        <button type="button" class="agenda-secondary-tab" data-agenda-filter-kind="modalidade" data-agenda-filter-value="<?php echo e((string) $modality['id']); ?>" data-agenda-filter-label="<?php echo e((string) $modality['nome']); ?>"><?php echo e($modality['nome']); ?></button>
+                                    <?php } ?>
+                                </div>
+                            </div>
+                        </div>
 
-                    <div class="agenda-secondary-panel hidden" data-agenda-filter-panel="local">
-                        <span class="agenda-secondary-title">Locais</span>
-                        <div class="agenda-secondary-tabs" role="tablist" aria-label="Locais da agenda">
-                            <button type="button" class="agenda-secondary-tab is-active" data-agenda-filter-kind="local" data-agenda-filter-value="0">Todos os locais</button>
-                            <?php foreach ($locations as $location) { ?>
-                                <button type="button" class="agenda-secondary-tab" data-agenda-filter-kind="local" data-agenda-filter-value="<?php echo e((string) $location['id']); ?>">
-                                    <?php echo e(format_training_location_name($location)); ?>
-                                </button>
-                            <?php } ?>
+                        <div class="agenda-filter-branch" data-agenda-filter-branch="modalidade">
+                            <button type="button" class="agenda-primary-tab agenda-accordion-toggle" data-agenda-filter-mode="modalidade" aria-expanded="false">Agenda por modalidade</button>
+                            <div class="agenda-secondary-panel hidden" data-agenda-filter-panel="modalidade">
+                                <span class="agenda-secondary-title">Escolha a modalidade</span>
+                                <div class="agenda-secondary-tabs" role="list" aria-label="Modalidades da agenda">
+                                    <?php foreach (($scheduleFilterOptions['modalities'] ?? []) as $modality) { ?>
+                                        <button type="button" class="agenda-secondary-tab" data-agenda-filter-kind="modalidade" data-agenda-filter-value="<?php echo e((string) $modality['id']); ?>" data-agenda-filter-label="<?php echo e((string) $modality['nome']); ?>"><?php echo e($modality['nome']); ?></button>
+                                    <?php } ?>
+                                </div>
+                            </div>
+                            <div class="agenda-secondary-panel agenda-filter-dependent hidden" data-agenda-filter-panel="local">
+                                <span class="agenda-secondary-title">Locais que oferecem esta modalidade</span>
+                                <div class="agenda-secondary-tabs" role="list" aria-label="Locais disponíveis para a modalidade">
+                                    <?php foreach (($scheduleFilterOptions['locations'] ?? []) as $location) { ?>
+                                        <button type="button" class="agenda-secondary-tab" data-agenda-filter-kind="local" data-agenda-filter-value="<?php echo e((string) $location['id']); ?>" data-agenda-filter-label="<?php echo e((string) (($location['apelido_local'] ?? '') !== '' ? $location['apelido_local'] : $location['nome_local'])); ?>"><?php echo e(format_training_location_name($location)); ?></button>
+                                    <?php } ?>
+                                </div>
+                            </div>
                         </div>
                     </div>
-
-                    <div class="agenda-secondary-panel hidden" data-agenda-filter-panel="modalidade">
-                        <span class="agenda-secondary-title">Modalidades</span>
-                        <div class="agenda-secondary-tabs" role="tablist" aria-label="Modalidades da agenda">
-                            <button type="button" class="agenda-secondary-tab is-active" data-agenda-filter-kind="modalidade" data-agenda-filter-value="0">Todas as modalidades</button>
-                            <?php foreach ($modalities as $modality) { ?>
-                                <button type="button" class="agenda-secondary-tab" data-agenda-filter-kind="modalidade" data-agenda-filter-value="<?php echo e((string) $modality['id']); ?>">
-                                    <?php echo e($modality['nome']); ?>
-                                </button>
-                            <?php } ?>
-                        </div>
-                    </div>
+                    <p class="muted agenda-filter-status" data-agenda-filter-status>Selecione por onde deseja começar.</p>
+                    <script type="application/json" id="agenda-schedule-filter-combinations"><?php echo json_encode($scheduleFilterOptions['combinations'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>
                 </div>
             </form>
             <div

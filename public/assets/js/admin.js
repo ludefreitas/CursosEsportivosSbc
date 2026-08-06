@@ -595,44 +595,38 @@
             });
 
             $(document).on('click', '[data-admin-agenda-filter-mode]', function () {
+                const $button = $(this);
+                const $form = $('#admin-agenda-calendar-filter-form');
+                const $branch = $button.closest('[data-admin-agenda-filter-branch]');
                 const mode = String($(this).data('adminAgendaFilterMode') || '').trim().toLowerCase();
 
-                if (mode !== 'todos' && mode !== 'local' && mode !== 'modalidade') {
+                if (mode !== 'local' && mode !== 'modalidade') {
                     return;
                 }
 
-                if ($(this).hasClass('is-active')) {
-                    return;
-                }
+                const shouldCollapse = $button.hasClass('is-active');
+                $form.find('[data-admin-agenda-filter-mode]').removeClass('is-active').attr('aria-expanded', 'false');
+                $form.find('[data-admin-agenda-filter-panel]').addClass('hidden');
+                $form.find('[data-admin-agenda-filter-kind]').removeClass('is-active').prop('hidden', false);
+                $('#admin-agenda-calendar-local-filter, #admin-agenda-calendar-modality-filter').val('0');
 
-                $('#admin-agenda-calendar-filter-mode').val(mode);
-                $('[data-admin-agenda-filter-mode]').removeClass('is-active');
-                $(this).addClass('is-active');
-                $('[data-admin-agenda-filter-panel]').addClass('hidden');
-
-                if (mode === 'todos') {
-                    $('#admin-agenda-calendar-local-filter').val('0');
-                    $('#admin-agenda-calendar-modality-filter').val('0');
-                    $('[data-admin-agenda-filter-kind="local"]').removeClass('is-active');
-                    $('[data-admin-agenda-filter-kind="local"][data-admin-agenda-filter-value="0"]').addClass('is-active');
-                    $('[data-admin-agenda-filter-kind="modalidade"]').removeClass('is-active');
-                    $('[data-admin-agenda-filter-kind="modalidade"][data-admin-agenda-filter-value="0"]').addClass('is-active');
-                } else if (mode === 'local') {
-                    $('[data-admin-agenda-filter-panel="local"]').removeClass('hidden');
-                    $('#admin-agenda-calendar-modality-filter').val('0');
-                    $('[data-admin-agenda-filter-kind="modalidade"]').removeClass('is-active');
-                    $('[data-admin-agenda-filter-kind="modalidade"][data-admin-agenda-filter-value="0"]').addClass('is-active');
+                if (shouldCollapse) {
+                    $('#admin-agenda-calendar-filter-mode').val('');
+                    $('[data-admin-agenda-filter-status]').removeClass('is-selection-complete').text('Selecione por onde deseja começar.');
                 } else {
-                    $('[data-admin-agenda-filter-panel="modalidade"]').removeClass('hidden');
-                    $('#admin-agenda-calendar-local-filter').val('0');
-                    $('[data-admin-agenda-filter-kind="local"]').removeClass('is-active');
-                    $('[data-admin-agenda-filter-kind="local"][data-admin-agenda-filter-value="0"]').addClass('is-active');
+                    $('#admin-agenda-calendar-filter-mode').val(mode);
+                    $button.addClass('is-active').attr('aria-expanded', 'true');
+                    $branch.find('[data-admin-agenda-filter-panel="' + mode + '"]').first().removeClass('hidden');
+                    $('[data-admin-agenda-filter-status]').removeClass('is-selection-complete').text(mode === 'local' ? 'Escolha um local.' : 'Escolha uma modalidade.');
                 }
 
                 refetchAdminAgendaCalendar();
             });
 
             $(document).on('click', '[data-admin-agenda-filter-kind]', function () {
+                const $button = $(this);
+                const $branch = $button.closest('[data-admin-agenda-filter-branch]');
+                const branchMode = String($branch.data('adminAgendaFilterBranch') || '');
                 const kind = String($(this).data('adminAgendaFilterKind') || '').trim().toLowerCase();
                 const value = String($(this).data('adminAgendaFilterValue') || '0');
 
@@ -640,31 +634,51 @@
                     return;
                 }
 
-                if ($(this).hasClass('is-active')) {
-                    return;
-                }
+                $branch.find('[data-admin-agenda-filter-kind="' + kind + '"]').removeClass('is-active');
+                $button.addClass('is-active');
 
-                $('[data-admin-agenda-filter-kind="' + kind + '"]').removeClass('is-active');
-                $(this).addClass('is-active');
+                let combinations = [];
+                try {
+                    combinations = JSON.parse($('#admin-agenda-schedule-filter-combinations').text() || '[]');
+                } catch (error) {
+                    combinations = [];
+                }
 
                 if (kind === 'local') {
-                    $('[data-admin-agenda-filter-mode]').removeClass('is-active');
-                    $('[data-admin-agenda-filter-mode="local"]').addClass('is-active');
-                    $('[data-admin-agenda-filter-panel]').addClass('hidden');
-                    $('[data-admin-agenda-filter-panel="local"]').removeClass('hidden');
-                    $('#admin-agenda-calendar-filter-mode').val('local');
                     $('#admin-agenda-calendar-local-filter').val(value);
-                    $('#admin-agenda-calendar-modality-filter').val('0');
+                    const compatible = combinations.filter(function (item) { return String(item.location_id) === value; })
+                        .map(function (item) { return String(item.modality_id); });
+                    $branch.find('[data-admin-agenda-filter-kind="modalidade"]').each(function () {
+                        $(this).prop('hidden', compatible.indexOf(String($(this).data('adminAgendaFilterValue'))) === -1);
+                    });
+                    if (branchMode === 'local' || compatible.indexOf(String($('#admin-agenda-calendar-modality-filter').val())) === -1) {
+                        $('#admin-agenda-calendar-modality-filter').val('0');
+                        $branch.find('[data-admin-agenda-filter-kind="modalidade"]').removeClass('is-active');
+                    }
+                    $branch.find('.agenda-filter-dependent[data-admin-agenda-filter-panel="modalidade"]').removeClass('hidden');
+                    $('[data-admin-agenda-filter-status]').removeClass('is-selection-complete').text('Escolha uma modalidade disponível neste local.');
                 } else {
-                    $('[data-admin-agenda-filter-mode]').removeClass('is-active');
-                    $('[data-admin-agenda-filter-mode="modalidade"]').addClass('is-active');
-                    $('[data-admin-agenda-filter-panel]').addClass('hidden');
-                    $('[data-admin-agenda-filter-panel="modalidade"]').removeClass('hidden');
-                    $('#admin-agenda-calendar-filter-mode').val('modalidade');
                     $('#admin-agenda-calendar-modality-filter').val(value);
-                    $('#admin-agenda-calendar-local-filter').val('0');
+                    const compatible = combinations.filter(function (item) { return String(item.modality_id) === value; })
+                        .map(function (item) { return String(item.location_id); });
+                    $branch.find('[data-admin-agenda-filter-kind="local"]').each(function () {
+                        $(this).prop('hidden', compatible.indexOf(String($(this).data('adminAgendaFilterValue'))) === -1);
+                    });
+                    if (branchMode === 'modalidade' || compatible.indexOf(String($('#admin-agenda-calendar-local-filter').val())) === -1) {
+                        $('#admin-agenda-calendar-local-filter').val('0');
+                        $branch.find('[data-admin-agenda-filter-kind="local"]').removeClass('is-active');
+                    }
+                    $branch.find('.agenda-filter-dependent[data-admin-agenda-filter-panel="local"]').removeClass('hidden');
+                    $('[data-admin-agenda-filter-status]').removeClass('is-selection-complete').text('Escolha um local que ofereça esta modalidade.');
                 }
 
+                if (Number($('#admin-agenda-calendar-local-filter').val()) > 0 && Number($('#admin-agenda-calendar-modality-filter').val()) > 0) {
+                    const locationLabel = String($branch.find('[data-admin-agenda-filter-kind="local"].is-active').first().data('adminAgendaFilterLabel') || '').trim();
+                    const modalityLabel = String($branch.find('[data-admin-agenda-filter-kind="modalidade"].is-active').first().data('adminAgendaFilterLabel') || '').trim();
+                    $('[data-admin-agenda-filter-status]')
+                        .addClass('is-selection-complete')
+                        .text((modalityLabel + ' - ' + locationLabel).toLocaleUpperCase('pt-BR'));
+                }
                 refetchAdminAgendaCalendar();
             });
 

@@ -50,11 +50,14 @@ class AgendaController extends Controller
             }
         }
 
+        $scheduleFilterOptions = $this->agendaService->activeWeeklyScheduleFilterOptions();
+
         $this->view('agenda/index', [
             'title' => 'Agenda de Treinos',
             'pageClass' => 'pagina-agenda',
             'locations' => $this->agendaService->listLocations(),
             'modalities' => $this->agendaService->listModalities(),
+            'scheduleFilterOptions' => $scheduleFilterOptions,
             'schedulablePeople' => $schedulablePeople,
             'specialSchedulePeople' => $specialSchedulePeople,
             'profile' => $profile,

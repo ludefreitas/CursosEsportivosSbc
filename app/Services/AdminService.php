@@ -2325,6 +2325,10 @@ class AdminService
      */
     public function listCalendarEventsForManagement(int $locationId = 0, int $modalityId = 0, string $rangeStart = '', string $rangeEnd = ''): array
     {
+        if ($locationId <= 0 || $modalityId <= 0) {
+            return [];
+        }
+
         $schedules = $this->listWeeklySchedulesForManagement($locationId, $modalityId);
         $range = $this->resolveAdminCalendarRange($rangeStart, $rangeEnd);
         $today = new DateTimeImmutable('today');

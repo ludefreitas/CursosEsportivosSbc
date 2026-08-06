@@ -49,11 +49,51 @@ class AgendaService
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /** Lista somente combinações de local e modalidade com horário semanal ativo. */
+    public function activeWeeklyScheduleFilterOptions(): array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->query('
+            SELECT DISTINCT hs.local_treino_id, lt.nome_local, lt.apelido_local,
+                COALESCE(NULLIF(TRIM(lt.apelido_local), ""), lt.nome_local) AS local_ordem,
+                hs.modalidade_id, m.nome AS modalidade_nome
+            FROM horarios_semanais hs
+            INNER JOIN locais_treino lt ON lt.id = hs.local_treino_id
+            INNER JOIN espacos_treino et ON et.id = hs.espaco_treino_id
+            INNER JOIN modalidades m ON m.id = hs.modalidade_id
+            WHERE hs.ativo = 1 AND lt.ativo = 1 AND et.ativo = 1 AND m.ativo = 1
+            ORDER BY local_ordem, modalidade_nome
+        ');
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $locations = [];
+        $modalities = [];
+        $combinations = [];
+
+        foreach ($rows as $row) {
+            $locationId = (int) ($row['local_treino_id'] ?? 0);
+            $modalityId = (int) ($row['modalidade_id'] ?? 0);
+            if ($locationId <= 0 || $modalityId <= 0) {
+                continue;
+            }
+            $locations[$locationId] = ['id' => $locationId, 'nome_local' => (string) ($row['nome_local'] ?? ''), 'apelido_local' => (string) ($row['apelido_local'] ?? '')];
+            $modalities[$modalityId] = ['id' => $modalityId, 'nome' => (string) ($row['modalidade_nome'] ?? '')];
+            $combinations[] = ['location_id' => $locationId, 'modality_id' => $modalityId];
+        }
+
+        uasort($modalities, static fn (array $left, array $right): int => strcasecmp((string) $left['nome'], (string) $right['nome']));
+
+        return ['locations' => array_values($locations), 'modalities' => array_values($modalities), 'combinations' => $combinations];
+    }
+
     /**
      * Monta eventos para o FullCalendar a partir dos horários semanais.
      */
     public function calendarEvents(int $locationId = 0, int $modalityId = 0, string $rangeStart = '', string $rangeEnd = ''): array
     {
+        if ($locationId <= 0 || $modalityId <= 0) {
+            return [];
+        }
+
         $pdo = Database::connection();
         $sql = '
             SELECT

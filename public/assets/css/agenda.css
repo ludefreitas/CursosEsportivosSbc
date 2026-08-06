@@ -73,6 +73,62 @@
     transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
     position: relative;
 }
+
+.agenda-filter-accordion {
+    display: grid;
+    gap: 8px;
+}
+
+.agenda-filter-branch {
+    border: 1px solid rgba(18, 69, 89, 0.12);
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.agenda-filter-branch .agenda-accordion-toggle {
+    width: 100%;
+    border: 0;
+    border-radius: 0;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.agenda-accordion-toggle::after {
+    content: "+";
+    font-size: 18px;
+    line-height: 1;
+}
+
+.agenda-accordion-toggle[aria-expanded="true"]::after {
+    content: "−";
+}
+
+.agenda-filter-branch .agenda-secondary-panel {
+    margin: 0;
+    padding: 10px 12px;
+    border-top: 1px solid rgba(18, 69, 89, 0.1);
+}
+
+.agenda-filter-branch .agenda-filter-dependent {
+    padding-left: 28px;
+    background: rgba(23, 103, 196, 0.04);
+}
+
+.agenda-secondary-tab[hidden] {
+    display: none;
+}
+
+.pagina-agenda .agenda-filter-status.is-selection-complete,
+.admin-section-panel[data-admin-section="agenda"] .agenda-filter-status.is-selection-complete {
+    color: var(--brand-700);
+    font-size: clamp(18px, 2vw, 24px);
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+}
 .agenda-primary-tab:hover,
 .agenda-secondary-tab:hover {
     transform: translateY(-1px);

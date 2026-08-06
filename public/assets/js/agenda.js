@@ -682,44 +682,38 @@
             });
 
             $(document).on('click', '[data-agenda-filter-mode]', function () {
+                const $button = $(this);
+                const $form = $('#agenda-calendar-filter-form');
+                const $branch = $button.closest('[data-agenda-filter-branch]');
                 const mode = String($(this).data('agendaFilterMode') || '').trim().toLowerCase();
 
-                if (mode !== 'todos' && mode !== 'local' && mode !== 'modalidade') {
+                if (mode !== 'local' && mode !== 'modalidade') {
                     return;
                 }
 
-                if ($(this).hasClass('is-active')) {
-                    return;
-                }
+                const shouldCollapse = $button.hasClass('is-active');
+                $form.find('[data-agenda-filter-mode]').removeClass('is-active').attr('aria-expanded', 'false');
+                $form.find('[data-agenda-filter-panel]').addClass('hidden');
+                $form.find('[data-agenda-filter-kind]').removeClass('is-active').prop('hidden', false);
+                $('#agenda-local-filter, #agenda-modality-filter').val('0');
 
-                $('#agenda-filter-mode').val(mode);
-                $('[data-agenda-filter-mode]').removeClass('is-active');
-                $(this).addClass('is-active');
-                $('[data-agenda-filter-panel]').addClass('hidden');
-                
-                if (mode === 'todos') {
-                    $('#agenda-local-filter').val('0');
-                    $('#agenda-modality-filter').val('0');
-                    $('[data-agenda-filter-kind="local"]').removeClass('is-active');
-                    $('[data-agenda-filter-kind="local"][data-agenda-filter-value="0"]').addClass('is-active');
-                    $('[data-agenda-filter-kind="modalidade"]').removeClass('is-active');
-                    $('[data-agenda-filter-kind="modalidade"][data-agenda-filter-value="0"]').addClass('is-active');
-                } else if (mode === 'local') {
-                    $('[data-agenda-filter-panel="local"]').removeClass('hidden');
-                    $('#agenda-modality-filter').val('0');
-                    $('[data-agenda-filter-kind="modalidade"]').removeClass('is-active');
-                    $('[data-agenda-filter-kind="modalidade"][data-agenda-filter-value="0"]').addClass('is-active');
+                if (shouldCollapse) {
+                    $('#agenda-filter-mode').val('');
+                    $('[data-agenda-filter-status]').removeClass('is-selection-complete').text('Selecione por onde deseja começar.');
                 } else {
-                    $('[data-agenda-filter-panel="modalidade"]').removeClass('hidden');
-                    $('#agenda-local-filter').val('0');
-                    $('[data-agenda-filter-kind="local"]').removeClass('is-active');
-                    $('[data-agenda-filter-kind="local"][data-agenda-filter-value="0"]').addClass('is-active');
+                    $('#agenda-filter-mode').val(mode);
+                    $button.addClass('is-active').attr('aria-expanded', 'true');
+                    $branch.find('[data-agenda-filter-panel="' + mode + '"]').first().removeClass('hidden');
+                    $('[data-agenda-filter-status]').removeClass('is-selection-complete').text(mode === 'local' ? 'Escolha um local.' : 'Escolha uma modalidade.');
                 }
 
                 App.agenda.atualizarFiltrosCalendario();
             });
 
             $(document).on('click', '[data-agenda-filter-kind]', function () {
+                const $button = $(this);
+                const $branch = $button.closest('[data-agenda-filter-branch]');
+                const branchMode = String($branch.data('agendaFilterBranch') || '');
                 const kind = String($(this).data('agendaFilterKind') || '').trim().toLowerCase();
                 const value = String($(this).data('agendaFilterValue') || '0');
 
@@ -727,31 +721,53 @@
                     return;
                 }
 
-                if ($(this).hasClass('is-active')) {
-                    return;
-                }
+                $branch.find('[data-agenda-filter-kind="' + kind + '"]').removeClass('is-active');
+                $button.addClass('is-active');
 
-                $('[data-agenda-filter-kind="' + kind + '"]').removeClass('is-active');
-                $(this).addClass('is-active');
+                let combinations = [];
+                try {
+                    combinations = JSON.parse($('#agenda-schedule-filter-combinations').text() || '[]');
+                } catch (error) {
+                    combinations = [];
+                }
 
                 if (kind === 'local') {
-                    $('[data-agenda-filter-mode]').removeClass('is-active');
-                    $('[data-agenda-filter-mode="local"]').addClass('is-active');
-                    $('[data-agenda-filter-panel]').addClass('hidden');
-                    $('[data-agenda-filter-panel="local"]').removeClass('hidden');
-                    $('#agenda-filter-mode').val('local');
                     $('#agenda-local-filter').val(value);
-                    $('#agenda-modality-filter').val('0');
+                    const compatible = combinations.filter(function (item) {
+                        return String(item.location_id) === value;
+                    }).map(function (item) { return String(item.modality_id); });
+                    $branch.find('[data-agenda-filter-kind="modalidade"]').each(function () {
+                        $(this).prop('hidden', compatible.indexOf(String($(this).data('agendaFilterValue'))) === -1);
+                    });
+                    if (branchMode === 'local' || compatible.indexOf(String($('#agenda-modality-filter').val())) === -1) {
+                        $('#agenda-modality-filter').val('0');
+                        $branch.find('[data-agenda-filter-kind="modalidade"]').removeClass('is-active');
+                    }
+                    $branch.find('.agenda-filter-dependent[data-agenda-filter-panel="modalidade"]').removeClass('hidden');
+                    $('[data-agenda-filter-status]').removeClass('is-selection-complete').text('Escolha uma modalidade disponível neste local.');
                 } else {
-                    $('[data-agenda-filter-mode]').removeClass('is-active');
-                    $('[data-agenda-filter-mode="modalidade"]').addClass('is-active');
-                    $('[data-agenda-filter-panel]').addClass('hidden');
-                    $('[data-agenda-filter-panel="modalidade"]').removeClass('hidden');
-                    $('#agenda-filter-mode').val('modalidade');
                     $('#agenda-modality-filter').val(value);
-                    $('#agenda-local-filter').val('0');
+                    const compatible = combinations.filter(function (item) {
+                        return String(item.modality_id) === value;
+                    }).map(function (item) { return String(item.location_id); });
+                    $branch.find('[data-agenda-filter-kind="local"]').each(function () {
+                        $(this).prop('hidden', compatible.indexOf(String($(this).data('agendaFilterValue'))) === -1);
+                    });
+                    if (branchMode === 'modalidade' || compatible.indexOf(String($('#agenda-local-filter').val())) === -1) {
+                        $('#agenda-local-filter').val('0');
+                        $branch.find('[data-agenda-filter-kind="local"]').removeClass('is-active');
+                    }
+                    $branch.find('.agenda-filter-dependent[data-agenda-filter-panel="local"]').removeClass('hidden');
+                    $('[data-agenda-filter-status]').removeClass('is-selection-complete').text('Escolha um local que ofereça esta modalidade.');
                 }
 
+                if (Number($('#agenda-local-filter').val()) > 0 && Number($('#agenda-modality-filter').val()) > 0) {
+                    const locationLabel = String($branch.find('[data-agenda-filter-kind="local"].is-active').first().data('agendaFilterLabel') || '').trim();
+                    const modalityLabel = String($branch.find('[data-agenda-filter-kind="modalidade"].is-active').first().data('agendaFilterLabel') || '').trim();
+                    $('[data-agenda-filter-status]')
+                        .addClass('is-selection-complete')
+                        .text((modalityLabel + ' - ' + locationLabel).toLocaleUpperCase('pt-BR'));
+                }
                 App.agenda.atualizarFiltrosCalendario();
             });
 

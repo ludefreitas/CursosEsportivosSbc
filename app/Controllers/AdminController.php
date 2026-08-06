@@ -1987,6 +1987,7 @@ class AdminController extends Controller
         }
 
         if ($sectionName === 'agenda') {
+            $agendaService = new AgendaService();
             $locationId = (int) ($_GET['local_treino_id'] ?? 0);
             $modalityId = (int) ($_GET['modalidade_id'] ?? 0);
             $dailyDate = trim((string) ($_GET['data_agendamento'] ?? date('Y-m-d')));
@@ -2026,6 +2027,7 @@ class AdminController extends Controller
             }
 
             $data['modalities'] = $this->adminService->listModalitiesForManagement();
+            $data['scheduleFilterOptions'] = $agendaService->activeWeeklyScheduleFilterOptions();
             $data['selectedLocationId'] = $locationId > 0 ? $locationId : 0;
             $data['selectedModalityId'] = $modalityId > 0 ? $modalityId : 0;
             $data['selectedDailyDate'] = $dailyDate;
