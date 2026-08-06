@@ -30,23 +30,25 @@ class ExternalHealthCertificateService
     ): array
     {
         [$table, $idField] = $this->sourceDefinition($type);
-        $control = Database::connection()->prepare('SELECT ultima_data_origem, ultimo_id_origem
+        $control = Database::connection()->prepare('SELECT ultima_data_origem, ultimo_id_origem,
+                carga_inicial_concluida, cursor_data_carga, cursor_id_carga,
+                snapshot_data_carga, snapshot_id_carga
             FROM importacoes_atestados_externos WHERE tipo_atestado = :tipo LIMIT 1');
         $control->execute([':tipo' => $type]);
         $controlRow = $control->fetch(PDO::FETCH_ASSOC) ?: [];
-        $baseDate = (string) ($controlRow['ultima_data_origem'] ?? '1970-01-01 00:00:00');
-        $baseId = (int) ($controlRow['ultimo_id_origem'] ?? 0);
+        $initialLoadComplete = (int) ($controlRow['carga_inicial_concluida'] ?? 0) === 1;
+        $baseDate = $initialLoadComplete
+            ? (string) ($controlRow['ultima_data_origem'] ?? '1970-01-01 00:00:00')
+            : '1970-01-01 00:00:00';
+        $baseId = $initialLoadComplete ? (int) ($controlRow['ultimo_id_origem'] ?? 0) : 0;
 
-        // Compatibilidade com a primeira importação feita antes da criação do controle incremental.
-        if ($controlRow === []) {
-            $legacyWatermark = Database::connection()->prepare('SELECT data_atualizacao_origem, id_externo
-                FROM atestados_saude_importados WHERE tipo_atestado = :tipo
-                ORDER BY data_atualizacao_origem DESC, id_externo DESC LIMIT 1');
-            $legacyWatermark->execute([':tipo' => $type]);
-            $legacyRow = $legacyWatermark->fetch(PDO::FETCH_ASSOC) ?: [];
-            if ($legacyRow !== []) {
-                $baseDate = (string) ($legacyRow['data_atualizacao_origem'] ?? $baseDate);
-                $baseId = (int) ($legacyRow['id_externo'] ?? $baseId);
+        // Retoma a carga inicial do último lote confirmado quando houve interrupção.
+        if (!$initialLoadComplete && $cursorDate === '' && $cursorId === 0) {
+            $cursorDate = (string) ($controlRow['cursor_data_carga'] ?? '');
+            $cursorId = (int) ($controlRow['cursor_id_carga'] ?? 0);
+            if ($snapshotDate === null && !empty($controlRow['snapshot_data_carga'])) {
+                $snapshotDate = (string) $controlRow['snapshot_data_carga'];
+                $snapshotId = (int) ($controlRow['snapshot_id_carga'] ?? 0);
             }
         }
 
@@ -57,7 +59,7 @@ class ExternalHealthCertificateService
             $snapshotId = (int) ($latest['id_externo'] ?? 0);
 
             if ($snapshotDate < $baseDate || ($snapshotDate === $baseDate && $snapshotId <= $baseId)) {
-                $this->saveImportControl($type, $snapshotDate, $snapshotId, $accountId);
+                $this->finishImportControl($type, $snapshotDate, $snapshotId, $accountId);
                 return [
                     'processados' => 0, 'proxima_data' => '', 'proximo_id' => 0, 'tem_mais' => false,
                     'snapshot_data' => $snapshotDate, 'snapshot_id' => $snapshotId,
@@ -151,8 +153,17 @@ class ExternalHealthCertificateService
             WHERE i.tipo_atestado = :tipo AND i.status_importacao = "ativo"');
         $reconcile->execute([':conta_id' => $accountId > 0 ? $accountId : null, ':tipo' => $type]);
 
-        if (!$hasMore) {
-            $this->saveImportControl($type, $snapshotDate, $snapshotId, $accountId);
+        if (!$initialLoadComplete && $hasMore) {
+            $this->saveInitialLoadProgress(
+                $type,
+                $nextCursorDate,
+                $nextCursorId,
+                (string) $snapshotDate,
+                (int) $snapshotId,
+                $accountId
+            );
+        } elseif (!$hasMore) {
+            $this->finishImportControl($type, (string) $snapshotDate, (int) $snapshotId, $accountId);
         }
 
         AuditLogService::record('atestados_externos.importados', 'atestados_saude_importados', null, [
@@ -239,17 +250,47 @@ class ExternalHealthCertificateService
         };
     }
 
-    private function saveImportControl(string $type, string $date, int $id, int $accountId): void
+    private function finishImportControl(string $type, string $date, int $id, int $accountId): void
     {
         $stmt = Database::connection()->prepare('INSERT INTO importacoes_atestados_externos
-            (tipo_atestado, ultima_data_origem, ultimo_id_origem, concluido_em, atualizado_por_conta_id)
-            VALUES (:tipo, :data_origem, :id_origem, NOW(), :conta_id)
+            (tipo_atestado, ultima_data_origem, ultimo_id_origem, concluido_em, atualizado_por_conta_id,
+             carga_inicial_concluida, cursor_data_carga, cursor_id_carga, snapshot_data_carga, snapshot_id_carga)
+            VALUES (:tipo, :data_origem, :id_origem, NOW(), :conta_id, 1, NULL, 0, NULL, 0)
             ON DUPLICATE KEY UPDATE ultima_data_origem = VALUES(ultima_data_origem),
                 ultimo_id_origem = VALUES(ultimo_id_origem), concluido_em = NOW(),
-                atualizado_por_conta_id = VALUES(atualizado_por_conta_id)');
+                atualizado_por_conta_id = VALUES(atualizado_por_conta_id),
+                carga_inicial_concluida = 1, cursor_data_carga = NULL, cursor_id_carga = 0,
+                snapshot_data_carga = NULL, snapshot_id_carga = 0');
         $stmt->execute([
             ':tipo' => $type, ':data_origem' => $date, ':id_origem' => $id,
             ':conta_id' => $accountId > 0 ? $accountId : null,
+        ]);
+    }
+
+    private function saveInitialLoadProgress(
+        string $type,
+        string $cursorDate,
+        int $cursorId,
+        string $snapshotDate,
+        int $snapshotId,
+        int $accountId
+    ): void {
+        $stmt = Database::connection()->prepare('INSERT INTO importacoes_atestados_externos
+            (tipo_atestado, ultima_data_origem, ultimo_id_origem, concluido_em, atualizado_por_conta_id,
+             carga_inicial_concluida, cursor_data_carga, cursor_id_carga, snapshot_data_carga, snapshot_id_carga)
+            VALUES (:tipo, "1970-01-01 00:00:00", 0, NOW(), :conta_id, 0,
+                    :cursor_data, :cursor_id, :snapshot_data, :snapshot_id)
+            ON DUPLICATE KEY UPDATE atualizado_por_conta_id = VALUES(atualizado_por_conta_id),
+                carga_inicial_concluida = 0, cursor_data_carga = VALUES(cursor_data_carga),
+                cursor_id_carga = VALUES(cursor_id_carga), snapshot_data_carga = VALUES(snapshot_data_carga),
+                snapshot_id_carga = VALUES(snapshot_id_carga)');
+        $stmt->execute([
+            ':tipo' => $type,
+            ':conta_id' => $accountId > 0 ? $accountId : null,
+            ':cursor_data' => $cursorDate !== '' ? $cursorDate : null,
+            ':cursor_id' => max(0, $cursorId),
+            ':snapshot_data' => $snapshotDate,
+            ':snapshot_id' => max(0, $snapshotId),
         ]);
     }
 
@@ -325,7 +366,26 @@ class ExternalHealthCertificateService
             ultima_data_origem DATETIME NOT NULL,
             ultimo_id_origem BIGINT UNSIGNED NOT NULL DEFAULT 0,
             concluido_em DATETIME NOT NULL,
-            atualizado_por_conta_id BIGINT UNSIGNED NULL
+            atualizado_por_conta_id BIGINT UNSIGNED NULL,
+            carga_inicial_concluida TINYINT(1) NOT NULL DEFAULT 0,
+            cursor_data_carga DATETIME NULL,
+            cursor_id_carga BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            snapshot_data_carga DATETIME NULL,
+            snapshot_id_carga BIGINT UNSIGNED NOT NULL DEFAULT 0
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+
+        $columns = [];
+        foreach (Database::connection()->query('SHOW COLUMNS FROM importacoes_atestados_externos')->fetchAll(PDO::FETCH_ASSOC) as $column) {
+            $columns[(string) ($column['Field'] ?? '')] = true;
+        }
+        $alterations = [];
+        if (!isset($columns['carga_inicial_concluida'])) $alterations[] = 'ADD COLUMN carga_inicial_concluida TINYINT(1) NOT NULL DEFAULT 0 AFTER atualizado_por_conta_id';
+        if (!isset($columns['cursor_data_carga'])) $alterations[] = 'ADD COLUMN cursor_data_carga DATETIME NULL AFTER carga_inicial_concluida';
+        if (!isset($columns['cursor_id_carga'])) $alterations[] = 'ADD COLUMN cursor_id_carga BIGINT UNSIGNED NOT NULL DEFAULT 0 AFTER cursor_data_carga';
+        if (!isset($columns['snapshot_data_carga'])) $alterations[] = 'ADD COLUMN snapshot_data_carga DATETIME NULL AFTER cursor_id_carga';
+        if (!isset($columns['snapshot_id_carga'])) $alterations[] = 'ADD COLUMN snapshot_id_carga BIGINT UNSIGNED NOT NULL DEFAULT 0 AFTER snapshot_data_carga';
+        if ($alterations !== []) {
+            Database::connection()->exec('ALTER TABLE importacoes_atestados_externos ' . implode(', ', $alterations));
+        }
     }
 }

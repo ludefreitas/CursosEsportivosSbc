@@ -4340,7 +4340,10 @@
                         return;
                     }
                     $button.prop('disabled', false).text(type === 'clinico' ? 'Importar clínicos' : 'Importar dermatológicos');
-                    App.core.abrirPopup('sucesso', accumulated + ' atestados foram processados.');
+                    const completionMessage = accumulated > 0
+                        ? 'Importação concluída. ' + accumulated + ' linhas válidas foram analisadas em lotes de até 100.'
+                        : 'Importação concluída. Não há novos atestados para importar.';
+                    App.core.abrirPopup('sucesso', completionMessage);
                     $('[data-admin-nav-target="migracao-atestados"]').trigger('click');
                 }).fail(function (xhr) {
                     $button.prop('disabled', false).text(type === 'clinico' ? 'Importar clínicos' : 'Importar dermatológicos');

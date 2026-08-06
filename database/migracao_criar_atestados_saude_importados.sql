@@ -29,5 +29,10 @@ CREATE TABLE IF NOT EXISTS importacoes_atestados_externos (
     ultima_data_origem DATETIME NOT NULL,
     ultimo_id_origem BIGINT UNSIGNED NOT NULL DEFAULT 0,
     concluido_em DATETIME NOT NULL,
-    atualizado_por_conta_id BIGINT UNSIGNED NULL
+    atualizado_por_conta_id BIGINT UNSIGNED NULL,
+    carga_inicial_concluida TINYINT(1) NOT NULL DEFAULT 0,
+    cursor_data_carga DATETIME NULL,
+    cursor_id_carga BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    snapshot_data_carga DATETIME NULL,
+    snapshot_id_carga BIGINT UNSIGNED NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
