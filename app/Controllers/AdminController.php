@@ -2028,7 +2028,7 @@ class AdminController extends Controller
             }
 
             $data['modalities'] = $this->adminService->listModalitiesForManagement();
-            $data['scheduleFilterOptions'] = $agendaService->activeWeeklyScheduleFilterOptions();
+            $data['scheduleFilterOptions'] = $agendaService->activeWeeklyScheduleFilterOptions(true);
             $data['selectedLocationId'] = $locationId > 0 ? $locationId : 0;
             $data['selectedModalityId'] = $modalityId > 0 ? $modalityId : 0;
             $data['selectedDailyDate'] = $dailyDate;

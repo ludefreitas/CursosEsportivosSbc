@@ -2449,10 +2449,20 @@ class AdminService
         $schedules = $this->listWeeklySchedulesForManagement($locationId, $modalityId);
         $range = $this->resolveAdminCalendarRange($rangeStart, $rangeEnd);
         $today = new DateTimeImmutable('today');
+        $bookedOccurrences = $this->loadBookedWeeklyScheduleOccurrences($range['start'], $range['end']);
         $events = [];
 
         foreach ($schedules as $schedule) {
             foreach ($this->buildAdminCalendarOccurrencesForRange($schedule, $range['start'], $range['end'], $today) as $occurrence) {
+                if ((int) ($schedule['ativo'] ?? 0) !== 1) {
+                    $occurrenceStart = str_replace('T', ' ', (string) ($occurrence['extendedProps']['occurrence_start'] ?? $occurrence['start'] ?? ''));
+                    $occurrenceKey = (int) ($schedule['id'] ?? 0) . '|' . $occurrenceStart;
+
+                    if (!isset($bookedOccurrences[$occurrenceKey])) {
+                        continue;
+                    }
+                }
+
                 $events[] = $occurrence;
             }
         }
@@ -4321,8 +4331,35 @@ class AdminService
         ];
     }
 
+    /** Indexa as ocorrências semanais que possuem ao menos um agendamento. */
+    private function loadBookedWeeklyScheduleOccurrences(DateTimeImmutable $start, DateTimeImmutable $end): array
+    {
+        $stmt = Database::connection()->prepare('
+            SELECT DISTINCT horario_semanal_id, data_agendada
+            FROM agendamentos
+            WHERE data_agendada >= :data_inicio
+              AND data_agendada < :data_fim
+        ');
+        $stmt->execute([
+            ':data_inicio' => $start->format('Y-m-d H:i:s'),
+            ':data_fim' => $end->format('Y-m-d H:i:s'),
+        ]);
+
+        $occurrences = [];
+
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $date = trim((string) ($row['data_agendada'] ?? ''));
+
+            if ($date !== '') {
+                $occurrences[(int) ($row['horario_semanal_id'] ?? 0) . '|' . $date] = true;
+            }
+        }
+
+        return $occurrences;
+    }
+
     /**
-     * Gera as ocorrencias futuras e atuais dos horários ativos dentro do intervalo visivel.
+     * Gera as ocorrências do calendário administrativo dentro do intervalo visível.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -4339,9 +4376,6 @@ class AdminService
         }
 
         $createdDate = $createdAt->setTime(0, 0, 0);
-        $isInactive = (int) ($schedule['ativo'] ?? 0) !== 1;
-        $inactiveDate = $this->resolveInactiveScheduleBoundary($schedule);
-
         while ($cursor <= $lastDay) {
             $isoWeekday = (int) $cursor->format('N');
 
@@ -4351,16 +4385,6 @@ class AdminService
             }
 
             if ($cursor < $createdDate) {
-                $cursor = $cursor->modify('+1 day');
-                continue;
-            }
-
-            if ($inactiveDate instanceof DateTimeImmutable && $cursor > $inactiveDate) {
-                $cursor = $cursor->modify('+1 day');
-                continue;
-            }
-
-            if ($isInactive && $cursor >= $today) {
                 $cursor = $cursor->modify('+1 day');
                 continue;
             }
@@ -4415,7 +4439,8 @@ class AdminService
 
         return [
             'id' => (string) ($schedule['id'] ?? ''),
-            'title' => (string) ($schedule['modalidade_nome'] ?? '') . ' - ' . ucfirst((string) ($schedule['tipo_horario'] ?? '')),
+            'title' => (string) ($schedule['modalidade_nome'] ?? '') . ' - ' . ucfirst((string) ($schedule['tipo_horario'] ?? ''))
+                . ((int) ($schedule['ativo'] ?? 0) !== 1 ? ' (INATIVO)' : ''),
             'start' => str_replace(' ', 'T', $startDateTime),
             'end' => str_replace(' ', 'T', $endDateTime),
             'classNames' => $classNames,
@@ -4425,6 +4450,7 @@ class AdminService
                 'espaco' => (string) ($schedule['espaco_nome'] ?? ''),
                 'modalidade' => (string) ($schedule['modalidade_nome'] ?? ''),
                 'tipo_horario' => (string) ($schedule['tipo_horario'] ?? ''),
+                'horario_ativo' => (int) ($schedule['ativo'] ?? 0) === 1,
             ],
         ];
     }

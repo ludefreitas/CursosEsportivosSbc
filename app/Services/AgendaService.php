@@ -49,11 +49,40 @@ class AgendaService
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /** Lista somente combinações de local e modalidade com horário semanal ativo. */
-    public function activeWeeklyScheduleFilterOptions(): array
+    /** Lista combinações ativas e as inativas com agendamento que ainda devem ser consultadas. */
+    public function activeWeeklyScheduleFilterOptions(bool $adminView = false): array
     {
         $pdo = Database::connection();
-        $stmt = $pdo->query('
+        $params = [];
+        $scheduleVisibility = 'hs.ativo = 1';
+
+        if ($adminView) {
+            $scheduleVisibility = '(hs.ativo = 1 OR EXISTS (
+                SELECT 1 FROM agendamentos a
+                WHERE a.horario_semanal_id = hs.id
+            ))';
+        } elseif (Auth::check()) {
+            $scheduleVisibility = '(hs.ativo = 1 OR EXISTS (
+                SELECT 1
+                FROM agendamentos a
+                INNER JOIN pessoas pessoa_agendada ON pessoa_agendada.id = a.pessoa_id
+                INNER JOIN contas conta_agendada ON conta_agendada.id = :conta_id_filtro
+                WHERE a.horario_semanal_id = hs.id
+                  AND (
+                        pessoa_agendada.cpf = conta_agendada.cpf
+                        OR EXISTS (
+                            SELECT 1
+                            FROM vinculos_responsaveis vr_filtro
+                            INNER JOIN pessoas responsavel_filtro ON responsavel_filtro.id = vr_filtro.responsavel_pessoa_id
+                            WHERE vr_filtro.dependente_pessoa_id = pessoa_agendada.id
+                              AND responsavel_filtro.cpf = conta_agendada.cpf
+                        )
+                  )
+            ))';
+            $params[':conta_id_filtro'] = Auth::id();
+        }
+
+        $stmt = $pdo->prepare('
             SELECT DISTINCT hs.local_treino_id, lt.nome_local, lt.apelido_local,
                 COALESCE(NULLIF(TRIM(lt.apelido_local), ""), lt.nome_local) AS local_ordem,
                 hs.modalidade_id, m.nome AS modalidade_nome
@@ -61,9 +90,11 @@ class AgendaService
             INNER JOIN locais_treino lt ON lt.id = hs.local_treino_id
             INNER JOIN espacos_treino et ON et.id = hs.espaco_treino_id
             INNER JOIN modalidades m ON m.id = hs.modalidade_id
-            WHERE hs.ativo = 1 AND lt.ativo = 1 AND et.ativo = 1 AND m.ativo = 1
+            WHERE ' . $scheduleVisibility . '
+              AND (hs.ativo <> 1 OR (lt.ativo = 1 AND et.ativo = 1 AND m.ativo = 1))
             ORDER BY local_ordem, modalidade_nome
         ');
+        $stmt->execute($params);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $locations = [];
         $modalities = [];
@@ -133,8 +164,7 @@ class AgendaService
             INNER JOIN locais_treino lt ON lt.id = hs.local_treino_id
             INNER JOIN espacos_treino et ON et.id = hs.espaco_treino_id
             INNER JOIN modalidades m ON m.id = hs.modalidade_id
-            WHERE lt.ativo = 1
-              AND et.ativo = 1
+            WHERE (hs.ativo <> 1 OR (lt.ativo = 1 AND et.ativo = 1 AND m.ativo = 1))
         ';
         $params = [];
 
@@ -166,10 +196,6 @@ class AgendaService
             foreach ($this->buildPublicCalendarOccurrencesForRange($row, $calendarStart, $calendarEnd) as $date) {
                 $occurrenceDate = $date->format('Y-m-d');
 
-                if ($this->isSpaceSuspendedOnDate((int) $row['espaco_treino_id'], $occurrenceDate, $spaceSuspensions)) {
-                    continue;
-                }
-
                 $startDateTime = $date->format('Y-m-d') . 'T' . $row['hora_inicio'];
                 $occurrenceKey = $this->buildScheduleOccurrenceKey((int) $row['id'], $date->format('Y-m-d H:i:s'));
                 $bookingSummary = $bookingsByOccurrence[$occurrenceKey] ?? [
@@ -177,11 +203,21 @@ class AgendaService
                     'label' => '',
                     'items' => [],
                 ];
+                $isInactiveSchedule = (int) ($row['ativo'] ?? 0) !== 1;
+                $hasBookingStatus = !empty($bookingSummary['status_principal']);
+
+                if ($isInactiveSchedule && (!$hasBookingStatus || !Auth::check())) {
+                    continue;
+                }
+
+                if (!$isInactiveSchedule && $this->isSpaceSuspendedOnDate((int) $row['espaco_treino_id'], $occurrenceDate, $spaceSuspensions)) {
+                    continue;
+                }
+
                 $occupiedSlots = (int) ($occupancyByOccurrence[$occurrenceKey] ?? 0);
                 $totalSlots = (int) $row['vagas_geral'] + (int) $row['vagas_pcd'] + (int) $row['vagas_plm'] + (int) $row['vagas_pvs'];
                 $availableSlots = max(0, $totalSlots - $occupiedSlots);
                 $classNames = [];
-                $hasBookingStatus = !empty($bookingSummary['status_principal']);
                 $ageRuleDescription = describe_age_rule(
                     (int) $row['idade_minima'],
                     (int) $row['idade_maxima'],
@@ -189,7 +225,7 @@ class AgendaService
                     $date
                 );
 
-                if ((int) ($row['ativo'] ?? 0) !== 1 && !$hasBookingStatus) {
+                if ($isInactiveSchedule) {
                     $classNames[] = 'agenda-schedule-inactive';
                 }
 
@@ -199,7 +235,7 @@ class AgendaService
 
                 $events[] = [
                     'id' => (string) $row['id'],
-                    'title' => $row['modalidade_nome'] . ' - ' . ucfirst($row['tipo_horario']),
+                    'title' => $row['modalidade_nome'] . ' - ' . ucfirst($row['tipo_horario']) . ($isInactiveSchedule ? ' (INATIVO)' : ''),
                     'start' => $startDateTime,
                     'end' => $date->format('Y-m-d') . 'T' . $row['hora_fim'],
                     'classNames' => $classNames,
@@ -209,6 +245,7 @@ class AgendaService
                         'modalidade' => $row['modalidade_nome'],
                         'tipo_ambiente' => $row['tipo_ambiente'],
                         'tipo_horario' => $row['tipo_horario'],
+                        'horario_ativo' => !$isInactiveSchedule,
                         'vagas_geral' => (int) $row['vagas_geral'],
                         'vagas_pcd' => (int) $row['vagas_pcd'],
                         'vagas_plm' => (int) $row['vagas_plm'],
@@ -1114,10 +1151,17 @@ class AgendaService
                 p.nome_completo
             FROM agendamentos a
             INNER JOIN pessoas p ON p.id = a.pessoa_id
-            INNER JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id = p.id
-            INNER JOIN pessoas pr ON pr.id = vr.responsavel_pessoa_id
-            INNER JOIN contas c ON c.cpf = pr.cpf
-            WHERE c.id = :conta_id
+            INNER JOIN contas c ON c.id = :conta_id
+            WHERE (
+                    p.cpf = c.cpf
+                    OR EXISTS (
+                        SELECT 1
+                        FROM vinculos_responsaveis vr
+                        INNER JOIN pessoas pr ON pr.id = vr.responsavel_pessoa_id
+                        WHERE vr.dependente_pessoa_id = p.id
+                          AND pr.cpf = c.cpf
+                    )
+                  )
               AND a.data_agendada BETWEEN :data_inicio AND :data_fim
               AND a.status IN ("agendado", "presente", "falta", "justificado", "cancelado")
             ORDER BY a.data_agendada, p.nome_completo
@@ -1218,15 +1262,8 @@ class AgendaService
         }
 
         $createdDate = $createdAt->setTime(0, 0, 0);
-        $inactiveDate = $this->resolveScheduleInactiveDate($schedule);
-
         while ($cursor <= $lastDay) {
             if ((int) $cursor->format('N') === $weekday && $cursor >= $createdDate) {
-                if ($inactiveDate instanceof DateTimeImmutable && $cursor > $inactiveDate) {
-                    $cursor = $cursor->modify('+1 day');
-                    continue;
-                }
-
                 $events[] = DateTimeImmutable::createFromFormat(
                     'Y-m-d H:i:s',
                     $cursor->format('Y-m-d') . ' ' . (string) ($schedule['hora_inicio'] ?? '00:00:00')

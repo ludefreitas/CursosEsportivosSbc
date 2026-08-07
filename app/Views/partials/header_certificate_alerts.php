@@ -5,7 +5,8 @@
             <ul class="site-header-alert-list">
                 <?php foreach ($headerCertificateAlerts as $alert) { ?>
                     <li class="site-header-alert-item is-<?php echo e((string) ($alert['level'] ?? 'warning')); ?>">
-                        <?php echo e((string) ($alert['message'] ?? '')); ?>
+                        <span class="notice-warning-icon" aria-hidden="true">!</span>
+                        <span><?php echo e((string) ($alert['message'] ?? '')); ?></span>
                     </li>
                 <?php } ?>
             </ul>

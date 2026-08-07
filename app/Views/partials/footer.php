@@ -72,7 +72,10 @@
     <div id="popup-profile-completion-confirm" class="popup-overlay hidden" aria-hidden="true">
         <div class="popup-card popup-profile-completion-card" role="dialog" aria-modal="true" aria-labelledby="popup-profile-completion-title">
             <div class="popup-head">
-                <h3 id="popup-profile-completion-title">Complete seu cadastro para continuar</h3>
+                <h3 id="popup-profile-completion-title" class="notice-title-with-icon">
+                    <span class="notice-warning-icon" aria-hidden="true">!</span>
+                    <span>Complete seu cadastro para continuar</span>
+                </h3>
             </div>
             <div class="popup-body">
                 <p id="popup-profile-completion-texto">

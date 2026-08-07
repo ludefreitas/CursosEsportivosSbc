@@ -331,6 +331,7 @@
             const canSchedule = App.agenda.podeAbrirDetalhesAgenda();
             const isPast = App.agenda.isPastOccurrence(eventInfo);
             const isSpecial = props.is_special === true;
+            const isInactiveSchedule = props.horario_ativo === false || String(props.horario_ativo) === '0';
             const meusAgendamentos = Array.isArray(props.meus_agendamentos) ? props.meus_agendamentos : [];
             let bookingStatusHtml = '';
 
@@ -412,6 +413,7 @@
                 + '<p><strong>Sexo permitido:</strong> ' + App.agenda.formatarSexoHorario(props.sexo) + '</p>'
                 + '<p><strong>Vagas:</strong> ' + App.agenda.formatarVagasAgenda(props.vagas_disponiveis, props.vagas_total) + ' disponíveis</p>'
                 + '<p><strong>Ocupacao:</strong> ' + String(props.vagas_ocupadas || 0).padStart(2, '0') + ' agendamento(s) de ' + String(props.vagas_total || 0).padStart(2, '0') + ' vaga(s)</p>'
+                + (isInactiveSchedule ? '<p><strong>Aviso:</strong> Este horário semanal está inativo e não aceita novos agendamentos.</p>' : '')
                 + (isPast ? '<p><strong>Aviso:</strong> Não é possível agendar para data passada.</p>' : '')
                 + bookingStatusHtml
                 + '</div>'
@@ -419,7 +421,7 @@
 
             cancelBookings.toggleClass('hidden', true).html('');
 
-            if (!isPast && canSchedule) {
+            if (!isPast && !isInactiveSchedule && canSchedule) {
                 formAgendamento.removeClass('hidden');
                 accessWarning.addClass('hidden');
                 personOptions.removeClass('hidden');
@@ -427,7 +429,10 @@
             } else {
                 formAgendamento.addClass('hidden');
 
-                if (isPast) {
+                if (isInactiveSchedule) {
+                    accessWarning.removeClass('hidden').text('Este horário semanal está inativo e não aceita novos agendamentos.');
+                    personOptions.addClass('hidden').html('');
+                } else if (isPast) {
                     accessWarning.removeClass('hidden').text('Não é possível agendar para uma data passada.');
                     personOptions.addClass('hidden').html('');
                 } else {

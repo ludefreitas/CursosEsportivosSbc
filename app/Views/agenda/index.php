@@ -40,7 +40,7 @@
                                 <span class="agenda-secondary-title">Escolha o local</span>
                                 <div class="agenda-secondary-tabs" role="list" aria-label="Locais da agenda">
                                     <?php foreach (($scheduleFilterOptions['locations'] ?? []) as $location) { ?>
-                                        <button type="button" class="agenda-secondary-tab" data-agenda-filter-kind="local" data-agenda-filter-value="<?php echo e((string) $location['id']); ?>" data-agenda-filter-label="<?php echo e((string) (($location['apelido_local'] ?? '') !== '' ? $location['apelido_local'] : $location['nome_local'])); ?>"><?php echo e(format_training_location_name($location)); ?></button>
+                                        <button type="button" class="agenda-secondary-tab" data-agenda-filter-kind="local" data-agenda-filter-value="<?php echo e((string) $location['id']); ?>" data-agenda-filter-label="<?php echo e((string) (($location['apelido_local'] ?? '') !== '' ? $location['apelido_local'] : $location['nome_local'])); ?>"><?php echo e((string) (($location['apelido_local'] ?? '') !== '' ? $location['apelido_local'] : $location['nome_local'])); ?></button>
                                     <?php } ?>
                                 </div>
                             </div>
