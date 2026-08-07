@@ -2345,6 +2345,9 @@ class AdminService
                 a.updated_at,
                 p.id AS pessoa_id,
                 p.nome_completo,
+                p.cpf,
+                p.email,
+                p.telefone_whatsapp,
                 p.data_nascimento,
                 p.eh_pcd,
                 p.eh_pvs,
@@ -2384,7 +2387,7 @@ class AdminService
         }
 
         $sql .= '
-            ORDER BY lt.nome_local ASC, et.nome ASC, a.data_agendada ASC, p.nome_completo ASC
+            ORDER BY lt.nome_local ASC, et.nome ASC, CASE WHEN a.status = "cancelado" THEN 1 ELSE 0 END ASC, a.data_agendada ASC, p.nome_completo ASC
         ';
 
         $stmt = $pdo->prepare($sql);
@@ -2426,6 +2429,9 @@ class AdminService
                 a.updated_at,
                 p.id AS pessoa_id,
                 p.nome_completo,
+                p.cpf,
+                p.email,
+                p.telefone_whatsapp,
                 p.data_nascimento,
                 p.eh_pcd,
                 p.eh_pvs,
@@ -2454,7 +2460,7 @@ class AdminService
             LEFT JOIN pessoas chamada_pessoa ON chamada_pessoa.cpf = chamada_conta.cpf
             WHERE a.horario_semanal_id = :horario_semanal_id
               AND a.data_agendada = :data_agendada
-            ORDER BY p.nome_completo ASC
+            ORDER BY CASE WHEN a.status = "cancelado" THEN 1 ELSE 0 END ASC, p.nome_completo ASC
         ');
         $stmt->execute([
             ':horario_semanal_id' => $scheduleId,
@@ -3187,6 +3193,10 @@ class AdminService
         }
 
         $existingSchedule = $this->getSpecialScheduleDetails($scheduleId);
+        if ($this->isPastSpecialSchedule($existingSchedule)) {
+            throw new RuntimeException('Horários especiais já encerrados ficam disponíveis somente para consulta e não podem ser editados.');
+        }
+
         $payload = $this->validateSpecialSchedulePayload($data, $files);
         $space = null;
 
@@ -3272,11 +3282,30 @@ class AdminService
             throw new RuntimeException('Horário especial inválido.');
         }
 
+        $schedule = $this->getSpecialScheduleDetails($scheduleId);
+        if ($this->isPastSpecialSchedule($schedule)) {
+            throw new RuntimeException('Horários especiais já encerrados ficam disponíveis somente para consulta e não podem ser alterados.');
+        }
+
         $pdo = Database::connection();
         $stmt = $pdo->prepare('UPDATE agenda_horarios_especiais SET ativo = 0, updated_at = NOW() WHERE id = :id');
         $stmt->execute([':id' => $scheduleId]);
 
         AuditLogService::record('admin.agenda_horario_especial_inativado', 'agenda_horarios_especiais', $scheduleId, []);
+    }
+
+    private function isPastSpecialSchedule(array $schedule): bool
+    {
+        $end = trim((string) ($schedule['data_fim'] ?? ''));
+        if ($end === '') {
+            return false;
+        }
+
+        try {
+            return new DateTimeImmutable($end) < new DateTimeImmutable();
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**
@@ -3385,6 +3414,10 @@ class AdminService
             'ativo' => (int) ($data['ativo'] ?? 1) === 1 ? 1 : 0,
         ];
 
+        if ($payload['janela_agendamento_tipo'] === 'antecedência') {
+            $payload['janela_agendamento_tipo'] = 'antecedencia';
+        }
+
         if ($payload['espaco_treino_id'] <= 0) {
             throw new RuntimeException('Selecione o espaço de treino do horário semanal.');
         }
@@ -3435,7 +3468,7 @@ class AdminService
             }
         }
 
-        if (!in_array($payload['janela_agendamento_tipo'], ['semana_atual_proxima', 'janela_semanal_fixa', 'antecedência'], true)) {
+        if (!in_array($payload['janela_agendamento_tipo'], ['semana_atual_proxima', 'janela_semanal_fixa', 'antecedencia'], true)) {
             throw new RuntimeException('Selecione uma regra válida para a janela de agendamento.');
         }
 
@@ -3447,15 +3480,24 @@ class AdminService
             if ($payload['janela_fechamento_dia_semana'] < 1 || $payload['janela_fechamento_dia_semana'] > 7 || $payload['janela_fechamento_hora'] === '') {
                 throw new RuntimeException('Informe dia e hora válidos para o fechamento semanal da agenda.');
             }
+
+            if ($payload['janela_abertura_dia_semana'] === $payload['janela_fechamento_dia_semana']
+                && $payload['janela_abertura_hora'] === $payload['janela_fechamento_hora']) {
+                throw new RuntimeException('A abertura e o fechamento da janela semanal não podem ocorrer no mesmo dia e horário.');
+            }
         }
 
-        if ($payload['janela_agendamento_tipo'] === 'antecedência') {
+        if ($payload['janela_agendamento_tipo'] === 'antecedencia') {
             if ($payload['janela_dias_antecedencia'] < 0) {
                 throw new RuntimeException('A antecedência de abertura não pode ser negativa.');
             }
 
             if ($payload['janela_horas_antes_fechamento'] < 0) {
                 throw new RuntimeException('As horas antes do fechamento não podem ser negativas.');
+            }
+
+            if (($payload['janela_dias_antecedencia'] * 24) <= $payload['janela_horas_antes_fechamento']) {
+                throw new RuntimeException('Na regra por antecedência, a abertura precisa ocorrer antes do fechamento da agenda.');
             }
         }
 
@@ -3518,7 +3560,11 @@ class AdminService
         }
 
         if ($publishEnd <= $publishStart) {
-            throw new RuntimeException('O fim da públicação precisa ser posterior ao inicio da públicação.');
+            throw new RuntimeException('O fechamento da agenda precisa ser posterior à abertura da agenda.');
+        }
+
+        if ($publishEnd > $start) {
+            throw new RuntimeException('A agenda para inscrições deve ser encerrada antes ou exatamente no início do horário especial.');
         }
 
         if ($payload['idade_minima'] < 0 || $payload['idade_maxima'] < 0 || $payload['idade_minima'] > $payload['idade_maxima']) {
@@ -4321,6 +4367,11 @@ class AdminService
             $row['status_label'] = $this->formatBookingStatusLabel((string) ($row['status'] ?? ''));
             $row['chamada_liberada'] = $this->canManageBookingAttendance($row, $now);
             $row['status_sigla'] = $this->formatBookingStatusShortLabel((string) ($row['status'] ?? ''));
+            $phoneDigits = preg_replace('/\D+/', '', (string) ($row['telefone_whatsapp'] ?? '')) ?: '';
+            if ($phoneDigits !== '' && !str_starts_with($phoneDigits, '55')) {
+                $phoneDigits = '55' . $phoneDigits;
+            }
+            $row['whatsapp_url'] = $phoneDigits !== '' ? 'https://wa.me/' . $phoneDigits : '';
         }
         unset($row);
 
@@ -4702,6 +4753,7 @@ class AdminService
             WHERE ah.ativo = 1
               AND ah.' . $column . ' = 1
               AND NOW() BETWEEN ah.data_publicacao_inicio AND ah.data_publicacao_fim
+              AND NOW() < ah.data_inicio
             ORDER BY ah.data_inicio ASC, ah.id DESC
             LIMIT :limite
         ');

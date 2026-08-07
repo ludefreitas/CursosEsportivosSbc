@@ -42,6 +42,32 @@
             return hours + ':' + minutes;
         },
 
+        formatarDataCompletaAgenda: function (value) {
+            if (!value) {
+                return '';
+            }
+
+            const dateValue = value instanceof Date ? value : new Date(value);
+            if (!(dateValue instanceof Date) || Number.isNaN(dateValue.getTime())) {
+                return '';
+            }
+
+            const formatted = new Intl.DateTimeFormat('pt-BR', {
+                weekday: 'long',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            }).format(dateValue);
+
+            return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+        },
+
+        formatarDataHoraCompletaAgenda: function (value) {
+            const date = App.agenda.formatarDataCompletaAgenda(value);
+            const time = App.agenda.formatarHoraAgenda(value);
+            return date && time ? date + ', às ' + time : date;
+        },
+
         formatarVagasAgenda: function (available, total) {
             const totalValue = Math.max(0, Number(total || 0));
             const availableValue = Math.max(0, Number(available || 0));
@@ -315,6 +341,14 @@
                 const items = response && Array.isArray(response.items) ? response.items : [];
                 let html = '';
 
+                if (response && response.window_blocked) {
+                    const message = String(response.window_message || 'A agenda para o dia e horário selecionado ainda não foi aberta.');
+                    $('#form-agendamento').addClass('hidden');
+                    $container.addClass('hidden').html('');
+                    $('#agenda-access-warning').removeClass('hidden').text(message);
+                    return;
+                }
+
                 if (items.length === 0) {
                     html = '<p class="muted">Nenhuma pessoa vinculada foi encontrada para agendamento.</p>';
                 } else {
@@ -377,6 +411,7 @@
 
             $('#horario_id').val(eventInfo.event.id);
             $('#data_hora_inicio').val(eventInfo.event.startStr);
+            $('#form-agenda-horario-especial').addClass('hidden');
             $('input[data-person-choice="1"]').prop('checked', false);
             $('#publico_alvo').val('geral').find('option').prop('disabled', false);
 
@@ -409,10 +444,12 @@
                 const specialDescription = String(props.special_description || '').trim();
                 const specialUrl = String(props.special_cta_url || '').trim();
                 const specialLabel = String(props.special_cta_label || 'Abrir detalhes').trim();
+                const specialRegistrationOpen = props.special_registration_open === true || String(props.special_registration_open) === '1';
 
                 painelEvento.html(
                     '<div class="event-card">'
                     + '<h3>' + eventInfo.event.title + '</h3>'
+                    + '<p><strong>Data:</strong> ' + App.agenda.formatarDataCompletaAgenda(eventInfo.event.start) + '</p>'
                     + '<p><strong>Horário:</strong> ' + App.agenda.formatarHoraAgenda(eventInfo.event.start) + ' as ' + App.agenda.formatarHoraAgenda(eventInfo.event.end) + '</p>'
                     + '<p><strong>Local:</strong> ' + (props.local || 'A definir') + '</p>'
                     + '<p><strong>Espaço:</strong> ' + (props.espaco || 'A definir') + '</p>'
@@ -423,18 +460,24 @@
                         : '<p><strong>Faixa etária:</strong> ( para ' + String(props.special_age_min || 0) + ' a ' + String(props.special_age_max || 120) + ' anos de idade )</p>')
                     + '<p><strong>Vagas:</strong> Geral ' + String(props.vagas_geral || 0) + ' | PCD ' + String(props.vagas_pcd || 0) + ' | PVS ' + String(props.vagas_pvs || 0) + ' | PLM ' + String(props.vagas_plm || 0) + '</p>'
                     + '<p><strong>Inscrições:</strong> ' + String(props.vagas_ocupadas || 0) + ' de ' + String(props.vagas_total || 0) + '</p>'
+                    + '<p><strong>Abertura da agenda para inscrições:</strong> ' + App.agenda.formatarDataHoraCompletaAgenda(props.special_registration_open_at) + '</p>'
+                    + '<p><strong>Fechamento da agenda para inscrições:</strong> ' + App.agenda.formatarDataHoraCompletaAgenda(props.special_registration_close_at) + '</p>'
                     + (String(props.special_image_url || '').trim() !== '' ? '<p><img src="' + App.agenda.escapeHtml(String(props.special_image_url || '')) + '" alt="' + App.agenda.escapeHtml(eventInfo.event.title) + '" class="agenda-special-event-image"></p>' : '')
                     + (specialDescription !== '' ? '<p><strong>Descrição:</strong> ' + App.agenda.escapeHtml(specialDescription) + '</p>' : '')
                     + (specialUrl !== '' ? '<p><a class="btn btn-primary" href="' + App.agenda.escapeHtml(specialUrl) + '">' + App.agenda.escapeHtml(specialLabel) + '</a></p>' : '')
+                    + bookingStatusHtml
                     + '</div>'
                 );
 
                 cancelBookings.toggleClass('hidden', true).html('');
                 formAgendamento.addClass('hidden');
-                accessWarning.addClass('hidden');
                 personOptions.addClass('hidden').html('');
                 $('#agenda_horario_especial_id').val(String(props.special_schedule_id || '').trim() !== '' ? String(props.special_schedule_id) : String(String(eventInfo.event.id || '').replace('special-schedule-', '').replace('special-', '')));
-                $('#form-agenda-horario-especial').removeClass('hidden');
+                $('#form-agenda-horario-especial').toggleClass('hidden', !specialRegistrationOpen);
+                accessWarning.toggleClass('hidden', specialRegistrationOpen);
+                if (!specialRegistrationOpen) {
+                    accessWarning.text('Este horário especial está disponível apenas para consulta. As inscrições não estão abertas.');
+                }
                 App.state.agendaPendingEventData = eventInfo;
                 App.agenda.abrirModalDetalhesHorario();
                 return;
@@ -443,6 +486,7 @@
             painelEvento.html(
                 '<div class="event-card">'
                 + '<h3>' + eventInfo.event.title + '</h3>'
+                + '<p><strong>Data:</strong> ' + App.agenda.formatarDataCompletaAgenda(eventInfo.event.start) + '</p>'
                 + '<p><strong>Horário:</strong> ' + App.agenda.formatarHoraAgenda(eventInfo.event.start) + ' ás ' + App.agenda.formatarHoraAgenda(eventInfo.event.end) + '</p>'
                 + '<p><strong>Local:</strong> ' + (props.local_apelido || props.local) + ' <small>(' + props.espaco + ')</small></p>'
                 + '<p><strong>Modalidade:</strong> ' + props.modalidade + '</p>'

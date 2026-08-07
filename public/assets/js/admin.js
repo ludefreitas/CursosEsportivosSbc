@@ -253,8 +253,8 @@
                                 + ' | PCD ' + App.core.escapeHtml(String(props.vagas_pcd || 0))
                                 + ' | PVS ' + App.core.escapeHtml(String(props.vagas_pvs || 0))
                                 + ' | PLM ' + App.core.escapeHtml(String(props.vagas_plm || 0))
-                                + '<br><strong>Publicação:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_inicio || '')))
-                                + ' até ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_fim || '')))
+                                + '<br><strong>Agenda para inscrições abre em:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_inicio || '')))
+                                + '<br><strong>Agenda para inscrições fecha em:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_fim || '')))
                                 + '<br><strong>Status:</strong> ' + (Number(props.ativo || 0) === 1 ? 'Ativo' : 'Inativo');
 
                             if (String(props.special_description || '').trim() !== '') {
@@ -360,7 +360,7 @@
                     .addClass(meta.chipClass)
                     .text(meta.label);
                 $row.find('[data-booking-caller-cell="1"]').text(callerName !== '' ? callerName : '-');
-                $row.find('[data-booking-justification-cell="1"]').text(normalizedReason !== '' ? normalizedReason : '-');
+                $row.find('[data-booking-justification-cell="1"]').text(normalizedReason);
                 getBookingStatusGroup(bookingId).find('[data-status="justificado"]').attr('data-current-justification', normalizedReason);
             }
 
@@ -1672,6 +1672,27 @@
                 return $('#admin-weekly-schedule-form');
             }
 
+            function syncWeeklyScheduleWindowFields($form) {
+                if (!$form || $form.length === 0) {
+                    return;
+                }
+
+                const type = String($form.find('select[name="janela_agendamento_tipo"]').val() || 'semana_atual_proxima');
+                const helpMessages = {
+                    semana_atual_proxima: 'Disponibiliza somente ocorrências da semana atual e da próxima, até o domingo, sem usar dias fixos.',
+                    janela_semanal_fixa: 'Use os dias e horários semanais abaixo para definir quando a agenda abre e fecha.',
+                    antecedencia: 'A agenda abre a quantidade informada de dias antes de cada ocorrência e fecha nas horas indicadas antes do início.'
+                };
+
+                $form.find('[data-window-fields]').each(function () {
+                    const $group = $(this);
+                    const visible = String($group.attr('data-window-fields') || '') === type;
+                    $group.toggleClass('hidden', !visible);
+                    $group.find('input, select, textarea').prop('disabled', !visible);
+                });
+                $form.find('[data-window-rule-help]').text(helpMessages[type] || '');
+            }
+
             function currentAgendaFilters() {
                 const $filterForm = $('#admin-agenda-filter-form');
                 const $dailyForm = $('#admin-daily-bookings-filter-form');
@@ -1725,6 +1746,7 @@
                 if ($form.length > 0) {
                     $form[0].reset();
                     syncWeeklyScheduleAgePreview($form);
+                    syncWeeklyScheduleWindowFields($form);
                 }
             }
 
@@ -1736,6 +1758,7 @@
                 }
 
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
+                syncWeeklyScheduleWindowFields($('#admin-weekly-schedule-create-form'));
                 window.setTimeout(function () {
                     $modal.find('select, input').filter(':visible').first().trigger('focus');
                 }, 0);
@@ -1772,6 +1795,7 @@
                 setValue('#admin-weekly-schedule-window-hours-before-close', schedule.janela_horas_antes_fechamento || 2);
                 setValue('#admin-weekly-schedule-active', Number(schedule.ativo || 0) === 1 ? '1' : '0');
                 syncWeeklyScheduleAgePreview(getForm());
+                syncWeeklyScheduleWindowFields(getForm());
 
                 $('#admin-weekly-schedule-editor-subtitle').text(
                     'Editando ' + String(schedule.modalidade_nome || '') + ' em ' + String(schedule.local_nome || '') + ' sem sair da agenda administrativa.'
@@ -1826,6 +1850,10 @@
 
             $(document).on('input change', '#admin-weekly-schedule-create-form input[name="idade_minima"], #admin-weekly-schedule-create-form input[name="idade_maxima"], #admin-weekly-schedule-create-form select[name="criterio_faixa_etaria"], #admin-weekly-schedule-form input[name="idade_minima"], #admin-weekly-schedule-form input[name="idade_maxima"], #admin-weekly-schedule-form select[name="criterio_faixa_etaria"]', function () {
                 syncWeeklyScheduleAgePreview($(this).closest('form'));
+            });
+
+            $(document).on('change', '#admin-weekly-schedule-create-form select[name="janela_agendamento_tipo"], #admin-weekly-schedule-form select[name="janela_agendamento_tipo"]', function () {
+                syncWeeklyScheduleWindowFields($(this).closest('form'));
             });
 
             $(document).on('click', '#admin-weekly-schedule-editor', function (event) {
@@ -1991,6 +2019,8 @@
 
             syncWeeklyScheduleAgePreview($('#admin-weekly-schedule-create-form'));
             syncWeeklyScheduleAgePreview(getForm());
+            syncWeeklyScheduleWindowFields($('#admin-weekly-schedule-create-form'));
+            syncWeeklyScheduleWindowFields(getForm());
         },
 
         iniciarEditorEventosEspeciais: function () {

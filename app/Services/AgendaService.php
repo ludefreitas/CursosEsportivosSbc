@@ -97,9 +97,35 @@ class AgendaService
         ');
         $stmt->execute($params);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $specialSql = '
+            SELECT DISTINCT ah.local_treino_id, lt.nome_local, lt.apelido_local,
+                COALESCE(NULLIF(TRIM(lt.apelido_local), ""), lt.nome_local) AS local_ordem,
+                ah.modalidade_id, m.nome AS modalidade_nome
+            FROM agenda_horarios_especiais ah
+            INNER JOIN locais_treino lt ON lt.id = ah.local_treino_id
+            INNER JOIN espacos_treino et ON et.id = ah.espaco_treino_id
+            INNER JOIN modalidades m ON m.id = ah.modalidade_id
+            WHERE ah.local_treino_id IS NOT NULL
+              AND ah.modalidade_id IS NOT NULL
+        ';
+
+        if (!$adminView) {
+            $specialSql .= '
+              AND ah.ativo = 1
+              AND lt.ativo = 1
+              AND et.ativo = 1
+              AND m.ativo = 1
+            ';
+        }
+
+        $specialSql .= ' ORDER BY local_ordem, modalidade_nome';
+        $rows = array_merge($rows, $pdo->query($specialSql)->fetchAll(PDO::FETCH_ASSOC));
         $locations = [];
         $modalities = [];
         $combinations = [];
+
+        $combinationKeys = [];
 
         foreach ($rows as $row) {
             $locationId = (int) ($row['local_treino_id'] ?? 0);
@@ -109,7 +135,11 @@ class AgendaService
             }
             $locations[$locationId] = ['id' => $locationId, 'nome_local' => (string) ($row['nome_local'] ?? ''), 'apelido_local' => (string) ($row['apelido_local'] ?? '')];
             $modalities[$modalityId] = ['id' => $modalityId, 'nome' => (string) ($row['modalidade_nome'] ?? '')];
-            $combinations[] = ['location_id' => $locationId, 'modality_id' => $modalityId];
+            $combinationKey = $locationId . ':' . $modalityId;
+            if (!isset($combinationKeys[$combinationKey])) {
+                $combinations[] = ['location_id' => $locationId, 'modality_id' => $modalityId];
+                $combinationKeys[$combinationKey] = true;
+            }
         }
 
         uasort($modalities, static fn (array $left, array $right): int => strcasecmp((string) $left['nome'], (string) $right['nome']));
@@ -321,12 +351,20 @@ class AgendaService
     public function listScheduleEligibility(int $scheduleId, string $start): array
     {
         if (!Auth::check()) {
-            return [];
+            return ['items' => [], 'window_blocked' => false, 'window_message' => ''];
         }
 
         $startDate = $this->parseScheduleStart($start);
         $schedule = $this->findScheduleById($scheduleId);
         $items = [];
+
+        if ($this->resolveScheduleWindowBlockReason($schedule, $startDate) !== null) {
+            return [
+                'items' => [],
+                'window_blocked' => true,
+                'window_message' => $this->scheduleWindowUnavailableMessage(),
+            ];
+        }
 
         foreach ($this->listLinkedPeople() as $person) {
             $reasons = $this->collectScheduleBlockReasons((int) $person['id'], $person, $schedule, $startDate);
@@ -344,7 +382,11 @@ class AgendaService
             ];
         }
 
-        return $items;
+        return [
+            'items' => $items,
+            'window_blocked' => false,
+            'window_message' => '',
+        ];
     }
 
     /**
@@ -529,12 +571,17 @@ class AgendaService
         try {
             $publishStart = new DateTimeImmutable((string) $event['data_publicacao_inicio']);
             $publishEnd = new DateTimeImmutable((string) $event['data_publicacao_fim']);
+            $specialStart = new DateTimeImmutable((string) $event['data_inicio']);
         } catch (\Throwable $e) {
             throw new RuntimeException('A janela de publicação deste horário especial está inválida.');
         }
 
         if ($now < $publishStart || $now > $publishEnd) {
             throw new RuntimeException('As inscrições para este horário especial não estão abertas no momento.');
+        }
+
+        if ($now >= $specialStart) {
+            throw new RuntimeException('A agenda para inscrições deste horário especial já foi encerrada.');
         }
 
         $linkedPerson = null;
@@ -568,7 +615,6 @@ class AgendaService
             throw new RuntimeException('A data de nascimento informada é inválida.');
         }
 
-        $specialStart = new DateTimeImmutable((string) ($event['data_inicio'] ?? 'now'));
         $ageRuleMode = normalize_age_rule_mode((string) ($event['criterio_faixa_etaria'] ?? 'idade_exata'));
 
         if (!person_matches_age_rule(
@@ -864,15 +910,19 @@ class AgendaService
      */
     private function assertScheduleWindowAllowed(array $schedule, DateTimeImmutable $startDate): void
     {
+        if ($this->isOutsideCurrentAndNextWeekWindow($schedule, $startDate)) {
+            throw new RuntimeException($this->scheduleWindowUnavailableMessage());
+        }
+
         $window = $this->resolveScheduleBookingWindow($schedule, $startDate);
         $now = new DateTimeImmutable();
 
         if ($now < $window['open']) {
-            throw new RuntimeException('A agenda deste horário ainda não foi aberta para agendamento.');
+            throw new RuntimeException($this->scheduleWindowUnavailableMessage());
         }
 
         if ($now > $window['close']) {
-            throw new RuntimeException('A agenda deste horário já foi encerrada para agendamento.');
+            throw new RuntimeException($this->scheduleWindowUnavailableMessage());
         }
     }
 
@@ -966,33 +1016,13 @@ class AgendaService
             $reasons[] = 'A pessoa faltou ao ultimo horário agendado.';
         }
 
-        $stmtFuture = $pdo->prepare('
-            SELECT COUNT(*)
-            FROM agendamentos
-            WHERE pessoa_id = :pessoa_id
-              AND status = "agendado"
-              AND data_agendada >= CURDATE()
-        ');
-        $stmtFuture->execute([':pessoa_id' => $personId]);
-
-        if ((int) $stmtFuture->fetchColumn() >= 2) {
+        if ($this->countFutureBookingSessions($personId) >= 2) {
             $reasons[] = 'Já possui 2 agendamentos futuros e precisa comparecer para liberar novos horários.';
         }
 
-        $stmtSameDay = $pdo->prepare('
-            SELECT COUNT(*)
-            FROM agendamentos
-            WHERE pessoa_id = :pessoa_id
-              AND DATE(data_agendada) = :data_agendada
-              AND status = "agendado"
-        ');
-        $stmtSameDay->execute([
-            ':pessoa_id' => $personId,
-            ':data_agendada' => $startDate->format('Y-m-d'),
-        ]);
-
-        if ((int) $stmtSameDay->fetchColumn() >= 1) {
-            $reasons[] = 'Já existe um agendamento ativo para este mesmo dia.';
+        $sameDayReason = $this->validateSameDayBookingRule($personId, $schedule, $startDate);
+        if ($sameDayReason !== null) {
+            $reasons[] = $sameDayReason;
         }
 
         try {
@@ -1002,6 +1032,133 @@ class AgendaService
         }
 
         return array_values(array_unique($reasons));
+    }
+
+    /**
+     * Conta sessões futuras. Dois blocos consecutivos, da mesma modalidade e com
+     * duração máxima de 30 minutos cada, formam uma única sessão.
+     */
+    private function countFutureBookingSessions(int $personId): int
+    {
+        $bookings = $this->loadActiveBookingsForPerson($personId);
+        $sessions = 0;
+
+        for ($index = 0, $total = count($bookings); $index < $total; $index++) {
+            $sessions++;
+            if ($index + 1 < $total && $this->areConsecutiveShortSameModality($bookings[$index], $bookings[$index + 1])) {
+                $index++;
+            }
+        }
+
+        return $sessions;
+    }
+
+    /**
+     * Permite no máximo dois horários no mesmo dia. A segunda reserva deve ser:
+     * - consecutiva, na mesma modalidade, com até 30 minutos por bloco; ou
+     * - no mesmo local, em outro espaço e outra modalidade, com intervalo mínimo de 20 minutos.
+     */
+    private function validateSameDayBookingRule(int $personId, array $schedule, DateTimeImmutable $startDate): ?string
+    {
+        $bookings = $this->loadActiveBookingsForPerson($personId, $startDate->format('Y-m-d'));
+        if ($bookings === []) {
+            return null;
+        }
+
+        if (count($bookings) >= 2) {
+            return 'Já existem 2 horários agendados para este mesmo dia.';
+        }
+
+        $candidate = $schedule;
+        $candidate['data_agendada'] = $startDate->format('Y-m-d H:i:s');
+        $existing = $bookings[0];
+
+        if ($this->areConsecutiveShortSameModality($existing, $candidate)) {
+            return null;
+        }
+
+        if ((int) ($existing['local_treino_id'] ?? 0) !== (int) ($candidate['local_treino_id'] ?? 0)) {
+            return 'O segundo horário do dia deve ser realizado no mesmo local.';
+        }
+
+        if ((int) ($existing['espaco_treino_id'] ?? 0) === (int) ($candidate['espaco_treino_id'] ?? 0)) {
+            return 'O segundo horário do dia deve ser realizado em outro espaço.';
+        }
+
+        if ((int) ($existing['modalidade_id'] ?? 0) === (int) ($candidate['modalidade_id'] ?? 0)) {
+            return 'Em espaços diferentes, o segundo horário do dia deve ser de outra modalidade.';
+        }
+
+        $existingInterval = $this->bookingInterval($existing);
+        $candidateInterval = $this->bookingInterval($candidate);
+        $gapMinutes = $candidateInterval['start'] >= $existingInterval['end']
+            ? (int) (($candidateInterval['start']->getTimestamp() - $existingInterval['end']->getTimestamp()) / 60)
+            : (int) (($existingInterval['start']->getTimestamp() - $candidateInterval['end']->getTimestamp()) / 60);
+
+        if ($gapMinutes < 20) {
+            return 'Entre horários de espaços diferentes deve haver um intervalo mínimo de 20 minutos, sem sobreposição.';
+        }
+
+        return null;
+    }
+
+    private function loadActiveBookingsForPerson(int $personId, ?string $date = null): array
+    {
+        $sql = '
+            SELECT a.id, a.data_agendada, hs.local_treino_id, hs.espaco_treino_id,
+                   hs.modalidade_id, hs.hora_inicio, hs.hora_fim
+            FROM agendamentos a
+            INNER JOIN horarios_semanais hs ON hs.id = a.horario_semanal_id
+            WHERE a.pessoa_id = :pessoa_id
+              AND a.status = "agendado"
+        ';
+        $params = [':pessoa_id' => $personId];
+
+        if ($date !== null) {
+            $sql .= ' AND DATE(a.data_agendada) = :data_agendada';
+            $params[':data_agendada'] = $date;
+        } else {
+            $sql .= ' AND a.data_agendada >= CURDATE()';
+        }
+
+        $sql .= ' ORDER BY a.data_agendada, a.id';
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** @return array{start: DateTimeImmutable, end: DateTimeImmutable, duration: int} */
+    private function bookingInterval(array $booking): array
+    {
+        $start = new DateTimeImmutable((string) $booking['data_agendada']);
+        $endParts = $this->timeParts((string) ($booking['hora_fim'] ?? $start->format('H:i:s')));
+        $end = $start->setTime(...$endParts);
+        if ($end <= $start) {
+            $end = $end->modify('+1 day');
+        }
+
+        return [
+            'start' => $start,
+            'end' => $end,
+            'duration' => (int) (($end->getTimestamp() - $start->getTimestamp()) / 60),
+        ];
+    }
+
+    private function areConsecutiveShortSameModality(array $first, array $second): bool
+    {
+        if ((int) ($first['modalidade_id'] ?? 0) !== (int) ($second['modalidade_id'] ?? 0)
+            || (int) ($first['local_treino_id'] ?? 0) !== (int) ($second['local_treino_id'] ?? 0)) {
+            return false;
+        }
+
+        $firstInterval = $this->bookingInterval($first);
+        $secondInterval = $this->bookingInterval($second);
+        if ($firstInterval['duration'] > 30 || $secondInterval['duration'] > 30) {
+            return false;
+        }
+
+        return $firstInterval['end'] == $secondInterval['start']
+            || $secondInterval['end'] == $firstInterval['start'];
     }
 
     /**
@@ -1334,7 +1491,6 @@ class AgendaService
             LEFT JOIN espacos_treino et ON et.id = ae.espaco_treino_id
             LEFT JOIN modalidades m ON m.id = ae.modalidade_id
             WHERE ae.ativo = 1
-              AND NOW() BETWEEN ae.data_publicacao_inicio AND ae.data_publicacao_fim
               AND NOT (:range_end <= ae.data_inicio OR :range_start >= ae.data_fim)
         ';
         $params = [
@@ -1357,14 +1513,17 @@ class AgendaService
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $events = [];
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $occupancy = $this->loadSpecialScheduleOccupancy(array_map(
             static fn (array $row): int => (int) ($row['id'] ?? 0),
-            $stmt->fetchAll(PDO::FETCH_ASSOC)
+            $rows
+        ));
+        $accountRegistrations = $this->loadSpecialScheduleRegistrationsForAuthenticatedAccount(array_map(
+            static fn (array $row): int => (int) ($row['id'] ?? 0),
+            $rows
         ));
 
-        $stmt->execute($params);
-
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        foreach ($rows as $row) {
             $scheduleId = (int) ($row['id'] ?? 0);
             $vagasGeral = (int) ($row['vagas_geral'] ?? 0);
             $vagasPcd = (int) ($row['vagas_pcd'] ?? 0);
@@ -1378,6 +1537,11 @@ class AgendaService
             ];
             $vagasTotal = $vagasGeral + $vagasPcd + $vagasPlm + $vagasPvs;
             $vagasOcupadas = (int) $ocupacao['geral'] + (int) $ocupacao['pcd'] + (int) $ocupacao['plm'] + (int) $ocupacao['pvs'];
+            $registrationSummary = $accountRegistrations[$scheduleId] ?? [
+                'status_principal' => null,
+                'label' => '',
+                'items' => [],
+            ];
             $specialStart = new DateTimeImmutable((string) ($row['data_inicio'] ?? 'now'));
             $ageRuleDescription = describe_age_rule(
                 (int) ($row['idade_minima'] ?? 0),
@@ -1405,6 +1569,11 @@ class AgendaService
                     'special_image_url' => (string) ($row['imagem_url'] ?? ''),
                     'special_age_min' => (int) ($row['idade_minima'] ?? 0),
                     'special_age_max' => (int) ($row['idade_maxima'] ?? 120),
+                    'special_registration_open' => (new DateTimeImmutable() >= new DateTimeImmutable((string) $row['data_publicacao_inicio'])
+                        && new DateTimeImmutable() <= new DateTimeImmutable((string) $row['data_publicacao_fim'])
+                        && new DateTimeImmutable() < $specialStart),
+                    'special_registration_open_at' => (string) ($row['data_publicacao_inicio'] ?? ''),
+                    'special_registration_close_at' => (string) ($row['data_publicacao_fim'] ?? ''),
                     'vagas_geral' => $vagasGeral,
                     'vagas_pcd' => $vagasPcd,
                     'vagas_plm' => $vagasPlm,
@@ -1422,16 +1591,86 @@ class AgendaService
                     'criterio_faixa_etaria_rotulo' => (string) ($ageRuleDescription['mode_label'] ?? 'Idade exata'),
                     'ano_nascimento_intervalo' => (string) ($ageRuleDescription['detailed'] ?? ''),
                     'sexo' => '',
-                    'meus_agendamentos' => [],
-                    'meu_status_agendamento' => null,
-                    'meu_status_agendamento_label' => '',
+                    'meus_agendamentos' => $registrationSummary['items'],
+                    'meu_status_agendamento' => $registrationSummary['status_principal'],
+                    'meu_status_agendamento_label' => $registrationSummary['label'],
                     'occurrence_start' => (string) ($row['data_inicio'] ?? ''),
-                    'is_past' => false,
+                    'is_past' => $specialStart < new DateTimeImmutable(),
                 ],
             ];
         }
 
         return $events;
+    }
+
+    /**
+     * Carrega inscrições em horários especiais pertencentes ao usuário autenticado
+     * ou às pessoas vinculadas à sua conta.
+     */
+    private function loadSpecialScheduleRegistrationsForAuthenticatedAccount(array $scheduleIds): array
+    {
+        if (!Auth::check()) {
+            return [];
+        }
+
+        $scheduleIds = array_values(array_unique(array_filter(array_map('intval', $scheduleIds), static fn (int $id): bool => $id > 0)));
+        if ($scheduleIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($scheduleIds), '?'));
+        $stmt = Database::connection()->prepare('
+            SELECT i.id, i.agenda_horario_especial_id, i.nome_completo, i.status
+            FROM agenda_horarios_especiais_inscricoes i
+            LEFT JOIN pessoas p ON p.id = i.pessoa_id
+            INNER JOIN contas c ON c.id = ?
+            WHERE i.agenda_horario_especial_id IN (' . $placeholders . ')
+              AND (
+                    i.conta_id = c.id
+                    OR p.cpf = c.cpf
+                    OR EXISTS (
+                        SELECT 1
+                        FROM vinculos_responsaveis vr
+                        INNER JOIN pessoas pr ON pr.id = vr.responsavel_pessoa_id
+                        WHERE vr.dependente_pessoa_id = p.id
+                          AND pr.cpf = c.cpf
+                    )
+              )
+            ORDER BY i.nome_completo, i.id
+        ');
+        $stmt->execute(array_merge([(int) Auth::id()], $scheduleIds));
+        $map = [];
+
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $scheduleId = (int) ($row['agenda_horario_especial_id'] ?? 0);
+            $status = (string) ($row['status'] ?? 'inscrito');
+            if (!isset($map[$scheduleId])) {
+                $map[$scheduleId] = [
+                    'status_principal' => $status,
+                    'label' => $this->formatSpecialRegistrationStatusLabel($status),
+                    'items' => [],
+                ];
+            }
+
+            $map[$scheduleId]['items'][] = [
+                'id' => (int) ($row['id'] ?? 0),
+                'nome_completo' => (string) ($row['nome_completo'] ?? 'Pessoa inscrita'),
+                'status' => $status,
+                'status_label' => $this->formatSpecialRegistrationStatusLabel($status),
+                'pode_cancelar' => false,
+            ];
+        }
+
+        return $map;
+    }
+
+    private function formatSpecialRegistrationStatusLabel(string $status): string
+    {
+        return match ($status) {
+            'inscrito' => 'Inscrito',
+            'cancelado' => 'Cancelado',
+            default => ucfirst(str_replace('_', ' ', $status)),
+        };
     }
 
     /**
@@ -1459,7 +1698,7 @@ class AgendaService
             return ['open' => $open, 'close' => $close];
         }
 
-        if ($type === 'antecedência') {
+        if (in_array($type, ['antecedencia', 'antecedência'], true)) {
             $daysBefore = max(0, (int) ($schedule['janela_dias_antecedencia'] ?? 7));
             $hoursBeforeClose = max(0, (int) ($schedule['janela_horas_antes_fechamento'] ?? 2));
             return [
@@ -1484,18 +1723,41 @@ class AgendaService
      */
     private function resolveScheduleWindowBlockReason(array $schedule, DateTimeImmutable $occurrenceStart): ?string
     {
+        if ($this->isOutsideCurrentAndNextWeekWindow($schedule, $occurrenceStart)) {
+            return $this->scheduleWindowUnavailableMessage();
+        }
+
         $window = $this->resolveScheduleBookingWindow($schedule, $occurrenceStart);
         $now = new DateTimeImmutable();
 
         if ($now < $window['open']) {
-            return 'A agenda deste horário abrira em ' . $window['open']->format('d/m/Y H:i') . '.';
+            return $this->scheduleWindowUnavailableMessage();
         }
 
         if ($now > $window['close']) {
-            return 'A agenda deste horário foi encerrada em ' . $window['close']->format('d/m/Y H:i') . '.';
+            return $this->scheduleWindowUnavailableMessage();
         }
 
         return null;
+    }
+
+    private function scheduleWindowUnavailableMessage(): string
+    {
+        return 'A agenda para o dia e horário selecionado ainda não foi aberta.';
+    }
+
+    private function isOutsideCurrentAndNextWeekWindow(array $schedule, DateTimeImmutable $occurrenceStart): bool
+    {
+        $type = trim((string) ($schedule['janela_agendamento_tipo'] ?? 'semana_atual_proxima'));
+        if ($type !== 'semana_atual_proxima') {
+            return false;
+        }
+
+        $today = new DateTimeImmutable('today');
+        $firstAllowedDay = $today->modify('monday this week')->setTime(0, 0, 0);
+        $lastAllowedDay = $firstAllowedDay->modify('+13 day')->setTime(23, 59, 59);
+
+        return $occurrenceStart < $firstAllowedDay || $occurrenceStart > $lastAllowedDay;
     }
 
     /**

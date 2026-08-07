@@ -24,9 +24,6 @@ $currentAdminName = (string) ($currentAdminName ?? '');
             <thead>
                 <tr>
                     <th>Pessoa</th>
-                    <th>Idade</th>
-                    <th>Condições</th>
-                    <th>Público</th>
                     <th>Chamada</th>
                     <th>Status</th>
                     <th>Fez a chamada</th>
@@ -41,10 +38,14 @@ $currentAdminName = (string) ($currentAdminName ?? '');
                     $bookingStatus = (string) ($booking['status'] ?? 'agendado');
                     ?>
                     <tr data-booking-row="<?php echo e((string) $booking['id']); ?>">
-                        <td data-label="Pessoa"><?php echo e((string) ($booking['nome_completo'] ?? '')); ?></td>
-                        <td data-label="Idade"><?php echo e($booking['idade'] === null ? '-' : (string) $booking['idade'] . ' anos'); ?></td>
-                        <td data-label="Condições"><?php echo e((string) ($booking['condicoes'] ?? 'Nenhuma')); ?></td>
-                        <td data-label="Público"><?php echo e((string) ($booking['publico_alvo_label'] ?? 'Geral')); ?></td>
+                        <td data-label="Pessoa" class="admin-booking-person-inline">
+                            <strong><?php echo e((string) ($booking['nome_completo'] ?? '')); ?></strong>
+                            <span>CPF: <?php echo e(format_cpf((string) ($booking['cpf'] ?? ''))); ?></span>
+                            <span><?php echo e($booking['idade'] === null ? 'Idade não informada' : (string) $booking['idade'] . ' anos'); ?></span>
+                            <span><?php echo e((string) ($booking['condicoes'] ?? 'Nenhuma condição especial')); ?></span>
+                            <?php if (trim((string) ($booking['telefone_whatsapp'] ?? '')) !== '') { ?><a href="<?php echo e((string) $booking['whatsapp_url']); ?>" target="_blank" rel="noopener noreferrer">WhatsApp: <?php echo e((string) $booking['telefone_whatsapp']); ?></a><?php } ?>
+                            <?php if (trim((string) ($booking['email'] ?? '')) !== '') { ?><span><?php echo e((string) $booking['email']); ?></span><?php } ?>
+                        </td>
                         <td data-label="Chamada" data-booking-short-status="1"><strong><?php echo e((string) ($booking['status_sigla'] ?? '-')); ?></strong></td>
                         <td data-label="Status" data-booking-status-cell="1">
                             <span class="chip admin-booking-status-chip admin-booking-status-<?php echo e($bookingStatus); ?>" data-booking-status-chip="1">
@@ -52,11 +53,9 @@ $currentAdminName = (string) ($currentAdminName ?? '');
                             </span>
                         </td>
                         <td data-label="Fez a chamada" data-booking-caller-cell="1"><?php echo e(trim((string) ($booking['chamada_por_nome'] ?? '')) !== '' ? (string) $booking['chamada_por_nome'] : '-'); ?></td>
-                        <td data-label="Motivo da justificativa" data-booking-justification-cell="1"><?php echo e(trim((string) ($booking['justificativa_motivo'] ?? '')) !== '' ? (string) $booking['justificativa_motivo'] : '-'); ?></td>
+                        <td data-label="Motivo da justificativa" data-booking-justification-cell="1"><?php if (trim((string) ($booking['justificativa_motivo'] ?? '')) !== '') { echo e((string) $booking['justificativa_motivo']); } ?></td>
                         <td data-label="Ação">
-                            <?php if ($bookingStatus === 'cancelado') { ?>
-                                <span class="muted">Agendamento cancelado</span>
-                            <?php } else { ?>
+                            <?php if ($bookingStatus !== 'cancelado') { ?>
                                 <div class="admin-booking-status-actions<?php echo !$canManageAttendance ? ' is-disabled' : ''; ?>" data-booking-status-group="<?php echo e((string) $booking['id']); ?>" data-current-status="<?php echo e($bookingStatus); ?>">
                                     <label class="admin-booking-status-option admin-booking-status-option-presente">
                                         <input type="checkbox" class="admin-booking-status-checkbox" data-booking-id="<?php echo e((string) $booking['id']); ?>" data-status="presente" <?php echo $bookingStatus === 'presente' ? 'checked' : ''; ?> <?php echo !$canManageAttendance ? 'disabled' : ''; ?>>

@@ -390,9 +390,6 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                         <tr>
                                             <th>Horário</th>
                                             <th>Pessoa</th>
-                                            <th>Idade</th>
-                                            <th>Condições</th>
-                                            <th>Público</th>
                                             <th>Chamada</th>
                                             <th>Status</th>
                                             <th>Fez a chamada</th>
@@ -411,10 +408,14 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                     <strong><?php echo e(date('H:i', strtotime((string) $booking['data_agendada']))); ?></strong><br>
                                                     <small><?php echo e($booking['modalidade_nome'] . ' - ' . ucfirst((string) $booking['tipo_horario'])); ?></small>
                                                 </td>
-                                                <td><?php echo e($booking['nome_completo']); ?></td>
-                                                <td><?php echo e($booking['idade'] === null ? '-' : (string) $booking['idade'] . ' anos'); ?></td>
-                                                <td><?php echo e((string) ($booking['condicoes'] ?? 'Nenhuma')); ?></td>
-                                                <td><?php echo e((string) ($booking['publico_alvo_label'] ?? 'Geral')); ?></td>
+                                                <td class="admin-booking-person-inline">
+                                                    <strong><?php echo e((string) ($booking['nome_completo'] ?? '')); ?></strong>
+                                                    <span>CPF: <?php echo e(format_cpf((string) ($booking['cpf'] ?? ''))); ?></span>
+                                                    <span><?php echo e($booking['idade'] === null ? 'Idade não informada' : (string) $booking['idade'] . ' anos'); ?></span>
+                                                    <span><?php echo e((string) ($booking['condicoes'] ?? 'Nenhuma condição especial')); ?></span>
+                                                    <?php if (trim((string) ($booking['telefone_whatsapp'] ?? '')) !== '') { ?><a href="<?php echo e((string) $booking['whatsapp_url']); ?>" target="_blank" rel="noopener noreferrer">WhatsApp: <?php echo e((string) $booking['telefone_whatsapp']); ?></a><?php } ?>
+                                                    <?php if (trim((string) ($booking['email'] ?? '')) !== '') { ?><span><?php echo e((string) $booking['email']); ?></span><?php } ?>
+                                                </td>
                                                 <td data-booking-short-status="1"><strong><?php echo e((string) ($booking['status_sigla'] ?? '-')); ?></strong></td>
                                                 <td data-booking-status-cell="1">
                                                     <span class="chip admin-booking-status-chip admin-booking-status-<?php echo e($bookingStatus); ?>" data-booking-status-chip="1">
@@ -422,11 +423,9 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                     </span>
                                                 </td>
                                                 <td data-booking-caller-cell="1"><?php echo e(trim((string) ($booking['chamada_por_nome'] ?? '')) !== '' ? (string) $booking['chamada_por_nome'] : '-'); ?></td>
-                                                <td data-booking-justification-cell="1"><?php echo e(trim((string) ($booking['justificativa_motivo'] ?? '')) !== '' ? (string) ($booking['justificativa_motivo']) : '-'); ?></td>
+                                                <td data-booking-justification-cell="1"><?php if (trim((string) ($booking['justificativa_motivo'] ?? '')) !== '') { echo e((string) $booking['justificativa_motivo']); } ?></td>
                                                 <td>
-                                                    <?php if ($bookingStatus === 'cancelado') { ?>
-                                                        <span class="muted">Agendamento cancelado</span>
-                                                    <?php } else { ?>
+                                                    <?php if ($bookingStatus !== 'cancelado') { ?>
                                                         <div class="admin-booking-status-actions<?php echo !$canManageAttendance ? ' is-disabled' : ''; ?>" data-booking-status-group="<?php echo e((string) $booking['id']); ?>" data-current-status="<?php echo e($bookingStatus); ?>">
                                                             <label class="admin-booking-status-option admin-booking-status-option-presente">
                                                                 <input type="checkbox" class="admin-booking-status-checkbox" data-booking-id="<?php echo e((string) $booking['id']); ?>" data-status="presente" <?php echo $bookingStatus === 'presente' ? 'checked' : ''; ?> <?php echo !$canManageAttendance ? 'disabled' : ''; ?>>
@@ -630,19 +629,19 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <label>
                             <span>Regra da janela de agendamento</span>
                             <select name="janela_agendamento_tipo">
-                                <option value="semana_atual_proxima">Semana atual e próxima</option>
+                                <option value="semana_atual_proxima">Semana atual e próxima (até domingo)</option>
                                 <option value="janela_semanal_fixa">Abre e fecha em dias fixos da semana</option>
                                 <option value="antecedencia">Abre por antecedência da ocorrência</option>
                             </select>
+                            <small class="muted" data-window-rule-help></small>
                         </label>
-                        <label>
+                        <label data-window-fields="antecedencia">
                             <span>Horas antes do fechamento</span>
                             <input type="number" name="janela_horas_antes_fechamento" min="0" value="2">
-                            <small class="muted">Usado na regra por antecedência.</small>
                         </label>
                     </div>
 
-                    <div class="grid-four">
+                    <div class="grid-four" data-window-fields="janela_semanal_fixa">
                         <label>
                             <span>Abertura semanal: dia</span>
                             <select name="janela_abertura_dia_semana">
@@ -665,10 +664,10 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <label><span>Fechamento semanal: hora</span><input type="time" name="janela_fechamento_hora"></label>
                     </div>
 
-                    <label>
-                        <span>Dias de antecedência para abertura</span>
+                    <label data-window-fields="antecedencia">
+                        <span>Dias de antecedência para abertura da agenda</span>
                         <input type="number" name="janela_dias_antecedencia" min="0" value="7">
-                        <small class="muted">Usado na regra por antecedência. Ex.: 7 dias antes.</small>
+                        <small class="muted">Exemplo: com 7 dias, a agenda abre exatamente 7 dias antes do horário.</small>
                     </label>
 
                     <label>
@@ -945,18 +944,19 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             <label>
                                 <span>Regra da janela de agendamento</span>
                                 <select name="janela_agendamento_tipo" id="admin-weekly-schedule-window-type">
-                                    <option value="semana_atual_proxima">Semana atual e próxima</option>
+                                    <option value="semana_atual_proxima">Semana atual e próxima (até domingo)</option>
                                     <option value="janela_semanal_fixa">Abre e fecha em dias fixos da semana</option>
                                     <option value="antecedencia">Abre por antecedência da ocorrência</option>
                                 </select>
+                                <small class="muted" data-window-rule-help></small>
                             </label>
-                            <label>
+                            <label data-window-fields="antecedencia">
                                 <span>Horas antes do fechamento</span>
                                 <input type="number" name="janela_horas_antes_fechamento" id="admin-weekly-schedule-window-hours-before-close" min="0">
                             </label>
                         </div>
 
-                        <div class="grid-four">
+                        <div class="grid-four" data-window-fields="janela_semanal_fixa">
                             <label>
                                 <span>Abertura semanal: dia</span>
                                 <select name="janela_abertura_dia_semana" id="admin-weekly-schedule-window-open-weekday">
@@ -979,9 +979,10 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             <label><span>Fechamento semanal: hora</span><input type="time" name="janela_fechamento_hora" id="admin-weekly-schedule-window-close-time"></label>
                         </div>
 
-                        <label>
-                            <span>Dias de antecedência para abertura</span>
+                        <label data-window-fields="antecedencia">
+                            <span>Dias de antecedência para abertura da agenda</span>
                             <input type="number" name="janela_dias_antecedencia" id="admin-weekly-schedule-window-days-before" min="0">
+                            <small class="muted">Exemplo: com 7 dias, a agenda abre exatamente 7 dias antes do horário.</small>
                         </label>
 
                         <label>
@@ -1015,12 +1016,12 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     <label><span>Título</span><input type="text" name="titulo" maxlength="180" required></label>
                     <label><span>Descrição</span><textarea name="descricao" rows="4" placeholder="Texto livre para orientar o usuário sobre a avaliação, inscrição ou critério especial."></textarea></label>
                     <div class="grid-two">
-                        <label><span>Inicio</span><input type="datetime-local" name="data_inicio" required></label>
-                        <label><span>Fim</span><input type="datetime-local" name="data_fim" required></label>
+                        <label><span>Início do horário especial</span><input type="datetime-local" name="data_inicio" required></label>
+                        <label><span>Fim do horário especial</span><input type="datetime-local" name="data_fim" required></label>
                     </div>
                     <div class="grid-two">
-                        <label><span>Publicação: início</span><input type="datetime-local" name="data_publicacao_inicio" required></label>
-                        <label><span>Publicação: fim</span><input type="datetime-local" name="data_publicacao_fim" required></label>
+                        <label><span>Abertura da agenda para inscrições</span><input type="datetime-local" name="data_publicacao_inicio" required><small class="muted">Dia e horário em que o evento aparecerá e começará a aceitar inscrições.</small></label>
+                        <label><span>Fechamento da agenda para inscrições</span><input type="datetime-local" name="data_publicacao_fim" required><small class="muted">Deve ocorrer antes ou exatamente no início do horário especial.</small></label>
                     </div>
                     <div class="grid-two">
                         <label><span>Idade mínima</span><input type="number" name="idade_minima" min="0" max="120" value="0" required></label>
@@ -1108,7 +1109,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             <tr>
                                 <th>Titulo</th>
                                 <th>Período</th>
-                                <th>Publicação</th>
+                                <th>Agenda para inscrições</th>
                                 <th>Canais</th>
                                 <th>Faixa etária</th>
                                 <th>Vagas</th>
@@ -1123,13 +1124,14 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 <tr><td colspan="10">Nenhum horário especial cadastrado.</td></tr>
                             <?php } ?>
                             <?php foreach (($specialSchedules ?? []) as $specialEvent) { ?>
+                                <?php $isPastSpecialEvent = strtotime((string) ($specialEvent['data_fim'] ?? '')) < time(); ?>
                                 <tr>
                                     <td>
                                         <strong><?php echo e((string) ($specialEvent['titulo'] ?? 'Horário especial')); ?></strong><br>
                                         <small><?php echo e(trim((string) ($specialEvent['descricao'] ?? '')) !== '' ? substr((string) $specialEvent['descricao'], 0, 90) . (strlen((string) $specialEvent['descricao']) > 90 ? '...' : '') : 'Sem descrição'); ?></small>
                                     </td>
                                     <td><?php echo e(date('d/m/Y H:i', strtotime((string) $specialEvent['data_inicio']))); ?> até <?php echo e(date('d/m/Y H:i', strtotime((string) $specialEvent['data_fim']))); ?></td>
-                                    <td><?php echo e(date('d/m/Y H:i', strtotime((string) $specialEvent['data_publicacao_inicio']))); ?> até <?php echo e(date('d/m/Y H:i', strtotime((string) $specialEvent['data_publicacao_fim']))); ?></td>
+                                    <td><strong>Abre:</strong> <?php echo e(date('d/m/Y H:i', strtotime((string) $specialEvent['data_publicacao_inicio']))); ?><br><strong>Fecha:</strong> <?php echo e(date('d/m/Y H:i', strtotime((string) $specialEvent['data_publicacao_fim']))); ?></td>
                                     <td><?php echo (int) ($specialEvent['publicar_pagina_inicial'] ?? 0) === 1 ? 'Home' : '-'; ?> / <?php echo (int) ($specialEvent['publicar_blog'] ?? 0) === 1 ? 'Blog' : '-'; ?></td>
                                     <td><?php echo e((string) ($specialEvent['idade_minima'] ?? 0)); ?> a <?php echo e((string) ($specialEvent['idade_maxima'] ?? 120)); ?> anos</td>
                                     <td>Geral: <?php echo e((string) ($specialEvent['vagas_geral'] ?? 0)); ?><br><small>PCD: <?php echo e((string) ($specialEvent['vagas_pcd'] ?? 0)); ?> | PVS: <?php echo e((string) ($specialEvent['vagas_pvs'] ?? 0)); ?> | PLM: <?php echo e((string) ($specialEvent['vagas_plm'] ?? 0)); ?></small></td>
@@ -1137,20 +1139,24 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                     <td><?php echo e(trim((string) ($specialEvent['url_destino'] ?? '')) !== '' ? (string) $specialEvent['url_destino'] : '-'); ?></td>
                                     <td><?php echo e((int) ($specialEvent['ativo'] ?? 0) === 1 ? 'Ativo' : 'Inativo'); ?></td>
                                     <td>
-                                        <button
-                                            type="button"
-                                            class="btn btn-secondary btn-compact"
-                                            data-special-schedule-edit="1"
-                                            data-special-schedule-id="<?php echo e((string) $specialEvent['id']); ?>"
-                                        >
-                                            Editar
-                                        </button>
-                                        <?php if ((int) ($specialEvent['ativo'] ?? 0) === 1) { ?>
+                                        <?php if ($isPastSpecialEvent) { ?>
+                                            <span class="muted">Somente consulta</span>
+                                        <?php } else { ?>
+                                            <button
+                                                type="button"
+                                                class="btn btn-secondary btn-compact"
+                                                data-special-schedule-edit="1"
+                                                data-special-schedule-id="<?php echo e((string) $specialEvent['id']); ?>"
+                                            >
+                                                Editar
+                                            </button>
+                                        <?php } ?>
+                                        <?php if (!$isPastSpecialEvent && (int) ($specialEvent['ativo'] ?? 0) === 1) { ?>
                                             <form method="POST" action="<?php echo e(url('/admin/agenda-horarios-especiais/inativar')); ?>" class="inline-form" data-ajax-form="1">
                                                 <input type="hidden" name="agenda_horario_especial_id" value="<?php echo e((string) $specialEvent['id']); ?>">
                                                 <button type="submit" class="btn btn-secondary btn-compact">Inativar</button>
                                             </form>
-                                        <?php } else { ?>
+                                        <?php } elseif (!$isPastSpecialEvent) { ?>
                                             <span class="muted">Sem ação</span>
                                         <?php } ?>
                                     </td>
@@ -1176,12 +1182,12 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <label><span>Título</span><input type="text" name="titulo" id="admin-special-schedule-title" maxlength="180" required></label>
                         <label><span>Descrição</span><textarea name="descricao" id="admin-special-schedule-description" rows="4"></textarea></label>
                         <div class="grid-two">
-                            <label><span>Inicio</span><input type="datetime-local" name="data_inicio" id="admin-special-schedule-start" required></label>
-                            <label><span>Fim</span><input type="datetime-local" name="data_fim" id="admin-special-schedule-end" required></label>
+                            <label><span>Início do horário especial</span><input type="datetime-local" name="data_inicio" id="admin-special-schedule-start" required></label>
+                            <label><span>Fim do horário especial</span><input type="datetime-local" name="data_fim" id="admin-special-schedule-end" required></label>
                         </div>
                         <div class="grid-two">
-                            <label><span>Publicação: início</span><input type="datetime-local" name="data_publicacao_inicio" id="admin-special-schedule-publish-start" required></label>
-                            <label><span>Publicação: fim</span><input type="datetime-local" name="data_publicacao_fim" id="admin-special-schedule-publish-end" required></label>
+                            <label><span>Abertura da agenda para inscrições</span><input type="datetime-local" name="data_publicacao_inicio" id="admin-special-schedule-publish-start" required><small class="muted">Dia e horário em que o evento aparecerá e começará a aceitar inscrições.</small></label>
+                            <label><span>Fechamento da agenda para inscrições</span><input type="datetime-local" name="data_publicacao_fim" id="admin-special-schedule-publish-end" required><small class="muted">Deve ocorrer antes ou exatamente no início do horário especial.</small></label>
                         </div>
                         <div class="grid-two">
                             <label><span>Idade mínima</span><input type="number" name="idade_minima" id="admin-special-schedule-age-min" min="0" max="120" required></label>

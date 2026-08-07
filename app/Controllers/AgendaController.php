@@ -126,14 +126,16 @@ class AgendaController extends Controller
         }
 
         try {
-            $items = $this->agendaService->listScheduleEligibility(
+            $eligibility = $this->agendaService->listScheduleEligibility(
                 (int) ($_GET['horario_id'] ?? 0),
                 (string) ($_GET['data_hora_inicio'] ?? '')
             );
 
             $this->jsonResponse([
                 'success' => true,
-                'items' => $items,
+                'items' => $eligibility['items'] ?? [],
+                'window_blocked' => !empty($eligibility['window_blocked']),
+                'window_message' => (string) ($eligibility['window_message'] ?? ''),
             ]);
         } catch (\Throwable $e) {
             $this->jsonResponse([

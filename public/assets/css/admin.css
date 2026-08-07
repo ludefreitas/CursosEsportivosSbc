@@ -1232,3 +1232,17 @@
 .recovery-modal-card pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #eef5f8; padding: 12px; border-radius: 10px; }
 
 @media (max-width: 720px) { .recovery-filter { grid-template-columns: 1fr; } }
+.admin-booking-person-inline {
+    white-space: nowrap;
+}
+
+.admin-booking-person-inline > * + *::before {
+    content: " · ";
+    color: #667085;
+    text-decoration: none;
+}
+
+.admin-booking-person-inline a {
+    color: #128c4a;
+    font-weight: 700;
+}
