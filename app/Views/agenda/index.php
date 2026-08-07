@@ -168,7 +168,7 @@
                 <input type="hidden" name="horario_id" id="horario_id">
                 <input type="hidden" name="data_hora_inicio" id="data_hora_inicio">
                 <div class="person-choice-group">
-                    <span>Pessoa para agendar</span>
+                    <span>Selecione abaixo a pessoa para agendar</span>
                     <div
                         id="agenda-person-options"
                         class="agenda-person-options<?php echo empty($schedulablePeople) ? ' hidden' : ''; ?>"

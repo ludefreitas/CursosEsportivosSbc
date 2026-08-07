@@ -197,17 +197,21 @@ class AgendaController extends Controller
         }
 
         try {
-            $this->agendaService->book($_POST);
+            $accessibilityWarning = $this->agendaService->book($_POST);
+            $successMessage = 'Agendamento realizado com sucesso.';
+            if ($accessibilityWarning !== null) {
+                $successMessage .= ' ' . $accessibilityWarning;
+            }
 
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Agendamento realizado com sucesso.',
+                    'message' => $successMessage,
                     'redirect' => url('/agenda'),
                 ]);
             }
 
-            flash('success', 'Agendamento realizado com sucesso.');
+            flash('success', $successMessage);
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([

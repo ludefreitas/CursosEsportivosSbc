@@ -301,6 +301,13 @@
                             });
                         }
 
+                        let warningsHtml = '';
+                        if (Array.isArray(item.avisos) && item.avisos.length > 0) {
+                            item.avisos.forEach(function (warning) {
+                                warningsHtml += '<small class="agenda-person-accessibility-warning">' + App.agenda.escapeHtml(String(warning || '')) + '</small>';
+                            });
+                        }
+
                         html += ''
                             + '<label class="' + cardClass + '" data-person-choice-card="1">'
                             + '<span class="agenda-person-line">'
@@ -308,6 +315,7 @@
                             + '<span class="agenda-person-main">' + String(item.nome_completo || '') + '</span>'
                             + '</span>'
                             + reasonsHtml
+                            + warningsHtml
                             + '</label>';
                     });
                 }
@@ -403,16 +411,13 @@
                 '<div class="event-card">'
                 + '<h3>' + eventInfo.event.title + '</h3>'
                 + '<p><strong>Horário:</strong> ' + App.agenda.formatarHoraAgenda(eventInfo.event.start) + ' ás ' + App.agenda.formatarHoraAgenda(eventInfo.event.end) + '</p>'
-                + '<p><strong>Local:</strong> ' + props.local + '</p>'
-                + '<p><strong>Espaço:</strong> ' + props.espaco + '</p>'
+                + '<p><strong>Local:</strong> ' + (props.local_apelido || props.local) + ' <small>(' + props.espaco + ')</small></p>'
                 + '<p><strong>Modalidade:</strong> ' + props.modalidade + '</p>'
-                + '<p><strong>Tipo:</strong> ' + props.tipo_horario + '</p>'
                 + (String(props.criterio_faixa_etaria || '') === 'ano_nascimento' && String(props.ano_nascimento_intervalo || '').trim() !== ''
                     ? '<p><strong>Ano de nascimento permitido:</strong> ( para ' + String(props.ano_nascimento_intervalo).replace('Nascidos entre ', 'nascidos entre ') + ' )</p>'
                     : '<p><strong>Faixa etária:</strong> ( para ' + props.idade_minima + ' a ' + props.idade_maxima + ' anos de idade )</p>')
                 + '<p><strong>Sexo permitido:</strong> ' + App.agenda.formatarSexoHorario(props.sexo) + '</p>'
                 + '<p><strong>Vagas:</strong> ' + App.agenda.formatarVagasAgenda(props.vagas_disponiveis, props.vagas_total) + ' disponíveis</p>'
-                + '<p><strong>Ocupacao:</strong> ' + String(props.vagas_ocupadas || 0).padStart(2, '0') + ' agendamento(s) de ' + String(props.vagas_total || 0).padStart(2, '0') + ' vaga(s)</p>'
                 + (isInactiveSchedule ? '<p><strong>Aviso:</strong> Este horário semanal está inativo e não aceita novos agendamentos.</p>' : '')
                 + (isPast ? '<p><strong>Aviso:</strong> Não é possível agendar para data passada.</p>' : '')
                 + bookingStatusHtml

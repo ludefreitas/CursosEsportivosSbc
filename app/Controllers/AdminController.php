@@ -17,6 +17,7 @@ use App\Services\OfficialCommunicationService;
 use App\Services\ExternalPersonService;
 use App\Services\ExternalLocationService;
 use App\Services\ExternalHealthCertificateService;
+use App\Services\SpaceAccessibilityService;
 use DateTimeImmutable;
 
 class AdminController extends Controller
@@ -2093,6 +2094,7 @@ class AdminController extends Controller
             $data['spaceLimitMax'] = AdminService::MAX_TRAINING_SPACE_LIMIT;
             $data['spaceFormLocations'] = $this->adminService->listTrainingLocationsForSpaceForm();
             $data['eligibleSpaceSupervisors'] = $this->adminService->listEligibleSpaceSupervisors();
+            $data['spaceAccessibilityOptions'] = (new SpaceAccessibilityService())->options();
             $data['trainingSpaces'] = $this->adminService->listTrainingSpacesForManagement(
                 (string) $data['spaceSearch'],
                 (int) $data['spaceLimit']

@@ -3654,6 +3654,12 @@
                 $form.find('input[name="tipo_espaco"]').val(String(space.tipo_espaco || ''));
                 $form.find('input[name="capacidade_base"]').val(String(space.capacidade_base || 0));
                 $form.find('select[name="supervisor_espaco"]').val(String(space.supervisor_espaco || ''));
+                const unavailableAccessibility = Array.isArray(space.acessibilidade_deficiencias_indisponiveis)
+                    ? space.acessibilidade_deficiencias_indisponiveis.map(String)
+                    : [];
+                $form.find('input[name="acessibilidade_deficiencias_indisponiveis[]"]').each(function () {
+                    $(this).prop('checked', unavailableAccessibility.indexOf(String($(this).val())) !== -1);
+                });
                 $form.find('select[name="ativo"]').val(String(Number(space.ativo || 0)));
                 $('#admin-training-space-modal-title').text('Editar espaço de treino');
                 $('#admin-training-space-submit').text('Salvar alterações');

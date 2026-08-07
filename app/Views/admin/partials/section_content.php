@@ -2260,6 +2260,18 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 </select>
                             </label>
                         </div>
+                        <fieldset class="stack-form admin-space-accessibility-options">
+                            <legend>Acessibilidade do espaço</legend>
+                            <p class="muted">Marque somente as deficiências para as quais este espaço não oferece acessibilidade adequada. A informação gerará um aviso, sem impedir o agendamento ou a inscrição.</p>
+                            <div class="chips-wrap">
+                                <?php foreach (($spaceAccessibilityOptions ?? []) as $accessibilitySlug => $accessibilityLabel) { ?>
+                                    <label class="checkbox-line">
+                                        <input type="checkbox" name="acessibilidade_deficiencias_indisponiveis[]" value="<?php echo e((string) $accessibilitySlug); ?>">
+                                        <span><?php echo e((string) $accessibilityLabel); ?></span>
+                                    </label>
+                                <?php } ?>
+                            </div>
+                        </fieldset>
                         <label>
                             <span>Status</span>
                             <select name="ativo"><option value="1">Ativo</option><option value="0">Inativo</option></select>

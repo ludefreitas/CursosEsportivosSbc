@@ -322,6 +322,17 @@
     font-size: 11px;
     line-height: 1.35;
 }
+.agenda-person-accessibility-warning {
+    display: block;
+    margin-top: 6px;
+    padding: 8px 10px;
+    border-left: 3px solid #d4a017;
+    border-radius: 6px;
+    background: #fff7d6;
+    color: #6c4e00;
+    font-size: 12px;
+    line-height: 1.4;
+}
 .popup-agenda-reminder-card {
     width: min(560px, 100%);
 }

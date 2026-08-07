@@ -12,7 +12,12 @@
             <br>
             <small class="muted">Supervisor: <?php echo e($space['supervisor_espaco_nome'] ?: 'Não definido'); ?></small>
         </td>
-        <td><?php echo e($space['tipo_espaco']); ?></td>
+        <td>
+            <?php echo e($space['tipo_espaco']); ?>
+            <?php if (!empty($space['acessibilidade_deficiencias_indisponiveis_rotulos'])) { ?>
+                <br><small class="muted">Acessibilidade não adequada para: <?php echo e(implode(', ', $space['acessibilidade_deficiencias_indisponiveis_rotulos'])); ?></small>
+            <?php } ?>
+        </td>
         <td><?php echo e((int) $space['ativo'] === 1 ? 'Ativo' : 'Inativo'); ?></td>
         <td>
             <div class="admin-training-space-suspensions">
@@ -45,6 +50,7 @@
                     'nome' => (string) $space['nome'],
                     'tipo_espaco' => (string) $space['tipo_espaco'],
                     'capacidade_base' => (int) ($space['capacidade_base'] ?? 0),
+                    'acessibilidade_deficiencias_indisponiveis' => $space['acessibilidade_deficiencias_indisponiveis_lista'] ?? [],
                     'ativo' => (int) $space['ativo'],
                 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
             >Editar</button>

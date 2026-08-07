@@ -331,6 +331,7 @@ CREATE TABLE IF NOT EXISTS espacos_treino (
     nome VARCHAR(120) NOT NULL,
     tipo_espaco VARCHAR(80) NOT NULL,
     capacidade_base INT NOT NULL DEFAULT 0,
+    acessibilidade_deficiencias_indisponiveis TEXT NULL,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
     CONSTRAINT fk_espaco_local FOREIGN KEY (local_treino_id) REFERENCES locais_treino(id),
     CONSTRAINT fk_espaco_supervisor FOREIGN KEY (supervisor_espaco) REFERENCES contas(id) ON DELETE SET NULL

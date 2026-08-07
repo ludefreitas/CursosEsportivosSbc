@@ -13,6 +13,7 @@ class AgendaService
     public function __construct()
     {
         new ExternalHealthCertificateService();
+        new SpaceAccessibilityService();
         $this->ensureWeeklyScheduleAgeRuleSchema();
         $this->ensureSpecialScheduleSchema();
     }
@@ -157,6 +158,7 @@ class AgendaService
                         THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
                     ELSE lt.nome_local
                 END AS local_nome,
+                COALESCE(NULLIF(TRIM(lt.apelido_local), ""), lt.nome_local) AS local_apelido,
                 et.nome AS espaco_nome,
                 m.nome AS modalidade_nome,
                 m.tipo_ambiente
@@ -241,6 +243,7 @@ class AgendaService
                     'classNames' => $classNames,
                     'extendedProps' => [
                         'local' => $row['local_nome'],
+                        'local_apelido' => $row['local_apelido'],
                         'espaco' => $row['espaco_nome'],
                         'modalidade' => $row['modalidade_nome'],
                         'tipo_ambiente' => $row['tipo_ambiente'],
@@ -326,11 +329,16 @@ class AgendaService
 
         foreach ($this->listLinkedPeople() as $person) {
             $reasons = $this->collectScheduleBlockReasons((int) $person['id'], $person, $schedule, $startDate);
+            $accessibilityWarning = (new SpaceAccessibilityService())->warningForPersonAndSpace(
+                (int) $person['id'],
+                (int) ($schedule['espaco_treino_id'] ?? 0)
+            );
             $items[] = [
                 'id' => (int) $person['id'],
                 'nome_completo' => (string) $person['nome_completo'],
                 'elegivel' => count($reasons) === 0,
                 'motivos' => $reasons,
+                'avisos' => $accessibilityWarning !== null ? [$accessibilityWarning] : [],
             ];
         }
 
@@ -360,7 +368,7 @@ class AgendaService
     /**
      * Realiza um agendamento obedecendo regras iniciais da temporada.
      */
-    public function book(array $data): void
+    public function book(array $data): ?string
     {
         if (!Auth::check()) {
             throw new RuntimeException('E necessario fazer login para agendar.');
@@ -425,6 +433,11 @@ class AgendaService
             'horario_id' => $scheduleId,
             'publico_alvo' => $publico,
         ]);
+
+        return (new SpaceAccessibilityService())->warningForPersonAndSpace(
+            $personId,
+            (int) ($schedule['espaco_treino_id'] ?? 0)
+        );
     }
 
     /**

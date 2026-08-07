@@ -29,6 +29,7 @@ class AdminService
 
     public function __construct()
     {
+        new SpaceAccessibilityService();
         $this->ensureHealthCertificateSchema();
         $this->ensureWeeklyScheduleAgeRuleSchema();
         $this->ensureSpecialScheduleSchema();
@@ -1482,6 +1483,7 @@ class AdminService
                 et.nome,
                 et.tipo_espaco,
                 et.capacidade_base,
+                et.acessibilidade_deficiencias_indisponiveis,
                 et.supervisor_espaco,
                 et.ativo,
                 lt.id AS local_treino_id,
@@ -1538,7 +1540,19 @@ class AdminService
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $spaces = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $accessibility = new SpaceAccessibilityService();
+        foreach ($spaces as &$space) {
+            $space['acessibilidade_deficiencias_indisponiveis_lista'] = $accessibility->decode(
+                (string) ($space['acessibilidade_deficiencias_indisponiveis'] ?? '')
+            );
+            $space['acessibilidade_deficiencias_indisponiveis_rotulos'] = $accessibility->labels(
+                $space['acessibilidade_deficiencias_indisponiveis_lista']
+            );
+        }
+        unset($space);
+
+        return $spaces;
     }
 
     public function listEligibleSpaceSupervisors(): array
@@ -1576,8 +1590,8 @@ class AdminService
         $payload = $this->validateTrainingSpacePayload($data);
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
-            INSERT INTO espacos_treino (local_treino_id, supervisor_espaco, nome, tipo_espaco, capacidade_base, ativo)
-            VALUES (:local_treino_id, :supervisor_espaco, :nome, :tipo_espaco, :capacidade_base, :ativo)
+            INSERT INTO espacos_treino (local_treino_id, supervisor_espaco, nome, tipo_espaco, capacidade_base, acessibilidade_deficiencias_indisponiveis, ativo)
+            VALUES (:local_treino_id, :supervisor_espaco, :nome, :tipo_espaco, :capacidade_base, :acessibilidade_deficiencias_indisponiveis, :ativo)
         ');
         $stmt->execute($payload);
 
@@ -1602,6 +1616,7 @@ class AdminService
                 nome = :nome,
                 tipo_espaco = :tipo_espaco,
                 capacidade_base = :capacidade_base,
+                acessibilidade_deficiencias_indisponiveis = :acessibilidade_deficiencias_indisponiveis,
                 ativo = :ativo
             WHERE id = :id
         ');
@@ -1623,6 +1638,7 @@ class AdminService
         $name = trim((string) ($data['nome'] ?? ''));
         $type = trim((string) ($data['tipo_espaco'] ?? ''));
         $capacity = max(0, (int) ($data['capacidade_base'] ?? 0));
+        $unavailableAccessibility = (new SpaceAccessibilityService())->encode($data['acessibilidade_deficiencias_indisponiveis'] ?? []);
         $active = isset($data['ativo']) && (string) $data['ativo'] === '0' ? 0 : 1;
         $pdo = Database::connection();
 
@@ -1657,6 +1673,7 @@ class AdminService
             ':nome' => $name,
             ':tipo_espaco' => $type,
             ':capacidade_base' => $capacity,
+            ':acessibilidade_deficiencias_indisponiveis' => $unavailableAccessibility,
             ':ativo' => $active,
         ];
     }
