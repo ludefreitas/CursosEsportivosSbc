@@ -1595,7 +1595,9 @@ class AdminService
         ');
         $stmt->execute($payload);
 
-        return (int) $pdo->lastInsertId();
+        $spaceId = (int) $pdo->lastInsertId();
+        AuditLogService::record('admin.espaco_treino_criado', 'espacos_treino', $spaceId, ['depois' => $data]);
+        return $spaceId;
     }
 
     public function updateTrainingSpace(array $data): void
@@ -1607,6 +1609,9 @@ class AdminService
         }
 
         $payload = $this->validateTrainingSpacePayload($data);
+        $beforeStmt = Database::connection()->prepare('SELECT * FROM espacos_treino WHERE id = :id LIMIT 1');
+        $beforeStmt->execute([':id' => $spaceId]);
+        $before = $beforeStmt->fetch(PDO::FETCH_ASSOC);
         $payload[':id'] = $spaceId;
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
@@ -1629,6 +1634,7 @@ class AdminService
                 throw new RuntimeException('Espaço de treino não encontrado.');
             }
         }
+        AuditLogService::record('admin.espaco_treino_atualizado', 'espacos_treino', $spaceId, ['antes' => $before, 'depois' => $data]);
     }
 
     private function validateTrainingSpacePayload(array $data): array
@@ -1830,7 +1836,9 @@ class AdminService
             ':ativo' => $active,
         ]);
 
-        return (int) $pdo->lastInsertId();
+        $locationId = (int) $pdo->lastInsertId();
+        AuditLogService::record('admin.local_treino_criado', 'locais_treino', $locationId, ['depois' => $data]);
+        return $locationId;
     }
 
     /**
@@ -1879,10 +1887,11 @@ class AdminService
         $pdo = Database::connection();
         $this->assertEligibleLocationManager($pdo, $localAdminId, 'administrador do local');
         $this->assertEligibleLocationManager($pdo, $localCoordinatorId, 'coordenador do local');
-        $check = $pdo->prepare('SELECT COUNT(*) FROM locais_treino WHERE id = :id');
+        $check = $pdo->prepare('SELECT * FROM locais_treino WHERE id = :id LIMIT 1');
         $check->execute([':id' => $locationId]);
+        $before = $check->fetch(PDO::FETCH_ASSOC);
 
-        if ((int) $check->fetchColumn() === 0) {
+        if (!$before) {
             throw new RuntimeException('Local de treino não encontrado.');
         }
 
@@ -1918,6 +1927,7 @@ class AdminService
             ':ativo' => $active,
             ':id' => $locationId,
         ]);
+        AuditLogService::record('admin.local_treino_atualizado', 'locais_treino', $locationId, ['antes' => $before, 'depois' => $data]);
     }
 
     /**

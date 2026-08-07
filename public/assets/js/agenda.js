@@ -119,6 +119,18 @@
             return null;
         },
 
+        recarregarOcorrenciaAberta: function () {
+            const info = App.state.agendaPendingEventData;
+            if (!info || !info.event || !App.state.agendaCalendar) {
+                return;
+            }
+            App.state.agendaOccurrenceToRefresh = {
+                id: String(info.event.id || ''),
+                occurrenceStart: String((((info.event || {}).extendedProps || {}).occurrence_start) || '')
+            };
+            App.state.agendaCalendar.refetchEvents();
+        },
+
         isPastOccurrence: function (eventInfo) {
             if (!eventInfo || !eventInfo.event || !eventInfo.event.start) {
                 return false;
@@ -151,6 +163,22 @@
             $('#agenda-special-schedule-birth-date')
                 .val(String($option.data('nascimento') || ''))
                 .prop('readonly', hasLinkedPerson);
+
+            if (hasLinkedPerson) {
+                let publicos = ['geral'];
+                try {
+                    publicos = JSON.parse(String($option.attr('data-publicos-permitidos') || '["geral"]'));
+                } catch (error) {
+                    publicos = ['geral'];
+                }
+                const $publico = $('#agenda-special-schedule-publico');
+                $publico.find('option').each(function () {
+                    $(this).prop('disabled', publicos.indexOf(String($(this).val())) === -1);
+                });
+                $publico.val(String(publicos[0] || 'geral'));
+            } else {
+                $('#agenda-special-schedule-publico option').prop('disabled', false);
+            }
         },
 
         resetarDetalhesAgenda: function () {
@@ -164,7 +192,7 @@
             $('#agenda-special-name').val('').prop('readonly', false);
             $('#agenda-special-cpf').val('').prop('readonly', false);
             $('#agenda-special-schedule-birth-date').val('').prop('readonly', false);
-            $('#agenda-special-schedule-publico').val('geral');
+            $('#agenda-special-schedule-publico').val('geral').find('option').prop('disabled', false);
             $('#form-agenda-horario-especial').find('input[name="aceite_termos"]').prop('checked', false);
             $('#agenda-cancel-bookings').addClass('hidden').html('');
             $('#agenda-person-options').addClass('hidden').html('');
@@ -308,10 +336,14 @@
                             });
                         }
 
+                        const publicosPermitidos = Array.isArray(item.publicos_permitidos) && item.publicos_permitidos.length > 0
+                            ? item.publicos_permitidos
+                            : ['geral'];
+
                         html += ''
                             + '<label class="' + cardClass + '" data-person-choice-card="1">'
                             + '<span class="agenda-person-line">'
-                            + '<input type="radio" name="person_id" data-person-choice="1" value="' + String(item.id) + '"' + checkedAttr + '>'
+                            + '<input type="radio" name="person_id" data-person-choice="1" data-publicos-permitidos="' + App.agenda.escapeHtml(JSON.stringify(publicosPermitidos)) + '" value="' + String(item.id) + '"' + checkedAttr + '>'
                             + '<span class="agenda-person-main">' + String(item.nome_completo || '') + '</span>'
                             + '</span>'
                             + reasonsHtml
@@ -346,6 +378,7 @@
             $('#horario_id').val(eventInfo.event.id);
             $('#data_hora_inicio').val(eventInfo.event.startStr);
             $('input[data-person-choice="1"]').prop('checked', false);
+            $('#publico_alvo').val('geral').find('option').prop('disabled', false);
 
             if (meusAgendamentos.length > 0) {
                 let itemsHtml = '';
@@ -545,6 +578,15 @@
                         }
                     }
                 },
+                eventsSet: function () {
+                    const pending = App.state.agendaOccurrenceToRefresh;
+                    if (!pending) return;
+                    App.state.agendaOccurrenceToRefresh = null;
+                    const refreshedEvent = App.agenda.encontrarEventoAgendaPorOcorrencia(pending.id, pending.occurrenceStart);
+                    if (refreshedEvent) {
+                        App.agenda.renderizarDetalhesAgenda({ event: refreshedEvent });
+                    }
+                },
                 eventClick: function (info) {
                     App.state.agendaPendingEventData = info;
 
@@ -616,6 +658,18 @@
                 if (!$(this).is(':checked')) {
                     return;
                 }
+
+                let publicos = ['geral'];
+                try {
+                    publicos = JSON.parse(String($(this).attr('data-publicos-permitidos') || '["geral"]'));
+                } catch (error) {
+                    publicos = ['geral'];
+                }
+                const $select = $('#publico_alvo');
+                $select.find('option').each(function () {
+                    $(this).prop('disabled', publicos.indexOf(String($(this).val())) === -1);
+                });
+                $select.val(String(publicos[0] || 'geral')).trigger('change');
             });
 
             $(document).on('click', '#agenda-details-modal-close', function () {
@@ -668,23 +722,7 @@
                         return;
                     }
 
-                    if (App.state.agendaCalendar && typeof App.state.agendaCalendar.refetchEvents === 'function') {
-                        App.state.agendaCalendar.refetchEvents();
-                    }
-
-                    if (App.state.agendaPendingEventData) {
-                        const refreshInfo = App.state.agendaPendingEventData;
-                        window.setTimeout(function () {
-                            const refreshedEvent = App.agenda.encontrarEventoAgendaPorOcorrencia(
-                                String(refreshInfo.event.id || ''),
-                                String((((refreshInfo.event || {}).extendedProps || {}).occurrence_start) || '')
-                            );
-
-                            if (refreshedEvent) {
-                                App.agenda.renderizarDetalhesAgenda({ event: refreshedEvent });
-                            }
-                        }, 350);
-                    }
+                    App.agenda.recarregarOcorrenciaAberta();
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);

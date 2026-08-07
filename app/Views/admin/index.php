@@ -23,6 +23,9 @@
             <button type="button" class="admin-nav-button" data-admin-nav-target="modalidades">Modalidades</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="configuracoes">Configurações</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="outras-areas">Outras áreas</button>
+            <?php if (has_role($user['roles'] ?? [], 'master_admin')) { ?>
+                <a class="admin-nav-button" href="<?php echo e(url('/admin-recuperacao-dados')); ?>">Reversão de testes</a>
+            <?php } ?>
         </div>
     </nav>
 

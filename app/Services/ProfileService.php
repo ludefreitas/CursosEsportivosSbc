@@ -631,6 +631,11 @@ class ProfileService
                         ':observacoes' => $notes !== '' ? $notes : null,
                         ':id' => (int) $existingRecord['id'],
                     ]);
+                    AuditLogService::record('atestado_saude.atualizado', 'atestados_saude', (int) $existingRecord['id'], [
+                        'antes' => $existingRecord,
+                        'pessoa_id' => (int) $person['id'],
+                        'tipo_atestado' => $slug,
+                    ]);
                     continue;
                 }
 
@@ -681,6 +686,12 @@ class ProfileService
                         ':observacoes' => $notes !== '' ? $notes : null,
                         ':id' => (int) $existingRecords[$slug]['id'],
                     ]);
+                    AuditLogService::record('atestado_saude.documento_atualizado', 'atestados_saude', (int) $existingRecords[$slug]['id'], [
+                        'antes' => $existingRecords[$slug],
+                        'pessoa_id' => (int) $person['id'],
+                        'tipo_atestado' => $slug,
+                        'novo_arquivo' => (string) $validated['name'],
+                    ]);
                 } else {
                     $stmt = $pdo->prepare('
                         INSERT INTO atestados_saude (
@@ -726,6 +737,11 @@ class ProfileService
                         ':crm_medico' => $crm !== '' ? $crm : null,
                         ':local_atendimento' => $serviceLocation !== '' ? $serviceLocation : null,
                         ':observacoes' => $notes !== '' ? $notes : null,
+                    ]);
+                    AuditLogService::record('atestado_saude.criado', 'atestados_saude', (int) $pdo->lastInsertId(), [
+                        'pessoa_id' => (int) $person['id'],
+                        'tipo_atestado' => $slug,
+                        'arquivo' => (string) $validated['name'],
                     ]);
                 }
             }

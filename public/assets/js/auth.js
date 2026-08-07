@@ -225,6 +225,10 @@
 
                     const mensagem = response && response.message ? String(response.message) : 'Operacao realizada com sucesso.';
 
+                    if ($form.attr('id') === 'form-agendamento' && App.agenda && typeof App.agenda.recarregarOcorrenciaAberta === 'function') {
+                        App.agenda.recarregarOcorrenciaAberta();
+                    }
+
                     if (authenticatedSessionStarted) {
                         const $calendar = $('#calendario-treinos');
                         const $personOptions = $('#agenda-person-options');
@@ -277,6 +281,9 @@
                             if ($form.attr('id') === 'form-agendamento') {
                                 $form.addClass('hidden');
                                 $('#painel-evento').html('<p class="muted">Clique em um horário no calendário para ver local, vagas e regras.</p>');
+                                if (App.agenda && typeof App.agenda.fecharModalDetalhesHorario === 'function') {
+                                    App.agenda.fecharModalDetalhesHorario();
+                                }
                             }
 
                             if ($form.attr('id') === 'form-site-popup') {

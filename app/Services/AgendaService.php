@@ -304,12 +304,13 @@ class AgendaService
             return [];
         }
 
-        return array_map(static function (array $person): array {
+        return array_map(function (array $person): array {
             return [
                 'id' => (int) ($person['id'] ?? 0),
                 'nome_completo' => (string) ($person['nome_completo'] ?? ''),
                 'cpf' => (string) ($person['cpf'] ?? ''),
                 'data_nascimento' => (string) ($person['data_nascimento'] ?? ''),
+                'publicos_permitidos' => $this->publicosPermitidosParaPessoa($person),
             ];
         }, $this->listLinkedPeople());
     }
@@ -339,6 +340,7 @@ class AgendaService
                 'elegivel' => count($reasons) === 0,
                 'motivos' => $reasons,
                 'avisos' => $accessibilityWarning !== null ? [$accessibilityWarning] : [],
+                'publicos_permitidos' => $this->publicosPermitidosParaPessoa($person),
             ];
         }
 
@@ -404,6 +406,8 @@ class AgendaService
         if (!$person || (int) $person['cadastro_completo'] !== 1) {
             throw new RuntimeException('A pessoa selecionada precisa estar vinculada ao responsável logado e com cadastro completo.');
         }
+
+        $this->validarCompatibilidadePublicoPessoa($person, $publico);
 
         $schedule = $this->findScheduleById($scheduleId);
         $this->assertScheduleWindowAllowed($schedule, $startDate);
@@ -598,6 +602,7 @@ class AgendaService
                 throw new RuntimeException($conditionBlockReasons[0]);
             }
 
+            $this->validarCompatibilidadePublicoPessoa($linkedPerson, $publico);
             $this->validarRestricaoValidacaoParcial($pdo, (int) $linkedPerson['id'], $publico);
             $this->validarPublicoReservado($pdo, (int) $linkedPerson['id'], $publico);
         } elseif ($publico !== 'geral') {
@@ -1917,6 +1922,32 @@ class AgendaService
     /**
      * Garante que vagas reservadas sejam usadas apenas por quem possui validação.
      */
+    private function publicosPermitidosParaPessoa(array $person): array
+    {
+        $publicos = [];
+        foreach (['pcd' => 'eh_pcd', 'plm' => 'eh_plm', 'pvs' => 'eh_pvs'] as $publico => $field) {
+            if ((int) ($person[$field] ?? 0) === 1) {
+                $publicos[] = $publico;
+            }
+        }
+
+        return $publicos ?: ['geral'];
+    }
+
+    private function validarCompatibilidadePublicoPessoa(array $person, string $publico): void
+    {
+        $permitidos = $this->publicosPermitidosParaPessoa($person);
+        if (in_array($publico, $permitidos, true)) {
+            return;
+        }
+
+        $rotulos = array_map(
+            static fn (string $item): string => $item === 'geral' ? 'Público geral' : strtoupper($item),
+            $permitidos
+        );
+        throw new RuntimeException('A pessoa selecionada somente pode ocupar vaga de ' . implode(' ou ', $rotulos) . ', conforme as condições registradas em seu cadastro.');
+    }
+
     private function validarPublicoReservado(\PDO $pdo, int $personId, string $publico): void
     {
         $mapa = [

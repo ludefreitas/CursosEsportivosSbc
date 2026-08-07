@@ -9,6 +9,7 @@ use App\Controllers\DashboardController;
 use App\Controllers\ErrorController;
 use App\Controllers\HomeController;
 use App\Controllers\ProfileController;
+use App\Controllers\DataRecoveryController;
 
 return [
     ['GET', '/', [HomeController::class, 'index']],
@@ -46,6 +47,9 @@ return [
     ['POST', '/agenda/horarios-especiais/inscrever', [AgendaController::class, 'registerSpecialSchedule']],
     ['POST', '/agenda/cancelar', [AgendaController::class, 'cancel']],
     ['GET', '/admin', [AdminController::class, 'index']],
+    ['GET', '/admin-recuperacao-dados', [DataRecoveryController::class, 'index']],
+    ['GET', '/admin/recuperacao-dados/detalhe', [DataRecoveryController::class, 'details']],
+    ['POST', '/admin/recuperacao-dados/reverter', [DataRecoveryController::class, 'reverse']],
     ['GET', '/admin/secao', [AdminController::class, 'section']],
     ['GET', '/admin/pessoas/detalhe', [AdminController::class, 'personDetails']],
     ['GET', '/admin/pessoas/lista', [AdminController::class, 'peoplePanel']],

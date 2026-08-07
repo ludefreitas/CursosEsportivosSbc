@@ -652,3 +652,21 @@ CREATE TABLE IF NOT EXISTS logs_auditoria (
     INDEX idx_logs_entidade (tipo_entidade, entidade_id),
     INDEX idx_logs_evento (tipo_evento, created_at)
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS reversoes_logicas (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    log_auditoria_id BIGINT UNSIGNED NULL,
+    tipo_alvo VARCHAR(80) NOT NULL,
+    alvo_id BIGINT UNSIGNED NOT NULL,
+    tabela_alvo VARCHAR(100) NOT NULL,
+    motivo VARCHAR(500) NOT NULL,
+    estado_anterior_json JSON NULL,
+    caminho_quarentena VARCHAR(500) NULL,
+    executado_por_conta_id BIGINT UNSIGNED NOT NULL,
+    ativo TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_reversao_logica_log (log_auditoria_id),
+    INDEX idx_reversao_logica_alvo (tipo_alvo, alvo_id, ativo),
+    CONSTRAINT fk_reversao_logica_log FOREIGN KEY (log_auditoria_id) REFERENCES logs_auditoria(id) ON DELETE SET NULL,
+    CONSTRAINT fk_reversao_logica_conta FOREIGN KEY (executado_por_conta_id) REFERENCES contas(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

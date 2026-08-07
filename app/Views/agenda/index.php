@@ -119,6 +119,7 @@
                                     data-nome="<?php echo e((string) ($person['nome_completo'] ?? '')); ?>"
                                     data-cpf="<?php echo e((string) ($person['cpf'] ?? '')); ?>"
                                     data-nascimento="<?php echo e((string) ($person['data_nascimento'] ?? '')); ?>"
+                                    data-publicos-permitidos="<?php echo e(json_encode($person['publicos_permitidos'] ?? ['geral'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
                                 >
                                     <?php echo e((string) ($person['nome_completo'] ?? '')); ?>
                                 </option>
