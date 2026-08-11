@@ -4,6 +4,17 @@ $whatsappHomeUrl = (string) ($homeHeaderContent['contato_url'] ?? 'https://wa.me
 $homeContentUrl = static function (string $value): string {
     return str_starts_with($value, '/') ? url($value) : $value;
 };
+$homeCoursesLocationsContent = $homeCoursesLocationsContent ?? [];
+$homeTrainingLocationsContent = $homeTrainingLocationsContent ?? [];
+$homeCoursesLocationsTitle = \App\Core\Auth::check()
+    ? (string) ($homeCoursesLocationsContent['titulo_logado'] ?? 'Locais próximos a você')
+    : (string) ($homeCoursesLocationsContent['titulo_visitante'] ?? 'Locais dos cursos esportivos');
+$weeklyModalityText = implode(', ', $weeklyTrainingModalityNames ?? []);
+$homeTrainingLocationsText = str_replace(
+    '{modalidades}',
+    $weeklyModalityText !== '' ? $weeklyModalityText : 'as modalidades disponíveis',
+    (string) ($homeTrainingLocationsContent['texto'] ?? 'Selecione um local para fazer o seu agendamento para treinar {modalidades}.')
+);
 ?>
 
 <div class="home-banner-visual">
@@ -99,8 +110,9 @@ $homeContentUrl = static function (string $value): string {
     data-locations="<?php echo e((string) json_encode($locations, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
 >
     <div class="home-locations-copy">
-        <h2 id="home-locations-title"><?php echo \App\Core\Auth::check() ? 'Locais próximos a você' : 'Locais dos cursos esportivos'; ?></h2>
-        <p class="location-status muted">Selecione um local para escolher e se inscrever em uma modalidade para fazer sua inscrição em nossos cursos esportivos. Ou clique em todos os locais e veja todos os locais para se inscrever em um curso.</p>
+        <?php if ($homeAdminMode) { ?><div class="admin-home-inline-actions"><button type="button" class="btn btn-secondary admin-home-small-button" data-home-edit="locais_cursos">Editar</button><button type="button" class="btn btn-primary admin-home-small-button" data-home-publish="locais_cursos">Publicar</button></div><?php } ?>
+        <h2 id="home-locations-title"><?php echo e($homeCoursesLocationsTitle); ?></h2>
+        <p class="location-status muted"><?php echo e((string) ($homeCoursesLocationsContent['texto'] ?? '')); ?></p>
     </div>
     <div class="home-location-suggestions" id="home-location-suggestions">
         <?php foreach (($suggestedLocations ?? []) as $location) { ?>
@@ -144,13 +156,10 @@ $homeContentUrl = static function (string $value): string {
     data-locations="<?php echo e((string) json_encode($trainingLocations ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
 >
     <div class="home-locations-copy">
-        <h2>Locais de treinos</h2>
-        <?php
-        $weeklyModalityText = implode(', ', $weeklyTrainingModalityNames ?? []);
-        $trainingDescription = 'Selecione um local para fazer o seu agendamento para treinar' . ($weeklyModalityText !== '' ? ' ' . $weeklyModalityText . '.' : '.');
-        ?>
+        <?php if ($homeAdminMode) { ?><div class="admin-home-inline-actions"><button type="button" class="btn btn-secondary admin-home-small-button" data-home-edit="locais_treinos">Editar</button><button type="button" class="btn btn-primary admin-home-small-button" data-home-publish="locais_treinos">Publicar</button></div><?php } ?>
+        <h2><?php echo e((string) ($homeTrainingLocationsContent['titulo'] ?? 'Locais de treinos')); ?></h2>
         <div class="home-training-description" id="home-training-description">
-            <p><?php echo e($trainingDescription); ?></p>
+            <p><?php echo e($homeTrainingLocationsText); ?></p>
             <button type="button" class="home-training-description-toggle hidden" id="home-training-description-toggle" aria-expanded="false">Ler mais</button>
         </div>
     </div>

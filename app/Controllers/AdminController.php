@@ -1145,6 +1145,28 @@ class AdminController extends Controller
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
+    public function saveHomeCoursesLocationsContent(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $this->homeInfoService->saveCoursesLocationsContent((int) $user['conta_id'], $_POST);
+            $this->jsonResponse(['success' => true, 'message' => 'Rascunho do quadro de locais dos cursos salvo.', 'content' => $this->homeInfoService->getCoursesLocationsContent(true)]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function saveHomeTrainingLocationsContent(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $this->homeInfoService->saveTrainingLocationsContent((int) $user['conta_id'], $_POST);
+            $this->jsonResponse(['success' => true, 'message' => 'Rascunho do quadro de locais de treinos salvo.', 'content' => $this->homeInfoService->getTrainingLocationsContent(true)]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
     public function publishHomeContent(): void
     {
         $user = $this->assertAdminAccess();
@@ -2059,6 +2081,9 @@ class AdminController extends Controller
             $data['trainingLocations'] = $homeScheduleOptions['locations'] ?? [];
             $data['suggestedTrainingLocations'] = array_slice($data['trainingLocations'], 0, 3);
             $data['trainingModalities'] = $homeScheduleOptions['modalities'] ?? [];
+            $data['weeklyTrainingModalityNames'] = (new AgendaService())->activeWeeklyScheduleModalityNames();
+            $data['homeCoursesLocationsContent'] = $this->homeInfoService->getCoursesLocationsContent(true);
+            $data['homeTrainingLocationsContent'] = $this->homeInfoService->getTrainingLocationsContent(true);
             $data['posts'] = $this->blogService->listPublishedPosts(['limit' => 3]);
             $data['homeSpecialEvents'] = $this->adminService->listPublishedSpecialSchedules('home', 3);
             $data['blogSpecialEvents'] = $this->adminService->listPublishedSpecialSchedules('blog', 6);

@@ -274,9 +274,9 @@ body.pagina-agenda .site-header,
 body.pagina-auth .site-header,
 body.pagina-error .site-header {
     width: min(1180px, calc(100% - 32px));
-    min-height: 148px;
+    min-height: 100px;
     margin: 16px auto 0 auto;
-    padding: 20px 24px;
+    padding: 14px 20px;
     border: 1px solid rgba(18, 69, 89, 0.12);
     border-radius: 30px;
     display: flex;

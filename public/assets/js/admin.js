@@ -4007,7 +4007,9 @@
                     { selector: '#admin-home-contact-form', key: 'contato', title: 'Faixa de contato' },
                     { selector: '#admin-home-hero-form', key: 'apresentacao', title: 'Quadro principal' },
                     { selector: '#admin-home-highlights-form', key: 'destaques', title: 'Quadros destacados' },
-                    { selector: '#admin-home-info-form', key: 'quadro_informativo', title: 'Quadro informativo' }
+                    { selector: '#admin-home-info-form', key: 'quadro_informativo', title: 'Quadro informativo' },
+                    { selector: '#admin-home-courses-locations-form', key: 'locais_cursos', title: 'Locais dos cursos esportivos' },
+                    { selector: '#admin-home-training-locations-form', key: 'locais_treinos', title: 'Locais de treinos' }
                 ];
                 configs.forEach(function (config) {
                     const $form = $(config.selector);
@@ -4063,10 +4065,20 @@
                 preview.src = temporaryUrl;
             });
 
-            $(document).on('submit', '#admin-home-footer-form, #admin-home-logo-form, #admin-home-contact-form, #admin-home-info-form, #admin-home-highlights-form, #admin-home-hero-form', function (event) {
+            $(document).on('submit', '#admin-home-footer-form, #admin-home-logo-form, #admin-home-contact-form, #admin-home-info-form, #admin-home-highlights-form, #admin-home-hero-form, #admin-home-courses-locations-form, #admin-home-training-locations-form', function (event) {
                 event.preventDefault();
                 const $form = $(this);
-                const key = $form.is('#admin-home-footer-form') ? 'rodape' : ($form.is('#admin-home-logo-form') ? 'logotipo' : ($form.is('#admin-home-contact-form') ? 'contato' : ($form.is('#admin-home-info-form') ? 'quadro_informativo' : ($form.is('#admin-home-highlights-form') ? 'destaques' : 'apresentacao'))));
+                const formKeys = {
+                    'admin-home-footer-form': 'rodape',
+                    'admin-home-logo-form': 'logotipo',
+                    'admin-home-contact-form': 'contato',
+                    'admin-home-info-form': 'quadro_informativo',
+                    'admin-home-highlights-form': 'destaques',
+                    'admin-home-hero-form': 'apresentacao',
+                    'admin-home-courses-locations-form': 'locais_cursos',
+                    'admin-home-training-locations-form': 'locais_treinos'
+                };
+                const key = String(formKeys[String($form.attr('id') || '')] || '');
                 const isUpload = $form.is('#admin-home-logo-form');
                 const request = { url: String($form.attr('action')), method: 'POST', dataType: 'json', data: isUpload ? new FormData(this) : $form.serialize(), headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } };
                 if (isUpload) {

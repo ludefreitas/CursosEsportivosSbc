@@ -19,6 +19,8 @@ class HomeInfoService
     public const MAX_HERO_BADGE_LENGTH = 80;
     public const MAX_HERO_TITLE_LENGTH = 220;
     public const MAX_HERO_TEXT_LENGTH = 600;
+    public const MAX_LOCATION_TITLE_LENGTH = 90;
+    public const MAX_LOCATION_TEXT_LENGTH = 500;
 
     public function __construct()
     {
@@ -302,6 +304,44 @@ class HomeInfoService
         ], $draft);
     }
 
+    public function getCoursesLocationsContent(bool $draft = false): array
+    {
+        return $this->getConfiguredContent('locais_cursos', [
+            'titulo_logado' => 'Locais próximos a você',
+            'titulo_visitante' => 'Locais dos cursos esportivos',
+            'texto' => 'Selecione um local para escolher e se inscrever em uma modalidade para fazer sua inscrição em nossos cursos esportivos. Ou clique em todos os locais e veja todos os locais para se inscrever em um curso.',
+        ], $draft);
+    }
+
+    public function getTrainingLocationsContent(bool $draft = false): array
+    {
+        return $this->getConfiguredContent('locais_treinos', [
+            'titulo' => 'Locais de treinos',
+            'texto' => 'Selecione um local para fazer o seu agendamento para treinar {modalidades}.',
+        ], $draft);
+    }
+
+    public function saveCoursesLocationsContent(int $accountId, array $data): void
+    {
+        $content = [
+            'titulo_logado' => trim((string) ($data['titulo_logado'] ?? '')),
+            'titulo_visitante' => trim((string) ($data['titulo_visitante'] ?? '')),
+            'texto' => trim((string) ($data['texto'] ?? '')),
+        ];
+        $this->validateLocationContent($content, ['titulo_logado', 'titulo_visitante']);
+        $this->saveConfiguredContent('locais_cursos', $content, $accountId);
+    }
+
+    public function saveTrainingLocationsContent(int $accountId, array $data): void
+    {
+        $content = [
+            'titulo' => trim((string) ($data['titulo'] ?? '')),
+            'texto' => trim((string) ($data['texto'] ?? '')),
+        ];
+        $this->validateLocationContent($content, ['titulo']);
+        $this->saveConfiguredContent('locais_treinos', $content, $accountId);
+    }
+
     public function saveFooterContent(int $accountId, array $data): void
     {
         $content = [
@@ -363,7 +403,7 @@ class HomeInfoService
 
     public function publishContent(string $key, int $accountId): array
     {
-        if (!in_array($key, ['logotipo', 'contato', 'rodape', 'cabecalho', 'quadro_informativo', 'destaques', 'apresentacao'], true)) {
+        if (!in_array($key, ['logotipo', 'contato', 'rodape', 'cabecalho', 'quadro_informativo', 'destaques', 'apresentacao', 'locais_cursos', 'locais_treinos'], true)) {
             throw new RuntimeException('Quadro da Home inválido para publicação.');
         }
         $pdo = Database::connection();
@@ -415,6 +455,24 @@ class HomeInfoService
     {
         $stmt = Database::connection()->prepare('INSERT INTO home_conteudos_configurados (chave, conteudo_json, rascunho_json, atualizado_por_conta_id, updated_at) VALUES (:chave, NULL, :conteudo, :conta, NOW()) ON DUPLICATE KEY UPDATE rascunho_json = VALUES(rascunho_json), atualizado_por_conta_id = VALUES(atualizado_por_conta_id), updated_at = NOW()');
         $stmt->execute([':chave' => $key, ':conteudo' => json_encode($content, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ':conta' => $accountId]);
+    }
+
+    private function validateLocationContent(array $content, array $titleFields): void
+    {
+        foreach ($titleFields as $field) {
+            if (($content[$field] ?? '') === '') {
+                throw new RuntimeException('Preencha todos os títulos do quadro.');
+            }
+            if (mb_strlen((string) $content[$field], 'UTF-8') > self::MAX_LOCATION_TITLE_LENGTH) {
+                throw new RuntimeException('O título do quadro deve ter no máximo ' . self::MAX_LOCATION_TITLE_LENGTH . ' caracteres.');
+            }
+        }
+        if (($content['texto'] ?? '') === '') {
+            throw new RuntimeException('Informe o texto do quadro.');
+        }
+        if (mb_strlen((string) $content['texto'], 'UTF-8') > self::MAX_LOCATION_TEXT_LENGTH) {
+            throw new RuntimeException('O texto do quadro deve ter no máximo ' . self::MAX_LOCATION_TEXT_LENGTH . ' caracteres.');
+        }
     }
 
     private function ensureContentSchema(): void

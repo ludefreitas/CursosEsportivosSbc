@@ -1425,6 +1425,25 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             </form>
         </section>
         <section class="content-card top-gap">
+            <form method="POST" action="<?php echo e(url('/admin/home-locais-cursos')); ?>" class="stack-form" id="admin-home-courses-locations-form">
+                <label><span>Título para usuário logado</span><input type="text" name="titulo_logado" maxlength="<?php echo e((string) \App\Services\HomeInfoService::MAX_LOCATION_TITLE_LENGTH); ?>" value="<?php echo e((string) ($homeCoursesLocationsContent['titulo_logado'] ?? '')); ?>" required></label>
+                <label><span>Título para visitante sem login</span><input type="text" name="titulo_visitante" maxlength="<?php echo e((string) \App\Services\HomeInfoService::MAX_LOCATION_TITLE_LENGTH); ?>" value="<?php echo e((string) ($homeCoursesLocationsContent['titulo_visitante'] ?? '')); ?>" required></label>
+                <label><span>Texto do quadro</span><textarea name="texto" rows="5" maxlength="<?php echo e((string) \App\Services\HomeInfoService::MAX_LOCATION_TEXT_LENGTH); ?>" required><?php echo e((string) ($homeCoursesLocationsContent['texto'] ?? '')); ?></textarea></label>
+                <button type="submit" class="btn btn-primary">Salvar rascunho do quadro</button>
+            </form>
+        </section>
+        <section class="content-card top-gap">
+            <form method="POST" action="<?php echo e(url('/admin/home-locais-treinos')); ?>" class="stack-form" id="admin-home-training-locations-form">
+                <label><span>Título do quadro</span><input type="text" name="titulo" maxlength="<?php echo e((string) \App\Services\HomeInfoService::MAX_LOCATION_TITLE_LENGTH); ?>" value="<?php echo e((string) ($homeTrainingLocationsContent['titulo'] ?? '')); ?>" required></label>
+                <label>
+                    <span>Texto do quadro</span>
+                    <textarea name="texto" rows="5" maxlength="<?php echo e((string) \App\Services\HomeInfoService::MAX_LOCATION_TEXT_LENGTH); ?>" required><?php echo e((string) ($homeTrainingLocationsContent['texto'] ?? '')); ?></textarea>
+                    <small class="muted">Use <strong>{modalidades}</strong> onde deseja exibir automaticamente as modalidades dos horários semanais ativos.</small>
+                </label>
+                <button type="submit" class="btn btn-primary">Salvar rascunho do quadro</button>
+            </form>
+        </section>
+        <section class="content-card top-gap">
             <form method="POST" action="<?php echo e(url('/admin/home-logotipo')); ?>" class="stack-form" id="admin-home-logo-form" enctype="multipart/form-data">
                 <input type="hidden" name="logo_url" value="<?php echo e((string) ($homeHeaderContent['logo_url'] ?? '')); ?>">
                 <div class="admin-home-logo-upload-preview">

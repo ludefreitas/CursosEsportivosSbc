@@ -58,9 +58,9 @@ body.pagina-blog {
 
 .blog-hero-copy h1,
 .blog-post-hero h1 {
-    margin: 10px 0 14px 0;
-    font-size: clamp(34px, 4.7vw, 58px);
-    line-height: 0.98;
+    margin: 8px 0 12px 0;
+    font-size: clamp(28px, 3vw, 40px);
+    line-height: 1.06;
 }
 
 .blog-search-card,
@@ -452,7 +452,7 @@ body.pagina-blog {
 @media (max-width: 560px) {
     .blog-hero-copy h1,
     .blog-post-hero h1 {
-        font-size: clamp(27px, 9vw, 36px);
+        font-size: clamp(24px, 7.5vw, 30px);
         overflow-wrap: anywhere;
     }
 
