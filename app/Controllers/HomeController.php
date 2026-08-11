@@ -19,6 +19,7 @@ class HomeController extends Controller
         $adminService = new AdminService();
         $blogService = new BlogService();
         $homeInfoService = new HomeInfoService();
+        $scheduleFilterOptions = $agendaService->activeWeeklyScheduleFilterOptions();
         $locations = $agendaService->listLocations();
         usort($locations, static function (array $left, array $right): int {
             $leftName = trim((string) ($left['apelido_local'] ?? $left['nome_local'] ?? ''));
@@ -28,12 +29,20 @@ class HomeController extends Controller
         $suggestedLocations = $locations;
         shuffle($suggestedLocations);
         $suggestedLocations = array_slice($suggestedLocations, 0, 3);
+        $trainingLocations = $scheduleFilterOptions['locations'] ?? [];
+        $suggestedTrainingLocations = $trainingLocations;
+        shuffle($suggestedTrainingLocations);
+        $suggestedTrainingLocations = array_slice($suggestedTrainingLocations, 0, 3);
 
         $this->view('home/index', [
             'title' => 'Cursos Esportivos SBC',
             'pageClass' => 'pagina-home',
             'locations' => $locations,
             'suggestedLocations' => $suggestedLocations,
+            'trainingLocations' => $trainingLocations,
+            'suggestedTrainingLocations' => $suggestedTrainingLocations,
+            'trainingModalities' => $scheduleFilterOptions['modalities'] ?? [],
+            'weeklyTrainingModalityNames' => $agendaService->activeWeeklyScheduleModalityNames(),
             'posts' => $blogService->listPublishedPosts([
                 'limit' => 3,
             ]),

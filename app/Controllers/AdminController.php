@@ -2048,6 +2048,7 @@ class AdminController extends Controller
         }
 
         if ($sectionName === 'pagina-home') {
+            $homeScheduleOptions = (new AgendaService())->activeWeeklyScheduleFilterOptions(true);
             $data['homeInfoBox'] = $this->homeInfoService->getHomeInfoBoxForAdmin();
             $data['homeHighlightCards'] = $this->homeInfoService->getHighlightCardsForAdmin();
             $data['homeHeroContent'] = $this->homeInfoService->getHeroContentForAdmin();
@@ -2055,6 +2056,9 @@ class AdminController extends Controller
             $data['footerContent'] = $this->homeInfoService->getFooterContent(true);
             $data['locations'] = (new AgendaService())->listLocations();
             $data['suggestedLocations'] = array_slice($data['locations'], 0, 3);
+            $data['trainingLocations'] = $homeScheduleOptions['locations'] ?? [];
+            $data['suggestedTrainingLocations'] = array_slice($data['trainingLocations'], 0, 3);
+            $data['trainingModalities'] = $homeScheduleOptions['modalities'] ?? [];
             $data['posts'] = $this->blogService->listPublishedPosts(['limit' => 3]);
             $data['homeSpecialEvents'] = $this->adminService->listPublishedSpecialSchedules('home', 3);
             $data['blogSpecialEvents'] = $this->adminService->listPublishedSpecialSchedules('blog', 6);

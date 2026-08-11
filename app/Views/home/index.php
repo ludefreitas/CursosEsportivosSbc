@@ -26,6 +26,12 @@ $homeContentUrl = static function (string $value): string {
     <?php if ($homeAdminMode) { ?><div class="admin-home-inline-actions"><button type="button" class="btn btn-secondary admin-home-small-button" data-home-edit="contato">Editar</button><button type="button" class="btn btn-primary admin-home-small-button" data-home-publish="contato">Publicar</button></div><?php } ?>
 </div>
 
+<nav class="content-card home-section-navigation" aria-label="Atalhos da página inicial">
+    <button type="button" class="btn btn-secondary" data-home-scroll-target="home-training-agenda">Agenda de treinos</button>
+    <button type="button" class="btn btn-secondary" data-home-scroll-target="home-locations-card">Locais dos cursos esportivos</button>
+    <button type="button" class="btn btn-secondary" data-home-scroll-target="home-blog">Blog</button>
+</nav>
+
 <section class="hero">
     <div class="hero-copy">
         <?php if ($homeAdminMode) { ?><div class="admin-home-inline-actions"><button type="button" class="btn btn-secondary admin-home-small-button" data-home-edit="apresentacao">Editar</button><button type="button" class="btn btn-primary admin-home-small-button" data-home-publish="apresentacao">Publicar</button></div><?php } ?>
@@ -93,8 +99,8 @@ $homeContentUrl = static function (string $value): string {
     data-locations="<?php echo e((string) json_encode($locations, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
 >
     <div class="home-locations-copy">
-        <h2 id="home-locations-title">Locais sugeridos do sistema</h2>
-        <p class="location-status muted">Compartilhe sua localização para ver os locais mais próximos. Se preferir não compartilhar, exibiremos três sugestões aleatórias.</p>
+        <h2 id="home-locations-title"><?php echo \App\Core\Auth::check() ? 'Locais próximos a você' : 'Locais dos cursos esportivos'; ?></h2>
+        <p class="location-status muted">Selecione um local para escolher e se inscrever em uma modalidade para fazer sua inscrição em nossos cursos esportivos. Ou clique em todos os locais e veja todos os locais para se inscrever em um curso.</p>
     </div>
     <div class="home-location-suggestions" id="home-location-suggestions">
         <?php foreach (($suggestedLocations ?? []) as $location) { ?>
@@ -132,6 +138,113 @@ $homeContentUrl = static function (string $value): string {
     </div>
 </div>
 
+<section
+    class="content-card home-locations-card home-training-locations-card"
+    id="home-training-locations"
+    data-locations="<?php echo e((string) json_encode($trainingLocations ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
+>
+    <div class="home-locations-copy">
+        <h2>Locais de treinos</h2>
+        <?php
+        $weeklyModalityText = implode(', ', $weeklyTrainingModalityNames ?? []);
+        $trainingDescription = 'Selecione um local para fazer o seu agendamento para treinar' . ($weeklyModalityText !== '' ? ' ' . $weeklyModalityText . '.' : '.');
+        ?>
+        <div class="home-training-description" id="home-training-description">
+            <p><?php echo e($trainingDescription); ?></p>
+            <button type="button" class="home-training-description-toggle hidden" id="home-training-description-toggle" aria-expanded="false">Ler mais</button>
+        </div>
+    </div>
+    <div class="home-location-suggestions" id="home-training-location-suggestions">
+        <?php foreach (($suggestedTrainingLocations ?? []) as $location) { ?>
+            <button type="button" class="home-location-suggestion" data-home-training-location="<?php echo e((string) $location['id']); ?>">
+                <strong><?php echo e((string) ($location['apelido_local'] ?: $location['nome_local'])); ?></strong>
+                <small>(<?php echo e((string) $location['nome_local']); ?>)</small>
+            </button>
+        <?php } ?>
+    </div>
+    <div class="home-locations-footer">
+        <button type="button" class="btn btn-primary" id="home-all-training-locations-open">Todos os locais de treino</button>
+    </div>
+</section>
+
+<div id="home-all-training-locations-modal" class="popup-overlay hidden" aria-hidden="true">
+    <div class="popup-card home-all-locations-modal-card" role="dialog" aria-modal="true" aria-labelledby="home-all-training-locations-title">
+        <div class="popup-head">
+            <div>
+                <h3 id="home-all-training-locations-title">Todos os locais de treino</h3>
+                <p class="muted">Somente locais que possuem horários cadastrados.</p>
+            </div>
+            <button type="button" class="popup-close-icon" data-home-all-training-locations-close="1" aria-label="Fechar locais de treino">&times;</button>
+        </div>
+        <div class="popup-body home-all-locations-list">
+            <?php foreach (($trainingLocations ?? []) as $location) { ?>
+                <button type="button" class="home-all-location-button" data-home-training-location="<?php echo e((string) $location['id']); ?>">
+                    <strong><?php echo e((string) ($location['apelido_local'] ?: $location['nome_local'])); ?></strong>
+                    <small><?php echo e((string) $location['nome_local']); ?></small>
+                </button>
+            <?php } ?>
+        </div>
+        <div class="popup-actions">
+            <button type="button" class="btn btn-secondary" data-home-all-training-locations-close="1">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<div id="home-training-calendar-modal" class="popup-overlay hidden" aria-hidden="true">
+<section class="popup-card home-training-calendar-card" id="home-training-agenda" data-home-authenticated="<?php echo \App\Core\Auth::check() ? '1' : '0'; ?>" role="dialog" aria-modal="true" aria-labelledby="home-training-calendar-title">
+    <div class="popup-head section-head">
+        <div>
+            <h2 id="home-training-calendar-title">Agenda de treinos <span id="home-training-calendar-location"></span></h2>
+            <p class="muted">Os dias destacados possuem horários ou agendamentos vinculados à sua conta.</p>
+        </div>
+        <button type="button" class="popup-close-icon" data-home-training-calendar-close="1" aria-label="Fechar agenda de treinos">&times;</button>
+    </div>
+    <div class="popup-body">
+        <label class="home-training-modality-filter">
+            <span>Modalidade</span>
+            <select id="home-training-modality">
+                <option value="0">Todas as modalidades</option>
+                <?php foreach (($trainingModalities ?? []) as $modality) { ?>
+                    <option value="<?php echo e((string) ($modality['id'] ?? '')); ?>"><?php echo e((string) ($modality['nome'] ?? '')); ?></option>
+                <?php } ?>
+            </select>
+        </label>
+        <div id="home-training-calendar"></div>
+    </div>
+    <div class="popup-actions">
+        <button type="button" class="btn btn-secondary" data-home-training-calendar-close="1">Fechar</button>
+    </div>
+</section>
+</div>
+
+<div id="home-training-day-modal" class="popup-overlay hidden" aria-hidden="true">
+    <div class="popup-card home-training-day-modal-card" role="dialog" aria-modal="true" aria-labelledby="home-training-day-title">
+        <div class="popup-head">
+            <div>
+                <h3 id="home-training-day-title">Horários do dia</h3>
+                <p class="muted" id="home-training-day-subtitle"></p>
+            </div>
+            <button type="button" class="popup-close-icon" data-home-training-day-close="1" aria-label="Fechar horários do dia">&times;</button>
+        </div>
+        <div class="popup-body">
+            <label class="home-training-modality-filter">
+                <span>Modalidade</span>
+                <select id="home-training-day-modality">
+                    <option value="0">Todas as modalidades</option>
+                    <?php foreach (($trainingModalities ?? []) as $modality) { ?>
+                        <option value="<?php echo e((string) ($modality['id'] ?? '')); ?>"><?php echo e((string) ($modality['nome'] ?? '')); ?></option>
+                    <?php } ?>
+                </select>
+            </label>
+            <div id="home-training-day-list" class="home-training-day-list"></div>
+        </div>
+        <div class="popup-actions">
+            <a href="<?php echo e(url('/agenda')); ?>" class="btn btn-primary">Abrir agenda completa</a>
+            <button type="button" class="btn btn-secondary" data-home-training-day-close="1">Fechar</button>
+        </div>
+    </div>
+</div>
+
 <?php if (!empty($homeSpecialEvents)) { ?>
 <section class="content-card">
     <div class="section-head">
@@ -162,7 +275,7 @@ $homeContentUrl = static function (string $value): string {
 </section>
 <?php } ?>
 
-<section class="content-card">
+<section class="content-card" id="home-blog">
     <div class="section-head">
         <div>
             <h2>Blog institucional</h2>

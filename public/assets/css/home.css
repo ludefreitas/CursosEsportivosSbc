@@ -12,8 +12,8 @@ body.pagina-home {
     justify-content: center;
     align-items: center;
     width: 100%;
-    margin: 6px 0 10px 0;
-    padding: 18px 24px;
+    margin: 8px 0;
+    padding: 10px 20px;
     border-radius: 28px;
     overflow: hidden;
     border: 1px solid rgba(31, 118, 181, 0.14);
@@ -31,9 +31,9 @@ body.pagina-home {
 
 .img-eventos {
     width: 40%;
-    min-height: 180px;
-    max-height: 360px;
-    object-fit: cover;
+    min-height: 0;
+    max-height: 190px;
+    object-fit: contain;
     object-position: center;
 }
 
@@ -65,8 +65,13 @@ body.pagina-home {
 }
 
 @media (max-width: 900px) {
+    body.pagina-home .site-header {
+        min-height: 0;
+        padding: 12px 16px;
+    }
+
     .home-banner-visual {
-        padding: 14px 16px;
+        padding: 10px 14px;
     }
 
     .img-eventos {
@@ -356,13 +361,58 @@ body.pagina-home {
     border: 1px solid rgba(31, 118, 181, 0.12);
 }
 
+body.pagina-home .site-header {
+    min-height: 100px;
+    padding: 14px 20px;
+}
+
 .pagina-home .home-locations-card {
     display: grid;
     grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
-    gap: 22px 28px;
+    gap: 14px 28px;
     align-items: start;
+    padding: 22px 28px;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.97) 0%, rgba(245, 250, 255, 0.98) 100%);
     border: 1px solid rgba(31, 118, 181, 0.12);
+}
+
+.pagina-home #home-locations-card,
+.pagina-home #home-training-locations {
+    margin-top: 14px;
+}
+
+.pagina-home #home-training-locations {
+    margin-bottom: 14px;
+}
+
+.pagina-home .home-section-navigation {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px 18px;
+}
+
+.pagina-home .home-section-navigation .btn {
+    min-height: 38px;
+    padding: 8px 16px;
+}
+
+.pagina-home .home-section-navigation .btn:nth-child(1) {
+    color: #fff;
+    border-color: #1f76b5;
+    background: linear-gradient(135deg, #1f76b5 0%, #0e5e95 100%);
+}
+
+.pagina-home .home-section-navigation .btn:nth-child(2) {
+    color: #fff;
+    border-color: #d96b1f;
+    background: linear-gradient(135deg, #d96b1f 0%, #bf5412 100%);
+}
+
+.pagina-home .home-section-navigation .btn:nth-child(3) {
+    color: #fff;
+    border-color: #1ca746;
+    background: linear-gradient(135deg, #1ca746 0%, #108739 100%);
 }
 
 .pagina-home .home-location-suggestions {
@@ -384,6 +434,15 @@ body.pagina-home {
     border-radius: 16px;
     background: linear-gradient(135deg, #1f76b5 0%, #0e5e95 100%);
     box-shadow: 0 10px 20px rgba(20, 48, 67, 0.12);
+    border: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+.pagina-home .home-location-suggestion:hover,
+.pagina-home .home-location-suggestion:focus-visible {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
 }
 
 .pagina-home .home-location-suggestion:nth-child(4n + 1) {
@@ -400,6 +459,31 @@ body.pagina-home {
 
 .pagina-home .home-location-suggestion:nth-child(4n + 4) {
     background: linear-gradient(135deg, #d62b45 0%, #b21d37 100%);
+}
+
+.pagina-home .home-training-locations-card .home-location-suggestion:nth-child(3n + 1) {
+    background: linear-gradient(135deg, #1ca746 0%, #108739 100%);
+}
+
+.pagina-home .home-training-locations-card .home-location-suggestion:nth-child(3n + 2) {
+    background: linear-gradient(135deg, #1ca746 0%, #108739 100%);
+}
+
+.pagina-home .home-training-locations-card .home-location-suggestion:nth-child(3n + 3) {
+    background: linear-gradient(135deg, #1ca746 0%, #108739 100%);
+}
+
+.pagina-home .home-training-locations-card .home-locations-footer .btn {
+    border-color: #1ca746;
+    background: linear-gradient(135deg, #1ca746 0%, #108739 100%);
+}
+
+.pagina-home #home-locations-card .home-location-suggestion {
+    background: linear-gradient(135deg, #1f76b5 0%, #0e5e95 100%);
+}
+
+.pagina-home .home-training-locations-card .home-location-suggestion {
+    background: linear-gradient(135deg, #1ca746 0%, #108739 100%);
 }
 
 .pagina-home .home-location-suggestion strong,
@@ -427,6 +511,12 @@ body.pagina-home {
     grid-column: 1 / -1;
     display: flex;
     justify-content: flex-end;
+}
+
+.pagina-home .home-locations-footer .btn {
+    min-height: 40px;
+    padding-top: 8px;
+    padding-bottom: 8px;
 }
 
 .pagina-home .home-all-locations-modal-card {
@@ -465,6 +555,293 @@ body.pagina-home {
 
 .pagina-home .home-all-location-button:hover {
     background: linear-gradient(135deg, #2787c9 0%, #126da8 100%);
+}
+
+.pagina-home #home-all-training-locations-modal .home-all-location-button {
+    background: linear-gradient(135deg, #1ca746 0%, #108739 100%);
+}
+
+.pagina-home .home-training-calendar-card {
+    display: flex;
+    width: min(860px, calc(100vw - 32px));
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
+    flex-direction: column;
+    overflow: hidden;
+    scroll-margin-top: 20px;
+}
+
+.pagina-home .home-training-calendar-card > .popup-head,
+.pagina-home .home-training-calendar-card > .popup-actions {
+    flex: 0 0 auto;
+}
+
+.pagina-home .home-training-calendar-card > .popup-body {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.pagina-home .home-training-calendar-card .popup-head,
+.pagina-home .home-training-calendar-card .popup-body,
+.pagina-home .home-training-calendar-card .popup-actions {
+    padding-top: 12px;
+    padding-bottom: 12px;
+}
+
+.pagina-home .home-training-calendar-card h2 {
+    margin-bottom: 2px;
+    font-size: clamp(18px, 1.8vw, 23px);
+    line-height: 1.08;
+}
+
+.pagina-home .home-training-calendar-card .section-head p {
+    margin-top: 0;
+    margin-bottom: 0;
+    font-size: 12px;
+    line-height: 1.25;
+}
+
+.pagina-home #home-training-calendar {
+    font-size: clamp(11px, 1.15vw, 14px);
+}
+
+.pagina-home #home-training-calendar .fc-toolbar {
+    margin-bottom: 10px;
+}
+
+.pagina-home #home-training-calendar .fc-toolbar-title {
+    font-size: clamp(16px, 1.8vw, 22px);
+}
+
+.pagina-home #home-training-calendar .fc-button {
+    padding: 5px 9px;
+    font-size: 12px;
+}
+
+.pagina-home #home-training-calendar .fc-col-header-cell-cushion,
+.pagina-home #home-training-calendar .fc-daygrid-day-number {
+    padding: 2px 5px;
+}
+
+.pagina-home #home-training-calendar .fc-daygrid-day-frame {
+    min-height: 38px;
+}
+
+.pagina-home .home-training-description p {
+    margin-bottom: 0;
+}
+
+.pagina-home .home-training-description.is-collapsed p {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+
+.pagina-home .home-training-description-toggle {
+    margin-top: 5px;
+    padding: 0;
+    color: #0e5e95;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.pagina-home .home-training-calendar-card .section-head {
+    align-items: end;
+}
+
+.pagina-home .home-training-modality-filter {
+    display: grid;
+    min-width: min(100%, 260px);
+    gap: 6px;
+}
+
+.pagina-home .home-training-calendar-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin: 12px 0 18px;
+    font-size: 13px;
+}
+
+.pagina-home .home-training-calendar-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pagina-home .home-training-calendar-legend i,
+.pagina-home .home-training-day-indicators i {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #1f76b5;
+}
+
+.pagina-home i.is-available { background: #3788d8; }
+.pagina-home i.is-agendado { background: #d4a017; }
+.pagina-home i.is-presente { background: #1f7a35; }
+.pagina-home i.is-falta { background: #b42318; }
+.pagina-home i.is-justificado { background: #175cd3; }
+.pagina-home i.is-cancelado { background: #4b5563; }
+.pagina-home i.is-misto { background: #365487; }
+
+.pagina-home .home-training-hidden-event {
+    display: none !important;
+}
+
+.pagina-home #home-training-calendar .fc-daygrid-day {
+    cursor: pointer;
+}
+
+.pagina-home #home-training-calendar .fc-daygrid-day.home-training-day-state,
+.pagina-home #home-training-calendar .fc-daygrid-day.home-training-day-state .fc-daygrid-day-frame {
+    color: #fff;
+}
+
+.pagina-home #home-training-calendar .fc-daygrid-day.home-training-day-state a {
+    color: inherit;
+}
+
+.pagina-home #home-training-calendar .fc-daygrid-day.is-available { background: #3788d8; }
+.pagina-home #home-training-calendar .fc-daygrid-day.is-agendado { background: #d4a017; }
+.pagina-home #home-training-calendar .fc-daygrid-day.is-presente { background: #1f7a35; }
+.pagina-home #home-training-calendar .fc-daygrid-day.is-falta { background: #b42318; }
+.pagina-home #home-training-calendar .fc-daygrid-day.is-justificado { background: #175cd3; }
+.pagina-home #home-training-calendar .fc-daygrid-day.is-cancelado { background: #4b5563; }
+.pagina-home #home-training-calendar .fc-daygrid-day.is-misto {
+    background: linear-gradient(135deg, #3788d8 0%, #365487 50%, #d4a017 100%);
+}
+
+.pagina-home #home-training-calendar .fc-daygrid-day:hover {
+    background: rgba(31, 118, 181, 0.08);
+}
+
+.pagina-home .home-training-day-modal-card {
+    width: min(760px, 100%);
+}
+
+.pagina-home .home-training-day-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+    max-height: min(58vh, 560px);
+    overflow-y: auto;
+}
+
+.pagina-home .home-training-day-item {
+    display: grid;
+    grid-template-columns: minmax(105px, auto) minmax(130px, 0.7fr) minmax(180px, 1fr) auto;
+    align-items: center;
+    gap: 8px 14px;
+    padding: 12px 14px;
+    border: 1px solid rgba(31, 118, 181, 0.18);
+    border-left: 5px solid #1f76b5;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.pagina-home .home-training-day-item.is-agendado { border-left-color: #d4a017; }
+.pagina-home .home-training-day-item.is-presente { border-left-color: #1f7a35; }
+.pagina-home .home-training-day-item.is-falta { border-left-color: #b42318; }
+.pagina-home .home-training-day-item.is-justificado { border-left-color: #175cd3; }
+.pagina-home .home-training-day-item.is-cancelado { border-left-color: #4b5563; }
+
+.pagina-home .home-training-day-time {
+    font-weight: 700;
+    color: #0e5e95;
+}
+
+.pagina-home .home-training-day-people {
+    grid-column: 1 / -1;
+    color: #344054;
+}
+
+.pagina-home .home-training-day-status {
+    justify-self: end;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #eef5fa;
+}
+
+@media (max-width: 720px) {
+    .pagina-home .home-training-calendar-card {
+        width: calc(100vw - 16px);
+        max-height: calc(100vh - 8px);
+        max-height: calc(100dvh - 8px);
+    }
+
+    .pagina-home .home-training-calendar-card .popup-head,
+    .pagina-home .home-training-calendar-card .popup-body,
+    .pagina-home .home-training-calendar-card .popup-actions {
+        padding: 9px 10px;
+    }
+
+    .pagina-home .home-training-calendar-card .section-head {
+        align-items: flex-start;
+    }
+
+    .pagina-home .home-training-calendar-card .section-head p {
+        margin-bottom: 0;
+        font-size: 12px;
+    }
+
+    .pagina-home .home-training-modality-filter {
+        min-width: 100%;
+    }
+
+    .pagina-home #home-training-calendar .fc-toolbar {
+        gap: 5px;
+    }
+
+    .pagina-home #home-training-calendar .fc-toolbar-title {
+        font-size: 17px;
+    }
+
+    .pagina-home #home-training-calendar .fc-button {
+        padding: 4px 6px;
+        font-size: 11px;
+    }
+
+    .pagina-home .home-training-day-item {
+        grid-template-columns: 1fr;
+    }
+
+    .pagina-home .home-training-day-status {
+        justify-self: start;
+    }
+}
+
+@media (max-height: 600px) and (orientation: landscape) {
+    .pagina-home .home-training-calendar-card {
+        width: min(760px, calc(100vw - 12px));
+        max-height: calc(100vh - 6px);
+        max-height: calc(100dvh - 6px);
+    }
+
+    .pagina-home .home-training-calendar-card .popup-head,
+    .pagina-home .home-training-calendar-card .popup-body,
+    .pagina-home .home-training-calendar-card .popup-actions {
+        padding-top: 6px;
+        padding-bottom: 6px;
+    }
+
+    .pagina-home .home-training-calendar-card > .popup-body {
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+    }
+
+    .pagina-home .home-training-calendar-card .popup-actions .btn {
+        min-height: 34px;
+        padding-top: 5px;
+        padding-bottom: 5px;
+    }
 }
 
 .pagina-home .chip {
@@ -519,6 +896,11 @@ body.pagina-home {
 }
 
 @media (max-width: 980px) {
+    body.pagina-home .site-header {
+        min-height: 0;
+        padding: 12px 16px;
+    }
+
     .hero {
         grid-template-columns: 1fr;
     }
@@ -527,6 +909,7 @@ body.pagina-home {
     }
     .pagina-home .home-locations-card {
         grid-template-columns: 1fr;
+        padding: 18px;
     }
     .pagina-home .home-location-suggestions {
         grid-template-columns: 1fr;
@@ -557,6 +940,11 @@ body.pagina-home {
 }
 
 @media (max-width: 560px) {
+    body.pagina-home .site-header {
+        min-height: 0;
+        padding: 12px;
+    }
+
     .pagina-home .home-all-locations-list {
         grid-template-columns: 1fr;
     }

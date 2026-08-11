@@ -50,6 +50,26 @@ class AgendaService
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /** Lista os nomes das modalidades vinculadas a horários semanais ativos. */
+    public function activeWeeklyScheduleModalityNames(): array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->query('
+            SELECT DISTINCT m.nome
+            FROM horarios_semanais hs
+            INNER JOIN locais_treino lt ON lt.id = hs.local_treino_id AND lt.ativo = 1
+            INNER JOIN espacos_treino et ON et.id = hs.espaco_treino_id AND et.ativo = 1
+            INNER JOIN modalidades m ON m.id = hs.modalidade_id AND m.ativo = 1
+            WHERE hs.ativo = 1
+            ORDER BY m.nome
+        ');
+
+        return array_values(array_filter(array_map(
+            static fn (array $row): string => trim((string) ($row['nome'] ?? '')),
+            $stmt->fetchAll(PDO::FETCH_ASSOC)
+        )));
+    }
+
     /** Lista combinações ativas e as inativas com agendamento que ainda devem ser consultadas. */
     public function activeWeeklyScheduleFilterOptions(bool $adminView = false): array
     {
@@ -84,7 +104,7 @@ class AgendaService
         }
 
         $stmt = $pdo->prepare('
-            SELECT DISTINCT hs.local_treino_id, lt.nome_local, lt.apelido_local,
+            SELECT DISTINCT hs.local_treino_id, lt.nome_local, lt.apelido_local, lt.latitude, lt.longitude,
                 COALESCE(NULLIF(TRIM(lt.apelido_local), ""), lt.nome_local) AS local_ordem,
                 hs.modalidade_id, m.nome AS modalidade_nome
             FROM horarios_semanais hs
@@ -99,7 +119,7 @@ class AgendaService
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $specialSql = '
-            SELECT DISTINCT ah.local_treino_id, lt.nome_local, lt.apelido_local,
+            SELECT DISTINCT ah.local_treino_id, lt.nome_local, lt.apelido_local, lt.latitude, lt.longitude,
                 COALESCE(NULLIF(TRIM(lt.apelido_local), ""), lt.nome_local) AS local_ordem,
                 ah.modalidade_id, m.nome AS modalidade_nome
             FROM agenda_horarios_especiais ah
@@ -133,7 +153,13 @@ class AgendaService
             if ($locationId <= 0 || $modalityId <= 0) {
                 continue;
             }
-            $locations[$locationId] = ['id' => $locationId, 'nome_local' => (string) ($row['nome_local'] ?? ''), 'apelido_local' => (string) ($row['apelido_local'] ?? '')];
+            $locations[$locationId] = [
+                'id' => $locationId,
+                'nome_local' => (string) ($row['nome_local'] ?? ''),
+                'apelido_local' => (string) ($row['apelido_local'] ?? ''),
+                'latitude' => $row['latitude'] ?? null,
+                'longitude' => $row['longitude'] ?? null,
+            ];
             $modalities[$modalityId] = ['id' => $modalityId, 'nome' => (string) ($row['modalidade_nome'] ?? '')];
             $combinationKey = $locationId . ':' . $modalityId;
             if (!isset($combinationKeys[$combinationKey])) {
@@ -152,7 +178,7 @@ class AgendaService
      */
     public function calendarEvents(int $locationId = 0, int $modalityId = 0, string $rangeStart = '', string $rangeEnd = ''): array
     {
-        if ($locationId <= 0 || $modalityId <= 0) {
+        if ($locationId <= 0) {
             return [];
         }
 
@@ -183,6 +209,7 @@ class AgendaService
                 hs.data_inativacao,
                 hs.created_at,
                 hs.espaco_treino_id,
+                hs.modalidade_id,
                 CASE
                     WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
                         THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
@@ -249,6 +276,10 @@ class AgendaService
                 $occupiedSlots = (int) ($occupancyByOccurrence[$occurrenceKey] ?? 0);
                 $totalSlots = (int) $row['vagas_geral'] + (int) $row['vagas_pcd'] + (int) $row['vagas_plm'] + (int) $row['vagas_pvs'];
                 $availableSlots = max(0, $totalSlots - $occupiedSlots);
+                $availableForBooking = !$isInactiveSchedule
+                    && $availableSlots > 0
+                    && $date >= new DateTimeImmutable()
+                    && $this->resolveScheduleWindowBlockReason($row, $date) === null;
                 $classNames = [];
                 $ageRuleDescription = describe_age_rule(
                     (int) $row['idade_minima'],
@@ -276,6 +307,7 @@ class AgendaService
                         'local_apelido' => $row['local_apelido'],
                         'espaco' => $row['espaco_nome'],
                         'modalidade' => $row['modalidade_nome'],
+                        'modalidade_id' => (int) $row['modalidade_id'],
                         'tipo_ambiente' => $row['tipo_ambiente'],
                         'tipo_horario' => $row['tipo_horario'],
                         'horario_ativo' => !$isInactiveSchedule,
@@ -286,6 +318,7 @@ class AgendaService
                         'vagas_total' => $totalSlots,
                         'vagas_ocupadas' => $occupiedSlots,
                         'vagas_disponiveis' => $availableSlots,
+                        'disponivel_agendamento' => $availableForBooking,
                         'idade_minima' => (int) $row['idade_minima'],
                         'idade_maxima' => (int) $row['idade_maxima'],
                         'criterio_faixa_etaria' => normalize_age_rule_mode((string) ($row['criterio_faixa_etaria'] ?? 'idade_exata')),
@@ -1562,6 +1595,7 @@ class AgendaService
                     'local' => (string) ($row['local_nome'] ?? ''),
                     'espaco' => (string) ($row['espaco_nome'] ?? ''),
                     'modalidade' => (string) ($row['modalidade_nome'] ?? ''),
+                    'modalidade_id' => (int) ($row['modalidade_id'] ?? 0),
                     'tipo_horario' => 'horário especial',
                     'special_description' => (string) ($row['descricao'] ?? ''),
                     'special_cta_url' => (string) ($row['url_destino'] ?? ''),
@@ -1572,6 +1606,10 @@ class AgendaService
                     'special_registration_open' => (new DateTimeImmutable() >= new DateTimeImmutable((string) $row['data_publicacao_inicio'])
                         && new DateTimeImmutable() <= new DateTimeImmutable((string) $row['data_publicacao_fim'])
                         && new DateTimeImmutable() < $specialStart),
+                    'disponivel_agendamento' => (new DateTimeImmutable() >= new DateTimeImmutable((string) $row['data_publicacao_inicio'])
+                        && new DateTimeImmutable() <= new DateTimeImmutable((string) $row['data_publicacao_fim'])
+                        && new DateTimeImmutable() < $specialStart
+                        && max(0, $vagasTotal - $vagasOcupadas) > 0),
                     'special_registration_open_at' => (string) ($row['data_publicacao_inicio'] ?? ''),
                     'special_registration_close_at' => (string) ($row['data_publicacao_fim'] ?? ''),
                     'vagas_geral' => $vagasGeral,
