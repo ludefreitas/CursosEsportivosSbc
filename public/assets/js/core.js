@@ -336,6 +336,7 @@
 
         validarCampoInline: function (field, forceMessage) {
             const $field = $(field);
+            const isCompactHeaderLogin = $field.closest('.header-login-form').length > 0;
             const type = String($field.attr('type') || '').toLowerCase();
             const name = String($field.attr('name') || '').trim();
             const value = String($field.val() == null ? '' : $field.val()).trim();
@@ -463,7 +464,7 @@
                 ? $label.next('.field-validation-message').first()
                 : $field.siblings('.field-validation-message').first();
 
-            if ($message.length === 0) {
+            if ($message.length === 0 && !isCompactHeaderLogin) {
                 $message = $('<small class="field-validation-message" aria-live="polite"></small>');
 
                 if (isChoice && $label.length > 0) {
@@ -481,7 +482,9 @@
             $field
                 .toggleClass('field-invalid', shouldShow)
                 .attr('aria-invalid', shouldShow ? 'true' : 'false');
-            $message.text(shouldShow ? message : '').toggleClass('hidden', !shouldShow);
+            if ($message.length > 0) {
+                $message.text(shouldShow && !isCompactHeaderLogin ? message : '').toggleClass('hidden', !shouldShow || isCompactHeaderLogin);
+            }
 
             return message === '';
         },
@@ -568,6 +571,75 @@
                         .removeClass('field-invalid')
                         .removeAttr('aria-invalid data-validation-touched data-remote-validation-error');
                     $form.find('.field-validation-message').addClass('hidden').text('');
+                }, 0);
+            });
+        },
+
+        iniciarBalaoCpfLoginHeader: function () {
+            const selector = '.header-login-form';
+
+            function getElements(form) {
+                const $form = $(form);
+                return {
+                    $form: $form,
+                    $cpf: $form.find('input[name="cpf"]').first(),
+                    $password: $form.find('input[name="password"]').first()
+                };
+            }
+
+            function hideBalloon($form) {
+                $form.find('.header-login-cpf-balloon')
+                    .removeClass('is-visible')
+                    .attr('aria-hidden', 'true');
+            }
+
+            function showBalloon($form, $cpf) {
+                let $balloon = $form.find('.header-login-cpf-balloon').first();
+
+                if ($balloon.length === 0) {
+                    $balloon = $('<div class="header-login-cpf-balloon" role="alert" aria-hidden="true">Informe o CPF completo com 11 dígitos.</div>');
+                    $cpf.closest('label').append($balloon);
+                    $cpf.attr('aria-describedby', 'header-login-cpf-balloon');
+                    $balloon.attr('id', 'header-login-cpf-balloon');
+                }
+
+                $balloon.addClass('is-visible').attr('aria-hidden', 'false');
+            }
+
+            $(document).on('focusin', selector + ' input[name="password"]', function () {
+                const elements = getElements(this.form);
+                const digits = String(elements.$cpf.val() || '').replace(/\D+/g, '');
+
+                if (digits.length !== 11 || !App.core.cpfValido(digits)) {
+                    elements.$cpf.attr('data-validation-touched', '1');
+                    App.core.validarCampoInline(elements.$cpf[0], true);
+                    showBalloon(elements.$form, elements.$cpf);
+                    return;
+                }
+
+                hideBalloon(elements.$form);
+            });
+
+            $(document).on('input focusin', selector + ' input[name="cpf"]', function () {
+                hideBalloon($(this).closest(selector));
+            });
+
+            $(document).on('input', selector + ' input[name="cpf"]', function () {
+                const $cpf = $(this);
+                const digits = String($cpf.val() || '').replace(/\D+/g, '');
+
+                if (digits.length === 11 && App.core.cpfValido(digits)) {
+                    App.core.validarCampoInline($cpf[0], false);
+                }
+            });
+
+            $(document).on('focusout', selector, function (event) {
+                const form = this;
+
+                window.setTimeout(function () {
+                    if (!form.contains(document.activeElement)) {
+                        hideBalloon($(form));
+                    }
                 }, 0);
             });
         },
@@ -1611,6 +1683,7 @@
 
         init: function () {
             App.core.iniciarValidacaoFormularios();
+            App.core.iniciarBalaoCpfLoginHeader();
             App.core.mascararCpf('input[name="cpf"], input[name="parent1_cpf"], input[name="parent2_cpf"], input[name="responsavel1_cpf"], input[name="responsavel2_cpf"], input[name="new_responsible_cpf"]');
             App.core.mascararTelefone('input[name="phone_whatsapp"], input[name="emergency_contact_phone"]');
             App.core.mascararCep('input[name="zip_code"], input[name="cep"], input[name="cep_inicio"], input[name="cep_fim"]');

@@ -1,1 +1,132 @@
-/* Arquivo de entrada mantido para compatibilidade e organizacao do projeto. */
+/*
+ * Camada final do tema: deve permanecer depois dos CSS de cada módulo.
+ * Centraliza o espaçamento entre quadros e a quantidade de cores da faixa
+ * conforme a largura visual ocupada pelo quadro.
+ */
+
+/* Página inicial: os quadros usam tags diferentes, mas o intervalo é único. */
+.pagina-home .page-content > :is(
+    .home-banner-visual,
+    .home-whatsapp-row,
+    .home-section-navigation,
+    section
+) {
+    margin-block: 0 !important;
+}
+
+.pagina-home .page-content > :is(
+    .home-banner-visual,
+    .home-whatsapp-row,
+    .home-section-navigation,
+    section
+) ~ :is(
+    .home-banner-visual,
+    .home-whatsapp-row,
+    .home-section-navigation,
+    section
+) {
+    margin-top: var(--page-section-gap) !important;
+}
+
+/* Contêineres que agrupam quadros fora do nível principal da página. */
+.admin-section-panel,
+.blog-shell,
+.blog-main-column,
+.blog-sidebar,
+.blog-post-list,
+.blog-post-detail-page {
+    gap: var(--page-section-gap) !important;
+}
+
+/* As duas exceções solicitadas na home não recebem faixa. */
+.pagina-home :is(.home-banner-visual, .home-whatsapp-row)::before {
+    content: none !important;
+}
+
+/* Largura total: quatro cores. */
+:is(.card-width-full, .page-content > .content-card, .page-content > .info-card, .page-content > .post-card)::before,
+.pagina-home :is(.home-section-navigation, .home-locations-card, .home-official-card)::before,
+.pagina-blog .blog-post-hero::before,
+.pagina-blog .blog-related-card::before {
+    background: linear-gradient(90deg, #1767c4 0 25%, #f58b00 25% 50%, #25a45b 50% 75%, #dd4646 75% 100%) !important;
+}
+
+/* Metade da largura: duas cores. */
+.grid-two > :is(.hero-card, .auth-card, .content-card, .info-card, .post-card)::before,
+.pagina-home .hero > .hero-card::before {
+    background: linear-gradient(90deg, #1767c4 0 50%, #f58b00 50% 100%) !important;
+}
+
+.grid-two > :is(.hero-card, .auth-card, .content-card, .info-card, .post-card):nth-child(even)::before,
+.pagina-home .hero > .hero-card:nth-child(even)::before {
+    background: linear-gradient(90deg, #25a45b 0 50%, #dd4646 50% 100%) !important;
+}
+
+/* O quadro principal usa os dois pseudo-elementos em sua decoração interna. */
+.pagina-home .hero > .hero-copy {
+    background:
+        linear-gradient(90deg, #1767c4 0 50%, #f58b00 50% 100%) top / 100% 5px no-repeat,
+        linear-gradient(140deg, rgba(255, 255, 255, 0.97) 0%, rgba(246, 250, 255, 0.97) 42%, rgba(255, 247, 238, 0.98) 100%) !important;
+}
+
+/* Aproximadamente 3/4 da largura: três cores. */
+:is(.card-width-three-quarters, .pagina-blog .blog-hero-copy, .pagina-blog .blog-main-column > .blog-section-card)::before,
+.pagina-blog .blog-main-column .blog-post-card::before {
+    background: linear-gradient(90deg, #1767c4 0 33.333%, #f58b00 33.333% 66.666%, #25a45b 66.666% 100%) !important;
+}
+
+/* Quadros pequenos: uma única cor, alternada entre os itens. */
+:is(.card-width-quarter, .pagina-blog .blog-search-card, .pagina-blog .blog-sidebar .blog-section-card)::before,
+:is(.grid-three, .grid-four, .metrics-grid, .section-grid, .post-grid)
+> :is(.hero-card, .auth-card, .content-card, .info-card, .post-card)::before {
+    background: #1767c4 !important;
+}
+
+:is(.grid-three, .grid-four, .metrics-grid, .section-grid, .post-grid)
+> :is(.hero-card, .auth-card, .content-card, .info-card, .post-card):nth-child(4n + 2)::before,
+.pagina-blog .blog-sidebar .blog-section-card:nth-child(4n + 2)::before {
+    background: #f58b00 !important;
+}
+
+:is(.grid-three, .grid-four, .metrics-grid, .section-grid, .post-grid)
+> :is(.hero-card, .auth-card, .content-card, .info-card, .post-card):nth-child(4n + 3)::before,
+.pagina-blog .blog-sidebar .blog-section-card:nth-child(4n + 3)::before {
+    background: #25a45b !important;
+}
+
+:is(.grid-three, .grid-four, .metrics-grid, .section-grid, .post-grid)
+> :is(.hero-card, .auth-card, .content-card, .info-card, .post-card):nth-child(4n + 4)::before,
+.pagina-blog .blog-sidebar .blog-section-card:nth-child(4n + 4)::before {
+    background: #dd4646 !important;
+}
+
+@media (max-width: 980px) {
+    /* Depois de empilhado, qualquer quadro passa a ocupar a largura completa. */
+    :is(
+        .grid-two,
+        .grid-three,
+        .grid-four,
+        .metrics-grid,
+        .section-grid,
+        .post-grid,
+        .pagina-home .hero,
+        .pagina-blog .blog-hero,
+        .pagina-blog .blog-layout
+    ) > :is(
+        .hero-copy,
+        .hero-card,
+        .auth-card,
+        .content-card,
+        .info-card,
+        .post-card,
+        .blog-hero-copy,
+        .blog-search-card,
+        .blog-main-column,
+        .blog-sidebar
+    )::before,
+    .pagina-blog .blog-main-column > .blog-section-card::before,
+    .pagina-blog .blog-sidebar .blog-section-card::before,
+    .pagina-blog .blog-main-column .blog-post-card::before {
+        background: linear-gradient(90deg, #1767c4 0 25%, #f58b00 25% 50%, #25a45b 50% 75%, #dd4646 75% 100%) !important;
+    }
+}

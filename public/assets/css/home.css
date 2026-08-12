@@ -378,11 +378,13 @@ body.pagina-home .site-header {
 
 .pagina-home #home-locations-card,
 .pagina-home #home-training-locations {
-    margin-top: 14px;
+    margin-top: 0;
 }
 
-.pagina-home #home-training-locations {
-    margin-bottom: 14px;
+/* O logotipo e o contato são as duas exceções visuais da página inicial. */
+.pagina-home .home-banner-visual::before,
+.pagina-home .home-whatsapp-row::before {
+    content: none;
 }
 
 .pagina-home .home-section-navigation {

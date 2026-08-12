@@ -383,6 +383,7 @@ body.pagina-error .site-header::after {
 
 .header-login-form label {
     display: block;
+    position: relative;
 }
 
 .header-login-form input {
@@ -551,7 +552,40 @@ body.pagina-error .site-nav > .inline-form .link-button,
 
 .site-header-alerts {
     width: min(1180px, calc(100% - 32px));
-    margin: 0 auto 12px auto;
+    margin: 18px auto 0 auto;
+}
+
+.header-login-cpf-balloon {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 10px);
+    left: 0;
+    display: none;
+    width: max-content;
+    max-width: min(260px, 78vw);
+    padding: 10px 12px;
+    border: 1px solid rgba(192, 74, 49, 0.34);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--red-700);
+    box-shadow: 0 12px 28px rgba(18, 69, 89, 0.22);
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.header-login-cpf-balloon::before {
+    content: "";
+    position: absolute;
+    left: 18px;
+    bottom: 100%;
+    border: 7px solid transparent;
+    border-bottom-color: #fff;
+}
+
+.header-login-cpf-balloon.is-visible {
+    display: block;
 }
 .site-header-alert-card {
     padding: 18px 22px;
@@ -875,20 +909,21 @@ body.pagina-error .site-nav > .inline-form .link-button,
     color: #fff;
 }
 .page-content {
+    --page-section-gap: 28px;
     width: min(1180px, calc(100% - 32px));
     margin: 0 auto;
     padding: 10px 0 42px 0;
 }
 
 /* Mantém os quadros principais separados e preserva seus cantos superiores. */
-.page-content > section {
-    margin-bottom: 0;
+.page-content > section,
+.page-content > .admin-sections-shell {
+    margin-block: 0;
 }
 
-.page-content > section + section,
-.page-content > section + .admin-sections-shell,
-.page-content > .admin-sections-shell + section {
-    margin-top: 22px;
+/* Mantém o mesmo espaço mesmo quando há modais auxiliares entre os quadros. */
+.page-content > :is(section, .admin-sections-shell) ~ :is(section, .admin-sections-shell) {
+    margin-top: var(--page-section-gap);
 }
 
 .hero-copy, .hero-card, .auth-card, .content-card, .info-card, .post-card {
@@ -896,6 +931,74 @@ body.pagina-error .site-nav > .inline-form .link-button,
     border: 1px solid rgba(221, 212, 198, 0.82);
     border-radius: 28px;
     box-shadow: var(--shadow);
+}
+
+/* Faixa institucional padrão nos quadros de todas as áreas do sistema. */
+:is(.hero-card, .auth-card, .content-card, .info-card, .post-card) {
+    position: relative;
+    overflow: hidden;
+}
+
+:is(.hero-card, .auth-card, .content-card, .info-card, .post-card)::before {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    inset: 0 0 auto 0;
+    width: 100%;
+    height: 5px;
+    pointer-events: none;
+    background: linear-gradient(90deg, #1767c4 0 28%, #f58b00 28% 55%, #25a45b 55% 80%, #dd4646 80% 100%);
+}
+
+/*
+ * Composição da faixa conforme a largura do quadro.
+ * As classes card-width-* formam o padrão para quadros novos; as regras das
+ * grades mantêm automaticamente o mesmo comportamento nas páginas atuais.
+ */
+.card-width-quarter::before,
+:is(.grid-four, .metrics-grid) > :is(.hero-card, .auth-card, .content-card, .info-card, .post-card)::before {
+    background: #1767c4;
+}
+
+:is(.grid-four, .metrics-grid) > :is(.hero-card, .auth-card, .content-card, .info-card, .post-card):nth-child(4n + 2)::before {
+    background: #f58b00;
+}
+
+:is(.grid-four, .metrics-grid) > :is(.hero-card, .auth-card, .content-card, .info-card, .post-card):nth-child(4n + 3)::before {
+    background: #25a45b;
+}
+
+:is(.grid-four, .metrics-grid) > :is(.hero-card, .auth-card, .content-card, .info-card, .post-card):nth-child(4n + 4)::before {
+    background: #dd4646;
+}
+
+:is(.grid-three, .section-grid, .post-grid) > :is(.hero-card, .auth-card, .content-card, .info-card, .post-card)::before {
+    background: #1767c4;
+}
+
+:is(.grid-three, .section-grid, .post-grid) > :is(.hero-card, .auth-card, .content-card, .info-card, .post-card):nth-child(3n + 2)::before {
+    background: #f58b00;
+}
+
+:is(.grid-three, .section-grid, .post-grid) > :is(.hero-card, .auth-card, .content-card, .info-card, .post-card):nth-child(3n + 3)::before {
+    background: #25a45b;
+}
+
+.card-width-half::before,
+.grid-two > :is(.hero-card, .auth-card, .content-card, .info-card, .post-card)::before {
+    background: linear-gradient(90deg, #1767c4 0 50%, #f58b00 50% 100%);
+}
+
+.grid-two > :is(.hero-card, .auth-card, .content-card, .info-card, .post-card):nth-child(even)::before {
+    background: linear-gradient(90deg, #25a45b 0 50%, #dd4646 50% 100%);
+}
+
+.card-width-three-quarters::before {
+    background: linear-gradient(90deg, #1767c4 0 33.333%, #f58b00 33.333% 66.666%, #25a45b 66.666% 100%);
+}
+
+.card-width-full::before {
+    background: linear-gradient(90deg, #1767c4 0 28%, #f58b00 28% 55%, #25a45b 55% 80%, #dd4646 80% 100%);
 }
 .hero-card, .content-card, .post-card, .info-card { padding: 28px; }
 .eyebrow {
@@ -994,8 +1097,8 @@ body.pagina-error label span {
 .grid-four { grid-template-columns: repeat(4, 1fr); }
 .grid-five { grid-template-columns: 1fr 2fr 1fr 1fr; }
 .span-2 { grid-column: span 1; }
-.section-grid { margin-top: 22px; grid-template-columns: repeat(3, 1fr); }
-.metrics-grid { margin: 18px 0; grid-template-columns: repeat(4, 1fr); }
+.section-grid { grid-template-columns: repeat(3, 1fr); }
+.metrics-grid { grid-template-columns: repeat(4, 1fr); }
 .post-grid { grid-template-columns: repeat(3, 1fr); }
 .checkbox-line { display: flex; gap: 12px; align-items: flex-start; }
 .checkbox-line input { width: auto; margin-top: 3px; }
@@ -1034,7 +1137,6 @@ body.pagina-error label span {
     margin-bottom: 18px;
 }
 .feature-list li { margin-bottom: 10px; }
-.dashboard-hero { margin-bottom: 18px; }
 .dashboard-main-grid,
 .dashboard-secondary-grid {
     align-items: start;
@@ -1238,6 +1340,12 @@ body.pagina-error label span {
     .grid-two, .grid-three, .grid-four, .grid-five, .section-grid, .metrics-grid, .post-grid {
         grid-template-columns: 1fr;
     }
+
+    /* Ao ocupar toda a largura no responsivo, todo quadro recebe quatro cores. */
+    :is(.grid-two, .grid-three, .grid-four, .metrics-grid, .section-grid, .post-grid)
+    > :is(.hero-card, .auth-card, .content-card, .info-card, .post-card)::before {
+        background: linear-gradient(90deg, #1767c4 0 28%, #f58b00 28% 55%, #25a45b 55% 80%, #dd4646 80% 100%);
+    }
     .dashboard-dependent-details-grid {
         grid-template-columns: 1fr;
     }
@@ -1342,15 +1450,10 @@ body.pagina-error label span {
 
 @media (max-width: 760px) {
     .page-content {
+        --page-section-gap: 20px;
         width: calc(100% - 20px);
         padding-top: 8px;
         padding-bottom: 28px;
-    }
-
-    .page-content > section + section,
-    .page-content > section + .admin-sections-shell,
-    .page-content > .admin-sections-shell + section {
-        margin-top: 18px;
     }
 
     .hero-card,
