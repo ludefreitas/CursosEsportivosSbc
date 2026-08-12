@@ -113,7 +113,6 @@
         .pagina-blog .blog-hero,
         .pagina-blog .blog-layout
     ) > :is(
-        .hero-copy,
         .hero-card,
         .auth-card,
         .content-card,
@@ -127,6 +126,23 @@
     .pagina-blog .blog-main-column > .blog-section-card::before,
     .pagina-blog .blog-sidebar .blog-section-card::before,
     .pagina-blog .blog-main-column .blog-post-card::before {
+        background: linear-gradient(90deg, #1767c4 0 25%, #f58b00 25% 50%, #25a45b 50% 75%, #dd4646 75% 100%) !important;
+    }
+
+    .pagina-home .hero > .hero-copy {
+        background:
+            linear-gradient(90deg, #1767c4 0 25%, #f58b00 25% 50%, #25a45b 50% 75%, #dd4646 75% 100%) top / 100% 5px no-repeat,
+            linear-gradient(140deg, rgba(255, 255, 255, 0.97) 0%, rgba(246, 250, 255, 0.97) 42%, rgba(255, 247, 238, 0.98) 100%) !important;
+    }
+
+    .pagina-home .hero > .hero-card::before,
+    .pagina-home .hero > .hero-card:nth-child(even)::before,
+    .pagina-home .section-grid > .info-card::before,
+    .pagina-blog .blog-hero > :is(.blog-hero-copy, .blog-search-card)::before,
+    .pagina-blog .blog-sidebar > .blog-section-card::before,
+    .pagina-blog .blog-sidebar > .blog-section-card:nth-child(4n + 2)::before,
+    .pagina-blog .blog-sidebar > .blog-section-card:nth-child(4n + 3)::before,
+    .pagina-blog .blog-sidebar > .blog-section-card:nth-child(4n + 4)::before {
         background: linear-gradient(90deg, #1767c4 0 25%, #f58b00 25% 50%, #25a45b 50% 75%, #dd4646 75% 100%) !important;
     }
 }
