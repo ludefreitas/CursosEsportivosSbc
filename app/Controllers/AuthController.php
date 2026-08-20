@@ -70,6 +70,7 @@ class AuthController extends Controller
             }
 
             $adminAccessAllowed = false;
+            $professorAccessAllowed = false;
 
             if ($registrationBlock === null && $person && (int) ($person['cadastro_completo'] ?? 0) === 1) {
                 $authenticatedUser = (new \App\Services\UserService())->currentAccountWithRoles();
@@ -80,6 +81,10 @@ class AuthController extends Controller
                         break;
                     }
                 }
+
+                if (has_role($authenticatedUser['roles'] ?? [], 'teacher')) {
+                    $professorAccessAllowed = true;
+                }
             }
 
             if ($this->isAjaxRequest()) {
@@ -88,6 +93,7 @@ class AuthController extends Controller
                     'message' => $successMessage,
                     'redirect' => $redirectUrl,
                     'admin_access_allowed' => $adminAccessAllowed,
+                    'professor_access_allowed' => $professorAccessAllowed,
                 ]);
             }
 

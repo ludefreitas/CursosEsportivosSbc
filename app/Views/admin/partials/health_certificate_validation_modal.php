@@ -21,7 +21,7 @@ $currentValidationNote = (string) ($certificate['observacao_validacao'] ?? '');
 <div class="popup-body admin-popup-body admin-condition-validation-body">
     <div class="popup-meta-list">
         <p><strong>Nome:</strong> <?php echo e((string) ($person['nome_completo'] ?? '-')); ?></p>
-        <p><strong>CPF:</strong> <?php echo e(format_cpf((string) ($person['cpf'] ?? ''))); ?></p>
+        <p><strong>CPF:</strong> <?php echo e(!empty($professorView) ? format_cpf_professor((string) ($person['cpf'] ?? '')) : format_cpf((string) ($person['cpf'] ?? ''))); ?></p>
         <p><strong>Responsável:</strong> <?php echo e((string) (($person['nome_responsavel'] ?? '') !== '' ? $person['nome_responsavel'] : '-')); ?></p>
         <p><strong>Tipo de atestado:</strong> <?php echo e((string) ($certificateType['label'] ?? '-')); ?></p>
         <p><strong>Status atual:</strong> <?php echo e(ucfirst((string) ($certificate['status_validacao'] ?? 'pendente'))); ?></p>
@@ -44,7 +44,7 @@ $currentValidationNote = (string) ($certificate['observacao_validacao'] ?? '');
         </div>
     </div>
 
-    <form method="POST" action="<?php echo e(url('/admin/atestados/validacao/salvar')); ?>" class="stack-form" id="admin-health-certificate-validation-form" data-manual-submit="1">
+    <form method="POST" action="<?php echo e(url(!empty($professorView) ? '/professor/atestados/validacao/salvar' : '/admin/atestados/validacao/salvar')); ?>" class="stack-form" id="admin-health-certificate-validation-form" data-manual-submit="1">
         <input type="hidden" name="person_id" value="<?php echo e((string) ($person['id'] ?? '0')); ?>">
         <input type="hidden" name="certificate_type" value="<?php echo e((string) ($certificateType['slug'] ?? '')); ?>">
 

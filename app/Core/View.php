@@ -78,6 +78,19 @@ class View
             }
         }
 
+        if (!array_key_exists('headerProfessorAccessAllowed', $data)) {
+            $data['headerProfessorAccessAllowed'] = false;
+
+            if (Auth::check() && empty($data['profileCompletionRequired'])) {
+                try {
+                    $account = (new UserService())->currentAccountWithRoles();
+                    $data['headerProfessorAccessAllowed'] = $account && has_role($account['roles'] ?? [], 'teacher');
+                } catch (\Throwable $e) {
+                    $data['headerProfessorAccessAllowed'] = false;
+                }
+            }
+        }
+
         extract($data, EXTR_SKIP);
         $viewFile = ROOT_PATH . '/app/Views/' . $view . '.php';
 

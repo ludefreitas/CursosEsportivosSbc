@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="<?php echo e(asset_url('css/auth.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/agenda.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/admin.css')); ?>">
+    <?php if (current_path() === '/professor') { ?><link rel="stylesheet" href="<?php echo e(asset_url('css/professor.css')); ?>"><?php } ?>
     <link rel="stylesheet" href="<?php echo e(asset_url('css/home.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/blog.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/style.css')); ?>">
@@ -22,6 +23,7 @@
     class="<?php echo e($pageClass ?? ''); ?>"
     data-profile-completion-required="<?php echo !empty($profileCompletionRequired) ? '1' : '0'; ?>"
     data-admin-access-allowed="<?php echo !empty($headerAdminAccessAllowed) ? '1' : '0'; ?>"
+    data-professor-access-allowed="<?php echo !empty($headerProfessorAccessAllowed) ? '1' : '0'; ?>"
     data-profile-completion-message="<?php echo e($profileCompletionBlockMessage ?: 'Antes de acessar esta área, você precisa completar seu cadastro.'); ?>"
 >
     <?php $isAuthenticated = \App\Core\Auth::check(); ?>
@@ -79,6 +81,9 @@
                     >Meu painel</a>
                     <?php if (!empty($headerAdminAccessAllowed)) { ?>
                         <a href="<?php echo e(url('/admin')); ?>" class="nav-color-orange">Admin</a>
+                    <?php } ?>
+                    <?php if (!empty($headerProfessorAccessAllowed)) { ?>
+                        <a href="<?php echo e(url('/professor')); ?>" class="nav-color-green">Professor</a>
                     <?php } ?>
                     <form method="POST" action="<?php echo e(url('/logout')); ?>" class="inline-form">
                         <button type="submit" class="link-button nav-color-green">Sair</button>

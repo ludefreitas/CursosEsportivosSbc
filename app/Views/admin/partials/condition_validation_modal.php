@@ -30,7 +30,7 @@ foreach ($selectedDisabilityTypes as $selectedType) {
 <div class="popup-body admin-popup-body admin-condition-validation-body">
     <div class="popup-meta-list">
         <p><strong>Nome:</strong> <?php echo e((string) ($person['nome_completo'] ?? '-')); ?></p>
-        <p><strong>CPF:</strong> <?php echo e(format_cpf((string) ($person['cpf'] ?? ''))); ?></p>
+        <p><strong>CPF:</strong> <?php echo e(!empty($professorView) ? format_cpf_professor((string) ($person['cpf'] ?? '')) : format_cpf((string) ($person['cpf'] ?? ''))); ?></p>
         <p><strong>Responsável:</strong> <?php echo e((string) (($person['nome_responsavel'] ?? '') !== '' ? $person['nome_responsavel'] : '-')); ?></p>
         <p><strong>Condição:</strong> <?php echo e((string) ($condition['label'] ?? '-')); ?></p>
         <p><strong>Status atual:</strong> <?php echo e((string) ($certificate['status'] ?? 'Sem certificado enviado')); ?></p>
@@ -55,7 +55,7 @@ foreach ($selectedDisabilityTypes as $selectedType) {
             <div class="admin-document-links">
                 <?php foreach ($documents as $document) { ?>
                     <a
-                        href="<?php echo e(url('/admin/certificados/arquivo?document_id=' . (int) ($document['id'] ?? 0))); ?>"
+                        href="<?php echo e(url((!empty($professorView) ? '/professor/certificados/arquivo' : '/admin/certificados/arquivo') . '?document_id=' . (int) ($document['id'] ?? 0))); ?>"
                         target="_blank"
                         rel="noopener noreferrer"
                     ><span class="dashboard-certificate-file-icon" aria-hidden="true">PDF</span><?php echo e((string) ($document['nome_original'] ?? 'documento.pdf')); ?></a>
@@ -64,7 +64,7 @@ foreach ($selectedDisabilityTypes as $selectedType) {
         <?php } ?>
     </div>
 
-    <form method="POST" action="<?php echo e(url('/admin/certificados/validacao/salvar')); ?>" class="stack-form" id="admin-condition-validation-form" data-manual-submit="1">
+    <form method="POST" action="<?php echo e(url(!empty($professorView) ? '/professor/certificados/validacao/salvar' : '/admin/certificados/validacao/salvar')); ?>" class="stack-form" id="admin-condition-validation-form" data-manual-submit="1">
         <input type="hidden" name="person_id" value="<?php echo e((string) ($person['id'] ?? '0')); ?>">
         <input type="hidden" name="condition_slug" value="<?php echo e((string) ($condition['slug'] ?? '')); ?>">
 

@@ -1,5 +1,20 @@
 (function (window, $) {
     const App = window.App || {};
+    const adminUrl = function (path) {
+        const $host = $('[data-admin-section-host]');
+        const basePath = String($host.data('adminBasePath') || '/admin').replace(/\/$/, '');
+        const normalizedPath = String(path || '');
+
+        if (normalizedPath.indexOf('/api/admin/') === 0) {
+            const apiPath = basePath === '/professor'
+                ? normalizedPath.replace('/api/admin/', '/api/professor/')
+                : normalizedPath;
+
+            return App.core.buildUrl(apiPath);
+        }
+
+        return App.core.buildUrl(basePath + normalizedPath.replace(/^\/admin/, ''));
+    };
 
     App.admin = Object.assign(App.admin || {}, {
         iniciarSecoesAdmin: function () {
@@ -143,7 +158,7 @@
                 openOccurrenceModal();
 
                 $.ajax({
-                    url: App.core.buildUrl('/admin/agendamentos/ocorrencia'),
+                    url: adminUrl('/admin/agendamentos/ocorrencia'),
                     method: 'GET',
                     dataType: 'json',
                     data: {
@@ -196,7 +211,7 @@
                     allDaySlot: false,
                     height: 760,
                     events: {
-                        url: App.core.buildUrl('/api/admin/agenda/eventos'),
+                        url: adminUrl('/api/admin/agenda/eventos'),
                         extraParams: function () {
                             return currentAdminAgendaCalendarFilters();
                         }
@@ -473,7 +488,7 @@
                 disableBookingStatusGroup(bookingId, true);
 
                 $.ajax({
-                    url: App.core.buildUrl('/admin/agendamentos/presenca'),
+                    url: adminUrl('/admin/agendamentos/presenca'),
                     method: 'POST',
                     data: formData,
                     processData: false,
@@ -980,7 +995,7 @@
                     return;
                 }
 
-                $.getJSON(App.core.buildUrl('/admin/pessoas/detalhe'), { id: personId })
+                $.getJSON(adminUrl('/admin/pessoas/detalhe'), { id: personId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.person) {
                             App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar os dados desta pessoa.'));
@@ -1261,7 +1276,7 @@
                     return;
                 }
 
-                $.getJSON(App.core.buildUrl('/admin/usuarios/detalhe'), { id: accountId })
+                $.getJSON(adminUrl('/admin/usuarios/detalhe'), { id: accountId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.user) {
                             App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar os dados deste usuário.'));
@@ -1288,7 +1303,7 @@
                 $('#admin-user-dependents-content').html('<p class="muted">Carregando dependentes...</p>');
                 openDependentsModal();
 
-                $.getJSON(App.core.buildUrl('/admin/usuarios/dependentes'), { conta_id: accountId })
+                $.getJSON(adminUrl('/admin/usuarios/dependentes'), { conta_id: accountId })
                     .done(function (response) {
                         if (!response || response.success === false) {
                             App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar os dependentes deste usuário.'));
@@ -1810,7 +1825,7 @@
                     return;
                 }
 
-                $.getJSON(App.core.buildUrl('/admin/horarios-semanais/detalhe'), { id: scheduleId })
+                $.getJSON(adminUrl('/admin/horarios-semanais/detalhe'), { id: scheduleId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.schedule) {
                             App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar este horário.'));
@@ -2299,7 +2314,7 @@
                     return;
                 }
 
-                $.getJSON(App.core.buildUrl('/admin/certificados/validacao/modal'), {
+                $.getJSON(adminUrl('/admin/certificados/validacao/modal'), {
                     person_id: personId,
                     condition_slug: conditionSlug
                 }).done(function (response) {
@@ -2430,7 +2445,7 @@
                     return;
                 }
 
-                $.getJSON(App.core.buildUrl('/admin/atestados/validacao/modal'), {
+                $.getJSON(adminUrl('/admin/atestados/validacao/modal'), {
                     person_id: personId,
                     certificate_type: certificateType
                 }).done(function (response) {

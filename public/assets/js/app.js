@@ -13,6 +13,10 @@ $(function () {
         App.admin.init();
     }
 
+    if (App.professor && typeof App.professor.init === 'function') {
+        App.professor.init();
+    }
+
     if (App.agenda && typeof App.agenda.init === 'function') {
         App.agenda.init();
     }

@@ -2,12 +2,15 @@
     const App = window.App || {};
 
     App.auth = Object.assign(App.auth || {}, {
-        sincronizarCabecalhoAutenticado: function (adminAccessAllowed) {
+        sincronizarCabecalhoAutenticado: function (adminAccessAllowed, professorAccessAllowed) {
             const $nav = $('.site-nav').first();
             const profileCompletionRequired = App.core.pageRequiresProfileCompletion() ? '1' : '0';
             const canAccessAdmin = typeof adminAccessAllowed === 'boolean'
                 ? adminAccessAllowed
                 : String($('body').attr('data-admin-access-allowed') || '') === '1';
+            const canAccessProfessor = typeof professorAccessAllowed === 'boolean'
+                ? professorAccessAllowed
+                : String($('body').attr('data-professor-access-allowed') || '') === '1';
 
             if ($nav.length === 0) {
                 return;
@@ -15,21 +18,28 @@
 
             $('.header-login-form').remove();
 
-            $nav.html([
+            const navItems = [
                 '<a href="' + App.core.buildUrl('/agenda') + '" class="nav-color-green">Agenda</a>',
                 '<a href="' + App.core.buildUrl('/blog') + '" class="nav-color-red">Blog</a>',
-                '<a href="' + App.core.buildUrl('/dashboard') + '" class="nav-color-teal" data-profile-completion-link="' + profileCompletionRequired + '">Meu painel</a>',
-                '<a href="' + App.core.buildUrl('/admin') + '" class="nav-color-orange" data-profile-completion-link="' + profileCompletionRequired + '">Admin</a>',
-                '<form method="POST" action="' + App.core.buildUrl('/logout') + '" class="inline-form">',
-                '<button type="submit" class="link-button nav-color-green">Sair</button>',
-                '</form>'
-            ].join(''));
+                '<a href="' + App.core.buildUrl('/dashboard') + '" class="nav-color-teal" data-profile-completion-link="' + profileCompletionRequired + '">Meu painel</a>'
+            ];
+
+            if (canAccessAdmin && profileCompletionRequired !== '1') {
+                navItems.push('<a href="' + App.core.buildUrl('/admin') + '" class="nav-color-orange" data-profile-completion-link="' + profileCompletionRequired + '">Admin</a>');
+            }
+
+            if (canAccessProfessor && profileCompletionRequired !== '1') {
+                navItems.push('<a href="' + App.core.buildUrl('/professor') + '" class="nav-color-green" data-profile-completion-link="' + profileCompletionRequired + '">Professor</a>');
+            }
+
+            navItems.push('<form method="POST" action="' + App.core.buildUrl('/logout') + '" class="inline-form">');
+            navItems.push('<button type="submit" class="link-button nav-color-green">Sair</button>');
+            navItems.push('</form>');
+
+            $nav.html(navItems.join(''));
 
             $('body').attr('data-admin-access-allowed', canAccessAdmin ? '1' : '0');
-
-            if (!canAccessAdmin || profileCompletionRequired === '1') {
-                $nav.find('a[href="' + App.core.buildUrl('/admin') + '"]').remove();
-            }
+            $('body').attr('data-professor-access-allowed', canAccessProfessor ? '1' : '0');
 
             const $heroPrimaryButton = $('.hero-actions .btn-primary').first();
 
@@ -240,7 +250,10 @@
                         );
 
                         $('body').attr('data-profile-completion-required', authenticationNeedsProfileCompletion ? '1' : '0');
-                        App.auth.sincronizarCabecalhoAutenticado(!!response.admin_access_allowed);
+                        App.auth.sincronizarCabecalhoAutenticado(
+                            !!response.admin_access_allowed,
+                            !!response.professor_access_allowed
+                        );
                         $('main.page-content > .flash').remove();
                         $personOptions.data('agendaAuthenticated', '1');
                         $calendar.attr('data-agenda-authenticated', '1');

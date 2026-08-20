@@ -567,6 +567,17 @@ function format_cpf(string $cpf): string
     return substr($cpf, 0, 3) . '.' . substr($cpf, 3, 3) . '.' . substr($cpf, 6, 3) . '-' . substr($cpf, 9, 2);
 }
 
+function format_cpf_professor(string $cpf): string
+{
+    $digits = preg_replace('/\D+/', '', $cpf) ?? '';
+
+    if (strlen($digits) !== 11) {
+        return '***.***.***-**';
+    }
+
+    return '***.' . substr($digits, 3, 3) . '.' . substr($digits, 6, 3) . '-**';
+}
+
 /**
  * Calcula idade a partir da data de nascimento.
  */

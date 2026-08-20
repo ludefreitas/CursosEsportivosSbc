@@ -126,6 +126,7 @@
     <script src="<?php echo e(asset_url('js/auth.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/agenda.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/admin.js')); ?>"></script>
+    <?php if (current_path() === '/professor') { ?><script src="<?php echo e(asset_url('js/professor.js')); ?>"></script><?php } ?>
     <script src="<?php echo e(asset_url('js/dashboard.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/home.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/app.js')); ?>"></script>

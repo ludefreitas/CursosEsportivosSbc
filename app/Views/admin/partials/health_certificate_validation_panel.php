@@ -32,7 +32,7 @@ $healthCertificateValidationRows = $healthCertificateValidationRows ?? [];
                     <tr>
                         <td>
                             <strong><?php echo e((string) ($row['nome_completo'] ?? '')); ?></strong><br>
-                            <span class="muted"><?php echo e(format_cpf((string) ($row['cpf'] ?? ''))); ?></span>
+                            <span class="muted"><?php echo e(!empty($professorView) ? format_cpf_professor((string) ($row['cpf'] ?? '')) : format_cpf((string) ($row['cpf'] ?? ''))); ?></span>
                         </td>
                         <td><?php echo e((string) (($row['nome_responsavel'] ?? '') !== '' ? $row['nome_responsavel'] : '-')); ?></td>
                         <td><?php echo e((string) ($row['tipo_label'] ?? 'Atestado')); ?></td>

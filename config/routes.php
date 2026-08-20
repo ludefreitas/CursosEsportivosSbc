@@ -10,6 +10,7 @@ use App\Controllers\ErrorController;
 use App\Controllers\HomeController;
 use App\Controllers\ProfileController;
 use App\Controllers\DataRecoveryController;
+use App\Controllers\ProfessorController;
 
 return [
     ['GET', '/', [HomeController::class, 'index']],
@@ -119,4 +120,18 @@ return [
     ['POST', '/admin/ceps-excecao/remover', [AdminController::class, 'deleteCepException']],
     ['POST', '/admin/ceps-intervalo', [AdminController::class, 'storeAcceptedRange']],
     ['POST', '/admin/ceps-intervalo/remover', [AdminController::class, 'deleteAcceptedRange']],
+    ['GET', '/professor', [ProfessorController::class, 'index']],
+    ['GET', '/professor/secao', [ProfessorController::class, 'section']],
+    ['GET', '/professor/pessoas/detalhe', [ProfessorController::class, 'personDetails']],
+    ['GET', '/professor/pessoas/lista', [ProfessorController::class, 'peoplePanel']],
+    ['GET', '/professor/usuarios/detalhe', [ProfessorController::class, 'userDetails']],
+    ['GET', '/professor/usuarios/dependentes', [ProfessorController::class, 'userDependents']],
+    ['GET', '/api/professor/agenda/eventos', [ProfessorController::class, 'calendarEvents']],
+    ['GET', '/professor/agendamentos/ocorrencia', [ProfessorController::class, 'bookingOccurrence']],
+    ['POST', '/professor/agendamentos/presenca', [ProfessorController::class, 'markBookingAttendance']],
+    ['GET', '/professor/certificados/arquivo', [ProfessorController::class, 'certificateDocument']],
+    ['GET', '/professor/certificados/validacao/modal', [ProfessorController::class, 'conditionValidationModal']],
+    ['POST', '/professor/certificados/validacao/salvar', [ProfessorController::class, 'saveConditionValidation']],
+    ['GET', '/professor/atestados/validacao/modal', [ProfessorController::class, 'healthCertificateValidationModal']],
+    ['POST', '/professor/atestados/validacao/salvar', [ProfessorController::class, 'saveHealthCertificateValidation']],
 ];

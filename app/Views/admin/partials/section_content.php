@@ -209,7 +209,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         $dailyBookingsGrouped[$groupKey]['items'][] = $booking;
     }
     ?>
-    <section class="admin-section-panel" data-admin-section="agenda" data-admin-current-caller="<?php echo e((string) ($currentAdminName ?? '')); ?>">
+    <section class="admin-section-panel<?php echo !empty($professorView) ? ' professor-view' : ''; ?>" data-admin-section="agenda" data-admin-current-caller="<?php echo e((string) ($currentAdminName ?? '')); ?>">
         <div class="section-head admin-section-head">
             <div>
                 <h2>Agenda</h2>
@@ -477,7 +477,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     </div>
                     <button type="button" class="popup-close-icon" id="admin-booking-justification-close" aria-label="Fechar justificativa">&times;</button>
                 </div>
-                <form method="POST" action="<?php echo e(url('/admin/agendamentos/presenca')); ?>" class="stack-form" id="admin-booking-justification-form" data-manual-submit="1">
+                <form method="POST" action="<?php echo e(url(!empty($professorView) ? '/professor/agendamentos/presenca' : '/admin/agendamentos/presenca')); ?>" class="stack-form" id="admin-booking-justification-form" data-manual-submit="1">
                     <input type="hidden" name="agendamento_id" value="">
                     <input type="hidden" name="status" value="justificado">
                     <div class="admin-booking-justification-context" aria-live="polite">

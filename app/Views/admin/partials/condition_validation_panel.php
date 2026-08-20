@@ -50,7 +50,7 @@ $buildWhatsappLink = static function (?string $phone): ?string {
                     <tr class="<?php echo (string) ($row['certificado_status'] ?? '') === 'validado_parcial' ? 'admin-condition-row-partial' : ''; ?>">
                         <td>
                             <strong><?php echo e((string) ($row['nome_completo'] ?? '')); ?></strong><br>
-                            <span class="muted"><?php echo e(format_cpf((string) ($row['cpf'] ?? ''))); ?></span>
+                            <span class="muted"><?php echo e(!empty($professorView) ? format_cpf_professor((string) ($row['cpf'] ?? '')) : format_cpf((string) ($row['cpf'] ?? ''))); ?></span>
                         </td>
                         <td><?php echo e((string) (($row['nome_responsavel'] ?? '') !== '' ? $row['nome_responsavel'] : '-')); ?></td>
                         <td><?php echo $age !== null ? e((string) $age . ' anos') : '-'; ?></td>
@@ -71,7 +71,7 @@ $buildWhatsappLink = static function (?string $phone): ?string {
                                 <div class="admin-document-links">
                                     <?php foreach ($documents as $document) { ?>
                                         <a
-                                            href="<?php echo e(url('/admin/certificados/arquivo?document_id=' . (int) ($document['id'] ?? 0))); ?>"
+                                            href="<?php echo e(url((!empty($professorView) ? '/professor/certificados/arquivo' : '/admin/certificados/arquivo') . '?document_id=' . (int) ($document['id'] ?? 0))); ?>"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                         ><span class="dashboard-certificate-file-icon" aria-hidden="true">PDF</span><?php echo e((string) ($document['nome_original'] ?? 'documento.pdf')); ?></a>

@@ -1,0 +1,39 @@
+/* Recursos visuais exclusivos da área do professor. */
+.professor-page .admin-sections-shell {
+    border-top: 4px solid #1f8a70;
+}
+
+.professor-page .admin-nav-card {
+    background: linear-gradient(135deg, #f2fbf7 0%, #ffffff 62%);
+}
+
+.professor-page .admin-nav-button.is-active {
+    background: #1f8a70;
+    color: #ffffff;
+}
+
+.professor-page .professor-readonly-note {
+    border-left: 4px solid #1f8a70;
+    padding-left: 14px;
+}
+
+.professor-view #admin-weekly-schedule-create-modal,
+.professor-view #admin-special-schedule-create-modal,
+.professor-view #admin-special-schedule-editor,
+.professor-view .admin-weekly-schedule-actions,
+.professor-view #admin-special-schedule-create-open,
+.professor-view [data-admin-special-schedule-edit],
+.professor-view [data-admin-weekly-schedule-edit] {
+    display: none !important;
+}
+
+.professor-page .admin-condition-validation-panel,
+.professor-page .admin-health-certificate-validation-panel {
+    border-top: 3px solid #1f8a70;
+}
+
+@media (max-width: 720px) {
+    .professor-page .admin-nav {
+        grid-template-columns: 1fr;
+    }
+}

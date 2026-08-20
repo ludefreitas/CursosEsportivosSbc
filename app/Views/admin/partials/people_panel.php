@@ -1,8 +1,8 @@
 <div id="admin-people-panel-shell">
 <article class="content-card" id="admin-people-panel">
     <h2>Usuários e dependentes</h2>
-    <p class="muted">Clique no nome para consultar os dados da pessoa e, se precisar, abrir a edição sem redirecionamento. A lista mostra primeiro os cadastros mais recentes.</p>
-    <form method="GET" action="<?php echo e(url('/admin/pessoas/lista')); ?>" class="stack-form admin-people-filter-form" id="admin-people-filter-form" data-manual-submit="1" data-admin-people-filter="1">
+    <p class="muted"><?php echo !empty($professorView) ? 'Clique no nome para consultar os dados da pessoa. A lista mostra primeiro os cadastros mais recentes.' : 'Clique no nome para consultar os dados da pessoa e, se precisar, abrir a edição sem redirecionamento. A lista mostra primeiro os cadastros mais recentes.'; ?></p>
+    <form method="GET" action="<?php echo e(url(!empty($professorView) ? '/professor/pessoas/lista' : '/admin/pessoas/lista')); ?>" class="stack-form admin-people-filter-form" id="admin-people-filter-form" data-manual-submit="1" data-admin-people-filter="1">
         <div class="admin-people-filter-grid admin-people-filter-row">
             <label>
                 <span>Buscar por nome ou CPF</span>
@@ -33,7 +33,6 @@
                 <tr>
                     <th>Nome</th>
                     <th>CPF</th>
-                    <th>Faixa</th>
                     <th>Cadastro</th>
                     <th>Condição</th>
                     <th>Atestado clínico</th>
@@ -44,7 +43,7 @@
             <tbody>
                 <?php if (empty($people)) { ?>
                     <tr>
-                        <td colspan="8" class="muted">Nenhuma pessoa encontrada para este filtro.</td>
+                        <td colspan="7" class="muted">Nenhuma pessoa encontrada para este filtro.</td>
                     </tr>
                 <?php } ?>
                 <?php foreach ($people as $person) { ?>
@@ -57,8 +56,7 @@
                                 data-person-id="<?php echo e((string) $person['id']); ?>"
                             ><?php echo e($person['nome_completo']); ?></button>
                         </td>
-                        <td><?php echo e(format_cpf($person['cpf'])); ?></td>
-                        <td><?php echo is_minor_by_birth_date($person['data_nascimento'] ?? null) === true ? 'Menor' : 'Maior'; ?></td>
+                        <td><?php echo e(!empty($professorView) ? format_cpf_professor((string) $person['cpf']) : format_cpf($person['cpf'])); ?></td>
                         <td data-person-cadastro><?php echo (int) $person['cadastro_completo'] === 1 ? 'Completo' : 'Pendente'; ?></td>
                         <td>
                             <?php if (empty($person['condition_indicators'])) { ?>
@@ -244,6 +242,7 @@
         </div>
     </div>
 
+    <?php if (empty($professorView)) { ?>
     <div class="popup-overlay hidden" id="admin-person-editor" aria-hidden="true">
         <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-person-editor-title">
             <div class="popup-head admin-popup-head">
@@ -418,12 +417,13 @@
             </div>
         </div>
     </div>
+    <?php } ?>
 </article>
 
 <article class="content-card top-gap" id="admin-users-panel">
     <h2>Lista somente de usuários</h2>
     <p class="muted">Esta lista mostra apenas quem já possui conta criada. Use os links para verificar os dados do usuário ou abrir a relação de dependentes em pop-up.</p>
-    <form method="GET" action="<?php echo e(url('/admin/pessoas/lista')); ?>" class="stack-form admin-people-filter-form" id="admin-users-filter-form" data-manual-submit="1" data-admin-people-filter="1">
+    <form method="GET" action="<?php echo e(url(!empty($professorView) ? '/professor/pessoas/lista' : '/admin/pessoas/lista')); ?>" class="stack-form admin-people-filter-form" id="admin-users-filter-form" data-manual-submit="1" data-admin-people-filter="1">
         <div class="admin-people-filter-grid admin-people-filter-row">
             <label>
                 <span>Buscar por nome ou CPF</span>
@@ -471,7 +471,7 @@
                 <?php foreach (($usersOnly ?? []) as $userRow) { ?>
                     <tr data-admin-user-row="1" data-account-id="<?php echo e((string) ($userRow['conta_id'] ?? '')); ?>">
                         <td><?php echo e((string) ($userRow['nome_completo'] ?? '-')); ?></td>
-                        <td><?php echo e(format_cpf((string) ($userRow['cpf'] ?? ''))); ?></td>
+                        <td><?php echo e(!empty($professorView) ? format_cpf_professor((string) ($userRow['cpf'] ?? '')) : format_cpf((string) ($userRow['cpf'] ?? ''))); ?></td>
                         <td><?php echo e((string) (($userRow['email'] ?? '') !== '' ? $userRow['email'] : '-')); ?></td>
                         <td><?php echo (int) ($userRow['cadastro_completo'] ?? 0) === 1 ? 'Completo' : 'Pendente'; ?></td>
                         <td><?php echo (int) ($userRow['conta_ativa'] ?? 0) === 1 ? 'Ativa' : 'Inativa'; ?></td>
@@ -584,7 +584,7 @@
     </div>
 </div>
 
-<div class="popup-overlay hidden" id="admin-user-roles-modal" aria-hidden="true">
+<?php if (empty($professorView)) { ?><div class="popup-overlay hidden" id="admin-user-roles-modal" aria-hidden="true">
     <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-user-roles-title">
         <div class="popup-head admin-popup-head">
             <div>
@@ -632,5 +632,5 @@
             </form>
         </div>
     </div>
-</div>
+</div><?php } ?>
 </div>
