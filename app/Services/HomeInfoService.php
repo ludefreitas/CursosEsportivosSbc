@@ -321,6 +321,14 @@ class HomeInfoService
         ], $draft);
     }
 
+    public function getCourseModalitiesContent(bool $draft = false): array
+    {
+        return $this->getConfiguredContent('modalidades_cursos', [
+            'titulo' => 'Modalidades dos cursos esportivos',
+            'texto' => 'Selecione uma modalidade para consultar os centros esportivos que oferecem o curso.',
+        ], $draft);
+    }
+
     public function saveCoursesLocationsContent(int $accountId, array $data): void
     {
         $content = [
@@ -340,6 +348,16 @@ class HomeInfoService
         ];
         $this->validateLocationContent($content, ['titulo']);
         $this->saveConfiguredContent('locais_treinos', $content, $accountId);
+    }
+
+    public function saveCourseModalitiesContent(int $accountId, array $data): void
+    {
+        $content = [
+            'titulo' => trim((string) ($data['titulo'] ?? '')),
+            'texto' => trim((string) ($data['texto'] ?? '')),
+        ];
+        $this->validateLocationContent($content, ['titulo']);
+        $this->saveConfiguredContent('modalidades_cursos', $content, $accountId);
     }
 
     public function saveFooterContent(int $accountId, array $data): void
@@ -403,7 +421,7 @@ class HomeInfoService
 
     public function publishContent(string $key, int $accountId): array
     {
-        if (!in_array($key, ['logotipo', 'contato', 'rodape', 'cabecalho', 'quadro_informativo', 'destaques', 'apresentacao', 'locais_cursos', 'locais_treinos'], true)) {
+        if (!in_array($key, ['logotipo', 'contato', 'rodape', 'cabecalho', 'quadro_informativo', 'destaques', 'apresentacao', 'locais_cursos', 'locais_treinos', 'modalidades_cursos'], true)) {
             throw new RuntimeException('Quadro da Home inválido para publicação.');
         }
         $pdo = Database::connection();

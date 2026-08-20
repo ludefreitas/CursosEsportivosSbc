@@ -103,6 +103,7 @@ return [
     ['POST', '/admin/home-contato', [AdminController::class, 'saveHomeContactContent']],
     ['POST', '/admin/home-rodape', [AdminController::class, 'saveHomeFooterContent']],
     ['POST', '/admin/home-locais-cursos', [AdminController::class, 'saveHomeCoursesLocationsContent']],
+    ['POST', '/admin/home-modalidades-cursos', [AdminController::class, 'saveHomeCourseModalitiesContent']],
     ['POST', '/admin/home-locais-treinos', [AdminController::class, 'saveHomeTrainingLocationsContent']],
     ['POST', '/admin/home-publicar', [AdminController::class, 'publishHomeContent']],
     ['POST', '/admin/comunicacao-oficial', [AdminController::class, 'saveOfficialCommunication']],

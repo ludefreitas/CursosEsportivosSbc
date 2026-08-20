@@ -287,7 +287,9 @@
             const $calendar = $('#calendario-treinos');
 
             if ($calendar.length === 0) {
-                return true;
+                const $homeCalendar = $('#home-training-agenda');
+                if ($homeCalendar.length === 0) return true;
+                return String($homeCalendar.attr('data-home-authenticated') || '') === '1';
             }
 
             if (String($calendar.attr('data-agenda-authenticated') || '') !== '1') {

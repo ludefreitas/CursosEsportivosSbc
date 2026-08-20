@@ -555,7 +555,7 @@ body.pagina-error .site-nav > .inline-form .link-button,
     margin: 18px auto 0 auto;
 }
 
-.header-login-cpf-balloon {
+.header-login-field-balloon {
     position: absolute;
     z-index: 30;
     top: calc(100% + 10px);
@@ -575,7 +575,7 @@ body.pagina-error .site-nav > .inline-form .link-button,
     line-height: 1.35;
 }
 
-.header-login-cpf-balloon::before {
+.header-login-field-balloon::before {
     content: "";
     position: absolute;
     left: 18px;
@@ -584,7 +584,7 @@ body.pagina-error .site-nav > .inline-form .link-button,
     border-bottom-color: #fff;
 }
 
-.header-login-cpf-balloon.is-visible {
+.header-login-field-balloon.is-visible {
     display: block;
 }
 .site-header-alert-card {

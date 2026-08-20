@@ -388,33 +388,137 @@ body.pagina-home .site-header {
 }
 
 .pagina-home .home-section-navigation {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 14px 18px;
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 7px;
+    padding: 8px 12px;
 }
 
 .pagina-home .home-section-navigation .btn {
-    min-height: 38px;
-    padding: 8px 16px;
+    width: 100%;
+    max-width: none;
+    min-height: 30px;
+    height: 30px;
+    padding: 4px 9px;
+    font-size: 0.76rem;
+    line-height: 1.1;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+    overflow: hidden;
 }
 
-.pagina-home .home-section-navigation .btn:nth-child(1) {
+.pagina-home .home-section-navigation .home-navigation-training {
+    color: #fff;
+    border-color: #1ca746;
+    background: linear-gradient(135deg, #1ca746 0%, #108739 100%);
+}
+
+.pagina-home .home-section-navigation .home-navigation-centers {
     color: #fff;
     border-color: #1f76b5;
     background: linear-gradient(135deg, #1f76b5 0%, #0e5e95 100%);
 }
 
-.pagina-home .home-section-navigation .btn:nth-child(2) {
+.pagina-home .home-section-navigation .home-navigation-modalities {
     color: #fff;
     border-color: #d96b1f;
     background: linear-gradient(135deg, #d96b1f 0%, #bf5412 100%);
 }
 
-.pagina-home .home-section-navigation .btn:nth-child(3) {
+.pagina-home .home-section-navigation .home-navigation-blog {
     color: #fff;
     border-color: #1ca746;
-    background: linear-gradient(135deg, #1ca746 0%, #108739 100%);
+    background: linear-gradient(135deg, #d62b45 0%, #b21d37 100%);
+}
+
+.pagina-home .home-course-modalities-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    max-height: min(62vh, 620px);
+    overflow-y: auto;
+}
+
+.pagina-home .home-course-modality-button {
+    width: 100%;
+    min-height: 54px;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #d96b1f 0%, #bf5412 100%);
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+
+.pagina-home .home-course-modality-button:hover,
+.pagina-home .home-course-modality-button:focus-visible,
+.pagina-home .home-course-modality-button.is-selected {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+.pagina-home .home-course-modalities-card {
+    display: grid;
+    grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
+    gap: 14px 28px;
+    align-items: start;
+    padding: 22px 28px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 247, 239, 0.98) 100%);
+    border: 1px solid rgba(217, 107, 31, 0.18);
+}
+
+.pagina-home .home-course-modalities-card::before {
+    background: #d96b1f;
+}
+
+.pagina-home .home-course-modalities-copy p {
+    margin-bottom: 0;
+}
+
+.pagina-home .home-course-modality-suggestions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+}
+
+.pagina-home .home-course-modality-suggestion,
+.pagina-home .home-course-modalities-all {
+    border-color: #d96b1f;
+    background: linear-gradient(135deg, #d96b1f 0%, #bf5412 100%);
+    color: #fff;
+}
+
+.pagina-home .home-course-modality-suggestion {
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 14px;
+    border: 0;
+    border-radius: 16px;
+    box-shadow: 0 10px 20px rgba(20, 48, 67, 0.1);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.pagina-home .home-course-modality-suggestion:hover,
+.pagina-home .home-course-modality-suggestion:focus-visible,
+.pagina-home .home-course-modality-suggestion.is-selected,
+.pagina-home .home-course-modalities-all:hover,
+.pagina-home .home-course-modalities-all:focus-visible {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+}
+
+.pagina-home .home-course-modalities-footer {
+    display: flex;
+    grid-column: 1 / -1;
+    justify-content: flex-end;
 }
 
 .pagina-home .home-location-suggestions {
@@ -712,6 +816,10 @@ body.pagina-home .site-header {
 }
 
 .pagina-home #home-training-calendar .fc-daygrid-day.is-available { background: #3788d8; }
+.pagina-home #home-training-calendar .fc-daygrid-day.is-not-open {
+    background: #a9c9e8;
+    color: #234e70;
+}
 .pagina-home #home-training-calendar .fc-daygrid-day.is-agendado { background: #d4a017; }
 .pagina-home #home-training-calendar .fc-daygrid-day.is-presente { background: #1f7a35; }
 .pagina-home #home-training-calendar .fc-daygrid-day.is-falta { background: #b42318; }
@@ -754,6 +862,35 @@ body.pagina-home .site-header {
 .pagina-home .home-training-day-item.is-falta { border-left-color: #b42318; }
 .pagina-home .home-training-day-item.is-justificado { border-left-color: #175cd3; }
 .pagina-home .home-training-day-item.is-cancelado { border-left-color: #4b5563; }
+.pagina-home .home-training-day-item.is-not-open {
+    display: block;
+    border-left-color: #7faed6;
+    background: #eef5fb;
+    color: #365b77;
+}
+
+.pagina-home .home-training-day-item.is-not-open p {
+    margin: 0;
+}
+
+.pagina-home .home-training-day-item-button {
+    width: 100%;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.pagina-home .home-training-day-item-button:hover,
+.pagina-home .home-training-day-item-button:focus-visible {
+    border-color: #1f76b5;
+    background: #eef7ff;
+    transform: translateY(-1px);
+}
+
+.pagina-home .home-training-day-not-open {
+    margin: 0;
+}
 
 .pagina-home .home-training-day-time {
     font-weight: 700;
@@ -909,8 +1046,12 @@ body.pagina-home .site-header {
     .pagina-home .section-grid {
         grid-template-columns: 1fr;
     }
-    .pagina-home .home-locations-card {
-        grid-template-columns: 1fr;
+    .pagina-home .home-section-navigation {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .pagina-home .home-locations-card,
+    .pagina-home .home-course-modalities-card {
+        grid-template-columns: minmax(180px, 0.8fr) minmax(0, 1.2fr);
         padding: 18px;
     }
     .pagina-home .home-location-suggestions {
@@ -941,6 +1082,17 @@ body.pagina-home .site-header {
     }
 }
 
+@media (max-width: 520px) {
+    .pagina-home .home-course-modalities-list {
+        grid-template-columns: 1fr;
+    }
+
+    .pagina-home .home-section-navigation .btn {
+        height: auto;
+        min-height: 34px;
+    }
+}
+
 @media (max-width: 560px) {
     body.pagina-home .site-header {
         min-height: 0;
@@ -949,6 +1101,64 @@ body.pagina-home .site-header {
 
     .pagina-home .home-all-locations-list {
         grid-template-columns: 1fr;
+    }
+
+    .pagina-home .home-section-navigation {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .pagina-home .home-locations-card,
+    .pagina-home .home-course-modalities-card {
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        gap: 10px 12px;
+        padding: 14px 12px;
+    }
+
+    .pagina-home .home-locations-copy h2,
+    .pagina-home .home-course-modalities-copy h2 {
+        margin-bottom: 8px;
+        font-size: clamp(18px, 5.2vw, 23px);
+        line-height: 1.05;
+    }
+
+    .pagina-home .home-locations-copy p,
+    .pagina-home .home-course-modalities-copy p,
+    .pagina-home .home-training-description,
+    .pagina-home .home-training-description-toggle {
+        font-size: clamp(11px, 3.2vw, 14px);
+        line-height: 1.15;
+    }
+
+    .pagina-home .home-location-suggestions,
+    .pagina-home .home-course-modality-suggestions {
+        gap: 8px;
+    }
+
+    .pagina-home .home-location-suggestion,
+    .pagina-home .home-course-modality-suggestion {
+        padding: 7px 8px;
+        border-radius: 13px;
+    }
+
+    .pagina-home .home-location-suggestion strong,
+    .pagina-home .home-course-modality-suggestion {
+        font-size: clamp(11px, 3.2vw, 14px);
+    }
+
+    .pagina-home .home-location-suggestion small {
+        display: none;
+    }
+
+    .pagina-home .home-locations-footer,
+    .pagina-home .home-course-modalities-footer {
+        margin-top: 2px;
+    }
+
+    .pagina-home .home-locations-footer .btn,
+    .pagina-home .home-course-modalities-footer .btn {
+        min-height: 34px;
+        padding: 6px 10px;
+        font-size: 12px;
     }
     .hero-copy h1 {
         max-width: none;

@@ -135,6 +135,36 @@
                     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             });
+
+            const $modalitiesModal = $('#home-course-modalities-modal');
+
+            $(document).on('click', '[data-home-course-modalities-open="1"]', function () {
+                $modalitiesModal.removeClass('hidden').attr('aria-hidden', 'false');
+            });
+
+            $(document).on('click', '[data-home-course-modalities-close="1"]', function () {
+                $modalitiesModal.addClass('hidden').attr('aria-hidden', 'true');
+            });
+
+            $(document).on('click', '#home-course-modalities-modal', function (event) {
+                if (event.target === this) {
+                    $modalitiesModal.addClass('hidden').attr('aria-hidden', 'true');
+                }
+            });
+
+            $(document).on('click', '[data-home-course-modality-select]', function () {
+                const modalityName = String($(this).text() || '').trim();
+                const target = document.getElementById('home-locations-card');
+
+                $('[data-home-course-modality-select]').removeClass('is-selected');
+                $(this).addClass('is-selected');
+                $modalitiesModal.addClass('hidden').attr('aria-hidden', 'true');
+
+                if (target) {
+                    target.setAttribute('data-selected-course-modality', modalityName);
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
         },
 
         iniciarAgendaDeTreinos: function () {
@@ -224,8 +254,11 @@
                     const status = statusFromEvent(event);
                     const personalBookings = Array.isArray(props.meus_agendamentos) ? props.meus_agendamentos : [];
                     if (key < todayKey && !status && personalBookings.length === 0) return;
-                    byDate[key] = byDate[key] || { available: false, statuses: [] };
+                    byDate[key] = byDate[key] || { available: false, hasOpenSchedule: false, statuses: [] };
                     byDate[key].available = true;
+                    if (props.agenda_aberta === true || String(props.agenda_aberta) === '1') {
+                        byDate[key].hasOpenSchedule = true;
+                    }
                     if (status && byDate[key].statuses.indexOf(status) < 0) {
                         byDate[key].statuses.push(status);
                     }
@@ -236,7 +269,7 @@
                 Object.keys(byDate).forEach(function (key) {
                     const $cell = $(calendarElement).find('.fc-daygrid-day[data-date="' + key + '"]');
                     if ($cell.length === 0) return;
-                    let state = byDate[key].available ? 'available' : '';
+                    let state = byDate[key].available ? (byDate[key].hasOpenSchedule ? 'available' : 'not-open') : '';
                     if (byDate[key].statuses.length === 1) state = byDate[key].statuses[0];
                     if (byDate[key].statuses.length > 1) state = 'misto';
                     if (state) $cell.addClass('home-training-day-state is-' + state);
@@ -244,30 +277,67 @@
             }
 
             function renderDayList(events) {
-                const modalityId = Number($('#home-training-day-modality').val() || 0);
                 const isPastDate = selectedDate !== '' && selectedDate < dateKey(new Date());
                 const records = (events || []).filter(function (event) {
                     const props = event.extendedProps || {};
-                    const matchesModality = modalityId <= 0 || Number(props.modalidade_id || 0) === modalityId;
                     const hasPersonalBooking = statusFromEvent(event) !== ''
                         || (Array.isArray(props.meus_agendamentos) && props.meus_agendamentos.length > 0);
-                    return matchesModality && (!isPastDate || hasPersonalBooking);
+                    return !isPastDate || hasPersonalBooking;
                 }).sort(function (left, right) { return left.start - right.start; });
                 const $list = $('#home-training-day-list').empty();
 
                 if (records.length === 0) {
-                    $list.append($('<p>', { class: 'muted', text: 'Nenhum horário encontrado para este dia e modalidade.' }));
+                    $list.append($('<p>', { class: 'muted', text: 'Nenhum horário encontrado para este dia.' }));
+                    return;
+                }
+
+                const viewableRecords = records.filter(function (event) {
+                    const props = event.extendedProps || {};
+                    const hasPersonalBooking = statusFromEvent(event) !== ''
+                        || (Array.isArray(props.meus_agendamentos) && props.meus_agendamentos.length > 0);
+                    return props.agenda_aberta === true
+                        || String(props.agenda_aberta) === '1'
+                        || (isPastDate && hasPersonalBooking);
+                });
+                if (!isPastDate && viewableRecords.length === 0) {
+                    const allClosed = records.every(function (event) {
+                        return String((event.extendedProps || {}).estado_janela_agendamento || '') === 'fechada';
+                    });
+                    $list.append($('<p>', {
+                        class: 'alert-inline home-training-day-not-open',
+                        text: allClosed
+                            ? 'A agenda para o dia selecionado já foi fechada.'
+                            : 'A agenda para o dia selecionado ainda não foi aberta.'
+                    }));
                     return;
                 }
 
                 records.forEach(function (event) {
                     const props = event.extendedProps || {};
                     const status = statusFromEvent(event);
-                    const $card = $('<article>', { class: 'home-training-day-item' + (status ? ' is-' + status : '') });
+                    const personalBookings = Array.isArray(props.meus_agendamentos) ? props.meus_agendamentos : [];
+                    const hasPersonalBooking = status !== '' || personalBookings.length > 0;
+                    const isAgendaOpen = props.agenda_aberta === true || String(props.agenda_aberta) === '1';
+                    if (!isAgendaOpen && !(isPastDate && hasPersonalBooking)) {
+                        const isClosed = String(props.estado_janela_agendamento || '') === 'fechada';
+                        const timeRange = App.agenda.formatarHoraAgenda(event.start) + ' às ' + App.agenda.formatarHoraAgenda(event.end);
+                        const modalityName = String(props.modalidade || event.title || 'Modalidade');
+                        $list.append($('<article>', { class: 'home-training-day-item is-not-open' })
+                            .append($('<p>', {
+                                text: isClosed
+                                    ? 'A agenda para o horário das ' + timeRange + ' — ' + modalityName + ' já foi fechada.'
+                                    : 'A agenda para o horário das ' + timeRange + ' — ' + modalityName + ' ainda não foi aberta.'
+                            })));
+                        return;
+                    }
+                    const $card = $('<button>', {
+                        type: 'button',
+                        class: 'home-training-day-item home-training-day-item-button' + (status ? ' is-' + status : ''),
+                        'aria-label': 'Ver detalhes e opções de agendamento de ' + String(props.modalidade || event.title || 'horário')
+                    });
                     $card.append($('<div>', { class: 'home-training-day-time', text: App.agenda.formatarHoraAgenda(event.start) + ' às ' + App.agenda.formatarHoraAgenda(event.end) }));
                     $card.append($('<strong>', { text: String(props.modalidade || event.title || 'Horário') }));
                     $card.append($('<span>', { text: String(props.espaco || 'Espaço a definir') + ' — ' + String(props.tipo_horario || 'treino') }));
-                    const personalBookings = Array.isArray(props.meus_agendamentos) ? props.meus_agendamentos : [];
                     if (personalBookings.length > 0) {
                         $card.append($('<small>', {
                             class: 'home-training-day-people',
@@ -283,7 +353,29 @@
                     } else {
                         $card.append($('<small>', { class: 'home-training-day-status', text: 'Disponível apenas para consulta' }));
                     }
+                    $card.on('click', function () { abrirDetalhesAgenda(event); });
                     $list.append($card);
+                });
+            }
+
+            function abrirDetalhesAgenda(event) {
+                if (!event || !App.agenda || typeof App.agenda.renderizarDetalhesAgenda !== 'function') return;
+                const render = function () {
+                    $dayModal.addClass('hidden').attr('aria-hidden', 'true');
+                    App.agenda.renderizarDetalhesAgenda({ event: event });
+                };
+                if ($('#agenda-details-modal').length > 0) {
+                    render();
+                    return;
+                }
+                $('#home-agenda-details-host').load(App.core.buildUrl('/agenda') + ' #agenda-details-modal', function (_response, status) {
+                    if (status !== 'success' || $('#agenda-details-modal').length === 0) {
+                        App.core.abrirPopup('erro', 'Não foi possível carregar os detalhes deste horário.');
+                        return;
+                    }
+                    const $warning = $('#agenda-access-warning');
+                    if ($warning.length > 0) $warning.data('defaultText', $.trim($warning.text()));
+                    render();
                 });
             }
 
@@ -293,15 +385,18 @@
                 end.setDate(end.getDate() + 1);
                 $.getJSON(App.core.buildUrl('/api/agenda/eventos'), {
                     local_treino_id: selectedLocationId,
-                    modalidade_id: Number($('#home-training-day-modality').val() || 0),
+                    modalidade_id: 0,
                     start: selectedDate + 'T00:00:00',
                     end: dateKey(end) + 'T00:00:00'
                 }).done(function (records) {
                     const eventObjects = (Array.isArray(records) ? records : []).map(function (record) {
                         return {
+                            id: String(record.id || ''),
                             title: record.title,
                             start: new Date(record.start),
                             end: new Date(record.end),
+                            startStr: String(record.start || ''),
+                            endStr: String(record.end || ''),
                             classNames: record.classNames || [],
                             extendedProps: record.extendedProps || {}
                         };
@@ -336,7 +431,6 @@
                 dateClick: function (info) {
                     if (info.dateStr < dateKey(new Date()) && !$(info.dayEl).hasClass('home-training-day-state')) return;
                     selectedDate = info.dateStr;
-                    $('#home-training-day-modality').val('0');
                     $('#home-training-day-title').text('Horários de ' + App.agenda.formatarDataCompletaAgenda(info.date));
                     const location = locations.find(function (item) { return Number(item.id || 0) === selectedLocationId; });
                     $('#home-training-day-subtitle').text(String((location && (location.apelido_local || location.nome_local)) || 'Local selecionado'));
@@ -374,7 +468,6 @@
             });
 
             $(document).on('change', '#home-training-modality', function () { calendar.refetchEvents(); });
-            $(document).on('change', '#home-training-day-modality', loadDay);
             $(document).on('click', '[data-home-training-day-close="1"]', function () { $dayModal.addClass('hidden').attr('aria-hidden', 'true'); });
             $(document).on('click', '#home-training-day-modal', function (event) {
                 if (event.target === this) $dayModal.addClass('hidden').attr('aria-hidden', 'true');

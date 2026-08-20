@@ -42,9 +42,11 @@ class HomeController extends Controller
             'trainingLocations' => $trainingLocations,
             'suggestedTrainingLocations' => $suggestedTrainingLocations,
             'trainingModalities' => $scheduleFilterOptions['modalities'] ?? [],
+            'courseModalities' => $agendaService->listModalities(),
             'weeklyTrainingModalityNames' => $agendaService->activeWeeklyScheduleModalityNames(),
             'homeCoursesLocationsContent' => $homeInfoService->getCoursesLocationsContent(),
             'homeTrainingLocationsContent' => $homeInfoService->getTrainingLocationsContent(),
+            'homeCourseModalitiesContent' => $homeInfoService->getCourseModalitiesContent(),
             'posts' => $blogService->listPublishedPosts([
                 'limit' => 3,
             ]),

@@ -1444,6 +1444,13 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             </form>
         </section>
         <section class="content-card top-gap">
+            <form method="POST" action="<?php echo e(url('/admin/home-modalidades-cursos')); ?>" class="stack-form" id="admin-home-course-modalities-form">
+                <label><span>Título do quadro</span><input type="text" name="titulo" maxlength="<?php echo e((string) \App\Services\HomeInfoService::MAX_LOCATION_TITLE_LENGTH); ?>" value="<?php echo e((string) ($homeCourseModalitiesContent['titulo'] ?? '')); ?>" required></label>
+                <label><span>Texto do quadro</span><textarea name="texto" rows="5" maxlength="<?php echo e((string) \App\Services\HomeInfoService::MAX_LOCATION_TEXT_LENGTH); ?>" required><?php echo e((string) ($homeCourseModalitiesContent['texto'] ?? '')); ?></textarea></label>
+                <button type="submit" class="btn btn-primary">Salvar rascunho do quadro</button>
+            </form>
+        </section>
+        <section class="content-card top-gap">
             <form method="POST" action="<?php echo e(url('/admin/home-logotipo')); ?>" class="stack-form" id="admin-home-logo-form" enctype="multipart/form-data">
                 <input type="hidden" name="logo_url" value="<?php echo e((string) ($homeHeaderContent['logo_url'] ?? '')); ?>">
                 <div class="admin-home-logo-upload-preview">

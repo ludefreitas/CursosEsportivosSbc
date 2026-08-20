@@ -6,6 +6,7 @@ $homeContentUrl = static function (string $value): string {
 };
 $homeCoursesLocationsContent = $homeCoursesLocationsContent ?? [];
 $homeTrainingLocationsContent = $homeTrainingLocationsContent ?? [];
+$homeCourseModalitiesContent = $homeCourseModalitiesContent ?? [];
 $homeCoursesLocationsTitle = \App\Core\Auth::check()
     ? (string) ($homeCoursesLocationsContent['titulo_logado'] ?? 'Locais próximos a você')
     : (string) ($homeCoursesLocationsContent['titulo_visitante'] ?? 'Locais dos cursos esportivos');
@@ -15,6 +16,11 @@ $homeTrainingLocationsText = str_replace(
     $weeklyModalityText !== '' ? $weeklyModalityText : 'as modalidades disponíveis',
     (string) ($homeTrainingLocationsContent['texto'] ?? 'Selecione um local para fazer o seu agendamento para treinar {modalidades}.')
 );
+$suggestedCourseModalities = array_values($courseModalities ?? []);
+if (count($suggestedCourseModalities) > 1) {
+    shuffle($suggestedCourseModalities);
+}
+$suggestedCourseModalities = array_slice($suggestedCourseModalities, 0, 3);
 ?>
 
 <div class="home-banner-visual">
@@ -38,10 +44,35 @@ $homeTrainingLocationsText = str_replace(
 </div>
 
 <nav class="content-card home-section-navigation" aria-label="Atalhos da página inicial">
-    <button type="button" class="btn btn-secondary" data-home-scroll-target="home-training-agenda">Agenda de treinos</button>
-    <button type="button" class="btn btn-secondary" data-home-scroll-target="home-locations-card">Locais dos cursos esportivos</button>
-    <button type="button" class="btn btn-secondary" data-home-scroll-target="home-blog">Blog</button>
+    <button type="button" class="btn home-navigation-training" data-home-scroll-target="home-training-agenda">Agenda de Treinos Espontâneo</button>
+    <button type="button" class="btn home-navigation-centers" data-home-scroll-target="home-locations-card">Cursos por Centro Esportivo</button>
+    <button type="button" class="btn home-navigation-modalities" data-home-scroll-target="home-course-modalities-card">Cursos por Modalidade</button>
+    <button type="button" class="btn home-navigation-blog" data-home-scroll-target="home-blog">Blog</button>
 </nav>
+
+<div id="home-course-modalities-modal" class="popup-overlay hidden" aria-hidden="true">
+    <div class="popup-card home-all-locations-modal-card" role="dialog" aria-modal="true" aria-labelledby="home-course-modalities-title">
+        <div class="popup-head">
+            <div>
+                <h3 id="home-course-modalities-title">Cursos por modalidade</h3>
+                <p class="muted">Selecione uma modalidade para consultar os centros esportivos.</p>
+            </div>
+            <button type="button" class="popup-close-icon" data-home-course-modalities-close="1" aria-label="Fechar modalidades">&times;</button>
+        </div>
+        <div class="popup-body home-course-modalities-list">
+            <?php foreach (($courseModalities ?? []) as $modality) { ?>
+                <button
+                    type="button"
+                    class="home-course-modality-button"
+                    data-home-course-modality-select="<?php echo e((string) ($modality['id'] ?? '')); ?>"
+                ><?php echo e((string) ($modality['nome'] ?? '')); ?></button>
+            <?php } ?>
+        </div>
+        <div class="popup-actions">
+            <button type="button" class="btn btn-secondary" data-home-course-modalities-close="1">Fechar</button>
+        </div>
+    </div>
+</div>
 
 <section class="hero">
     <div class="hero-copy">
@@ -124,6 +155,26 @@ $homeTrainingLocationsText = str_replace(
     </div>
     <div class="home-locations-footer">
         <button type="button" class="btn btn-primary" id="home-all-locations-open">Todos os locais</button>
+    </div>
+</section>
+
+<section class="content-card home-course-modalities-card" id="home-course-modalities-card">
+    <div class="home-course-modalities-copy">
+        <?php if ($homeAdminMode) { ?><div class="admin-home-inline-actions"><button type="button" class="btn btn-secondary admin-home-small-button" data-home-edit="modalidades_cursos">Editar</button><button type="button" class="btn btn-primary admin-home-small-button" data-home-publish="modalidades_cursos">Publicar</button></div><?php } ?>
+        <h2><?php echo e((string) ($homeCourseModalitiesContent['titulo'] ?? 'Modalidades dos cursos esportivos')); ?></h2>
+        <p><?php echo e((string) ($homeCourseModalitiesContent['texto'] ?? 'Selecione uma modalidade para consultar os centros esportivos que oferecem o curso.')); ?></p>
+    </div>
+    <div class="home-course-modality-suggestions">
+        <?php foreach ($suggestedCourseModalities as $modality) { ?>
+            <button
+                type="button"
+                class="home-course-modality-suggestion"
+                data-home-course-modality-select="<?php echo e((string) ($modality['id'] ?? '')); ?>"
+            ><?php echo e((string) ($modality['nome'] ?? '')); ?></button>
+        <?php } ?>
+    </div>
+    <div class="home-course-modalities-footer">
+        <button type="button" class="btn home-course-modalities-all" data-home-course-modalities-open="1">Todas as modalidades</button>
     </div>
 </section>
 
@@ -236,23 +287,15 @@ $homeTrainingLocationsText = str_replace(
             <button type="button" class="popup-close-icon" data-home-training-day-close="1" aria-label="Fechar horários do dia">&times;</button>
         </div>
         <div class="popup-body">
-            <label class="home-training-modality-filter">
-                <span>Modalidade</span>
-                <select id="home-training-day-modality">
-                    <option value="0">Todas as modalidades</option>
-                    <?php foreach (($trainingModalities ?? []) as $modality) { ?>
-                        <option value="<?php echo e((string) ($modality['id'] ?? '')); ?>"><?php echo e((string) ($modality['nome'] ?? '')); ?></option>
-                    <?php } ?>
-                </select>
-            </label>
             <div id="home-training-day-list" class="home-training-day-list"></div>
         </div>
         <div class="popup-actions">
-            <a href="<?php echo e(url('/agenda')); ?>" class="btn btn-primary">Abrir agenda completa</a>
             <button type="button" class="btn btn-secondary" data-home-training-day-close="1">Fechar</button>
         </div>
     </div>
 </div>
+
+<div id="home-agenda-details-host"></div>
 
 <?php if (!empty($homeSpecialEvents)) { ?>
 <section class="content-card">

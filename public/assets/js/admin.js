@@ -4009,7 +4009,8 @@
                     { selector: '#admin-home-highlights-form', key: 'destaques', title: 'Quadros destacados' },
                     { selector: '#admin-home-info-form', key: 'quadro_informativo', title: 'Quadro informativo' },
                     { selector: '#admin-home-courses-locations-form', key: 'locais_cursos', title: 'Locais dos cursos esportivos' },
-                    { selector: '#admin-home-training-locations-form', key: 'locais_treinos', title: 'Locais de treinos' }
+                    { selector: '#admin-home-training-locations-form', key: 'locais_treinos', title: 'Locais de treinos' },
+                    { selector: '#admin-home-course-modalities-form', key: 'modalidades_cursos', title: 'Modalidades dos cursos esportivos' }
                 ];
                 configs.forEach(function (config) {
                     const $form = $(config.selector);
@@ -4065,7 +4066,7 @@
                 preview.src = temporaryUrl;
             });
 
-            $(document).on('submit', '#admin-home-footer-form, #admin-home-logo-form, #admin-home-contact-form, #admin-home-info-form, #admin-home-highlights-form, #admin-home-hero-form, #admin-home-courses-locations-form, #admin-home-training-locations-form', function (event) {
+            $(document).on('submit', '#admin-home-footer-form, #admin-home-logo-form, #admin-home-contact-form, #admin-home-info-form, #admin-home-highlights-form, #admin-home-hero-form, #admin-home-courses-locations-form, #admin-home-training-locations-form, #admin-home-course-modalities-form', function (event) {
                 event.preventDefault();
                 const $form = $(this);
                 const formKeys = {
@@ -4076,7 +4077,8 @@
                     'admin-home-highlights-form': 'destaques',
                     'admin-home-hero-form': 'apresentacao',
                     'admin-home-courses-locations-form': 'locais_cursos',
-                    'admin-home-training-locations-form': 'locais_treinos'
+                    'admin-home-training-locations-form': 'locais_treinos',
+                    'admin-home-course-modalities-form': 'modalidades_cursos'
                 };
                 const key = String(formKeys[String($form.attr('id') || '')] || '');
                 const isUpload = $form.is('#admin-home-logo-form');

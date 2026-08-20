@@ -276,10 +276,12 @@ class AgendaService
                 $occupiedSlots = (int) ($occupancyByOccurrence[$occurrenceKey] ?? 0);
                 $totalSlots = (int) $row['vagas_geral'] + (int) $row['vagas_pcd'] + (int) $row['vagas_plm'] + (int) $row['vagas_pvs'];
                 $availableSlots = max(0, $totalSlots - $occupiedSlots);
+                $scheduleWindowBlockReason = $this->resolveScheduleWindowBlockReason($row, $date);
+                $scheduleWindowState = $this->resolveScheduleWindowState($row, $date);
                 $availableForBooking = !$isInactiveSchedule
                     && $availableSlots > 0
                     && $date >= new DateTimeImmutable()
-                    && $this->resolveScheduleWindowBlockReason($row, $date) === null;
+                    && $scheduleWindowBlockReason === null;
                 $classNames = [];
                 $ageRuleDescription = describe_age_rule(
                     (int) $row['idade_minima'],
@@ -319,6 +321,9 @@ class AgendaService
                         'vagas_ocupadas' => $occupiedSlots,
                         'vagas_disponiveis' => $availableSlots,
                         'disponivel_agendamento' => $availableForBooking,
+                        'agenda_aberta' => $scheduleWindowBlockReason === null,
+                        'estado_janela_agendamento' => $scheduleWindowState,
+                        'mensagem_janela_agendamento' => $scheduleWindowBlockReason ?? '',
                         'idade_minima' => (int) $row['idade_minima'],
                         'idade_maxima' => (int) $row['idade_maxima'],
                         'criterio_faixa_etaria' => normalize_age_rule_mode((string) ($row['criterio_faixa_etaria'] ?? 'idade_exata')),
@@ -1779,6 +1784,22 @@ class AgendaService
         return null;
     }
 
+    private function resolveScheduleWindowState(array $schedule, DateTimeImmutable $occurrenceStart): string
+    {
+        $window = $this->resolveScheduleBookingWindow($schedule, $occurrenceStart);
+        $now = new DateTimeImmutable();
+
+        if ($now > $window['close']) {
+            return 'fechada';
+        }
+
+        if ($now < $window['open'] || $this->isOutsideCurrentAndNextWeekWindow($schedule, $occurrenceStart)) {
+            return 'nao_aberta';
+        }
+
+        return 'aberta';
+    }
+
     private function scheduleWindowUnavailableMessage(): string
     {
         return 'A agenda para o dia e horário selecionado ainda não foi aberta.';
@@ -2092,7 +2113,13 @@ class AgendaService
      */
     private function buildScheduleOccurrenceKey(int $scheduleId, string $dateTime): string
     {
-        return $scheduleId . '|' . $dateTime;
+        try {
+            $occurrenceDate = (new DateTimeImmutable($dateTime))->format('Y-m-d');
+        } catch (\Throwable $e) {
+            $occurrenceDate = substr(trim($dateTime), 0, 10);
+        }
+
+        return $scheduleId . '|' . $occurrenceDate;
     }
 
     /**

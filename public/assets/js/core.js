@@ -588,22 +588,27 @@
             }
 
             function hideBalloon($form) {
-                $form.find('.header-login-cpf-balloon')
+                $form.find('.header-login-field-balloon')
                     .removeClass('is-visible')
                     .attr('aria-hidden', 'true');
             }
 
-            function showBalloon($form, $cpf) {
-                let $balloon = $form.find('.header-login-cpf-balloon').first();
+            function showBalloon($form, $field, type, message) {
+                const balloonClass = 'header-login-' + type + '-balloon';
+                const balloonId = 'header-login-' + type + '-balloon';
+                let $balloon = $form.find('.' + balloonClass).first();
 
                 if ($balloon.length === 0) {
-                    $balloon = $('<div class="header-login-cpf-balloon" role="alert" aria-hidden="true">Informe o CPF completo com 11 dígitos.</div>');
-                    $cpf.closest('label').append($balloon);
-                    $cpf.attr('aria-describedby', 'header-login-cpf-balloon');
-                    $balloon.attr('id', 'header-login-cpf-balloon');
+                    $balloon = $('<div class="header-login-field-balloon ' + balloonClass + '" role="alert" aria-hidden="true"></div>');
+                    $field.closest('label').append($balloon);
+                    $field.attr('aria-describedby', balloonId);
+                    $balloon.attr('id', balloonId);
                 }
 
-                $balloon.addClass('is-visible').attr('aria-hidden', 'false');
+                $form.find('.header-login-field-balloon').not($balloon)
+                    .removeClass('is-visible')
+                    .attr('aria-hidden', 'true');
+                $balloon.text(message).addClass('is-visible').attr('aria-hidden', 'false');
             }
 
             $(document).on('focusin', selector + ' input[name="password"]', function () {
@@ -613,7 +618,7 @@
                 if (digits.length !== 11 || !App.core.cpfValido(digits)) {
                     elements.$cpf.attr('data-validation-touched', '1');
                     App.core.validarCampoInline(elements.$cpf[0], true);
-                    showBalloon(elements.$form, elements.$cpf);
+                    showBalloon(elements.$form, elements.$cpf, 'cpf', 'Informe o CPF completo com 11 dígitos.');
                     return;
                 }
 
@@ -630,6 +635,31 @@
 
                 if (digits.length === 11 && App.core.cpfValido(digits)) {
                     App.core.validarCampoInline($cpf[0], false);
+                }
+            });
+
+            $(document).on('click', selector + ' .header-login-submit', function (event) {
+                const elements = getElements(this.form);
+                const digits = String(elements.$cpf.val() || '').replace(/\D+/g, '');
+
+                if (digits.length !== 11 || !App.core.cpfValido(digits)) {
+                    return;
+                }
+
+                if (String(elements.$password.val() || '') === '') {
+                    event.preventDefault();
+                    elements.$password.attr('data-validation-touched', '1');
+                    App.core.validarCampoInline(elements.$password[0], true);
+                    showBalloon(elements.$form, elements.$password, 'password', 'Informe a senha.');
+                    elements.$password.trigger('focus');
+                }
+            });
+
+            $(document).on('input focusin', selector + ' input[name="password"]', function () {
+                const $form = $(this).closest(selector);
+
+                if (String($(this).val() || '') !== '') {
+                    hideBalloon($form);
                 }
             });
 
