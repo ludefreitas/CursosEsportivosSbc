@@ -2,6 +2,8 @@
 
 ## Ja implementado nesta fase
 
+- Sistema inicial de inscrições em turmas separado da agenda, com consulta pública de cursos, inscrição autenticada ou por CPF conforme configuração da temporada, cancelamento autenticado pelo responsável, lista de inscrições no painel e gestão de status pela área do professor.
+
 - Estrutura MVC em PHP pronta para crescer.
 - Banco de dados remodelado em portugues e preparado para volumes maiores.
 - Cadastro inicial de responsavel com CPF unico e senha.
@@ -52,6 +54,9 @@
 - O proprio calendario da agenda pode sinalizar os horarios da conta autenticada com cores diferentes para `agendado`, `compareceu` e `falta`, mantendo no card lateral o detalhamento por pessoa quando houver mais de um agendamento da mesma conta no mesmo horario.
 - CSS responsivo e interface em portugues.
 - Mascaras de CPF, telefone e CEP.
+
+- Estados de inscrição implementados: aguardando matrícula, matriculada, lista de espera, cancelada, excluída, excluída por falta, desistente e encerrada.
+- Janelas de inscrição por temporada/modalidade estruturadas para controlar limite progressivo de inscrições e forçar lista de espera.
 
 ## Estruturado no banco e pronto para evolucao
 

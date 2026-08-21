@@ -31,7 +31,7 @@ class ProfessorController extends Controller
     {
         $user = $this->assertProfessorAccess();
         $sectionName = (string) ($_GET['nome'] ?? 'inicio');
-        if (!in_array($sectionName, ['inicio', 'usuarios-pessoas', 'agenda'], true)) {
+        if (!in_array($sectionName, ['inicio', 'usuarios-pessoas', 'inscricoes', 'agenda'], true)) {
             $this->jsonResponse(['success' => false, 'message' => 'A seção não está disponível para professores.'], 403);
             return;
         }
@@ -154,6 +154,22 @@ class ProfessorController extends Controller
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
+    public function updateEnrollmentStatus(): void
+    {
+        $user = $this->assertProfessorAccess();
+        try {
+            (new \App\Services\CourseEnrollmentService())->changeStatus(
+                (int) ($_POST['inscricao_id'] ?? 0),
+                trim((string) ($_POST['status'] ?? '')),
+                (int) $user['conta_id'],
+                trim((string) ($_POST['motivo'] ?? ''))
+            );
+            $this->jsonResponse(['success' => true, 'message' => 'Status da inscrição atualizado com sucesso.']);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
     public function conditionValidationModal(): void
     {
         $this->assertProfessorAccess();
@@ -225,6 +241,7 @@ class ProfessorController extends Controller
     {
         if ($sectionName === 'inicio') { return ['sectionName' => $sectionName, 'professorView' => true]; }
         if ($sectionName === 'usuarios-pessoas') { return array_merge(['sectionName' => $sectionName, 'professorView' => true], $this->buildPeopleData()); }
+        if ($sectionName === 'inscricoes') { return ['sectionName' => $sectionName, 'professorView' => true, 'courseEnrollmentsManagement' => (new \App\Services\CourseEnrollmentService())->listForManagement()]; }
 
         $locationId = (int) ($_GET['local_treino_id'] ?? 0);
         $modalityId = (int) ($_GET['modalidade_id'] ?? 0);
@@ -291,7 +308,7 @@ class ProfessorController extends Controller
             redirect_to_profile_completion_modal('/professor');
         }
         $user = $this->userService->currentAccountWithRoles();
-        if ($user && (has_role($user['roles'] ?? [], 'teacher') || has_role($user['roles'] ?? [], 'master_admin') || has_role($user['roles'] ?? [], 'admin'))) { return $user; }
+        if ($user && has_role($user['roles'] ?? [], 'teacher')) { return $user; }
         if ($this->isAjaxRequest()) { $this->jsonResponse(['success' => false, 'message' => 'Seu nível de acesso não permite abrir a área do professor.'], 403); }
         redirect('/dashboard');
     }

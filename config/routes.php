@@ -3,6 +3,7 @@
 use App\Controllers\AdminController;
 use App\Controllers\AgendaController;
 use App\Controllers\BlogController;
+use App\Controllers\CourseEnrollmentController;
 use App\Controllers\CepController;
 use App\Controllers\AuthController;
 use App\Controllers\DashboardController;
@@ -18,6 +19,9 @@ return [
     ['GET', '/teste_erros', [ErrorController::class, 'testCenter']],
     ['GET', '/blog', [BlogController::class, 'index']],
     ['GET', '/blog/post', [BlogController::class, 'post']],
+    ['GET', '/cursos', [CourseEnrollmentController::class, 'index']],
+    ['POST', '/cursos/inscrever', [CourseEnrollmentController::class, 'enroll']],
+    ['POST', '/cursos/inscricoes/cancelar', [CourseEnrollmentController::class, 'cancel']],
     ['GET', '/login', [AuthController::class, 'showLogin']],
     ['POST', '/login', [AuthController::class, 'login']],
     ['GET', '/cadastro', [AuthController::class, 'showRegister']],
@@ -129,6 +133,7 @@ return [
     ['GET', '/api/professor/agenda/eventos', [ProfessorController::class, 'calendarEvents']],
     ['GET', '/professor/agendamentos/ocorrencia', [ProfessorController::class, 'bookingOccurrence']],
     ['POST', '/professor/agendamentos/presenca', [ProfessorController::class, 'markBookingAttendance']],
+    ['POST', '/professor/inscricoes/status', [ProfessorController::class, 'updateEnrollmentStatus']],
     ['GET', '/professor/certificados/arquivo', [ProfessorController::class, 'certificateDocument']],
     ['GET', '/professor/certificados/validacao/modal', [ProfessorController::class, 'conditionValidationModal']],
     ['POST', '/professor/certificados/validacao/salvar', [ProfessorController::class, 'saveConditionValidation']],

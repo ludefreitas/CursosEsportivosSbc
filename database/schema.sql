@@ -367,7 +367,28 @@ CREATE TABLE IF NOT EXISTS temporadas (
     tipo_periodicidade ENUM('anual', 'semestral', 'quadrimestral', 'bimestral', 'mensal') NOT NULL,
     data_inicio DATE NOT NULL,
     data_fim DATE NOT NULL,
+    inscricoes_inicio DATETIME NULL,
+    inscricoes_fim DATETIME NULL,
+    permitir_inscricao_por_cpf TINYINT(1) NOT NULL DEFAULT 0,
+    permitir_inscricao_logada TINYINT(1) NOT NULL DEFAULT 1,
+    limite_inscricoes_periodo INT UNSIGNED NOT NULL DEFAULT 1,
     ativo TINYINT(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS temporadas_janelas_inscricao (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    temporada_id BIGINT UNSIGNED NOT NULL,
+    modalidade_id BIGINT UNSIGNED NULL,
+    numero_inscricao INT UNSIGNED NOT NULL,
+    data_inicio DATETIME NOT NULL,
+    data_fim DATETIME NOT NULL,
+    limite_inscricoes_pessoa INT UNSIGNED NOT NULL DEFAULT 1,
+    forcar_lista_espera TINYINT(1) NOT NULL DEFAULT 0,
+    ativo TINYINT(1) NOT NULL DEFAULT 1,
+    UNIQUE KEY uk_temporada_janela_inscricao (temporada_id, modalidade_id, numero_inscricao),
+    INDEX idx_temporadas_janelas_periodo (temporada_id, data_inicio, data_fim, ativo),
+    CONSTRAINT fk_temporada_janela_temporada FOREIGN KEY (temporada_id) REFERENCES temporadas(id) ON DELETE CASCADE,
+    CONSTRAINT fk_temporada_janela_modalidade FOREIGN KEY (modalidade_id) REFERENCES modalidades(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS turmas (
@@ -517,10 +538,18 @@ CREATE TABLE IF NOT EXISTS inscricoes_turma (
     turma_id BIGINT UNSIGNED NOT NULL,
     pessoa_id BIGINT UNSIGNED NOT NULL,
     publico_alvo ENUM('geral', 'pcd', 'plm', 'pvs') NOT NULL DEFAULT 'geral',
-    status ENUM('inscrito', 'cancelado', 'concluido') NOT NULL DEFAULT 'inscrito',
+    status ENUM('aguardando_matricula', 'matriculada', 'lista_espera', 'cancelada', 'excluida', 'excluida_por_falta', 'desistente', 'encerrada') NOT NULL DEFAULT 'aguardando_matricula',
+    inscrito_por_conta_id BIGINT UNSIGNED NULL,
+    cancelado_por_conta_id BIGINT UNSIGNED NULL,
+    motivo_status VARCHAR(255) NULL,
+    updated_at DATETIME NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_inscricao_turma FOREIGN KEY (turma_id) REFERENCES turmas(id),
-    CONSTRAINT fk_inscricao_pessoa FOREIGN KEY (pessoa_id) REFERENCES pessoas(id)
+    CONSTRAINT fk_inscricao_pessoa FOREIGN KEY (pessoa_id) REFERENCES pessoas(id),
+    CONSTRAINT fk_inscricao_criador FOREIGN KEY (inscrito_por_conta_id) REFERENCES contas(id) ON DELETE SET NULL,
+    CONSTRAINT fk_inscricao_cancelador FOREIGN KEY (cancelado_por_conta_id) REFERENCES contas(id) ON DELETE SET NULL,
+    INDEX idx_inscricoes_turma_pessoa_status (turma_id, pessoa_id, status),
+    INDEX idx_inscricoes_pessoa_status (pessoa_id, status)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS postagens_blog (

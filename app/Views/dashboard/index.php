@@ -22,6 +22,8 @@
     <article class="info-card"><h3><?php echo e((string) $metrics['postagens_blog']); ?></h3><p>Postagens ativas</p></article>
 </section>
 
+<?php require ROOT_PATH . '/app/Views/dashboard/partials/course_enrollment_rows.php'; ?>
+
 <section class="dashboard-main-grid">
     <article class="content-card">
         <div class="section-head">

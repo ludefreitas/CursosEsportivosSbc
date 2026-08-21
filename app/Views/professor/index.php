@@ -13,6 +13,7 @@
         <div class="admin-nav">
             <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Início</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-pessoas">Usuários e pessoas</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="inscricoes">Inscrições em cursos</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="agenda">Agenda</button>
         </div>
     </nav>
