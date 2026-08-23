@@ -201,6 +201,62 @@ $suggestedCourseModalities = array_slice($suggestedCourseModalities, 0, 3);
     </div>
 </div>
 
+<div id="home-location-modalities-modal" class="popup-overlay hidden" aria-hidden="true">
+    <div class="popup-card home-course-flow-modal-card" role="dialog" aria-modal="true" aria-labelledby="home-location-modalities-title">
+        <div class="popup-head">
+            <div><span class="eyebrow">Etapa 2 de 3</span><h3 id="home-location-modalities-title">Modalidades disponíveis</h3><p class="muted" id="home-location-modalities-subtitle"></p></div>
+            <button type="button" class="popup-close-icon" data-home-course-flow-close="1" aria-label="Fechar modalidades">&times;</button>
+        </div>
+        <div class="popup-body" id="home-location-modalities-content"></div>
+        <div class="popup-actions"><button type="button" class="btn btn-secondary" data-home-course-flow-close="1">Fechar</button></div>
+    </div>
+</div>
+
+<div id="home-modality-locations-modal" class="popup-overlay hidden" aria-hidden="true">
+    <div class="popup-card home-course-flow-modal-card" role="dialog" aria-modal="true" aria-labelledby="home-modality-locations-title">
+        <div class="popup-head">
+            <div><span class="eyebrow">Etapa 2 de 3</span><h3 id="home-modality-locations-title">Centros esportivos disponíveis</h3><p class="muted" id="home-modality-locations-subtitle"></p></div>
+            <button type="button" class="popup-close-icon" data-home-course-flow-close="1" aria-label="Fechar centros esportivos">&times;</button>
+        </div>
+        <div class="popup-body" id="home-modality-locations-content"></div>
+        <div class="popup-actions"><button type="button" class="btn btn-secondary" data-home-course-flow-close="1">Fechar</button></div>
+    </div>
+</div>
+
+<div id="home-location-classes-modal" class="popup-overlay hidden" aria-hidden="true">
+    <div class="popup-card home-course-flow-modal-card home-course-classes-modal-card" role="dialog" aria-modal="true" aria-labelledby="home-location-classes-title">
+        <div class="popup-head">
+            <div><span class="eyebrow">Etapa 3 de 3</span><h3 id="home-location-classes-title">Turmas disponíveis</h3><p class="muted" id="home-location-classes-subtitle"></p></div>
+            <button type="button" class="popup-close-icon" data-home-course-flow-close="1" aria-label="Fechar turmas">&times;</button>
+        </div>
+        <div class="popup-body home-course-classes-list" id="home-location-classes-content"></div>
+        <div class="popup-actions"><button type="button" class="btn btn-secondary" data-home-course-flow-back="1">Voltar</button><button type="button" class="btn btn-secondary" data-home-course-flow-close="1">Fechar</button></div>
+    </div>
+</div>
+
+<div id="home-course-enrollment-modal" class="popup-overlay hidden" aria-hidden="true">
+    <div class="popup-card home-course-flow-modal-card" role="dialog" aria-modal="true" aria-labelledby="home-course-enrollment-title">
+        <div class="popup-head"><div><span class="eyebrow">Inscrição na turma</span><h3 id="home-course-enrollment-title">Detalhes da turma</h3><p class="muted" id="home-course-enrollment-subtitle"></p></div><button type="button" class="popup-close-icon" data-home-course-detail-close="1" aria-label="Fechar inscrição">&times;</button></div>
+        <div class="popup-body" id="home-course-enrollment-content"></div>
+        <div class="popup-actions"><button type="button" class="btn btn-secondary" data-home-course-detail-close="1">Fechar</button></div>
+    </div>
+</div>
+
+<div id="home-course-cpf-modal" class="popup-overlay hidden" aria-hidden="true">
+    <div class="popup-card home-course-flow-modal-card home-course-small-modal" role="dialog" aria-modal="true" aria-labelledby="home-course-cpf-title">
+        <div class="popup-head"><div><span class="eyebrow">Inscrição por CPF</span><h3 id="home-course-cpf-title">Informar CPF</h3><p class="muted" id="home-course-cpf-subtitle"></p></div><button type="button" class="popup-close-icon" data-home-course-detail-close="1" aria-label="Fechar inscrição por CPF">&times;</button></div>
+        <div class="popup-body" id="home-course-cpf-content"></div>
+    </div>
+</div>
+
+<div id="home-course-vacancies-modal" class="popup-overlay hidden" aria-hidden="true">
+    <div class="popup-card home-course-flow-modal-card home-course-small-modal" role="dialog" aria-modal="true" aria-labelledby="home-course-vacancies-title">
+        <div class="popup-head"><div><span class="eyebrow">Disponibilidade</span><h3 id="home-course-vacancies-title">Vagas da turma</h3><p class="muted" id="home-course-vacancies-subtitle"></p></div><button type="button" class="popup-close-icon" data-home-course-detail-close="1" aria-label="Fechar vagas">&times;</button></div>
+        <div class="popup-body" id="home-course-vacancies-content"></div>
+        <div class="popup-actions"><button type="button" class="btn btn-secondary" data-home-course-detail-close="1">Fechar</button></div>
+    </div>
+</div>
+
 <section
     class="content-card home-locations-card home-training-locations-card"
     id="home-training-locations"

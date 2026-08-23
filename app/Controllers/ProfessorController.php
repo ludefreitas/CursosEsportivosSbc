@@ -162,12 +162,23 @@ class ProfessorController extends Controller
                 (int) ($_POST['inscricao_id'] ?? 0),
                 trim((string) ($_POST['status'] ?? '')),
                 (int) $user['conta_id'],
-                trim((string) ($_POST['motivo'] ?? ''))
+                trim((string) ($_POST['motivo'] ?? '')),
+                trim((string) ($_POST['suspensa_fim'] ?? '')) ?: null,
+                trim((string) ($_POST['token'] ?? ''))
             );
             $this->jsonResponse(['success' => true, 'message' => 'Status da inscrição atualizado com sucesso.']);
         } catch (\Throwable $e) {
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
         }
+    }
+
+    public function createEnrollmentToken(): void
+    {
+        $user = $this->assertProfessorAccess();
+        try {
+            $token = (new \App\Services\CourseEnrollmentService())->createExceptionToken((int) $user['conta_id'], $_POST);
+            $this->jsonResponse(['success' => true, 'message' => 'Token criado com sucesso.', 'token' => $token]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
     public function conditionValidationModal(): void

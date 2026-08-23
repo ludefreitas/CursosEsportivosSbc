@@ -670,7 +670,16 @@ function person_matches_age_rule(?string $birthDate, int $minAge, int $maxAge, ?
         return $birthYear >= (int) $yearRange['from'] && $birthYear <= (int) $yearRange['to'];
     }
 
-    $age = calculate_age($birthDate);
+    if ($referenceDate === null) {
+        $age = calculate_age($birthDate);
+    } else {
+        try {
+            $birth = new DateTimeImmutable((string) $birthDate);
+            $age = $birth > $referenceDate ? null : $birth->diff($referenceDate)->y;
+        } catch (Exception $e) {
+            $age = null;
+        }
+    }
 
     return $age !== null && $age >= $minAge && $age <= $maxAge;
 }

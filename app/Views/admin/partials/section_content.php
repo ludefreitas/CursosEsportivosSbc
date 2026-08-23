@@ -2383,6 +2383,10 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
     </section>
 <?php } ?>
 
+<?php if ($sectionName === 'temporadas-turmas') { ?>
+    <?php require ROOT_PATH . '/app/Views/admin/partials/course_management_panel.php'; ?>
+<?php } ?>
+
 <?php if ($sectionName === 'modalidades') { ?>
     <section class="admin-section-panel" data-admin-section="modalidades">
         <div class="section-head admin-section-head">

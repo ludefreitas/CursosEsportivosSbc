@@ -1242,7 +1242,7 @@ body.pagina-error label span {
     overflow: hidden;
 }
 .popup-head, .popup-body, .popup-actions {
-    padding: 18px 22px;
+    padding: 12px 16px;
 }
 .popup-head {
     position: relative;
@@ -1254,7 +1254,23 @@ body.pagina-error label span {
 }
 .popup-body p {
     margin: 0;
-    line-height: 1.6;
+    line-height: 1.35;
+}
+
+.popup-card .stack-form {
+    gap: 7px;
+}
+
+.popup-card :is(.grid-two, .grid-three, .grid-four, .grid-five) {
+    gap: 7px;
+}
+
+.popup-card label span {
+    margin-bottom: 2px;
+}
+
+.popup-card .checkbox-chip {
+    padding: 8px 12px;
 }
 .popup-actions {
     display: flex;

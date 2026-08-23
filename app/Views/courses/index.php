@@ -1,7 +1,7 @@
 <section class="content-card">
     <span class="eyebrow">Cursos esportivos</span>
     <h1>Inscrições abertas</h1>
-    <p class="muted">Escolha uma turma e inscreva uma pessoa já cadastrada no sistema. A agenda de treinos é independente deste processo.</p>
+    <p class="muted">Escolha uma turma e inscreva uma pessoa já cadastrada no sistema.</p>
 </section>
 
 <section class="post-grid courses-grid">
@@ -15,7 +15,7 @@
             <p><strong>Modalidade:</strong> <?php echo e($class['modalidade_nome']); ?></p>
             <p><strong>Local:</strong> <?php echo e($class['local_nome']); ?>, <?php echo e($class['espaco_nome']); ?></p>
             <?php if (!empty($class['nivel_nome'])) { ?><p><strong>Nível:</strong> <?php echo e($class['nivel_nome']); ?></p><?php } ?>
-            <p><strong>Faixa etária:</strong> <?php echo e((string) $class['idade_minima']); ?> a <?php echo e((string) $class['idade_maxima']); ?> anos</p>
+            <p><strong><?php if (($class['criterio_faixa_etaria'] ?? 'idade_exata') === 'ano_nascimento') { ?>Para pessoas <?php echo e((string) preg_replace('/^Nascidos/u', 'nascidas', (string) ($class['faixa_etaria_descricao'] ?? 'nascidas em período não informado'))); ?><?php } else { ?>Para pessoas com idade entre <?php echo e((string) $class['idade_minima']); ?> e <?php echo e((string) $class['idade_maxima']); ?><?php } ?></strong></p>
             <p><strong>Vagas disponíveis:</strong> <?php echo e((string) $class['vagas_disponiveis']); ?></p>
             <form method="POST" action="<?php echo e(url('/cursos/inscrever')); ?>" class="stack-form" data-ajax-form="1" data-follow-redirect="1">
                 <input type="hidden" name="turma_id" value="<?php echo e((string) $class['id']); ?>">

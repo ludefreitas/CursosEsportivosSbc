@@ -21,6 +21,7 @@
             <button type="button" class="admin-nav-button" data-admin-nav-target="blog">Blog</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="locais-espacos">Locais e espaços</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="modalidades">Modalidades</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="temporadas-turmas">Temporadas e turmas</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="configuracoes">Configurações</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="outras-areas">Outras áreas</button>
             <?php if (has_role($user['roles'] ?? [], 'master_admin')) { ?>

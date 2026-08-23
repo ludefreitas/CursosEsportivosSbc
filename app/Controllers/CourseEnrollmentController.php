@@ -25,6 +25,59 @@ class CourseEnrollmentController extends Controller
         ]);
     }
 
+    public function modalitiesByLocation(): void
+    {
+        try {
+            $this->jsonResponse([
+                'success' => true,
+                'modalities' => $this->service->listOpenModalitiesByLocation((int) ($_GET['local_id'] ?? 0)),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function locationsByModality(): void
+    {
+        try {
+            $this->jsonResponse([
+                'success' => true,
+                'locations' => $this->service->listOpenLocationsByModality((int) ($_GET['modalidade_id'] ?? 0)),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function classesByLocation(): void
+    {
+        try {
+            $locationId = (int) ($_GET['local_id'] ?? 0);
+            $modalityId = (int) ($_GET['modalidade_id'] ?? 0);
+            if ($locationId <= 0 || $modalityId <= 0) {
+                throw new \RuntimeException('Selecione um local e uma modalidade válidos.');
+            }
+            $this->jsonResponse([
+                'success' => true,
+                'classes' => $this->service->listOpenClasses($locationId, $modalityId),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function classDetails(): void
+    {
+        try {
+            $this->jsonResponse([
+                'success' => true,
+                'details' => $this->service->getClassEnrollmentDetails((int) ($_GET['turma_id'] ?? 0)),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
     public function enroll(): void
     {
         try {

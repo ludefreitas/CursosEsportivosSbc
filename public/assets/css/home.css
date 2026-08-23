@@ -663,6 +663,266 @@ body.pagina-home .site-header {
     background: linear-gradient(135deg, #2787c9 0%, #126da8 100%);
 }
 
+.pagina-home .home-location-suggestion[data-location-id] {
+    cursor: pointer;
+}
+
+.pagina-home .home-course-flow-modal-card {
+    display: flex;
+    width: min(860px, calc(100vw - 32px));
+    max-height: calc(100dvh - 24px);
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.pagina-home .home-course-flow-modal-card > .popup-body {
+    min-height: 120px;
+    overflow-y: auto;
+}
+
+.pagina-home .home-location-modalities-list {
+    display: grid;
+    gap: 10px;
+}
+
+.pagina-home .home-modality-locations-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.pagina-home .home-location-modality-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(190px, 42%);
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border-left: 4px solid #d76013;
+    border-radius: 10px;
+    background: #fff3d2;
+}
+
+.pagina-home .home-location-modality-classes {
+    width: 100%;
+    color: #fff;
+    background: #d76013;
+}
+
+.pagina-home .home-location-modality-classes:hover,
+.pagina-home .home-location-modality-classes:focus-visible {
+    color: #fff;
+    background: #b84c08;
+}
+
+.pagina-home .home-course-classes-list {
+    display: grid;
+    gap: 16px;
+}
+
+.pagina-home .home-course-class-card {
+    padding: 18px;
+    border: 1px solid #d9e4ec;
+    border-left: 5px solid #1678b8;
+    border-radius: 14px;
+    background: #fff;
+}
+
+.pagina-home .home-course-class-card h4 {
+    margin: 4px 0 10px;
+    font-size: 21px;
+}
+
+.pagina-home .home-course-class-card p {
+    margin: 4px 0;
+}
+
+.pagina-home .home-course-class-name {
+    color: #087b24;
+}
+
+.pagina-home .home-course-class-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #d9e4ec;
+}
+
+.pagina-home .home-course-detail-summary {
+    margin-bottom: 16px;
+    padding: 4px 0 16px;
+    border-bottom: 1px solid #d9e4ec;
+}
+
+.pagina-home .home-course-detail-summary p {
+    margin: 3px 0;
+    font-size: 14px;
+    line-height: 1.25;
+}
+
+.pagina-home .home-course-detail-main-title {
+    margin: 0 0 4px;
+    font-size: 19px;
+    line-height: 1.15;
+}
+
+.pagina-home .home-course-detail-class-name {
+    color: #087b24;
+    font-size: 15px;
+}
+
+.pagina-home .home-course-detail-schedule {
+    color: #111;
+}
+
+.pagina-home .home-course-person-filters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.pagina-home .home-course-small-modal {
+    width: min(620px, calc(100vw - 32px));
+}
+
+.pagina-home .home-course-vacancies-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.pagina-home .home-course-vacancies-grid article {
+    display: grid;
+    gap: 5px;
+    padding: 16px;
+    border: 1px solid #cfe0ea;
+    border-radius: 12px;
+    background: #f7fbfd;
+}
+
+.pagina-home .home-course-vacancies-grid span {
+    color: #1678b8;
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.pagina-home .home-course-enrollment-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 5px;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #d9e4ec;
+}
+
+.pagina-home .home-course-person-instruction {
+    margin: 0;
+}
+
+.pagina-home .home-course-person-options {
+    display: grid;
+    gap: 4px;
+}
+
+.pagina-home .home-course-person-card {
+    display: grid;
+    gap: 2px;
+    padding: 7px 10px;
+    border: 1px solid rgba(18, 69, 89, 0.14);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.96);
+    cursor: pointer;
+    transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.pagina-home .home-course-person-card:hover {
+    transform: translateY(-1px);
+    border-color: rgba(23, 103, 196, .28);
+    box-shadow: 0 12px 24px rgba(23, 103, 196, .08);
+}
+
+.pagina-home .home-course-person-card.is-disabled {
+    border-color: #d8cfc2;
+    background: #f6f3ec;
+    cursor: not-allowed;
+}
+
+.pagina-home .home-course-person-card.is-disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.pagina-home .home-course-person-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pagina-home .home-course-person-line input {
+    width: auto;
+    margin: 0;
+}
+
+.pagina-home .home-course-person-main {
+    font-weight: 700;
+}
+
+.pagina-home .home-course-person-reason {
+    display: block;
+    padding-left: 24px;
+    color: #8d5b5b;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.pagina-home .home-course-enrollment-form .checkbox-chip,
+.pagina-home .home-course-enrollment-form button[type="submit"] {
+    grid-column: 1 / -1;
+}
+
+.pagina-home .home-course-flow-state {
+    display: grid;
+    min-height: 110px;
+    place-items: center;
+    align-content: center;
+    gap: 10px;
+    text-align: center;
+}
+
+.pagina-home .home-course-flow-state p {
+    margin: 0;
+}
+
+.pagina-home .home-course-flow-spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid #cfe2ef;
+    border-top-color: #1678b8;
+    border-radius: 50%;
+    animation: home-course-flow-spin .8s linear infinite;
+}
+
+@keyframes home-course-flow-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 640px) {
+    .pagina-home .home-location-modality-row,
+    .pagina-home .home-course-enrollment-form,
+    .pagina-home .home-modality-locations-list,
+    .pagina-home .home-course-person-filters,
+    .pagina-home .home-course-vacancies-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pagina-home .home-course-enrollment-form .checkbox-chip,
+    .pagina-home .home-course-enrollment-form button[type="submit"] {
+        grid-column: auto;
+    }
+}
+
 .pagina-home #home-all-training-locations-modal .home-all-location-button {
     background: linear-gradient(135deg, #1ca746 0%, #108739 100%);
 }

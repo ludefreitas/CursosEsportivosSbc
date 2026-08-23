@@ -4585,6 +4585,197 @@
 
         },
 
+        iniciarAjudaJanelaInscricao: function () {
+            $(document).on('click', '[data-course-window-help-toggle="1"]', function () {
+                const $button = $(this);
+                const $help = $('#' + String($button.attr('aria-controls') || 'course-window-help'));
+                const isHidden = $help.hasClass('hidden');
+
+                $help.toggleClass('hidden', !isHidden);
+                $button.attr('aria-expanded', isHidden ? 'true' : 'false');
+            });
+        },
+
+        iniciarGerenciamentoTemporadasTurmas: function () {
+            function modalFor(type) {
+                return $(type === 'season' ? '#course-season-modal' : '#course-class-modal');
+            }
+
+            function closeModals() {
+                $('#course-season-modal, #course-class-modal').addClass('hidden').attr('aria-hidden', 'true');
+            }
+
+            function normalizeDateTime(value) {
+                const text = String(value == null ? '' : value);
+                return text.length >= 16 ? text.slice(0, 16).replace(' ', 'T') : text;
+            }
+
+            function ensureClassAgeCriterionField($form) {
+                const $ageGrid = $form.find('[name="idade_maxima"]').closest('.grid-two');
+                const $anchor = $ageGrid.length ? $ageGrid : $form.find('[name="idade_maxima"]').closest('label');
+                if ($form.find('[name="dias_semana[]"]').length === 0) {
+                    const dayNames = { 1: 'Segunda', 2: 'Terça', 3: 'Quarta', 4: 'Quinta', 5: 'Sexta', 6: 'Sábado', 7: 'Domingo' };
+                    const $days = $('<fieldset>', { class: 'course-weekdays-field' }).append($('<legend>', { text: 'Dias da semana' }));
+                    const $options = $('<div>', { class: 'course-weekdays-options' });
+                    Object.keys(dayNames).forEach(function (value) {
+                        $options.append($('<label>', { class: 'checkbox-chip' })
+                            .append($('<input>', { type: 'checkbox', name: 'dias_semana[]', value: value }))
+                            .append($('<span>', { text: dayNames[value] })));
+                    });
+                    $days.append($options).append($('<small>', { class: 'muted', text: 'Selecione qualquer combinação, inclusive sábado e domingo.' }));
+                    const $times = $('<div>', { class: 'grid-two' })
+                        .append($('<label>').append($('<span>', { text: 'Horário inicial' })).append($('<input>', { type: 'time', name: 'hora_inicio' })))
+                        .append($('<label>').append($('<span>', { text: 'Horário final' })).append($('<input>', { type: 'time', name: 'hora_fim' })));
+                    const $name = $form.find('[name="nome"]').closest('label');
+                    $name.after($days, $times);
+                }
+                if ($form.find('[name="criterio_faixa_etaria"]').length === 0) {
+                    const $field = $('<label>', { class: 'course-age-criterion-field' })
+                        .append($('<span>', { text: 'Critério da faixa etária' }))
+                        .append($('<select>', { name: 'criterio_faixa_etaria', required: true })
+                            .append($('<option>', { value: 'idade_exata', text: 'Usar idade exata pela data de nascimento' }))
+                            .append($('<option>', { value: 'ano_nascimento', text: 'Usar apenas o ano de nascimento' })))
+                        .append($('<small>', { class: 'muted', text: 'No modo por ano, o sistema ignora o dia e o mês de nascimento.' }));
+                    $anchor.after($field);
+                }
+                if ($form.find('[name="sexo"]').length === 0) {
+                    const $sexField = $('<label>', { class: 'course-sex-field' })
+                        .append($('<span>', { text: 'Sexo permitido' }))
+                        .append($('<select>', { name: 'sexo' })
+                            .append($('<option>', { value: '', text: 'Todos' }))
+                            .append($('<option>', { value: 'masculino', text: 'Masculino' }))
+                            .append($('<option>', { value: 'feminino', text: 'Feminino' })))
+                        .append($('<small>', { class: 'muted', text: 'Escolha Todos quando a turma não tiver restrição por sexo.' }));
+                    const $criterionField = $form.find('[name="criterio_faixa_etaria"]').closest('label');
+                    ($criterionField.length ? $criterionField : $anchor).after($sexField);
+                }
+            }
+
+            function fillForm($form, record) {
+                $form[0].reset();
+                Object.keys(record || {}).forEach(function (name) {
+                    const $field = $form.find('[name="' + name + '"]');
+                    if ($field.length === 0) return;
+                    if ($field.is(':checkbox')) {
+                        $field.prop('checked', Number(record[name] || 0) === 1);
+                    } else if ($field.attr('type') === 'datetime-local') {
+                        $field.val(normalizeDateTime(record[name]));
+                    } else {
+                        $field.val(record[name] == null ? '' : String(record[name]));
+                    }
+                });
+                const selectedDays = String((record || {}).dias_semana || '').split(',');
+                $form.find('[name="dias_semana[]"]').each(function () {
+                    $(this).prop('checked', selectedDays.indexOf(String($(this).val())) !== -1);
+                });
+            }
+
+            function ensureSeasonNoticeFields($form) {
+                if ($form.find('[name="origem_temporada"]').length === 0) {
+                    const $name = $form.find('[name="nome"]').closest('label');
+                    const $origin = $('<label>')
+                        .append($('<span>', { text: 'Instituição gestora (origem)' }))
+                        .append($('<input>', { name: 'origem_temporada', maxlength: 180, required: true }));
+                    const $toggle = $('<label>', { class: 'checkbox-chip' })
+                        .append($('<input>', { type: 'checkbox', name: 'possui_edital', value: '1', 'data-season-notice-toggle': '1' }))
+                        .append($('<span>', { text: 'Esta temporada possui edital' }));
+                    const $fields = $('<div>', { class: 'grid-two', 'data-season-notice-fields': '1' })
+                        .append($('<label>').append($('<span>', { text: 'Número do edital' })).append($('<input>', { name: 'numero_edital', maxlength: 100 })))
+                        .append($('<label>').append($('<span>', { text: 'Link do edital' })).append($('<input>', { type: 'url', name: 'link_edital', maxlength: 2048, placeholder: 'https://...' })));
+                    $name.after($origin, $toggle, $fields);
+                }
+                if ($form.find('[name="data_liberacao_segunda_inscricao"]').length === 0) {
+                    const $initialLimit = $form.find('[name="limite_inscricoes_periodo"]').closest('label');
+                    $initialLimit.find('span').first().text('Limite inicial por CPF');
+                    const $releaseFields = $('<div>', { class: 'grid-two' })
+                        .append($('<label>')
+                            .append($('<span>', { text: 'Liberar segunda inscrição em' }))
+                            .append($('<input>', { type: 'datetime-local', name: 'data_liberacao_segunda_inscricao' })))
+                        .append($('<label>')
+                            .append($('<span>', { text: 'Liberar terceira ou mais inscrições em' }))
+                            .append($('<input>', { type: 'datetime-local', name: 'data_liberacao_inscricoes_adicionais' })));
+                    const $additionalLimit = $('<label>')
+                        .append($('<span>', { text: 'Limite de inscrições após a última liberação' }))
+                        .append($('<input>', { type: 'number', name: 'limite_inscricoes_adicionais', min: 3, value: 3 }));
+                    $initialLimit.after($releaseFields, $additionalLimit);
+                }
+            }
+
+            function updateSeasonNoticeFields($form) {
+                const enabled = $form.find('[name="possui_edital"]').is(':checked');
+                $form.find('[data-season-notice-fields="1"]').toggleClass('hidden', !enabled);
+                $form.find('[name="numero_edital"], [name="link_edital"]').prop('required', enabled);
+            }
+
+            function openModal(type, record) {
+                const $modal = modalFor(type);
+                const $form = $modal.find('[data-course-form="' + type + '"]');
+                if (type === 'class') ensureClassAgeCriterionField($form);
+                if (type === 'season') ensureSeasonNoticeFields($form);
+                fillForm($form, record || {});
+                if (!record && type === 'season') {
+                    $form.find('[name="permitir_inscricao_logada"]').prop('checked', true);
+                    $form.find('[name="limite_inscricoes_periodo"]').val('1');
+                    $form.find('[name="limite_inscricoes_adicionais"]').val('3');
+                }
+                if (type === 'season') updateSeasonNoticeFields($form);
+                $('#course-' + type + '-modal-title').text((record ? 'Editar ' : 'Criar ') + (type === 'season' ? 'temporada' : 'turma'));
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+            }
+
+            function replacePanel(response) {
+                if (!response || !response.html) return false;
+                $('[data-admin-section="temporadas-turmas"]').replaceWith(String(response.html));
+                return true;
+            }
+
+            $(document).on('click', '[data-course-create]', function () {
+                openModal(String($(this).attr('data-course-create') || ''), null);
+            });
+
+            $(document).on('click', '[data-course-edit]', function () {
+                let record = {};
+                try { record = JSON.parse(String($(this).attr('data-course-record') || '{}')); } catch (error) { record = {}; }
+                openModal(String($(this).attr('data-course-edit') || ''), record);
+            });
+
+            $(document).on('click', '[data-course-modal-close="1"]', closeModals);
+            $(document).on('change', '[data-season-notice-toggle="1"]', function () { updateSeasonNoticeFields($(this).closest('form')); });
+            $(document).on('click', '#course-season-modal, #course-class-modal', function (event) { if (event.target === this) closeModals(); });
+
+            $(document).on('submit', '[data-course-form="season"], [data-course-form="class"]', function (event) {
+                event.preventDefault();
+                const $form = $(this);
+                const $button = $form.find('button[type="submit"]').prop('disabled', true);
+                $.ajax({
+                    url: $form.attr('action'), method: 'POST', dataType: 'json', data: new FormData($form[0]),
+                    processData: false, contentType: false,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar o registro.')); return; }
+                    replacePanel(response);
+                    App.core.abrirPopup('sucesso', String(response.message || 'Registro salvo com sucesso.'));
+                }).fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); })
+                    .always(function () { $button.prop('disabled', false); });
+            });
+
+            $(document).on('submit', 'form[data-course-deactivate="1"]', function (event) {
+                event.preventDefault();
+                if (!window.confirm('Deseja realmente inativar este registro?')) return;
+                const $form = $(this);
+                const $button = $form.find('button[type="submit"]').prop('disabled', true);
+                $.ajax({
+                    url: $form.attr('action'), method: 'POST', dataType: 'json', data: $form.serialize(),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível inativar o registro.')); return; }
+                    replacePanel(response);
+                    App.core.abrirPopup('sucesso', String(response.message || 'Registro inativado com sucesso.'));
+                }).fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); })
+                    .always(function () { $button.prop('disabled', false); });
+            });
+        },
+
         init: function () {
             App.admin.iniciarSecoesAdmin();
             App.admin.iniciarEditorPessoaAdmin();
@@ -4605,6 +4796,8 @@
             App.admin.iniciarModalSuspensoesLocal();
             App.admin.iniciarEditorConteudoHome();
             App.admin.iniciarMigracaoCadastrosExternos();
+            App.admin.iniciarAjudaJanelaInscricao();
+            App.admin.iniciarGerenciamentoTemporadasTurmas();
         }
     });
 

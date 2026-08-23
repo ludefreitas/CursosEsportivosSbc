@@ -49,9 +49,9 @@ INSERT IGNORE INTO local_modalidade (local_treino_id, modalidade_id, ativo) VALU
     (2, 2, 1), (2, 3, 1),
     (3, 4, 1), (3, 6, 1), (3, 5, 1);
 
-INSERT IGNORE INTO temporadas (id, nome, tipo_periodicidade, data_inicio, data_fim, ativo) VALUES
-    (1, 'Temporada 2026 - Anual', 'anual', '2026-01-01', '2026-12-31', 1),
-    (2, 'Temporada Inverno 2026', 'semestral', '2026-06-01', '2026-11-30', 1);
+INSERT IGNORE INTO temporadas (id, nome, origem_temporada, possui_edital, tipo_periodicidade, data_inicio, data_fim, status, ativo) VALUES
+    (1, 'Temporada 2026 - Anual', 'Secretaria de Esportes e Lazer de São Bernardo do Campo', 0, 'anual', '2026-01-01', '2026-12-31', 'ativa', 1),
+    (2, 'Temporada Inverno 2026', 'Secretaria de Esportes e Lazer de São Bernardo do Campo', 0, 'semestral', '2026-06-01', '2026-11-30', 'ativa', 1);
 
 INSERT IGNORE INTO pessoas (
     id, nome_completo, cpf, sexo, data_nascimento, email, telefone_whatsapp, cep, logradouro, numero_endereco,

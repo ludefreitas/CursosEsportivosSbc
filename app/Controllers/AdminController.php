@@ -18,6 +18,7 @@ use App\Services\ExternalPersonService;
 use App\Services\ExternalLocationService;
 use App\Services\ExternalHealthCertificateService;
 use App\Services\SpaceAccessibilityService;
+use App\Services\CourseEnrollmentService;
 use DateTimeImmutable;
 
 class AdminController extends Controller
@@ -83,6 +84,7 @@ class AdminController extends Controller
                 'blog',
                 'locais-espacos',
                 'modalidades',
+                'temporadas-turmas',
                 'configuracoes',
                 'outras-areas',
             ];
@@ -2151,6 +2153,16 @@ class AdminController extends Controller
             $data['modalitiesManagement'] = $this->adminService->listModalitiesForAdmin($data['modalitySearch'], $data['modalityLimit']);
         }
 
+        if ($sectionName === 'temporadas-turmas') {
+            $courseService = new CourseEnrollmentService();
+            $data['courseSeasons'] = $courseService->listSeasonsForManagement();
+            $data['courseClasses'] = $courseService->listClassesForManagement();
+            $data['courseEnrollmentWindows'] = $courseService->listWindowsForManagement();
+            $data['courseModalitiesManagement'] = $this->adminService->listModalitiesForManagement();
+            $data['courseLocationsManagement'] = $this->adminService->listTrainingLocationsForSpaceForm();
+            $data['courseSpacesManagement'] = $this->adminService->listTrainingSpacesForManagement();
+        }
+
         if ($sectionName === 'configuracoes') {
             $data['acceptedRanges'] = $this->cepService->listAcceptedRanges();
             $data['cepExceptions'] = $this->cepService->listCepExceptions();
@@ -2283,6 +2295,62 @@ class AdminController extends Controller
         } catch (\Throwable $e) {
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
         }
+    }
+
+    public function storeCourseSeason(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            (new CourseEnrollmentService())->createSeason((int) $user['conta_id'], $_POST);
+            $this->jsonResponse(['success' => true, 'message' => !empty($_POST['id']) ? 'Temporada atualizada com sucesso.' : 'Temporada criada com sucesso.', 'html' => $this->renderCourseManagementPanelHtml()]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function storeCourseClass(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            (new CourseEnrollmentService())->createClass((int) $user['conta_id'], $_POST);
+            $this->jsonResponse(['success' => true, 'message' => !empty($_POST['id']) ? 'Turma atualizada com sucesso.' : 'Turma criada com sucesso.', 'html' => $this->renderCourseManagementPanelHtml()]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function storeCourseEnrollmentWindow(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            (new CourseEnrollmentService())->createEnrollmentWindow((int) $user['conta_id'], $_POST);
+            $this->jsonResponse(['success' => true, 'message' => 'Janela de inscrição criada com sucesso.', 'redirect' => url('/admin#admin-temporadas-turmas')]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function deactivateCourseRecord(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            (new CourseEnrollmentService())->deactivate(trim((string) ($_POST['entidade'] ?? '')), (int) ($_POST['id'] ?? 0), (int) $user['conta_id']);
+            $this->jsonResponse(['success' => true, 'message' => 'Registro inativado com sucesso.', 'html' => $this->renderCourseManagementPanelHtml()]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function courseManagementPanel(): void
+    {
+        $this->assertAdminAccess();
+        $this->jsonResponse(['success' => true, 'html' => $this->renderCourseManagementPanelHtml()]);
+    }
+
+    private function renderCourseManagementPanelHtml(): string
+    {
+        $courseService = new CourseEnrollmentService();
+        $courseSeasons = $courseService->listSeasonsForManagement();
+        $courseClasses = $courseService->listClassesForManagement();
+        $courseEnrollmentWindows = $courseService->listWindowsForManagement();
+        $courseModalitiesManagement = $this->adminService->listModalitiesForManagement();
+        $courseLocationsManagement = $this->adminService->listTrainingLocationsForSpaceForm();
+        $courseSpacesManagement = $this->adminService->listTrainingSpacesForManagement();
+        ob_start();
+        require ROOT_PATH . '/app/Views/admin/partials/course_management_panel.php';
+        return (string) ob_get_clean();
     }
 
     /** Renderiza novamente as linhas da lista de locais apos salvar por AJAX. */

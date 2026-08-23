@@ -93,6 +93,102 @@
 .admin-people-filter-form {
     margin: 18px 0;
 }
+.course-window-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.course-window-heading h2 {
+    margin: 0;
+}
+.course-help-button {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--brand-700);
+    border-radius: 50%;
+    background: var(--brand-700);
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+}
+.course-help-button:hover,
+.course-help-button:focus-visible {
+    background: var(--brand-900);
+}
+.course-window-help {
+    margin: 16px 0 20px;
+    padding: 16px 18px;
+    border-left: 4px solid var(--brand-700);
+    border-radius: 8px;
+    background: var(--mint-100);
+    color: var(--brand-900);
+}
+.course-window-help p,
+.course-window-help ul {
+    margin: 8px 0 0;
+}
+
+.course-table-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.course-table-heading h2 {
+    margin: 0;
+}
+
+.course-row-actions {
+    display: flex;
+    min-width: 170px;
+    align-items: center;
+    gap: 8px;
+}
+
+.course-row-actions form {
+    margin: 0;
+}
+
+.course-row-actions .btn {
+    min-width: 78px;
+    padding: 8px 10px;
+    white-space: nowrap;
+}
+
+#course-season-modal .popup-admin-card,
+#course-class-modal .popup-admin-card {
+    display: flex;
+    width: min(780px, calc(100vw - 32px));
+    max-height: calc(100dvh - 24px);
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#course-season-modal .popup-body,
+#course-class-modal .popup-body {
+    overflow-y: auto;
+}
+
+@media (max-width: 700px) {
+    .course-table-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .course-row-actions {
+        min-width: 0;
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+.course-window-help ul {
+    padding-left: 20px;
+}
 .admin-people-filter-grid {
     align-items: end;
 }
@@ -1245,4 +1341,22 @@
 .admin-booking-person-inline a {
     color: #128c4a;
     font-weight: 700;
+}
+.course-weekdays-field {
+    margin: 0;
+    padding: 12px;
+    border: 1px solid #d8e0e5;
+    border-radius: 12px;
+}
+
+.course-weekdays-field legend {
+    padding: 0 6px;
+    font-weight: 700;
+}
+
+.course-weekdays-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
 }
