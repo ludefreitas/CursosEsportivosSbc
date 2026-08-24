@@ -4585,24 +4585,13 @@
 
         },
 
-        iniciarAjudaJanelaInscricao: function () {
-            $(document).on('click', '[data-course-window-help-toggle="1"]', function () {
-                const $button = $(this);
-                const $help = $('#' + String($button.attr('aria-controls') || 'course-window-help'));
-                const isHidden = $help.hasClass('hidden');
-
-                $help.toggleClass('hidden', !isHidden);
-                $button.attr('aria-expanded', isHidden ? 'true' : 'false');
-            });
-        },
-
         iniciarGerenciamentoTemporadasTurmas: function () {
             function modalFor(type) {
                 return $(type === 'season' ? '#course-season-modal' : '#course-class-modal');
             }
 
             function closeModals() {
-                $('#course-season-modal, #course-class-modal').addClass('hidden').attr('aria-hidden', 'true');
+                $('#course-season-modal, #course-class-modal, #course-professor-modal').addClass('hidden').attr('aria-hidden', 'true');
             }
 
             function normalizeDateTime(value) {
@@ -4740,6 +4729,27 @@
             });
 
             $(document).on('click', '[data-course-modal-close="1"]', closeModals);
+            $(document).on('click', '[data-course-professor-close="1"]', closeModals);
+            $(document).on('click', '[data-course-assign-professor]', function () {
+                const $modal = $('#course-professor-modal');
+                $modal.find('[name="turma_id"]').val(String($(this).attr('data-course-assign-professor') || ''));
+                $modal.find('[name="professor_conta_id"]').val(String($(this).attr('data-course-current-professor') || ''));
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+            });
+            $(document).on('submit', '[data-course-professor-form="1"]', function (event) {
+                event.preventDefault();
+                const $form = $(this);
+                const $button = $form.find('button[type="submit"]').prop('disabled', true);
+                $.ajax({ url: $form.attr('action'), method: 'POST', dataType: 'json', data: $form.serialize() })
+                    .done(function (response) {
+                        if (!response || !response.success) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atribuir o professor.')); return; }
+                        closeModals();
+                        replacePanel(response);
+                        App.core.abrirPopup('sucesso', String(response.message || 'Professor atribuído com sucesso.'));
+                    })
+                    .fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); })
+                    .always(function () { $button.prop('disabled', false); });
+            });
             $(document).on('change', '[data-season-notice-toggle="1"]', function () { updateSeasonNoticeFields($(this).closest('form')); });
             $(document).on('click', '#course-season-modal, #course-class-modal', function (event) { if (event.target === this) closeModals(); });
 
@@ -4796,7 +4806,6 @@
             App.admin.iniciarModalSuspensoesLocal();
             App.admin.iniciarEditorConteudoHome();
             App.admin.iniciarMigracaoCadastrosExternos();
-            App.admin.iniciarAjudaJanelaInscricao();
             App.admin.iniciarGerenciamentoTemporadasTurmas();
         }
     });

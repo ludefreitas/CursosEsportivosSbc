@@ -2569,6 +2569,8 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 
 <?php if ($sectionName === 'inscricoes' && !empty($professorView)) { require ROOT_PATH . '/app/Views/admin/partials/course_enrollment_panel.php'; } ?>
 
+<?php if ($sectionName === 'minhas-turmas' && !empty($professorView)) { require ROOT_PATH . '/app/Views/professor/partials/my_classes.php'; } ?>
+
 <?php if ($sectionName === 'outras-areas') { ?>
     <section class="admin-section-panel" data-admin-section="outras-areas">
         <div class="section-head admin-section-head">

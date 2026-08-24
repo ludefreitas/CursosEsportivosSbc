@@ -97,7 +97,7 @@ return [
     ['POST', '/admin/modalidades/atualizar', [AdminController::class, 'updateModality']],
     ['POST', '/admin/temporadas', [AdminController::class, 'storeCourseSeason']],
     ['POST', '/admin/turmas', [AdminController::class, 'storeCourseClass']],
-    ['POST', '/admin/janelas-inscricao', [AdminController::class, 'storeCourseEnrollmentWindow']],
+    ['POST', '/admin/turmas/atribuir-professor', [AdminController::class, 'assignCourseProfessor']],
     ['GET', '/admin/temporadas-turmas/painel', [AdminController::class, 'courseManagementPanel']],
     ['POST', '/admin/temporadas-turmas/inativar', [AdminController::class, 'deactivateCourseRecord']],
     ['GET', '/admin/migracao-locais/lista', [AdminController::class, 'externalTrainingLocations']],

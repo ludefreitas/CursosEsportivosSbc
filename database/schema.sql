@@ -389,22 +389,6 @@ CREATE TABLE IF NOT EXISTS temporadas (
     ativo TINYINT(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB;
 
-CREATE TABLE IF NOT EXISTS temporadas_janelas_inscricao (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    temporada_id BIGINT UNSIGNED NOT NULL,
-    modalidade_id BIGINT UNSIGNED NULL,
-    numero_inscricao INT UNSIGNED NOT NULL,
-    data_inicio DATETIME NOT NULL,
-    data_fim DATETIME NOT NULL,
-    limite_inscricoes_pessoa INT UNSIGNED NOT NULL DEFAULT 1,
-    forcar_lista_espera TINYINT(1) NOT NULL DEFAULT 0,
-    ativo TINYINT(1) NOT NULL DEFAULT 1,
-    UNIQUE KEY uk_temporada_janela_inscricao (temporada_id, modalidade_id, numero_inscricao),
-    INDEX idx_temporadas_janelas_periodo (temporada_id, data_inicio, data_fim, ativo),
-    CONSTRAINT fk_temporada_janela_temporada FOREIGN KEY (temporada_id) REFERENCES temporadas(id) ON DELETE CASCADE,
-    CONSTRAINT fk_temporada_janela_modalidade FOREIGN KEY (modalidade_id) REFERENCES modalidades(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
 CREATE TABLE IF NOT EXISTS turmas (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     temporada_id BIGINT UNSIGNED NOT NULL,
@@ -412,6 +396,7 @@ CREATE TABLE IF NOT EXISTS turmas (
     local_treino_id BIGINT UNSIGNED NOT NULL,
     espaco_treino_id BIGINT UNSIGNED NOT NULL,
     nivel_modalidade_id BIGINT UNSIGNED NULL,
+    professor_conta_id BIGINT UNSIGNED NULL,
     nome VARCHAR(160) NOT NULL,
     dias_semana VARCHAR(120) NULL,
     hora_inicio TIME NULL,
@@ -434,7 +419,8 @@ CREATE TABLE IF NOT EXISTS turmas (
     CONSTRAINT fk_turmas_modalidade FOREIGN KEY (modalidade_id) REFERENCES modalidades(id),
     CONSTRAINT fk_turmas_local FOREIGN KEY (local_treino_id) REFERENCES locais_treino(id),
     CONSTRAINT fk_turmas_espaco FOREIGN KEY (espaco_treino_id) REFERENCES espacos_treino(id),
-    CONSTRAINT fk_turmas_nivel FOREIGN KEY (nivel_modalidade_id) REFERENCES niveis_modalidade(id)
+    CONSTRAINT fk_turmas_nivel FOREIGN KEY (nivel_modalidade_id) REFERENCES niveis_modalidade(id),
+    CONSTRAINT fk_turmas_professor FOREIGN KEY (professor_conta_id) REFERENCES contas(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS avaliacoes_fisicas (

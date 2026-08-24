@@ -31,7 +31,7 @@ class ProfessorController extends Controller
     {
         $user = $this->assertProfessorAccess();
         $sectionName = (string) ($_GET['nome'] ?? 'inicio');
-        if (!in_array($sectionName, ['inicio', 'usuarios-pessoas', 'inscricoes', 'agenda'], true)) {
+        if (!in_array($sectionName, ['inicio', 'usuarios-pessoas', 'inscricoes', 'minhas-turmas', 'agenda'], true)) {
             $this->jsonResponse(['success' => false, 'message' => 'A seção não está disponível para professores.'], 403);
             return;
         }
@@ -253,6 +253,7 @@ class ProfessorController extends Controller
         if ($sectionName === 'inicio') { return ['sectionName' => $sectionName, 'professorView' => true]; }
         if ($sectionName === 'usuarios-pessoas') { return array_merge(['sectionName' => $sectionName, 'professorView' => true], $this->buildPeopleData()); }
         if ($sectionName === 'inscricoes') { return ['sectionName' => $sectionName, 'professorView' => true, 'courseEnrollmentsManagement' => (new \App\Services\CourseEnrollmentService())->listForManagement()]; }
+        if ($sectionName === 'minhas-turmas') { return ['sectionName' => $sectionName, 'professorView' => true, 'professorClasses' => (new \App\Services\CourseEnrollmentService())->listClassesForProfessor((int) ($user['conta_id'] ?? 0))]; }
 
         $locationId = (int) ($_GET['local_treino_id'] ?? 0);
         $modalityId = (int) ($_GET['modalidade_id'] ?? 0);

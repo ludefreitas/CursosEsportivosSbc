@@ -14,22 +14,6 @@ ALTER TABLE temporadas
     ADD COLUMN permitir_inscricao_logada TINYINT(1) NOT NULL DEFAULT 1 AFTER permitir_inscricao_por_cpf,
     ADD COLUMN limite_inscricoes_periodo INT UNSIGNED NOT NULL DEFAULT 1 AFTER permitir_inscricao_logada;
 
-CREATE TABLE IF NOT EXISTS temporadas_janelas_inscricao (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    temporada_id BIGINT UNSIGNED NOT NULL,
-    modalidade_id BIGINT UNSIGNED NULL,
-    numero_inscricao INT UNSIGNED NOT NULL,
-    data_inicio DATETIME NOT NULL,
-    data_fim DATETIME NOT NULL,
-    limite_inscricoes_pessoa INT UNSIGNED NOT NULL DEFAULT 1,
-    forcar_lista_espera TINYINT(1) NOT NULL DEFAULT 0,
-    ativo TINYINT(1) NOT NULL DEFAULT 1,
-    UNIQUE KEY uk_temporada_janela_inscricao (temporada_id, modalidade_id, numero_inscricao),
-    INDEX idx_temporadas_janelas_periodo (temporada_id, data_inicio, data_fim, ativo),
-    CONSTRAINT fk_temporada_janela_temporada FOREIGN KEY (temporada_id) REFERENCES temporadas(id) ON DELETE CASCADE,
-    CONSTRAINT fk_temporada_janela_modalidade FOREIGN KEY (modalidade_id) REFERENCES modalidades(id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
 ALTER TABLE inscricoes_turma
     MODIFY COLUMN status VARCHAR(40) NOT NULL DEFAULT 'aguardando_matricula';
 

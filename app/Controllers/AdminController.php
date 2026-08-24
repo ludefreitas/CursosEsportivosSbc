@@ -2157,7 +2157,7 @@ class AdminController extends Controller
             $courseService = new CourseEnrollmentService();
             $data['courseSeasons'] = $courseService->listSeasonsForManagement();
             $data['courseClasses'] = $courseService->listClassesForManagement();
-            $data['courseEnrollmentWindows'] = $courseService->listWindowsForManagement();
+            $data['courseProfessors'] = $courseService->listProfessors();
             $data['courseModalitiesManagement'] = $this->adminService->listModalitiesForManagement();
             $data['courseLocationsManagement'] = $this->adminService->listTrainingLocationsForSpaceForm();
             $data['courseSpacesManagement'] = $this->adminService->listTrainingSpacesForManagement();
@@ -2315,21 +2315,21 @@ class AdminController extends Controller
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
-    public function storeCourseEnrollmentWindow(): void
-    {
-        $user = $this->assertAdminAccess();
-        try {
-            (new CourseEnrollmentService())->createEnrollmentWindow((int) $user['conta_id'], $_POST);
-            $this->jsonResponse(['success' => true, 'message' => 'Janela de inscrição criada com sucesso.', 'redirect' => url('/admin#admin-temporadas-turmas')]);
-        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
-    }
-
     public function deactivateCourseRecord(): void
     {
         $user = $this->assertAdminAccess();
         try {
             (new CourseEnrollmentService())->deactivate(trim((string) ($_POST['entidade'] ?? '')), (int) ($_POST['id'] ?? 0), (int) $user['conta_id']);
             $this->jsonResponse(['success' => true, 'message' => 'Registro inativado com sucesso.', 'html' => $this->renderCourseManagementPanelHtml()]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function assignCourseProfessor(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            (new CourseEnrollmentService())->assignProfessor((int) ($_POST['turma_id'] ?? 0), (int) ($_POST['professor_conta_id'] ?? 0), (int) $user['conta_id']);
+            $this->jsonResponse(['success' => true, 'message' => 'Professor atribuído à turma com sucesso.', 'html' => $this->renderCourseManagementPanelHtml()]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
@@ -2344,7 +2344,7 @@ class AdminController extends Controller
         $courseService = new CourseEnrollmentService();
         $courseSeasons = $courseService->listSeasonsForManagement();
         $courseClasses = $courseService->listClassesForManagement();
-        $courseEnrollmentWindows = $courseService->listWindowsForManagement();
+        $courseProfessors = $courseService->listProfessors();
         $courseModalitiesManagement = $this->adminService->listModalitiesForManagement();
         $courseLocationsManagement = $this->adminService->listTrainingLocationsForSpaceForm();
         $courseSpacesManagement = $this->adminService->listTrainingSpacesForManagement();
