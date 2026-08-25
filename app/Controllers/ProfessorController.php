@@ -109,6 +109,38 @@ class ProfessorController extends Controller
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
+    /**
+     * Cria um horário semanal pela área do professor.
+     */
+    public function storeWeeklySchedule(): void
+    {
+        $user = $this->assertProfessorAccess();
+
+        try {
+            $this->adminService->createWeeklySchedule((int) ($user['conta_id'] ?? 0), $_POST);
+
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Horário semanal criado com sucesso.',
+                ]);
+            }
+
+            flash('success', 'Horário semanal criado com sucesso.');
+        } catch (\Throwable $e) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+
+            flash('error', $e->getMessage());
+        }
+
+        redirect('/professor');
+    }
+
     public function bookingOccurrence(): void
     {
         $user = $this->assertProfessorAccess();

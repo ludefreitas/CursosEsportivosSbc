@@ -1571,6 +1571,11 @@
                 $form.data('externalPersonSearching', true);
                 $form.data('externalPersonSearchedCpf', cpf);
 
+                if (String($form.attr('data-external-person-skip-local-check') || '') === '1') {
+                    searchMigratedRecords($form, cpf);
+                    return;
+                }
+
                 $.getJSON(App.core.buildUrl('/api/cpf/cadastro-status'), { cpf: cpf })
                     .done(function (localStatus) {
                         if (localStatus && localStatus.pessoa_id) {

@@ -27,6 +27,7 @@
             data-external-person-form="1"
             data-external-person-cpf="<?php echo e((string) ($person['cpf'] ?? '')); ?>"
             data-external-person-auto-search="1"
+            data-external-person-skip-local-check="1"
         >
         <input type="hidden" name="return_to" value="<?php echo e($returnTo ?? '/dashboard'); ?>">
         <div class="alert-inline dashboard-dependent-attention">

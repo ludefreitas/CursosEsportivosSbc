@@ -518,7 +518,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     <button type="button" class="popup-close-icon" id="admin-weekly-schedule-create-close" aria-label="Fechar criação">&times;</button>
                 </div>
                 <div class="popup-body admin-popup-body">
-                <form method="POST" action="<?php echo e(url('/admin/horarios-semanais')); ?>" class="stack-form" id="admin-weekly-schedule-create-form" data-manual-submit="1">
+                <form method="POST" action="<?php echo e(url(!empty($professorView) ? '/professor/horarios-semanais' : '/admin/horarios-semanais')); ?>" class="stack-form" id="admin-weekly-schedule-create-form" data-manual-submit="1">
                     <div class="grid-two">
                         <label>
                             <span>Espaço de treino</span>

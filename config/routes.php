@@ -140,6 +140,7 @@ return [
     ['GET', '/professor/usuarios/detalhe', [ProfessorController::class, 'userDetails']],
     ['GET', '/professor/usuarios/dependentes', [ProfessorController::class, 'userDependents']],
     ['GET', '/api/professor/agenda/eventos', [ProfessorController::class, 'calendarEvents']],
+    ['POST', '/professor/horarios-semanais', [ProfessorController::class, 'storeWeeklySchedule']],
     ['GET', '/professor/agendamentos/ocorrencia', [ProfessorController::class, 'bookingOccurrence']],
     ['POST', '/professor/agendamentos/presenca', [ProfessorController::class, 'markBookingAttendance']],
     ['POST', '/professor/inscricoes/status', [ProfessorController::class, 'updateEnrollmentStatus']],
