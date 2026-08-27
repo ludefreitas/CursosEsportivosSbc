@@ -50,6 +50,32 @@ class AgendaService
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Lista todas as modalidades cadastradas para um local, inclusive inativas.
+     */
+    public function listRelatedModalitiesForLocation(int $locationId): array
+    {
+        if ($locationId <= 0) {
+            throw new RuntimeException('Local de treino inválido.');
+        }
+
+        $stmt = Database::connection()->prepare('
+            SELECT DISTINCT
+                m.id,
+                m.nome,
+                m.tipo_ambiente,
+                m.ativo AS modalidade_ativa,
+                lm.ativo AS relacao_ativa
+            FROM local_modalidade lm
+            INNER JOIN modalidades m ON m.id = lm.modalidade_id
+            WHERE lm.local_treino_id = :local_treino_id
+            ORDER BY m.nome
+        ');
+        $stmt->execute([':local_treino_id' => $locationId]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     /** Lista os nomes das modalidades vinculadas a horários semanais ativos. */
     public function activeWeeklyScheduleModalityNames(): array
     {

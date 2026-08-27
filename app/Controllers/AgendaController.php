@@ -163,6 +163,26 @@ class AgendaController extends Controller
     }
 
     /**
+     * Retorna todas as modalidades cadastradas para o local informado.
+     */
+    public function locationModalities(): void
+    {
+        try {
+            $this->jsonResponse([
+                'success' => true,
+                'modalities' => $this->agendaService->listRelatedModalitiesForLocation(
+                    (int) ($_GET['local_treino_id'] ?? 0)
+                ),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
      * Cria um agendamento de avaliação ou treino.
      */
     public function book(): void

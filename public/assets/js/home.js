@@ -460,6 +460,7 @@
             let locations = [];
             let selectedLocationId = 0;
             let selectedDate = '';
+            let modalitiesRequest = null;
 
             if (!calendarElement || typeof FullCalendar === 'undefined' || $locationsCard.length === 0) {
                 return;
@@ -506,6 +507,51 @@
                 const date = value instanceof Date ? value : new Date(value);
                 if (Number.isNaN(date.getTime())) return '';
                 return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+            }
+
+            function loadLocationModalities(locationId) {
+                const $select = $('#home-training-modality');
+
+                if (modalitiesRequest && typeof modalitiesRequest.abort === 'function') {
+                    modalitiesRequest.abort();
+                }
+
+                $select
+                    .prop('disabled', true)
+                    .empty()
+                    .append($('<option>', { value: '0', text: 'Carregando modalidades...' }));
+
+                modalitiesRequest = $.getJSON(App.core.buildUrl('/api/agenda/modalidades-por-local'), {
+                    local_treino_id: locationId
+                }).done(function (response) {
+                    const modalities = response && Array.isArray(response.modalities) ? response.modalities : [];
+
+                    if (!response || response.success === false) {
+                        $select.empty().append($('<option>', { value: '0', text: 'Todas as modalidades' }));
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar as modalidades deste local.'));
+                        return;
+                    }
+
+                    $select.empty().append($('<option>', { value: '0', text: 'Todas as modalidades' }));
+                    modalities.forEach(function (modality) {
+                        $select.append($('<option>', {
+                            value: String(modality.id || ''),
+                            text: String(modality.nome || '')
+                        }));
+                    });
+                    $select.val('0');
+                }).fail(function (xhr, status) {
+                    if (status !== 'abort') {
+                        $select.empty().append($('<option>', { value: '0', text: 'Todas as modalidades' }));
+                        const error = App.core.extrairMensagemErroAjax(xhr);
+                        App.core.abrirPopup('erro', error.mensagem);
+                    }
+                }).always(function (_response, status) {
+                    if (status !== 'abort') {
+                        $select.prop('disabled', false);
+                        modalitiesRequest = null;
+                    }
+                });
             }
 
             function calendarAspectRatio() {
@@ -646,6 +692,7 @@
                 if (!event || !App.agenda || typeof App.agenda.renderizarDetalhesAgenda !== 'function') return;
                 const render = function () {
                     $dayModal.addClass('hidden').attr('aria-hidden', 'true');
+                    $('#agenda-details-modal-back-actions').removeClass('hidden');
                     App.agenda.renderizarDetalhesAgenda({ event: event });
                 };
                 if ($('#agenda-details-modal').length > 0) {
@@ -669,7 +716,7 @@
                 end.setDate(end.getDate() + 1);
                 $.getJSON(App.core.buildUrl('/api/agenda/eventos'), {
                     local_treino_id: selectedLocationId,
-                    modalidade_id: 0,
+                    modalidade_id: Number($('#home-training-modality').val() || 0),
                     start: selectedDate + 'T00:00:00',
                     end: dateKey(end) + 'T00:00:00'
                 }).done(function (records) {
@@ -743,7 +790,7 @@
                 $('#home-all-training-locations-modal').addClass('hidden').attr('aria-hidden', 'true');
                 const location = locations.find(function (item) { return Number(item.id || 0) === selectedLocationId; });
                 $('#home-training-calendar-location').text(location ? '— ' + String(location.apelido_local || location.nome_local || '') : '');
-                $('#home-training-modality').val('0');
+                loadLocationModalities(selectedLocationId);
                 $calendarModal.removeClass('hidden').attr('aria-hidden', 'false');
                 calendar.refetchEvents();
                 window.setTimeout(function () {
@@ -753,6 +800,12 @@
 
             $(document).on('change', '#home-training-modality', function () { calendar.refetchEvents(); });
             $(document).on('click', '[data-home-training-day-close="1"]', function () { $dayModal.addClass('hidden').attr('aria-hidden', 'true'); });
+            $(document).on('click', '#agenda-details-modal-back', function () {
+                if (App.agenda && typeof App.agenda.fecharModalDetalhesHorario === 'function') {
+                    App.agenda.fecharModalDetalhesHorario();
+                }
+                $dayModal.removeClass('hidden').attr('aria-hidden', 'false');
+            });
             $(document).on('click', '#home-training-day-modal', function (event) {
                 if (event.target === this) $dayModal.addClass('hidden').attr('aria-hidden', 'true');
             });

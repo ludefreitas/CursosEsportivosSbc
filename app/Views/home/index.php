@@ -312,6 +312,9 @@ $suggestedCourseModalities = array_slice($suggestedCourseModalities, 0, 3);
         <div>
             <h2 id="home-training-calendar-title">Agenda de treinos <span id="home-training-calendar-location"></span></h2>
             <p class="muted">Os dias destacados possuem horários ou agendamentos vinculados à sua conta.</p>
+            <p class="home-training-residency-notice">
+                As inscrições para os cursos esportivos e os agendamentos para treinos são exclusivos para moradores de São Bernardo do Campo. Será exigido comprovante de endereço ao se matricular e também no dia do agendamento.
+            </p>
         </div>
         <button type="button" class="popup-close-icon" data-home-training-calendar-close="1" aria-label="Fechar agenda de treinos">&times;</button>
     </div>
@@ -339,6 +342,7 @@ $suggestedCourseModalities = array_slice($suggestedCourseModalities, 0, 3);
             <div>
                 <h3 id="home-training-day-title">Horários do dia</h3>
                 <p class="muted" id="home-training-day-subtitle"></p>
+                <p class="home-training-day-instruction">Clique na descrição completa do horário para agendar.</p>
             </div>
             <button type="button" class="popup-close-icon" data-home-training-day-close="1" aria-label="Fechar horários do dia">&times;</button>
         </div>

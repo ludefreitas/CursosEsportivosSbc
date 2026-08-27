@@ -205,6 +205,9 @@
                 <button type="submit" class="btn btn-primary">Agendar horário</button>
             </form>
         </div>
+        <div class="popup-actions hidden" id="agenda-details-modal-back-actions">
+            <button type="button" class="btn btn-secondary" id="agenda-details-modal-back">Voltar</button>
+        </div>
     </div>
 </div>
 

@@ -50,6 +50,7 @@ return [
     ['GET', '/agenda/pessoas', [AgendaController::class, 'schedulablePeople']],
     ['GET', '/agenda/elegibilidade', [AgendaController::class, 'scheduleEligibility']],
     ['GET', '/api/agenda/eventos', [AgendaController::class, 'events']],
+    ['GET', '/api/agenda/modalidades-por-local', [AgendaController::class, 'locationModalities']],
     ['GET', '/api/ceps/validar', [CepController::class, 'validate']],
     ['GET', '/api/ceps/endereco', [CepController::class, 'address']],
     ['POST', '/agenda/agendar', [AgendaController::class, 'book']],

@@ -968,6 +968,16 @@ body.pagina-home .site-header {
     line-height: 1.25;
 }
 
+.pagina-home .home-training-calendar-card .section-head .home-training-residency-notice {
+    margin-top: 6px;
+    padding: 6px 8px;
+    border-left: 3px solid #d48806;
+    border-radius: 4px;
+    background: #fff7db;
+    color: #684700;
+    font-weight: 700;
+}
+
 .pagina-home #home-training-calendar {
     font-size: clamp(11px, 1.15vw, 14px);
 }
@@ -1095,6 +1105,13 @@ body.pagina-home .site-header {
 
 .pagina-home .home-training-day-modal-card {
     width: min(760px, 100%);
+}
+
+.pagina-home .home-training-day-instruction {
+    margin: 6px 0 0;
+    color: #9a5700;
+    font-size: 13px;
+    font-weight: 700;
 }
 
 .pagina-home .home-training-day-list {
