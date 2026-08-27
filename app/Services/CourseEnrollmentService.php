@@ -122,6 +122,83 @@ class CourseEnrollmentService
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    public function listSeasonOriginsForManagement(): array
+    {
+        $pdo = Database::connection();
+        $this->ensureCourseSeasonSchema($pdo);
+        $stmt = $pdo->query('SELECT id, nome, ativo FROM origens_temporada ORDER BY ativo DESC, nome ASC');
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function saveSeasonOrigin(int $accountId, array $data): array
+    {
+        $pdo = Database::connection();
+        $this->ensureCourseSeasonSchema($pdo);
+        $id = (int) ($data['id'] ?? 0);
+        $name = trim((string) ($data['nome'] ?? ''));
+        $active = (!isset($data['ativo']) || (int) $data['ativo'] === 1) ? 1 : 0;
+
+        if ($name === '') {
+            throw new RuntimeException('Informe o nome da instituição de origem.');
+        }
+        if (mb_strlen($name) > 180) {
+            throw new RuntimeException('O nome da instituição deve ter no máximo 180 caracteres.');
+        }
+
+        $duplicate = $pdo->prepare('SELECT id FROM origens_temporada WHERE nome = :nome AND id <> :id LIMIT 1');
+        $duplicate->execute([':nome' => $name, ':id' => $id]);
+        if ($duplicate->fetch(PDO::FETCH_ASSOC)) {
+            throw new RuntimeException('Já existe uma origem da temporada com este nome.');
+        }
+
+        if ($id > 0) {
+            $exists = $pdo->prepare('SELECT id FROM origens_temporada WHERE id = :id LIMIT 1');
+            $exists->execute([':id' => $id]);
+            if (!$exists->fetch(PDO::FETCH_ASSOC)) {
+                throw new RuntimeException('A origem da temporada informada não foi encontrada.');
+            }
+            $stmt = $pdo->prepare('UPDATE origens_temporada SET nome = :nome, ativo = :ativo WHERE id = :id LIMIT 1');
+            $stmt->execute([':nome' => $name, ':ativo' => $active, ':id' => $id]);
+            $syncSeasons = $pdo->prepare('UPDATE temporadas SET origem_temporada = :nome WHERE origem_temporada_id = :id');
+            $syncSeasons->execute([':nome' => $name, ':id' => $id]);
+            AuditLogService::record('origem_temporada.atualizada', 'origens_temporada', $id, ['conta_id' => $accountId]);
+        } else {
+            $stmt = $pdo->prepare('INSERT INTO origens_temporada (nome, ativo) VALUES (:nome, :ativo)');
+            $stmt->execute([':nome' => $name, ':ativo' => $active]);
+            $id = (int) $pdo->lastInsertId();
+            AuditLogService::record('origem_temporada.criada', 'origens_temporada', $id, ['conta_id' => $accountId]);
+        }
+
+        return ['id' => $id, 'nome' => $name, 'ativo' => $active];
+    }
+
+    public function deleteSeasonOrigin(int $accountId, int $originId): void
+    {
+        if ($originId <= 0) {
+            throw new RuntimeException('Não foi possível identificar a origem da temporada que será excluída.');
+        }
+
+        $pdo = Database::connection();
+        $this->ensureCourseSeasonSchema($pdo);
+        $origin = $this->findSeasonOrigin($pdo, $originId);
+        if (!$origin) {
+            throw new RuntimeException('A origem da temporada informada não foi encontrada.');
+        }
+
+        $usage = $pdo->prepare('SELECT COUNT(*) FROM temporadas WHERE origem_temporada_id = :id');
+        $usage->execute([':id' => $originId]);
+        if ((int) $usage->fetchColumn() > 0) {
+            throw new RuntimeException('Esta origem está vinculada a uma ou mais temporadas e não pode ser excluída. Altere seu status para inativa.');
+        }
+
+        $stmt = $pdo->prepare('DELETE FROM origens_temporada WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $originId]);
+        AuditLogService::record('origem_temporada.excluida', 'origens_temporada', $originId, [
+            'conta_id' => $accountId,
+            'nome' => (string) ($origin['nome'] ?? ''),
+        ]);
+    }
+
     public function listClassesForManagement(): array
     {
         $pdo = Database::connection();
@@ -136,29 +213,30 @@ class CourseEnrollmentService
         $type = trim((string) ($data['tipo_periodicidade'] ?? 'anual'));
         $start = trim((string) ($data['data_inicio'] ?? ''));
         $end = trim((string) ($data['data_fim'] ?? ''));
-        $origin = trim((string) ($data['origem_temporada'] ?? ''));
         $hasNotice = !empty($data['possui_edital']);
         $noticeNumber = $hasNotice ? trim((string) ($data['numero_edital'] ?? '')) : null;
         $noticeLink = $hasNotice ? trim((string) ($data['link_edital'] ?? '')) : null;
-        if ($name === '' || $origin === '' || !in_array($type, ['anual', 'semestral', 'quadrimestral', 'bimestral', 'mensal'], true) || $start === '' || $end === '') { throw new RuntimeException('Preencha nome, instituição gestora, periodicidade e período da temporada.'); }
-        if ($hasNotice && ($noticeNumber === '' || $noticeLink === '')) { throw new RuntimeException('Informe o número e o link do edital da temporada.'); }
-        if ($hasNotice && filter_var($noticeLink, FILTER_VALIDATE_URL) === false) { throw new RuntimeException('Informe um link válido para o edital, incluindo http:// ou https://.'); }
-        if ($start > $end) { throw new RuntimeException('A data final da temporada deve ser posterior à inicial.'); }
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
         $this->ensureCourseAgeCriterionSchema($pdo);
+        $originId = (int) ($data['origem_temporada_id'] ?? 0);
+        $origin = $this->findSeasonOrigin($pdo, $originId);
+        if ($name === '' || !$origin || !in_array($type, ['anual', 'semestral', 'quadrimestral', 'bimestral', 'mensal'], true) || $start === '' || $end === '') { throw new RuntimeException('Preencha nome, instituição gestora, periodicidade e período da temporada.'); }
+        if ($hasNotice && ($noticeNumber === '' || $noticeLink === '')) { throw new RuntimeException('Informe o número e o link do edital da temporada.'); }
+        if ($hasNotice && filter_var($noticeLink, FILTER_VALIDATE_URL) === false) { throw new RuntimeException('Informe um link válido para o edital, incluindo http:// ou https://.'); }
+        if ($start > $end) { throw new RuntimeException('A data final da temporada deve ser posterior à inicial.'); }
         $id = (int) ($data['id'] ?? 0);
         $secondRelease = trim((string) ($data['data_liberacao_segunda_inscricao'] ?? '')) ?: null;
         $additionalRelease = trim((string) ($data['data_liberacao_inscricoes_adicionais'] ?? '')) ?: null;
         if ($secondRelease && $additionalRelease && $secondRelease > $additionalRelease) { throw new RuntimeException('A liberação da terceira inscrição deve ocorrer depois da liberação da segunda.'); }
-        $params = [':nome' => $name, ':origem' => $origin, ':possui_edital' => $hasNotice ? 1 : 0, ':numero_edital' => $noticeNumber, ':link_edital' => $noticeLink, ':tipo' => $type, ':inicio' => $start, ':fim' => $end, ':status' => in_array(($data['status'] ?? 'planejada'), ['planejada', 'ativa', 'suspensa', 'encerrada', 'cancelada'], true) ? $data['status'] : 'planejada', ':inscricoes_inicio' => trim((string) ($data['inscricoes_inicio'] ?? '')) ?: null, ':inscricoes_fim' => trim((string) ($data['inscricoes_fim'] ?? '')) ?: null, ':matriculas_inicio' => trim((string) ($data['matriculas_inicio'] ?? '')) ?: null, ':matriculas_fim' => trim((string) ($data['matriculas_fim'] ?? '')) ?: null, ':abertas_inicio' => trim((string) ($data['inscricoes_abertas_inicio'] ?? '')) ?: null, ':abertas_fim' => trim((string) ($data['inscricoes_abertas_fim'] ?? '')) ?: null, ':aulas_inicio' => trim((string) ($data['aulas_inicio'] ?? '')) ?: null, ':aulas_fim' => trim((string) ($data['aulas_fim'] ?? '')) ?: null, ':cpf' => !empty($data['permitir_inscricao_por_cpf']) ? 1 : 0, ':logada' => !empty($data['permitir_inscricao_logada']) ? 1 : 0, ':limite' => max(1, (int) ($data['limite_inscricoes_periodo'] ?? 1)), ':segunda_liberacao' => $secondRelease, ':adicionais_liberacao' => $additionalRelease, ':limite_adicionais' => max(3, (int) ($data['limite_inscricoes_adicionais'] ?? 3))];
+        $params = [':nome' => $name, ':origem_id' => $originId, ':origem' => (string) $origin['nome'], ':possui_edital' => $hasNotice ? 1 : 0, ':numero_edital' => $noticeNumber, ':link_edital' => $noticeLink, ':tipo' => $type, ':inicio' => $start, ':fim' => $end, ':status' => in_array(($data['status'] ?? 'planejada'), ['planejada', 'ativa', 'suspensa', 'encerrada', 'cancelada'], true) ? $data['status'] : 'planejada', ':inscricoes_inicio' => trim((string) ($data['inscricoes_inicio'] ?? '')) ?: null, ':inscricoes_fim' => trim((string) ($data['inscricoes_fim'] ?? '')) ?: null, ':matriculas_inicio' => trim((string) ($data['matriculas_inicio'] ?? '')) ?: null, ':matriculas_fim' => trim((string) ($data['matriculas_fim'] ?? '')) ?: null, ':abertas_inicio' => trim((string) ($data['inscricoes_abertas_inicio'] ?? '')) ?: null, ':abertas_fim' => trim((string) ($data['inscricoes_abertas_fim'] ?? '')) ?: null, ':aulas_inicio' => trim((string) ($data['aulas_inicio'] ?? '')) ?: null, ':aulas_fim' => trim((string) ($data['aulas_fim'] ?? '')) ?: null, ':cpf' => !empty($data['permitir_inscricao_por_cpf']) ? 1 : 0, ':logada' => !empty($data['permitir_inscricao_logada']) ? 1 : 0, ':limite' => max(1, (int) ($data['limite_inscricoes_periodo'] ?? 1)), ':segunda_liberacao' => $secondRelease, ':adicionais_liberacao' => $additionalRelease, ':limite_adicionais' => max(3, (int) ($data['limite_inscricoes_adicionais'] ?? 3))];
         if ($id > 0) {
             $params[':id'] = $id;
-            $stmt = $pdo->prepare('UPDATE temporadas SET nome=:nome, origem_temporada=:origem, possui_edital=:possui_edital, numero_edital=:numero_edital, link_edital=:link_edital, tipo_periodicidade=:tipo, data_inicio=:inicio, data_fim=:fim, status=:status, inscricoes_inicio=:inscricoes_inicio, inscricoes_fim=:inscricoes_fim, matriculas_inicio=:matriculas_inicio, matriculas_fim=:matriculas_fim, inscricoes_abertas_inicio=:abertas_inicio, inscricoes_abertas_fim=:abertas_fim, aulas_inicio=:aulas_inicio, aulas_fim=:aulas_fim, permitir_inscricao_por_cpf=:cpf, permitir_inscricao_logada=:logada, limite_inscricoes_periodo=:limite, data_liberacao_segunda_inscricao=:segunda_liberacao, data_liberacao_inscricoes_adicionais=:adicionais_liberacao, limite_inscricoes_adicionais=:limite_adicionais WHERE id=:id LIMIT 1');
+            $stmt = $pdo->prepare('UPDATE temporadas SET nome=:nome, origem_temporada_id=:origem_id, origem_temporada=:origem, possui_edital=:possui_edital, numero_edital=:numero_edital, link_edital=:link_edital, tipo_periodicidade=:tipo, data_inicio=:inicio, data_fim=:fim, status=:status, inscricoes_inicio=:inscricoes_inicio, inscricoes_fim=:inscricoes_fim, matriculas_inicio=:matriculas_inicio, matriculas_fim=:matriculas_fim, inscricoes_abertas_inicio=:abertas_inicio, inscricoes_abertas_fim=:abertas_fim, aulas_inicio=:aulas_inicio, aulas_fim=:aulas_fim, permitir_inscricao_por_cpf=:cpf, permitir_inscricao_logada=:logada, limite_inscricoes_periodo=:limite, data_liberacao_segunda_inscricao=:segunda_liberacao, data_liberacao_inscricoes_adicionais=:adicionais_liberacao, limite_inscricoes_adicionais=:limite_adicionais WHERE id=:id LIMIT 1');
             $stmt->execute($params);
             AuditLogService::record('temporada.atualizada', 'temporadas', $id, ['conta_id' => $accountId]);
         } else {
-            $stmt = $pdo->prepare('INSERT INTO temporadas (nome, origem_temporada, possui_edital, numero_edital, link_edital, tipo_periodicidade, data_inicio, data_fim, status, inscricoes_inicio, inscricoes_fim, matriculas_inicio, matriculas_fim, inscricoes_abertas_inicio, inscricoes_abertas_fim, aulas_inicio, aulas_fim, permitir_inscricao_por_cpf, permitir_inscricao_logada, limite_inscricoes_periodo, data_liberacao_segunda_inscricao, data_liberacao_inscricoes_adicionais, limite_inscricoes_adicionais, ativo) VALUES (:nome, :origem, :possui_edital, :numero_edital, :link_edital, :tipo, :inicio, :fim, :status, :inscricoes_inicio, :inscricoes_fim, :matriculas_inicio, :matriculas_fim, :abertas_inicio, :abertas_fim, :aulas_inicio, :aulas_fim, :cpf, :logada, :limite, :segunda_liberacao, :adicionais_liberacao, :limite_adicionais, 1)');
+            $stmt = $pdo->prepare('INSERT INTO temporadas (nome, origem_temporada_id, origem_temporada, possui_edital, numero_edital, link_edital, tipo_periodicidade, data_inicio, data_fim, status, inscricoes_inicio, inscricoes_fim, matriculas_inicio, matriculas_fim, inscricoes_abertas_inicio, inscricoes_abertas_fim, aulas_inicio, aulas_fim, permitir_inscricao_por_cpf, permitir_inscricao_logada, limite_inscricoes_periodo, data_liberacao_segunda_inscricao, data_liberacao_inscricoes_adicionais, limite_inscricoes_adicionais, ativo) VALUES (:nome, :origem_id, :origem, :possui_edital, :numero_edital, :link_edital, :tipo, :inicio, :fim, :status, :inscricoes_inicio, :inscricoes_fim, :matriculas_inicio, :matriculas_fim, :abertas_inicio, :abertas_fim, :aulas_inicio, :aulas_fim, :cpf, :logada, :limite, :segunda_liberacao, :adicionais_liberacao, :limite_adicionais, 1)');
             $stmt->execute($params);
             $id = (int) $pdo->lastInsertId();
             AuditLogService::record('temporada.criada', 'temporadas', $id, ['conta_id' => $accountId]);
@@ -740,11 +818,33 @@ class CourseEnrollmentService
         return (int) ($stmt->fetchColumn() ?: 0);
     }
 
+    private function findSeasonOrigin(PDO $pdo, int $originId): ?array
+    {
+        if ($originId <= 0) { return null; }
+        $stmt = $pdo->prepare('SELECT id, nome, ativo FROM origens_temporada WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $originId]);
+        $origin = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $origin ?: null;
+    }
+
     private function ensureCourseSeasonSchema(PDO $pdo): void
     {
         if (self::$courseSeasonSchemaChecked) { return; }
+        $originTableCheck = $pdo->query("SHOW TABLES LIKE 'origens_temporada'");
+        $originTableAlreadyExisted = $originTableCheck && $originTableCheck->fetchColumn();
+        $pdo->exec('
+            CREATE TABLE IF NOT EXISTS origens_temporada (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                nome VARCHAR(180) NOT NULL,
+                ativo TINYINT(1) NOT NULL DEFAULT 1,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY uniq_origem_temporada_nome (nome)
+            ) ENGINE=InnoDB
+        ');
         $columns = [
             'origem_temporada' => 'VARCHAR(180) NULL AFTER nome',
+            'origem_temporada_id' => 'BIGINT UNSIGNED NULL AFTER origem_temporada',
             'possui_edital' => 'TINYINT(1) NOT NULL DEFAULT 0 AFTER origem_temporada',
             'numero_edital' => 'VARCHAR(100) NULL AFTER possui_edital',
             'link_edital' => 'VARCHAR(2048) NULL AFTER numero_edital',
@@ -752,11 +852,43 @@ class CourseEnrollmentService
             'data_liberacao_inscricoes_adicionais' => 'DATETIME NULL AFTER data_liberacao_segunda_inscricao',
             'limite_inscricoes_adicionais' => 'INT UNSIGNED NOT NULL DEFAULT 3 AFTER data_liberacao_inscricoes_adicionais',
         ];
+        $originIdColumnAdded = false;
         foreach ($columns as $name => $definition) {
             $stmt = $pdo->query('SHOW COLUMNS FROM temporadas LIKE ' . $pdo->quote($name));
             if (!$stmt || !$stmt->fetch(PDO::FETCH_ASSOC)) {
                 $pdo->exec("ALTER TABLE temporadas ADD COLUMN {$name} {$definition}");
+                if ($name === 'origem_temporada_id') {
+                    $originIdColumnAdded = true;
+                }
             }
+        }
+        if (!$originTableAlreadyExisted || $originIdColumnAdded) {
+            $defaultOrigin = 'Secretaria de Esportes e Lazer de São Bernardo do Campo';
+            $defaultStmt = $pdo->prepare('INSERT IGNORE INTO origens_temporada (nome, ativo) VALUES (:nome, 1)');
+            $defaultStmt->execute([':nome' => $defaultOrigin]);
+            $pdo->exec('
+                INSERT IGNORE INTO origens_temporada (nome, ativo)
+                SELECT DISTINCT TRIM(origem_temporada), 1
+                FROM temporadas
+                WHERE origem_temporada IS NOT NULL AND TRIM(origem_temporada) <> ""
+            ');
+            $pdo->exec('
+                UPDATE temporadas te
+                INNER JOIN origens_temporada ot ON ot.nome = TRIM(te.origem_temporada)
+                SET te.origem_temporada_id = ot.id
+                WHERE te.origem_temporada_id IS NULL
+            ');
+        }
+        $foreignKeyStmt = $pdo->query('
+            SELECT 1
+            FROM information_schema.TABLE_CONSTRAINTS
+            WHERE CONSTRAINT_SCHEMA = DATABASE()
+              AND TABLE_NAME = "temporadas"
+              AND CONSTRAINT_NAME = "fk_temporada_origem"
+            LIMIT 1
+        ');
+        if (!$foreignKeyStmt || !$foreignKeyStmt->fetchColumn()) {
+            $pdo->exec('ALTER TABLE temporadas ADD CONSTRAINT fk_temporada_origem FOREIGN KEY (origem_temporada_id) REFERENCES origens_temporada(id)');
         }
         self::$courseSeasonSchemaChecked = true;
     }

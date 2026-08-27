@@ -19,7 +19,6 @@
             $('.header-login-form').remove();
 
             const navItems = [
-                '<a href="' + App.core.buildUrl('/agenda') + '" class="nav-color-green">Agenda</a>',
                 '<a href="' + App.core.buildUrl('/cursos') + '" class="nav-color-orange">Cursos</a>',
                 '<a href="' + App.core.buildUrl('/blog') + '" class="nav-color-red">Blog</a>',
                 '<a href="' + App.core.buildUrl('/dashboard') + '" class="nav-color-teal" data-profile-completion-link="' + profileCompletionRequired + '">Meu painel</a>'

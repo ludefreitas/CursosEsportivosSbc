@@ -690,24 +690,13 @@
 
             function abrirDetalhesAgenda(event) {
                 if (!event || !App.agenda || typeof App.agenda.renderizarDetalhesAgenda !== 'function') return;
-                const render = function () {
-                    $dayModal.addClass('hidden').attr('aria-hidden', 'true');
-                    $('#agenda-details-modal-back-actions').removeClass('hidden');
-                    App.agenda.renderizarDetalhesAgenda({ event: event });
-                };
-                if ($('#agenda-details-modal').length > 0) {
-                    render();
+                if ($('#agenda-details-modal').length === 0) {
+                    App.core.abrirPopup('erro', 'Não foi possível carregar os detalhes deste horário.');
                     return;
                 }
-                $('#home-agenda-details-host').load(App.core.buildUrl('/agenda') + ' #agenda-details-modal', function (_response, status) {
-                    if (status !== 'success' || $('#agenda-details-modal').length === 0) {
-                        App.core.abrirPopup('erro', 'Não foi possível carregar os detalhes deste horário.');
-                        return;
-                    }
-                    const $warning = $('#agenda-access-warning');
-                    if ($warning.length > 0) $warning.data('defaultText', $.trim($warning.text()));
-                    render();
-                });
+                $dayModal.addClass('hidden').attr('aria-hidden', 'true');
+                $('#agenda-details-modal-back-actions').removeClass('hidden');
+                App.agenda.renderizarDetalhesAgenda({ event: event });
             }
 
             function loadDay() {

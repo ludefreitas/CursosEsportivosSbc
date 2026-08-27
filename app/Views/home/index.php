@@ -355,7 +355,7 @@ $suggestedCourseModalities = array_slice($suggestedCourseModalities, 0, 3);
     </div>
 </div>
 
-<div id="home-agenda-details-host"></div>
+<?php require ROOT_PATH . '/app/Views/agenda/partials/booking_modals.php'; ?>
 
 <?php if (!empty($homeSpecialEvents)) { ?>
 <section class="content-card">
@@ -364,7 +364,7 @@ $suggestedCourseModalities = array_slice($suggestedCourseModalities, 0, 3);
             <h2>Horários especiais em destaque</h2>
             <p class="muted">Inscrições e avaliações especiais em evidência na página inicial.</p>
         </div>
-        <a href="<?php echo e(url('/agenda')); ?>" class="btn btn-secondary">Abrir agenda</a>
+        <button type="button" class="btn btn-secondary" data-home-scroll-target="home-training-agenda">Abrir agenda</button>
     </div>
     <div class="special-event-grid">
         <?php foreach ($homeSpecialEvents as $event) { ?>
@@ -378,7 +378,7 @@ $suggestedCourseModalities = array_slice($suggestedCourseModalities, 0, 3);
                     <p><?php echo e((string) ($event['descricao'] ?? '')); ?></p>
                     <small><?php echo e(date('d/m/Y H:i', strtotime((string) $event['data_inicio']))); ?> até <?php echo e(date('d/m/Y H:i', strtotime((string) $event['data_fim']))); ?></small>
                     <div class="hero-actions top-gap">
-                        <a href="<?php echo e((string) (!empty($event['url_destino']) ? $event['url_destino'] : url('/agenda'))); ?>" class="btn btn-primary"><?php echo e((string) (!empty($event['rotulo_acao']) ? $event['rotulo_acao'] : 'Ver detalhes')); ?></a>
+                        <a href="<?php echo e((string) (!empty($event['url_destino']) ? $event['url_destino'] : url('/#home-training-locations'))); ?>" class="btn btn-primary"><?php echo e((string) (!empty($event['rotulo_acao']) ? $event['rotulo_acao'] : 'Ver detalhes')); ?></a>
                     </div>
                 </div>
             </article>

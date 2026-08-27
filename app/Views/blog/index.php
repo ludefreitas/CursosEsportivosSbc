@@ -133,7 +133,7 @@ $blogAdminMode = !empty($blogAdminMode);
                 <h3>Navegacao rapida</h3>
                 <ul class="blog-sidebar-list">
                     <li><a href="<?php echo e(url('/')); ?>">Página inicial do portal</a></li>
-                    <li><a href="<?php echo e(url('/agenda')); ?>">Agenda pública</a></li>
+                    <li><a href="<?php echo e(url('/#home-training-locations')); ?>">Agendamento de treinos</a></li>
                     <li><a href="<?php echo e(url('/blog')); ?>">Todas as postagens</a></li>
                 </ul>
             </section>

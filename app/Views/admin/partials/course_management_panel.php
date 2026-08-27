@@ -1,4 +1,8 @@
-<section class="admin-section-panel" data-admin-section="temporadas-turmas">
+<section
+    class="admin-section-panel"
+    data-admin-section="temporadas-turmas"
+    data-course-season-origins="<?php echo e((string) json_encode($courseSeasonOrigins ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
+>
     <div class="section-head admin-section-head"><div><h2>Temporadas, turmas e inscrições</h2><p class="muted">Configure o período dos cursos, os limites progressivos de inscrições e as turmas de cada temporada.</p></div></div>
 
     <section class="grid-two course-management-tables">

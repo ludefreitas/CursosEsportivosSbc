@@ -13,19 +13,23 @@
         <div class="admin-nav">
             <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Início</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-pessoas">Usuários e pessoas</button>
+            <?php if (!empty($canAccessMasterSections)) { ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="migracao-cadastros">Migração de cadastros</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="migracao-atestados">Migração de atestados</button>
+            <?php } ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="agenda">Agenda</button>
+            <?php if (!empty($canAccessMasterSections)) { ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="pagina-home">Página home</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="pop-ups">Pop-ups</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="blog">Blog</button>
+            <?php } ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="locais-espacos">Locais e espaços</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="modalidades">Modalidades</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="temporadas-turmas">Temporadas e turmas</button>
+            <?php if (!empty($canAccessMasterSections)) { ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="configuracoes">Configurações</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="outras-areas">Outras áreas</button>
-            <?php if (has_role($user['roles'] ?? [], 'master_admin')) { ?>
-                <a class="admin-nav-button" href="<?php echo e(url('/admin-recuperacao-dados')); ?>">Reversão de testes</a>
+            <a class="admin-nav-button" href="<?php echo e(url('/admin-recuperacao-dados')); ?>">Reversão de testes</a>
             <?php } ?>
         </div>
     </nav>

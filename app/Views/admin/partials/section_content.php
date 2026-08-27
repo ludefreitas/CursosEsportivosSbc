@@ -98,10 +98,16 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             <div class="chips-wrap">
                 <span class="chip">Usuários e pessoas</span>
                 <span class="chip">Agenda</span>
+                <?php if (!empty($canAccessMasterSections)) { ?>
                 <span class="chip">Página home</span>
                 <span class="chip">Blog</span>
+                <?php } ?>
                 <span class="chip">Locais e espaços</span>
+                <span class="chip">Modalidades</span>
+                <span class="chip">Temporadas e turmas</span>
+                <?php if (!empty($canAccessMasterSections)) { ?>
                 <span class="chip">Configurações</span>
+                <?php } ?>
             </div>
         </article>
     </section>
@@ -2576,26 +2582,47 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         <div class="section-head admin-section-head">
             <div>
                 <h2>Outras áreas</h2>
-                <p class="muted">Reservado para os próximos módulos administrativos que forem surgindo com o desenvolvimento do sistema.</p>
+                <p class="muted">Cadastros auxiliares utilizados pelos módulos administrativos.</p>
             </div>
         </div>
 
-        <section class="grid-two">
-            <article class="content-card">
-                <h2>Fila de proximas rotinas</h2>
-                <div class="chips-wrap">
-                    <span class="chip">Área do professor</span>
-                    <span class="chip">Presença e falta</span>
-                    <span class="chip">Inscrições em turmas</span>
-                    <span class="chip">Documentos e validações</span>
-                    <span class="chip">Relatorios gerenciais</span>
+        <article class="content-card">
+            <div class="section-head">
+                <div>
+                    <h2>Origens das temporadas</h2>
+                    <p class="muted">Instituições responsáveis pela gestão das temporadas.</p>
                 </div>
-            </article>
+                <button type="button" class="btn btn-primary" id="admin-season-origin-create">Criar nova origem</button>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead><tr><th>Instituição</th><th>Status</th><th>Ação</th></tr></thead>
+                    <tbody id="admin-season-origin-list-body">
+                        <?php require ROOT_PATH . '/app/Views/admin/partials/season_origin_rows.php'; ?>
+                    </tbody>
+                </table>
+            </div>
+        </article>
 
-            <article class="content-card">
-                <h2>Observação estrutural</h2>
-                <p class="muted">Se o volume crescer bastante, depois podemos evoluir cada bloco para sua própria rota sem perder este mesmo layout administrativo.</p>
-            </article>
-        </section>
+        <div id="admin-season-origin-modal" class="popup-overlay hidden" aria-hidden="true">
+            <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-season-origin-modal-title">
+                <div class="popup-head">
+                    <div><h3 id="admin-season-origin-modal-title">Criar origem da temporada</h3><p class="muted">Cadastre a instituição que gerencia uma ou mais temporadas.</p></div>
+                    <button type="button" class="popup-close-icon" data-admin-season-origin-close="1" aria-label="Fechar">&times;</button>
+                </div>
+                <div class="popup-body">
+                    <form method="POST" action="<?php echo e(url('/admin/origens-temporada')); ?>" data-create-action="<?php echo e(url('/admin/origens-temporada')); ?>" data-update-action="<?php echo e(url('/admin/origens-temporada/atualizar')); ?>" id="admin-season-origin-form" class="stack-form" data-manual-submit="1">
+                        <input type="hidden" name="origem_temporada_id" value="">
+                        <label><span>Nome da instituição</span><input type="text" name="nome" maxlength="180" required></label>
+                        <label><span>Status</span><select name="ativo"><option value="1">Ativa</option><option value="0">Inativa</option></select></label>
+                        <div class="alert-inline hidden" id="admin-season-origin-form-error"></div>
+                        <div class="popup-actions">
+                            <button type="button" class="btn btn-secondary" data-admin-season-origin-close="1">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Salvar origem</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </section>
 <?php } ?>

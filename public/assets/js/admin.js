@@ -2574,6 +2574,10 @@
 
                 $form[0].reset();
                 $('#admin-blog-post-id').val('');
+                if ($form.find('[name="operacao"]').length === 0) {
+                    $form.append($('<input>', { type: 'hidden', name: 'operacao' }));
+                }
+                $form.find('[name="operacao"]').val('criar');
                 $('#admin-blog-post-modal-title').text('Nova postagem do blog');
                 $('#admin-blog-post-submit').text('Salvar postagem');
                 $('#admin-blog-post-deactivate').addClass('hidden').removeAttr('data-post-id');
@@ -2663,6 +2667,7 @@
 
             function fillForm(post) {
                 $('#admin-blog-post-id').val(String(post.id || ''));
+                getForm().find('[name="operacao"]').val('editar');
                 $('#admin-blog-post-title').val(String(post.titulo || ''));
                 $('#admin-blog-post-slug').val(String(post.slug || ''));
                 $('#admin-blog-post-category').val(String(post.categoria || ''));
@@ -2815,6 +2820,10 @@
                 event.preventDefault();
 
                 const $form = $(this);
+                if (String($form.find('[name="operacao"]').val() || '') === 'editar' && Number($('#admin-blog-post-id').val() || 0) <= 0) {
+                    App.core.abrirPopup('erro', 'Não foi possível identificar a postagem que será editada. Feche o modal e tente novamente.');
+                    return;
+                }
                 const $submitButton = $('#admin-blog-post-submit');
                 const formData = new FormData($form[0]);
 
@@ -4660,11 +4669,26 @@
             }
 
             function ensureSeasonNoticeFields($form) {
-                if ($form.find('[name="origem_temporada"]').length === 0) {
+                if ($form.find('[name="origem_temporada_id"]').length === 0) {
                     const $name = $form.find('[name="nome"]').closest('label');
+                    let origins = [];
+                    try {
+                        origins = JSON.parse(String($form.closest('[data-course-season-origins]').attr('data-course-season-origins') || '[]'));
+                    } catch (error) {
+                        origins = [];
+                    }
+                    const $originSelect = $('<select>', { name: 'origem_temporada_id', required: true })
+                        .append($('<option>', { value: '', text: 'Selecione' }));
+                    origins.forEach(function (origin) {
+                        const inactiveSuffix = Number(origin.ativo || 0) === 1 ? '' : ' (inativa)';
+                        $originSelect.append($('<option>', {
+                            value: String(origin.id || ''),
+                            text: String(origin.nome || '') + inactiveSuffix
+                        }));
+                    });
                     const $origin = $('<label>')
                         .append($('<span>', { text: 'Instituição gestora (origem)' }))
-                        .append($('<input>', { name: 'origem_temporada', maxlength: 180, required: true }));
+                        .append($originSelect);
                     const $toggle = $('<label>', { class: 'checkbox-chip' })
                         .append($('<input>', { type: 'checkbox', name: 'possui_edital', value: '1', 'data-season-notice-toggle': '1' }))
                         .append($('<span>', { text: 'Esta temporada possui edital' }));
@@ -4699,9 +4723,13 @@
             function openModal(type, record) {
                 const $modal = modalFor(type);
                 const $form = $modal.find('[data-course-form="' + type + '"]');
+                if ($form.find('[name="operacao"]').length === 0) {
+                    $form.append($('<input>', { type: 'hidden', name: 'operacao' }));
+                }
                 if (type === 'class') ensureClassAgeCriterionField($form);
                 if (type === 'season') ensureSeasonNoticeFields($form);
                 fillForm($form, record || {});
+                $form.find('[name="operacao"]').val(record ? 'editar' : 'criar');
                 if (!record && type === 'season') {
                     $form.find('[name="permitir_inscricao_logada"]').prop('checked', true);
                     $form.find('[name="limite_inscricoes_periodo"]').val('1');
@@ -4756,6 +4784,10 @@
             $(document).on('submit', '[data-course-form="season"], [data-course-form="class"]', function (event) {
                 event.preventDefault();
                 const $form = $(this);
+                if (String($form.find('[name="operacao"]').val() || '') === 'editar' && Number($form.find('[name="id"]').val() || 0) <= 0) {
+                    App.core.abrirPopup('erro', 'Não foi possível identificar o registro que será editado. Feche o modal e tente novamente.');
+                    return;
+                }
                 const $button = $form.find('button[type="submit"]').prop('disabled', true);
                 $.ajax({
                     url: $form.attr('action'), method: 'POST', dataType: 'json', data: new FormData($form[0]),
@@ -4786,6 +4818,91 @@
             });
         },
 
+        iniciarGerenciamentoOrigensTemporada: function () {
+            const closeModal = function () {
+                $('#admin-season-origin-modal').addClass('hidden').attr('aria-hidden', 'true');
+            };
+            const openModal = function (origin) {
+                const editing = origin && Number(origin.id || 0) > 0;
+                const $form = $('#admin-season-origin-form');
+                if ($form.length === 0) return;
+                $form[0].reset();
+                $form.find('[name="origem_temporada_id"]').val(editing ? String(origin.id) : '');
+                $form.attr('action', editing ? String($form.attr('data-update-action') || '') : String($form.attr('data-create-action') || ''));
+                $form.find('[name="nome"]').val(editing ? String(origin.name || '') : '');
+                $form.find('[name="ativo"]').val(editing ? String(origin.active || '0') : '1');
+                $('#admin-season-origin-form-error').addClass('hidden').text('');
+                $('#admin-season-origin-modal-title').text(editing ? 'Editar origem da temporada' : 'Criar origem da temporada');
+                $('#admin-season-origin-modal').removeClass('hidden').attr('aria-hidden', 'false');
+                $form.find('[name="nome"]').trigger('focus');
+            };
+
+            $(document).on('click', '#admin-season-origin-create', function () { openModal(null); });
+            $(document).on('click', '.admin-season-origin-edit', function () {
+                openModal({
+                    id: $(this).attr('data-origin-id'),
+                    name: $(this).attr('data-origin-name'),
+                    active: $(this).attr('data-origin-active')
+                });
+            });
+            $(document).on('click', '[data-admin-season-origin-close="1"], #admin-season-origin-modal', function (event) {
+                if ($(event.target).is('#admin-season-origin-modal') || $(event.target).is('[data-admin-season-origin-close="1"]')) closeModal();
+            });
+            $(document).on('submit', '#admin-season-origin-form', function (event) {
+                event.preventDefault();
+                const $form = $(this);
+                const $submit = $form.find('[type="submit"]');
+                const editing = Number($form.find('[name="origem_temporada_id"]').val() || 0) > 0;
+                if (editing && String($form.attr('action') || '').indexOf('/atualizar') === -1) {
+                    $('#admin-season-origin-form-error').removeClass('hidden').text('Não foi possível preparar esta origem para edição. Feche o modal e tente novamente.');
+                    return;
+                }
+                $submit.prop('disabled', true);
+                $('#admin-season-origin-form-error').addClass('hidden').text('');
+                $.ajax({ url: $form.attr('action'), method: 'POST', data: $form.serialize(), dataType: 'json' })
+                    .done(function (response) {
+                        if (!response || response.success === false) {
+                            $('#admin-season-origin-form-error').removeClass('hidden').text(String((response && response.message) || 'Não foi possível salvar a origem da temporada.'));
+                            return;
+                        }
+                        $('#admin-season-origin-list-body').html(String(response.html || ''));
+                        closeModal();
+                        App.core.abrirPopup('sucesso', String(response.message || 'Origem da temporada salva com sucesso.'));
+                    })
+                    .fail(function (xhr) {
+                        $('#admin-season-origin-form-error').removeClass('hidden').text(App.core.extrairMensagemErroAjax(xhr).mensagem);
+                    })
+                    .always(function () { $submit.prop('disabled', false); });
+            });
+            $(document).on('click', '.admin-season-origin-delete', function () {
+                const $button = $(this);
+                const originId = Number($button.attr('data-origin-id') || 0);
+                const originName = String($button.attr('data-origin-name') || '').trim();
+                if (originId <= 0) {
+                    App.core.abrirPopup('erro', 'Não foi possível identificar a origem da temporada que será excluída.');
+                    return;
+                }
+                if (!window.confirm('Deseja realmente excluir a origem "' + originName + '"?')) return;
+                $button.prop('disabled', true);
+                $.ajax({
+                    url: App.core.buildUrl('/admin/origens-temporada/excluir'),
+                    method: 'POST',
+                    dataType: 'json',
+                    data: { origem_temporada_id: originId },
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível excluir a origem da temporada.'));
+                        return;
+                    }
+                    $('#admin-season-origin-list-body').html(String(response.html || ''));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Origem da temporada excluída com sucesso.'));
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () { $button.prop('disabled', false); });
+            });
+        },
+
         init: function () {
             App.admin.iniciarSecoesAdmin();
             App.admin.iniciarEditorPessoaAdmin();
@@ -4807,6 +4924,7 @@
             App.admin.iniciarEditorConteudoHome();
             App.admin.iniciarMigracaoCadastrosExternos();
             App.admin.iniciarGerenciamentoTemporadasTurmas();
+            App.admin.iniciarGerenciamentoOrigensTemporada();
         }
     });
 

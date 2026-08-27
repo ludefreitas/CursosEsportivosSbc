@@ -61,6 +61,7 @@ class AdminController extends Controller
         $this->view('admin/index', [
             'title' => 'Área Administrativa',
             'user' => $user,
+            'canAccessMasterSections' => $this->canAccessMasterSections($user),
         ]);
     }
 
@@ -73,27 +74,33 @@ class AdminController extends Controller
         $sectionName = (string) ($_GET['nome'] ?? 'inicio');
 
         try {
-            $allowedSections = [
+            $commonSections = [
                 'inicio',
                 'usuarios-pessoas',
-                'migracao-cadastros',
-                'migracao-atestados',
                 'agenda',
-                'pagina-home',
-                'pop-ups',
-                'blog',
                 'locais-espacos',
                 'modalidades',
                 'temporadas-turmas',
+            ];
+            $masterSections = [
+                'migracao-cadastros',
+                'migracao-atestados',
+                'pagina-home',
+                'pop-ups',
+                'blog',
                 'configuracoes',
                 'outras-areas',
             ];
+            $allowedSections = $this->canAccessMasterSections($user)
+                ? array_merge($commonSections, $masterSections)
+                : $commonSections;
 
             if (!in_array($sectionName, $allowedSections, true)) {
                 throw new \RuntimeException('A seção administrativa solicitada não existe.');
             }
 
             $sectionData = $this->buildSectionData($sectionName, $user);
+            $sectionData['canAccessMasterSections'] = $this->canAccessMasterSections($user);
 
             ob_start();
             extract($sectionData, EXTR_SKIP);
@@ -913,6 +920,9 @@ class AdminController extends Controller
         $user = $this->assertAdminAccess();
 
         try {
+            if (($_POST['operacao'] ?? '') === 'editar' && (int) ($_POST['post_id'] ?? 0) <= 0) {
+                throw new \RuntimeException('Não foi possível identificar a postagem que será editada.');
+            }
             $isEdit = (int) ($_POST['post_id'] ?? 0) > 0;
             $post = $this->blogService->savePost((int) $user['conta_id'], $_POST, $_FILES);
             $message = $isEdit ? 'Postagem atualizada com sucesso.' : 'Postagem salva com sucesso.';
@@ -1890,6 +1900,7 @@ class AdminController extends Controller
 
         foreach ($allowed as $slug) {
             if (has_role($user['roles'] ?? [], $slug)) {
+                $this->assertCurrentAdminRouteAccess($user);
                 return $user;
             }
         }
@@ -1907,7 +1918,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Restringe a gestao de pop-ups a administradores master e administradores.
+     * Restringe a gestão de pop-ups ao Administrador Master.
      */
     private function assertPopupManagementAccess(): array
     {
@@ -1920,17 +1931,17 @@ class AdminController extends Controller
         if ($this->isAjaxRequest()) {
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'Somente Administrador Master e Administrador podem gerenciar os pop-ups do site.',
+                'message' => 'Somente o Administrador Master pode gerenciar os pop-ups do site.',
                 'redirect' => url('/admin'),
             ], 403);
         }
 
-        flash('error', 'Somente Administrador Master e Administrador podem gerenciar os pop-ups do site.');
+        flash('error', 'Somente o Administrador Master pode gerenciar os pop-ups do site.');
         redirect('/admin');
     }
 
     /**
-     * Restringe a gestao de papeis a administradores master e administradores.
+     * Restringe a gestão de papéis ao Administrador Master.
      */
     private function assertRoleManagementAccess(): array
     {
@@ -1943,12 +1954,12 @@ class AdminController extends Controller
         if ($this->isAjaxRequest()) {
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'Somente Administrador Master e Administrador podem gerenciar papéis de usuário.',
+                'message' => 'Somente o Administrador Master pode gerenciar papéis de usuário.',
                 'redirect' => url('/admin'),
             ], 403);
         }
 
-        flash('error', 'Somente Administrador Master e Administrador podem gerenciar papéis de usuário.');
+        flash('error', 'Somente o Administrador Master pode gerenciar papéis de usuário.');
         redirect('/admin');
     }
 
@@ -1957,7 +1968,7 @@ class AdminController extends Controller
      */
     private function canManageSitePopups(array $user): bool
     {
-        return has_role($user['roles'] ?? [], 'master_admin') || has_role($user['roles'] ?? [], 'admin');
+        return $this->canAccessMasterSections($user);
     }
 
     /**
@@ -1965,7 +1976,44 @@ class AdminController extends Controller
      */
     private function canManageUserRoles(array $user): bool
     {
-        return has_role($user['roles'] ?? [], 'master_admin') || has_role($user['roles'] ?? [], 'admin');
+        return $this->canAccessMasterSections($user);
+    }
+
+    private function canAccessMasterSections(array $user): bool
+    {
+        return has_role($user['roles'] ?? [], 'master_admin');
+    }
+
+    private function assertCurrentAdminRouteAccess(array $user): void
+    {
+        if ($this->canAccessMasterSections($user)) {
+            return;
+        }
+
+        $path = current_path();
+        $restrictedPrefixes = [
+            '/admin/migracao-',
+            '/admin/home-',
+            '/admin/comunicacao-oficial',
+            '/admin/postagens',
+            '/admin/site-popups',
+            '/admin/ceps-',
+            '/admin/origens-temporada',
+        ];
+
+        foreach ($restrictedPrefixes as $prefix) {
+            if (str_starts_with($path, $prefix)) {
+                if ($this->isAjaxRequest()) {
+                    $this->jsonResponse([
+                        'success' => false,
+                        'message' => 'Esta área é exclusiva do Administrador Master.',
+                        'redirect' => url('/admin'),
+                    ], 403);
+                }
+                flash('error', 'Esta área é exclusiva do Administrador Master.');
+                redirect('/admin');
+            }
+        }
     }
 
     /**
@@ -2156,6 +2204,7 @@ class AdminController extends Controller
         if ($sectionName === 'temporadas-turmas') {
             $courseService = new CourseEnrollmentService();
             $data['courseSeasons'] = $courseService->listSeasonsForManagement();
+            $data['courseSeasonOrigins'] = $courseService->listSeasonOriginsForManagement();
             $data['courseClasses'] = $courseService->listClassesForManagement();
             $data['courseProfessors'] = $courseService->listProfessors();
             $data['courseModalitiesManagement'] = $this->adminService->listModalitiesForManagement();
@@ -2168,7 +2217,18 @@ class AdminController extends Controller
             $data['cepExceptions'] = $this->cepService->listCepExceptions();
         }
 
+        if ($sectionName === 'outras-areas') {
+            $data['courseSeasonOrigins'] = (new CourseEnrollmentService())->listSeasonOriginsForManagement();
+        }
+
         return $data;
+    }
+
+    private function renderSeasonOriginRowsHtml(array $courseSeasonOrigins): string
+    {
+        ob_start();
+        require ROOT_PATH . '/app/Views/admin/partials/season_origin_rows.php';
+        return (string) ob_get_clean();
     }
 
     /**
@@ -2301,15 +2361,80 @@ class AdminController extends Controller
     {
         $user = $this->assertAdminAccess();
         try {
+            if (($_POST['operacao'] ?? '') === 'editar' && (int) ($_POST['id'] ?? 0) <= 0) {
+                throw new \RuntimeException('Não foi possível identificar a temporada que será editada.');
+            }
             (new CourseEnrollmentService())->createSeason((int) $user['conta_id'], $_POST);
             $this->jsonResponse(['success' => true, 'message' => !empty($_POST['id']) ? 'Temporada atualizada com sucesso.' : 'Temporada criada com sucesso.', 'html' => $this->renderCourseManagementPanelHtml()]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function storeSeasonOrigin(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $service = new CourseEnrollmentService();
+            $data = $_POST;
+            $data['id'] = 0;
+            $service->saveSeasonOrigin((int) $user['conta_id'], $data);
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Origem da temporada criada com sucesso.',
+                'html' => $this->renderSeasonOriginRowsHtml($service->listSeasonOriginsForManagement()),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function updateSeasonOrigin(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $originId = (int) ($_POST['origem_temporada_id'] ?? 0);
+            if ($originId <= 0) {
+                throw new \RuntimeException('Não foi possível identificar a origem da temporada que será editada.');
+            }
+            $service = new CourseEnrollmentService();
+            $data = $_POST;
+            $data['id'] = $originId;
+            $service->saveSeasonOrigin((int) $user['conta_id'], $data);
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Origem da temporada atualizada com sucesso.',
+                'html' => $this->renderSeasonOriginRowsHtml($service->listSeasonOriginsForManagement()),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function deleteSeasonOrigin(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $service = new CourseEnrollmentService();
+            $service->deleteSeasonOrigin(
+                (int) $user['conta_id'],
+                (int) ($_POST['origem_temporada_id'] ?? 0)
+            );
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Origem da temporada excluída com sucesso.',
+                'html' => $this->renderSeasonOriginRowsHtml($service->listSeasonOriginsForManagement()),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 
     public function storeCourseClass(): void
     {
         $user = $this->assertAdminAccess();
         try {
+            if (($_POST['operacao'] ?? '') === 'editar' && (int) ($_POST['id'] ?? 0) <= 0) {
+                throw new \RuntimeException('Não foi possível identificar a turma que será editada.');
+            }
             (new CourseEnrollmentService())->createClass((int) $user['conta_id'], $_POST);
             $this->jsonResponse(['success' => true, 'message' => !empty($_POST['id']) ? 'Turma atualizada com sucesso.' : 'Turma criada com sucesso.', 'html' => $this->renderCourseManagementPanelHtml()]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
@@ -2343,6 +2468,7 @@ class AdminController extends Controller
     {
         $courseService = new CourseEnrollmentService();
         $courseSeasons = $courseService->listSeasonsForManagement();
+        $courseSeasonOrigins = $courseService->listSeasonOriginsForManagement();
         $courseClasses = $courseService->listClassesForManagement();
         $courseProfessors = $courseService->listProfessors();
         $courseModalitiesManagement = $this->adminService->listModalitiesForManagement();

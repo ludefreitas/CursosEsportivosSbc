@@ -321,7 +321,7 @@
                     return;
                 }
 
-                App.core.abrirConfirmacaoCompletarCadastro('/agenda');
+                App.core.abrirConfirmacaoCompletarCadastro('/#home-training-locations');
             }
         },
 

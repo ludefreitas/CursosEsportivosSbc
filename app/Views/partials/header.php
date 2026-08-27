@@ -71,7 +71,6 @@
                 <span></span>
             </button>
             <nav class="site-nav" id="site-header-navigation">
-                <a href="<?php echo e(url('/agenda')); ?>" class="nav-color-green">Agenda</a>
                 <a href="<?php echo e(url('/cursos')); ?>" class="nav-color-orange">Cursos</a>
                 <a href="<?php echo e(url('/blog')); ?>" class="nav-color-red">Blog</a>
                 <?php if ($isAuthenticated) { ?>

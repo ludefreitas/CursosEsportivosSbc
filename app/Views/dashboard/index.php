@@ -33,7 +33,7 @@
             </div>
             <div class="chips-wrap">
                 <button type="button" class="btn btn-primary" data-open-dependent-create-modal="1">Novo dependente</button>
-                <a href="<?php echo e(url('/agenda')); ?>" class="btn btn-secondary">Abrir agenda</a>
+                <a href="<?php echo e(url('/#home-training-locations')); ?>" class="btn btn-secondary">Abrir agendamento</a>
             </div>
         </div>
         <div class="table-wrap">

@@ -362,10 +362,23 @@ CREATE TABLE IF NOT EXISTS suspensoes_espaco_treino (
     CONSTRAINT fk_suspensao_espaco_criador FOREIGN KEY (criado_por_conta_id) REFERENCES contas(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS origens_temporada (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(180) NOT NULL,
+    ativo TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_origem_temporada_nome (nome)
+) ENGINE=InnoDB;
+
+INSERT IGNORE INTO origens_temporada (nome, ativo)
+VALUES ('Secretaria de Esportes e Lazer de São Bernardo do Campo', 1);
+
 CREATE TABLE IF NOT EXISTS temporadas (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(150) NOT NULL,
     origem_temporada VARCHAR(180) NOT NULL,
+    origem_temporada_id BIGINT UNSIGNED NULL,
     possui_edital TINYINT(1) NOT NULL DEFAULT 0,
     numero_edital VARCHAR(100) NULL,
     link_edital VARCHAR(2048) NULL,
@@ -386,7 +399,8 @@ CREATE TABLE IF NOT EXISTS temporadas (
     data_liberacao_segunda_inscricao DATETIME NULL,
     data_liberacao_inscricoes_adicionais DATETIME NULL,
     limite_inscricoes_adicionais INT UNSIGNED NOT NULL DEFAULT 3,
-    ativo TINYINT(1) NOT NULL DEFAULT 1
+    ativo TINYINT(1) NOT NULL DEFAULT 1,
+    CONSTRAINT fk_temporada_origem FOREIGN KEY (origem_temporada_id) REFERENCES origens_temporada(id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS turmas (

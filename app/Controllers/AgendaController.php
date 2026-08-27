@@ -20,53 +20,11 @@ class AgendaController extends Controller
     }
 
     /**
-     * Exibe a agenda pública com FullCalendar.
+     * Redireciona acessos antigos da agenda para o agendamento na página inicial.
      */
     public function index(): void
     {
-        $profile = null;
-        $registrationBlock = null;
-        $needsProfileCompletion = false;
-        $agendaActionUrl = url('/perfil/completar?return_to=/agenda');
-        $agendaActionLabel = 'Completar cadastro';
-        $agendaReminderTitle = 'Complete seu cadastro para agendar';
-        $schedulablePeople = [];
-        $specialSchedulePeople = [];
-
-        if (Auth::check()) {
-            $profileService = new ProfileService();
-            $profile = $profileService->getAuthenticatedPerson();
-            $registrationBlock = $profileService->getSchedulingBlockForAuthenticatedAccount();
-            $needsProfileCompletion = $registrationBlock !== null || !$profile || (int) ($profile['cadastro_completo'] ?? 0) !== 1;
-
-            $specialSchedulePeople = $this->agendaService->listSpecialSchedulePeople();
-
-            if (!$needsProfileCompletion) {
-                $schedulablePeople = $this->agendaService->listSchedulablePeople();
-            } elseif (($registrationBlock['tipo'] ?? '') === 'dependente_cadastro_incompleto') {
-                $agendaActionUrl = url('/dashboard');
-                $agendaActionLabel = 'Abrir meu painel';
-                $agendaReminderTitle = 'Regularize os cadastros para agendar';
-            }
-        }
-
-        $scheduleFilterOptions = $this->agendaService->activeWeeklyScheduleFilterOptions();
-
-        $this->view('agenda/index', [
-            'title' => 'Agenda de Treinos',
-            'pageClass' => 'pagina-agenda',
-            'locations' => $this->agendaService->listLocations(),
-            'modalities' => $this->agendaService->listModalities(),
-            'scheduleFilterOptions' => $scheduleFilterOptions,
-            'schedulablePeople' => $schedulablePeople,
-            'specialSchedulePeople' => $specialSchedulePeople,
-            'profile' => $profile,
-            'registrationBlock' => $registrationBlock,
-            'needsProfileCompletion' => $needsProfileCompletion,
-            'agendaActionUrl' => $agendaActionUrl,
-            'agendaActionLabel' => $agendaActionLabel,
-            'agendaReminderTitle' => $agendaReminderTitle,
-        ]);
+        redirect('/#home-training-locations');
     }
 
     /**
@@ -78,7 +36,7 @@ class AgendaController extends Controller
             $this->jsonResponse([
                 'success' => false,
                 'message' => 'Faca login para carregar as pessoas disponíveis para agendamento.',
-                'redirect' => login_modal_url('/agenda'),
+                'redirect' => login_modal_url('/#home-training-locations'),
             ], 401);
         }
 
@@ -104,7 +62,7 @@ class AgendaController extends Controller
             $this->jsonResponse([
                 'success' => false,
                 'message' => 'Faca login para consultar as pessoas disponíveis para este horário.',
-                'redirect' => login_modal_url('/agenda'),
+                'redirect' => login_modal_url('/#home-training-locations'),
             ], 401);
         }
 
@@ -116,7 +74,7 @@ class AgendaController extends Controller
         if ($needsProfileCompletion) {
             $redirect = ($registrationBlock['tipo'] ?? '') === 'dependente_cadastro_incompleto'
                 ? url('/dashboard')
-                : url('/perfil/completar?return_to=/agenda');
+                : url('/perfil/completar?return_to=%2F%23home-training-locations');
             $this->jsonResponse([
                 'success' => false,
                 'message' => $registrationBlock['mensagem'] ?? 'Complete seu cadastro para liberar os nomes disponíveis para agendamento.',
@@ -192,7 +150,7 @@ class AgendaController extends Controller
                 $this->jsonResponse([
                     'success' => false,
                     'message' => 'Faca login para concluir o agendamento.',
-                    'redirect' => login_modal_url('/agenda'),
+                    'redirect' => login_modal_url('/#home-training-locations'),
                 ], 401);
             }
 
@@ -229,7 +187,7 @@ class AgendaController extends Controller
                 $this->jsonResponse([
                     'success' => true,
                     'message' => $successMessage,
-                    'redirect' => url('/agenda'),
+                    'redirect' => url('/#home-training-locations'),
                 ]);
             }
 
@@ -245,7 +203,7 @@ class AgendaController extends Controller
             flash('error', $e->getMessage());
         }
 
-        redirect('/agenda');
+        redirect('/#home-training-locations');
     }
 
     /**
@@ -258,7 +216,7 @@ class AgendaController extends Controller
                 $this->jsonResponse([
                     'success' => false,
                     'message' => 'Faca login para cancelar o agendamento.',
-                    'redirect' => login_modal_url('/agenda'),
+                    'redirect' => login_modal_url('/#home-training-locations'),
                 ], 401);
             }
 
@@ -288,7 +246,7 @@ class AgendaController extends Controller
             flash('error', $e->getMessage());
         }
 
-        redirect('/agenda');
+        redirect('/#home-training-locations');
     }
 
     /**
@@ -318,6 +276,6 @@ class AgendaController extends Controller
             flash('error', $e->getMessage());
         }
 
-        redirect('/agenda');
+        redirect('/#home-training-locations');
     }
 }
