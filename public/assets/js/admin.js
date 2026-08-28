@@ -4291,6 +4291,85 @@
                     $modal().removeClass('hidden').attr('aria-hidden', 'false');
                 }).fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); });
             });
+            $(document).on('click', '.admin-modality-delete', function () {
+                const $button = $(this);
+                const id = Number($button.data('modalityId') || 0);
+                const name = String($button.data('modalityName') || 'esta modalidade');
+                if (id <= 0 || !window.confirm('Deseja realmente excluir "' + name + '"? Esta ação não poderá ser desfeita.')) return;
+                $button.prop('disabled', true);
+                $.ajax({
+                    url: App.core.buildUrl('/admin/modalidades/excluir'),
+                    method: 'POST', dataType: 'json', data: { modalidade_id: id },
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível excluir a modalidade.'));
+                        return;
+                    }
+                    refreshList($('#admin-modality-filter-form'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Modalidade excluída com sucesso.'));
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () { $button.prop('disabled', false); });
+            });
+            function scheduleModal() { return $('#admin-modality-schedule-modal'); }
+            function closeScheduleModal() { scheduleModal().addClass('hidden').attr('aria-hidden', 'true'); }
+            function scheduleData(attribute) {
+                try { return JSON.parse(String($('[data-admin-section="modalidades"]').attr(attribute) || '[]')); } catch (error) { return []; }
+            }
+            function toLocalDateTime(value) { return String(value || '').replace(' ', 'T').slice(0, 16); }
+            function fillScheduleForm(record) {
+                const $form = $('#admin-modality-schedule-form');
+                $form[0].reset();
+                Object.keys(record || {}).forEach(function (key) {
+                    const $field = $form.find('[name="' + key + '"]');
+                    if (!$field.length) return;
+                    if ($field.attr('type') === 'checkbox') $field.prop('checked', Number(record[key] || 0) === 1);
+                    else if ($field.attr('type') === 'datetime-local') $field.val(toLocalDateTime(record[key]));
+                    else $field.val(record[key] == null ? '' : String(record[key]));
+                });
+                const hasNotice = $form.find('[name="possui_edital"]').is(':checked');
+                $form.find('[data-modality-schedule-notice-fields="1"]').toggleClass('hidden', !hasNotice);
+                $form.find('[name="numero_edital"], [name="link_edital"]').prop('required', hasNotice);
+            }
+            $(document).on('click', '#admin-modality-schedule-create', function () {
+                fillScheduleForm({});
+                $('#admin-modality-schedule-modal-title').text('Criar cronograma');
+                scheduleModal().removeClass('hidden').attr('aria-hidden', 'false');
+            });
+            $(document).on('click', '.admin-modality-schedule-edit', function () {
+                let record = {}; try { record = JSON.parse(String($(this).attr('data-schedule') || '{}')); } catch (error) { record = {}; }
+                fillScheduleForm(record);
+                $('#admin-modality-schedule-modal-title').text('Editar cronograma');
+                scheduleModal().removeClass('hidden').attr('aria-hidden', 'false');
+            });
+            $(document).on('click', '[data-modality-schedule-close="1"], #admin-modality-schedule-modal', function (event) {
+                if ($(event.target).is('#admin-modality-schedule-modal') || $(event.target).is('[data-modality-schedule-close="1"]')) closeScheduleModal();
+            });
+            $(document).on('change', '#admin-modality-schedule-form [name="temporada_id"]', function () {
+                const season = scheduleData('data-modality-seasons').find(function (item) { return String(item.id) === String($(this).val()); }.bind(this));
+                if (!season || Number($('#admin-modality-schedule-form [name="cronograma_modalidade_id"]').val() || 0) > 0) return;
+                ['inscricoes_inicio', 'inscricoes_fim', 'matriculas_inicio', 'matriculas_fim', 'inscricoes_abertas_inicio', 'inscricoes_abertas_fim'].forEach(function (field) { $('#admin-modality-schedule-form [name="' + field + '"]').val(toLocalDateTime(season[field])); });
+                ['data_inicio', 'data_fim', 'aulas_inicio', 'aulas_fim'].forEach(function (field) { $('#admin-modality-schedule-form [name="' + field + '"]').val(String(season[field] || '')); });
+                const modalityText = $('#admin-modality-schedule-form [name="modalidade_id"] option:selected').text();
+                $('#admin-modality-schedule-form [name="nome"]').val((modalityText && modalityText !== 'Selecione' ? modalityText + ' - ' : '') + String(season.nome || ''));
+            });
+            $(document).on('change', '#admin-modality-schedule-form [name="modalidade_id"]', function () { $('#admin-modality-schedule-form [name="temporada_id"]').trigger('change'); });
+            $(document).on('change', '[data-modality-schedule-notice-toggle="1"]', function () {
+                const enabled = $(this).is(':checked');
+                $('#admin-modality-schedule-form [data-modality-schedule-notice-fields="1"]').toggleClass('hidden', !enabled).find('input').prop('required', enabled);
+            });
+            $(document).on('submit', '#admin-modality-schedule-form', function (event) {
+                event.preventDefault(); const $form = $(this); const $button = $form.find('button[type="submit"]').prop('disabled', true);
+                $.ajax({ url: App.core.buildUrl('/admin/modalidades/cronogramas'), method: 'POST', dataType: 'json', data: $form.serialize() })
+                    .done(function (response) { if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar o cronograma.')); return; } closeScheduleModal(); App.admin.activateSection('modalidades'); App.core.abrirPopup('sucesso', String(response.message)); })
+                    .fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); }).always(function () { $button.prop('disabled', false); });
+            });
+            $(document).on('click', '.admin-modality-schedule-delete', function () {
+                const $button = $(this); const id = Number($button.data('scheduleId') || 0); const name = String($button.data('scheduleName') || 'este cronograma');
+                if (!window.confirm('Deseja realmente excluir "' + name + '"?')) return;
+                $.post(App.core.buildUrl('/admin/modalidades/cronogramas/excluir'), { cronograma_modalidade_id: id }, function (response) { if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível excluir o cronograma.')); return; } App.admin.activateSection('modalidades'); App.core.abrirPopup('sucesso', String(response.message)); }, 'json').fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); });
+            });
             $(document).on('submit', '#admin-modality-form', function (event) {
                 event.preventDefault();
                 const $form = $(this);
@@ -4649,6 +4728,31 @@
                 }
             }
 
+            function ensureClassScheduleField($form) {
+                if ($form.find('[name="cronograma_modalidade_id"]').length) return;
+                let schedules = [];
+                try { schedules = JSON.parse(String($form.closest('[data-course-modality-schedules]').attr('data-course-modality-schedules') || '[]')); } catch (error) { schedules = []; }
+                const $select = $('<select>', { name: 'cronograma_modalidade_id', required: true }).append($('<option>', { value: '', text: 'Selecione a temporada e a modalidade' }));
+                schedules.forEach(function (schedule) {
+                    $select.append($('<option>', { value: String(schedule.id), text: String(schedule.nome || '') })
+                        .attr('data-season-id', String(schedule.temporada_id || ''))
+                        .attr('data-modality-id', String(schedule.modalidade_id || '')));
+                });
+                $form.find('[name="modalidade_id"]').closest('label').after($('<label>').append($('<span>', { text: 'Cronograma da modalidade' })).append($select));
+            }
+
+            function filterClassSchedules($form, selectedId) {
+                const seasonId = String($form.find('[name="temporada_id"]').val() || '');
+                const modalityId = String($form.find('[name="modalidade_id"]').val() || '');
+                const $select = $form.find('[name="cronograma_modalidade_id"]');
+                $select.find('option[data-season-id]').each(function () {
+                    const visible = String($(this).attr('data-season-id')) === seasonId && String($(this).attr('data-modality-id')) === modalityId;
+                    $(this).prop('disabled', !visible).prop('hidden', !visible);
+                });
+                if (selectedId) $select.val(String(selectedId));
+                if (!$select.val() || $select.find('option:selected').prop('disabled')) $select.val('');
+            }
+
             function fillForm($form, record) {
                 $form[0].reset();
                 Object.keys(record || {}).forEach(function (name) {
@@ -4714,6 +4818,46 @@
                 }
             }
 
+            const seasonFieldHelp = {
+                nome: 'Identifica a temporada nas telas administrativas e públicas, por exemplo: Temporada de Verão 2027.',
+                origem_temporada_id: 'Indica a instituição responsável pela gestão da temporada.',
+                possui_edital: 'Marque quando a temporada for regulamentada por um edital próprio.',
+                numero_edital: 'Número oficial que identifica o edital da temporada.',
+                link_edital: 'Endereço eletrônico onde o usuário poderá consultar o edital completo.',
+                tipo_periodicidade: 'Informa a duração planejada da temporada: anual, semestral, quadrimestral, bimestral ou mensal.',
+                data_inicio: 'Indica o primeiro dia da publicação das turmas e das modalidades. Serve como referência inicial para os cronogramas das modalidades da temporada.',
+                data_fim: 'Indica o último dia da publicação das turmas e das modalidades. Serve como referência inicial para os cronogramas das modalidades da temporada.',
+                inscricoes_inicio: 'Data e horário em que começa o período inicial de inscrições da temporada.',
+                inscricoes_fim: 'Data e horário em que termina o período inicial de inscrições da temporada.',
+                matriculas_inicio: 'Data e horário a partir dos quais as matrículas poderão ser realizadas ou confirmadas.',
+                matriculas_fim: 'Data e horário limite para realizar ou confirmar as matrículas.',
+                inscricoes_abertas_inicio: 'Início do período posterior de inscrições abertas, quando ainda houver disponibilidade.',
+                inscricoes_abertas_fim: 'Encerramento do período posterior de inscrições abertas.',
+                aulas_inicio: 'Primeiro dia previsto para as aulas da temporada.',
+                aulas_fim: 'Último dia previsto para as aulas da temporada.',
+                status: 'Define a situação administrativa da temporada. Somente temporadas ativas podem disponibilizar inscrições.',
+                limite_inscricoes_periodo: 'Quantidade inicial de inscrições permitida para cada CPF, independentemente da modalidade.',
+                data_liberacao_segunda_inscricao: 'Data e horário em que cada CPF passa a poder realizar uma segunda inscrição.',
+                data_liberacao_inscricoes_adicionais: 'Data e horário em que cada CPF passa a poder realizar três ou mais inscrições.',
+                limite_inscricoes_adicionais: 'Quantidade máxima de inscrições por CPF depois da última data de liberação.',
+                permitir_inscricao_logada: 'Permite que usuários autenticados inscrevam pessoas vinculadas à conta.',
+                permitir_inscricao_por_cpf: 'Permite inscrições pelo fluxo específico que utiliza somente o CPF.'
+            };
+
+            function ensureSeasonFieldHelp($form) {
+                const fieldLabels = { data_inicio: 'Início da publicação', data_fim: 'Fim da publicação' };
+                Object.keys(seasonFieldHelp).forEach(function (name) {
+                    const $field = $form.find('[name="' + name + '"]').first();
+                    const $label = $field.closest('label');
+                    if (!$field.length || !$label.length || $label.find('[data-season-field-help="' + name + '"]').length) return;
+                    const $help = $('<button>', { type: 'button', class: 'season-field-help', text: '?', title: 'Explicação deste campo', 'aria-label': 'Explicação do campo' })
+                        .attr('data-season-field-help', name);
+                    const $caption = $label.children('span').first();
+                    if ($caption.length && fieldLabels[name]) $caption.text(fieldLabels[name]);
+                    if ($caption.length) $caption.append($help); else $label.prepend($help);
+                });
+            }
+
             function updateSeasonNoticeFields($form) {
                 const enabled = $form.find('[name="possui_edital"]').is(':checked');
                 $form.find('[data-season-notice-fields="1"]').toggleClass('hidden', !enabled);
@@ -4726,9 +4870,10 @@
                 if ($form.find('[name="operacao"]').length === 0) {
                     $form.append($('<input>', { type: 'hidden', name: 'operacao' }));
                 }
-                if (type === 'class') ensureClassAgeCriterionField($form);
-                if (type === 'season') ensureSeasonNoticeFields($form);
+                if (type === 'class') { ensureClassAgeCriterionField($form); ensureClassScheduleField($form); }
+                if (type === 'season') { ensureSeasonNoticeFields($form); ensureSeasonFieldHelp($form); }
                 fillForm($form, record || {});
+                if (type === 'class') filterClassSchedules($form, record && record.cronograma_modalidade_id);
                 $form.find('[name="operacao"]').val(record ? 'editar' : 'criar');
                 if (!record && type === 'season') {
                     $form.find('[name="permitir_inscricao_logada"]').prop('checked', true);
@@ -4742,7 +4887,10 @@
 
             function replacePanel(response) {
                 if (!response || !response.html) return false;
-                $('[data-admin-section="temporadas-turmas"]').replaceWith(String(response.html));
+                const $updatedPanel = $(String(response.html)).first();
+                const sectionName = String($updatedPanel.attr('data-admin-section') || '');
+                if (!sectionName) return false;
+                $('[data-admin-section="' + sectionName + '"]').replaceWith($updatedPanel);
                 return true;
             }
 
@@ -4754,6 +4902,9 @@
                 let record = {};
                 try { record = JSON.parse(String($(this).attr('data-course-record') || '{}')); } catch (error) { record = {}; }
                 openModal(String($(this).attr('data-course-edit') || ''), record);
+            });
+            $(document).on('change', '[data-course-form="class"] [name="temporada_id"], [data-course-form="class"] [name="modalidade_id"]', function () {
+                filterClassSchedules($(this).closest('form'), '');
             });
 
             $(document).on('click', '[data-course-modal-close="1"]', closeModals);
@@ -4779,6 +4930,12 @@
                     .always(function () { $button.prop('disabled', false); });
             });
             $(document).on('change', '[data-season-notice-toggle="1"]', function () { updateSeasonNoticeFields($(this).closest('form')); });
+            $(document).on('click', '[data-season-field-help]', function (event) {
+                event.preventDefault(); event.stopPropagation();
+                const name = String($(this).attr('data-season-field-help') || '');
+                App.core.abrirPopup('sucesso', seasonFieldHelp[name] || 'Informação não disponível para este campo.');
+                $('#popup-titulo').text('Ajuda sobre o campo');
+            });
             $(document).on('click', '#course-season-modal, #course-class-modal', function (event) { if (event.target === this) closeModals(); });
 
             $(document).on('submit', '[data-course-form="season"], [data-course-form="class"]', function (event) {

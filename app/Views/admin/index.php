@@ -24,8 +24,9 @@
             <button type="button" class="admin-nav-button" data-admin-nav-target="blog">Blog</button>
             <?php } ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="locais-espacos">Locais e espaços</button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="modalidades">Modalidades</button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="temporadas-turmas">Temporadas e turmas</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="modalidades">Modalidade</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="temporadas">Temporadas</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="turmas">Turmas</button>
             <?php if (!empty($canAccessMasterSections)) { ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="configuracoes">Configurações</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="outras-areas">Outras áreas</button>

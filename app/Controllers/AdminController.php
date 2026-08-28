@@ -80,7 +80,8 @@ class AdminController extends Controller
                 'agenda',
                 'locais-espacos',
                 'modalidades',
-                'temporadas-turmas',
+                'temporadas',
+                'turmas',
             ];
             $masterSections = [
                 'migracao-cadastros',
@@ -2199,13 +2200,19 @@ class AdminController extends Controller
             $data['modalityLimit'] = max(1, min(AdminService::MAX_MODALITY_LIMIT, (int) ($_GET['modality_limit'] ?? AdminService::DEFAULT_MODALITY_LIMIT)));
             $data['modalityLimitMax'] = AdminService::MAX_MODALITY_LIMIT;
             $data['modalitiesManagement'] = $this->adminService->listModalitiesForAdmin($data['modalitySearch'], $data['modalityLimit']);
+            $data['courseModalitiesManagement'] = $this->adminService->listModalitiesForManagement();
+            $courseService = new CourseEnrollmentService();
+            $data['courseSeasons'] = $courseService->listSeasonsForManagement();
+            $data['modalitySchedules'] = $courseService->listModalitySchedulesForManagement();
         }
 
-        if ($sectionName === 'temporadas-turmas') {
+        if (in_array($sectionName, ['temporadas', 'turmas'], true)) {
             $courseService = new CourseEnrollmentService();
+            $data['courseManagementView'] = $sectionName;
             $data['courseSeasons'] = $courseService->listSeasonsForManagement();
             $data['courseSeasonOrigins'] = $courseService->listSeasonOriginsForManagement();
             $data['courseClasses'] = $courseService->listClassesForManagement();
+            $data['modalitySchedules'] = $courseService->listModalitySchedulesForManagement();
             $data['courseProfessors'] = $courseService->listProfessors();
             $data['courseModalitiesManagement'] = $this->adminService->listModalitiesForManagement();
             $data['courseLocationsManagement'] = $this->adminService->listTrainingLocationsForSpaceForm();
@@ -2357,6 +2364,38 @@ class AdminController extends Controller
         }
     }
 
+    public function deleteModality(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $this->adminService->deleteModality(
+                (int) ($user['conta_id'] ?? 0),
+                (int) ($_POST['modalidade_id'] ?? 0)
+            );
+            $this->jsonResponse(['success' => true, 'message' => 'Modalidade excluída com sucesso.']);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function storeModalitySchedule(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $result = (new CourseEnrollmentService())->saveModalitySchedule((int) $user['conta_id'], $_POST);
+            $this->jsonResponse(['success' => true, 'message' => !empty($_POST['cronograma_modalidade_id']) ? 'Cronograma atualizado com sucesso.' : 'Cronograma criado com sucesso.', 'cronograma' => $result]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function deleteModalitySchedule(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            (new CourseEnrollmentService())->deleteModalitySchedule((int) $user['conta_id'], (int) ($_POST['cronograma_modalidade_id'] ?? 0));
+            $this->jsonResponse(['success' => true, 'message' => 'Cronograma excluído com sucesso.']);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
     public function storeCourseSeason(): void
     {
         $user = $this->assertAdminAccess();
@@ -2365,7 +2404,7 @@ class AdminController extends Controller
                 throw new \RuntimeException('Não foi possível identificar a temporada que será editada.');
             }
             (new CourseEnrollmentService())->createSeason((int) $user['conta_id'], $_POST);
-            $this->jsonResponse(['success' => true, 'message' => !empty($_POST['id']) ? 'Temporada atualizada com sucesso.' : 'Temporada criada com sucesso.', 'html' => $this->renderCourseManagementPanelHtml()]);
+            $this->jsonResponse(['success' => true, 'message' => !empty($_POST['id']) ? 'Temporada atualizada com sucesso.' : 'Temporada criada com sucesso.', 'html' => $this->renderCourseManagementPanelHtml('temporadas')]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
@@ -2436,7 +2475,7 @@ class AdminController extends Controller
                 throw new \RuntimeException('Não foi possível identificar a turma que será editada.');
             }
             (new CourseEnrollmentService())->createClass((int) $user['conta_id'], $_POST);
-            $this->jsonResponse(['success' => true, 'message' => !empty($_POST['id']) ? 'Turma atualizada com sucesso.' : 'Turma criada com sucesso.', 'html' => $this->renderCourseManagementPanelHtml()]);
+            $this->jsonResponse(['success' => true, 'message' => !empty($_POST['id']) ? 'Turma atualizada com sucesso.' : 'Turma criada com sucesso.', 'html' => $this->renderCourseManagementPanelHtml('turmas')]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
@@ -2445,7 +2484,8 @@ class AdminController extends Controller
         $user = $this->assertAdminAccess();
         try {
             (new CourseEnrollmentService())->deactivate(trim((string) ($_POST['entidade'] ?? '')), (int) ($_POST['id'] ?? 0), (int) $user['conta_id']);
-            $this->jsonResponse(['success' => true, 'message' => 'Registro inativado com sucesso.', 'html' => $this->renderCourseManagementPanelHtml()]);
+            $view = trim((string) ($_POST['entidade'] ?? '')) === 'temporada' ? 'temporadas' : 'turmas';
+            $this->jsonResponse(['success' => true, 'message' => 'Registro inativado com sucesso.', 'html' => $this->renderCourseManagementPanelHtml($view)]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
@@ -2454,22 +2494,25 @@ class AdminController extends Controller
         $user = $this->assertAdminAccess();
         try {
             (new CourseEnrollmentService())->assignProfessor((int) ($_POST['turma_id'] ?? 0), (int) ($_POST['professor_conta_id'] ?? 0), (int) $user['conta_id']);
-            $this->jsonResponse(['success' => true, 'message' => 'Professor atribuído à turma com sucesso.', 'html' => $this->renderCourseManagementPanelHtml()]);
+            $this->jsonResponse(['success' => true, 'message' => 'Professor atribuído à turma com sucesso.', 'html' => $this->renderCourseManagementPanelHtml('turmas')]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
     public function courseManagementPanel(): void
     {
         $this->assertAdminAccess();
-        $this->jsonResponse(['success' => true, 'html' => $this->renderCourseManagementPanelHtml()]);
+        $view = (string) ($_GET['tipo'] ?? 'temporadas');
+        $this->jsonResponse(['success' => true, 'html' => $this->renderCourseManagementPanelHtml($view)]);
     }
 
-    private function renderCourseManagementPanelHtml(): string
+    private function renderCourseManagementPanelHtml(string $view = 'temporadas'): string
     {
+        $courseManagementView = $view === 'turmas' ? 'turmas' : 'temporadas';
         $courseService = new CourseEnrollmentService();
         $courseSeasons = $courseService->listSeasonsForManagement();
         $courseSeasonOrigins = $courseService->listSeasonOriginsForManagement();
         $courseClasses = $courseService->listClassesForManagement();
+        $modalitySchedules = $courseService->listModalitySchedulesForManagement();
         $courseProfessors = $courseService->listProfessors();
         $courseModalitiesManagement = $this->adminService->listModalitiesForManagement();
         $courseLocationsManagement = $this->adminService->listTrainingLocationsForSpaceForm();

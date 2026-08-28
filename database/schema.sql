@@ -403,10 +403,35 @@ CREATE TABLE IF NOT EXISTS temporadas (
     CONSTRAINT fk_temporada_origem FOREIGN KEY (origem_temporada_id) REFERENCES origens_temporada(id)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS cronogramas_modalidade (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    temporada_id BIGINT UNSIGNED NOT NULL,
+    modalidade_id BIGINT UNSIGNED NOT NULL,
+    nome VARCHAR(180) NOT NULL,
+    data_inicio DATE NOT NULL,
+    data_fim DATE NOT NULL,
+    inscricoes_inicio DATETIME NULL,
+    inscricoes_fim DATETIME NULL,
+    matriculas_inicio DATETIME NULL,
+    matriculas_fim DATETIME NULL,
+    inscricoes_abertas_inicio DATETIME NULL,
+    inscricoes_abertas_fim DATETIME NULL,
+    aulas_inicio DATE NULL,
+    aulas_fim DATE NULL,
+    possui_edital TINYINT(1) NOT NULL DEFAULT 0,
+    numero_edital VARCHAR(100) NULL,
+    link_edital VARCHAR(2048) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_cronograma_modalidade_temporada FOREIGN KEY (temporada_id) REFERENCES temporadas(id),
+    CONSTRAINT fk_cronograma_modalidade_modalidade FOREIGN KEY (modalidade_id) REFERENCES modalidades(id)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS turmas (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     temporada_id BIGINT UNSIGNED NOT NULL,
     modalidade_id BIGINT UNSIGNED NOT NULL,
+    cronograma_modalidade_id BIGINT UNSIGNED NOT NULL,
     local_treino_id BIGINT UNSIGNED NOT NULL,
     espaco_treino_id BIGINT UNSIGNED NOT NULL,
     nivel_modalidade_id BIGINT UNSIGNED NULL,
@@ -431,6 +456,7 @@ CREATE TABLE IF NOT EXISTS turmas (
     ativo TINYINT(1) NOT NULL DEFAULT 1,
     CONSTRAINT fk_turmas_temporada FOREIGN KEY (temporada_id) REFERENCES temporadas(id),
     CONSTRAINT fk_turmas_modalidade FOREIGN KEY (modalidade_id) REFERENCES modalidades(id),
+    CONSTRAINT fk_turmas_cronograma_modalidade FOREIGN KEY (cronograma_modalidade_id) REFERENCES cronogramas_modalidade(id),
     CONSTRAINT fk_turmas_local FOREIGN KEY (local_treino_id) REFERENCES locais_treino(id),
     CONSTRAINT fk_turmas_espaco FOREIGN KEY (espaco_treino_id) REFERENCES espacos_treino(id),
     CONSTRAINT fk_turmas_nivel FOREIGN KEY (nivel_modalidade_id) REFERENCES niveis_modalidade(id),

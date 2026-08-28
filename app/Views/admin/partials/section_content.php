@@ -2389,12 +2389,13 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
     </section>
 <?php } ?>
 
-<?php if ($sectionName === 'temporadas-turmas') { ?>
+<?php if (in_array($sectionName, ['temporadas', 'turmas'], true)) { ?>
+    <?php $courseManagementView = $sectionName; ?>
     <?php require ROOT_PATH . '/app/Views/admin/partials/course_management_panel.php'; ?>
 <?php } ?>
 
 <?php if ($sectionName === 'modalidades') { ?>
-    <section class="admin-section-panel" data-admin-section="modalidades">
+    <section class="admin-section-panel" data-admin-section="modalidades" data-modality-seasons="<?php echo e((string) json_encode($courseSeasons ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>" data-modality-options="<?php echo e((string) json_encode($courseModalitiesManagement ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>">
         <div class="section-head admin-section-head">
             <div>
                 <h2>Modalidades</h2>
@@ -2432,6 +2433,39 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 </table>
             </div>
         </article>
+
+        <article class="content-card top-gap">
+            <div class="section-head">
+                <div><h2>Cronogramas das modalidades</h2><p class="muted">Cada cronograma pertence a uma modalidade e temporada. As datas são independentes depois de salvas.</p></div>
+                <button type="button" class="btn btn-primary" id="admin-modality-schedule-create">Criar cronograma</button>
+            </div>
+            <div class="table-wrap"><table class="data-table"><thead><tr><th>Cronograma</th><th>Modalidade</th><th>Temporada</th><th>Aulas</th><th>Edital</th><th>Turmas</th><th>Ações</th></tr></thead><tbody id="admin-modality-schedule-list-body">
+                <?php foreach (($modalitySchedules ?? []) as $schedule) { ?>
+                    <tr>
+                        <td><?php echo e((string) $schedule['nome']); ?><br><small>Disponível: <?php echo e((string) $schedule['data_inicio']); ?> a <?php echo e((string) $schedule['data_fim']); ?></small></td><td><?php echo e((string) $schedule['modalidade_nome']); ?></td><td><?php echo e((string) $schedule['temporada_nome']); ?></td>
+                        <td><?php echo e((string) ($schedule['aulas_inicio'] ?? '-')); ?> a <?php echo e((string) ($schedule['aulas_fim'] ?? '-')); ?></td>
+                        <td><?php echo !empty($schedule['possui_edital']) ? e((string) ($schedule['numero_edital'] ?? 'Sim')) : 'Não'; ?></td><td><?php echo e((string) ($schedule['total_turmas'] ?? 0)); ?></td>
+                        <td><div class="course-row-actions"><button type="button" class="btn btn-secondary admin-modality-schedule-edit" data-schedule="<?php echo e((string) json_encode($schedule, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>">Editar</button><button type="button" class="btn btn-danger admin-modality-schedule-delete" data-schedule-id="<?php echo e((string) $schedule['id']); ?>" data-schedule-name="<?php echo e((string) $schedule['nome']); ?>">Excluir</button></div></td>
+                    </tr>
+                <?php } ?>
+                <?php if (($modalitySchedules ?? []) === []) { ?><tr><td colspan="7" class="muted">Nenhum cronograma cadastrado.</td></tr><?php } ?>
+            </tbody></table></div>
+        </article>
+
+        <div class="popup-overlay hidden" id="admin-modality-schedule-modal" aria-hidden="true"><div class="popup-card popup-admin-card" role="dialog" aria-modal="true"><div class="popup-head"><h3 id="admin-modality-schedule-modal-title">Criar cronograma</h3><button type="button" class="popup-close-icon" data-modality-schedule-close="1" aria-label="Fechar">&times;</button></div><div class="popup-body">
+            <form class="stack-form" id="admin-modality-schedule-form" data-manual-submit="1"><input type="hidden" name="cronograma_modalidade_id">
+                <div class="grid-two"><label><span>Temporada</span><select name="temporada_id" required><option value="">Selecione</option><?php foreach (($courseSeasons ?? []) as $season) { ?><option value="<?php echo e((string) $season['id']); ?>"><?php echo e((string) $season['nome']); ?></option><?php } ?></select></label><label><span>Modalidade</span><select name="modalidade_id" required><option value="">Selecione</option><?php foreach (($courseModalitiesManagement ?? []) as $modality) { ?><option value="<?php echo e((string) $modality['id']); ?>"><?php echo e((string) $modality['nome']); ?></option><?php } ?></select></label></div>
+                <label><span>Nome do cronograma</span><input type="text" name="nome" maxlength="180" required></label>
+                <div class="grid-two"><label><span>Disponível para consulta: início</span><input type="date" name="data_inicio" required></label><label><span>Disponível para consulta: fim</span><input type="date" name="data_fim" required></label></div>
+                <div class="grid-two"><label><span>Inscrição inicial: início</span><input type="datetime-local" name="inscricoes_inicio"></label><label><span>Inscrição inicial: fim</span><input type="datetime-local" name="inscricoes_fim"></label></div>
+                <div class="grid-two"><label><span>Matrículas: início</span><input type="datetime-local" name="matriculas_inicio"></label><label><span>Matrículas: fim</span><input type="datetime-local" name="matriculas_fim"></label></div>
+                <div class="grid-two"><label><span>Inscrições abertas: início</span><input type="datetime-local" name="inscricoes_abertas_inicio"></label><label><span>Inscrições abertas: fim</span><input type="datetime-local" name="inscricoes_abertas_fim"></label></div>
+                <div class="grid-two"><label><span>Aulas: início</span><input type="date" name="aulas_inicio"></label><label><span>Aulas: fim</span><input type="date" name="aulas_fim"></label></div>
+                <label class="checkbox-chip"><input type="checkbox" name="possui_edital" value="1" data-modality-schedule-notice-toggle="1"><span>Este cronograma possui edital específico</span></label>
+                <div class="grid-two hidden" data-modality-schedule-notice-fields="1"><label><span>Número do edital</span><input type="text" name="numero_edital" maxlength="100"></label><label><span>Link do edital</span><input type="url" name="link_edital" maxlength="2048" placeholder="https://..."></label></div>
+                <button type="submit" class="btn btn-primary">Salvar cronograma</button>
+            </form>
+        </div></div></div>
 
         <div class="popup-overlay hidden" id="admin-modality-modal" aria-hidden="true">
             <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-modality-modal-title">

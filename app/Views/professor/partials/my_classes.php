@@ -5,13 +5,24 @@
             <p class="muted">Turmas atribuídas a você pela administração.</p>
         </div>
     </div>
-    <article class="content-card">
-        <?php if (empty($professorClasses)) { ?>
+    <?php if (empty($professorClasses)) { ?>
+        <article class="content-card">
             <p class="muted">Nenhuma turma foi atribuída a você.</p>
-        <?php } else { ?>
-            <div class="table-wrap"><table class="data-table"><thead><tr><th>Turma</th><th>Modalidade</th><th>Temporada</th><th>Local</th><th>Dias e horário</th></tr></thead><tbody>
-                <?php foreach ($professorClasses as $class) { ?><tr><td><?php echo e($class['nome']); ?></td><td><?php echo e($class['modalidade_nome']); ?></td><td><?php echo e($class['temporada_nome']); ?></td><td><?php echo e($class['local_nome']); ?> / <?php echo e($class['espaco_nome']); ?></td><td><?php echo e((string) ($class['dias_semana_descricao'] ?? $class['dias_semana'] ?? '-')); ?><?php if (!empty($class['hora_inicio']) && !empty($class['hora_fim'])) { ?><br><small><?php echo e(substr((string) $class['hora_inicio'], 0, 5)); ?> às <?php echo e(substr((string) $class['hora_fim'], 0, 5)); ?></small><?php } ?></td></tr><?php } ?>
-            </tbody></table></div>
-        <?php } ?>
-    </article>
+        </article>
+    <?php } else { ?>
+        <div class="professor-classes-grid">
+            <?php foreach ($professorClasses as $class) { ?>
+                <article class="content-card professor-class-card">
+                    <span class="eyebrow"><?php echo e((string) $class['temporada_nome']); ?></span>
+                    <h3><?php echo e((string) $class['nome']); ?></h3>
+                    <div class="professor-class-details">
+                        <p><strong>Modalidade:</strong> <?php echo e((string) $class['modalidade_nome']); ?></p>
+                        <p><strong>Local:</strong> <?php echo e((string) $class['local_nome']); ?>, <?php echo e((string) $class['espaco_nome']); ?></p>
+                        <p><strong>Dias:</strong> <?php echo e((string) ($class['dias_semana_descricao'] ?? $class['dias_semana'] ?? 'Não informado')); ?></p>
+                        <p><strong>Horário:</strong> <?php if (!empty($class['hora_inicio']) && !empty($class['hora_fim'])) { ?><?php echo e(substr((string) $class['hora_inicio'], 0, 5)); ?> às <?php echo e(substr((string) $class['hora_fim'], 0, 5)); ?><?php } else { ?>Não informado<?php } ?></p>
+                    </div>
+                </article>
+            <?php } ?>
+        </div>
+    <?php } ?>
 </section>

@@ -2076,6 +2076,49 @@ class AdminService
         return $this->getModalityForManagement($id);
     }
 
+    public function deleteModality(int $accountId, int $modalityId): void
+    {
+        $modality = $this->getModalityForManagement($modalityId);
+        $pdo = Database::connection();
+        $relations = [
+            'turmas' => 'turmas',
+            'horarios_semanais' => 'horários semanais',
+            'agenda_horarios_especiais' => 'horários especiais',
+            'local_modalidade' => 'locais de treino',
+            'certificados_nivel_modalidade' => 'certificados',
+            'avaliacoes_fisicas' => 'avaliações físicas',
+            'cronogramas_modalidade' => 'cronogramas de temporadas',
+        ];
+        $dependencies = [];
+
+        foreach ($relations as $table => $label) {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM {$table} WHERE modalidade_id = :id");
+            $stmt->execute([':id' => $modalityId]);
+            if ((int) $stmt->fetchColumn() > 0) $dependencies[] = $label;
+        }
+
+        if ($dependencies !== []) {
+            throw new RuntimeException(
+                'Esta modalidade não pode ser excluída porque possui vínculos com ' . implode(', ', $dependencies) . '. Inative-a para preservar o histórico.'
+            );
+        }
+
+        $pdo->beginTransaction();
+        try {
+            $stmt = $pdo->prepare('DELETE FROM modalidades WHERE id = :id LIMIT 1');
+            $stmt->execute([':id' => $modalityId]);
+            if ($stmt->rowCount() !== 1) throw new RuntimeException('Modalidade não encontrada.');
+            AuditLogService::record('admin.modalidade_excluida', 'modalidades', $modalityId, [
+                'modalidade' => $modality,
+                'conta_id' => $accountId,
+            ]);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $e;
+        }
+    }
+
     private function validateModalityPayload(array $data): array
     {
         $name = trim((string) ($data['nome'] ?? ''));
