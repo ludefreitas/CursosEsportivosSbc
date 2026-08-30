@@ -12,9 +12,13 @@
                 <span>Senha</span>
                 <input type="password" name="password" required>
             </label>
-            <div class="alert-inline">
-                Ao final do projeto, lembrem-se de incluir aqui a verificação "não sou robô" ou "sou humano".
-            </div>
+            <?php if (!empty($turnstileRequired)) { ?>
+                <?php if (!empty($turnstileSiteKey)) { ?>
+                    <div class="cf-turnstile" data-sitekey="<?php echo e((string) $turnstileSiteKey); ?>" data-action="login"></div>
+                <?php } else { ?>
+                    <div class="alert-inline">A verificação de segurança está temporariamente indisponível.</div>
+                <?php } ?>
+            <?php } ?>
             <button type="submit" class="btn btn-primary">Entrar</button>
         </form>
     </div>

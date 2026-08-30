@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Services\AccountAccessService;
 use App\Services\AuthService;
 use App\Services\ProfileService;
+use App\Services\TurnstileService;
 
 class AuthController extends Controller
 {
@@ -37,6 +38,8 @@ class AuthController extends Controller
             'title' => 'Entrar',
             'pageClass' => 'pagina-auth',
             'returnTo' => safe_internal_path((string) ($_GET['return_to'] ?? '/dashboard'), '/dashboard'),
+            'turnstileRequired' => $this->loginRequiresTurnstile(),
+            'turnstileSiteKey' => (new TurnstileService())->siteKey(),
         ]);
     }
 
@@ -50,7 +53,11 @@ class AuthController extends Controller
         remember_old_input(['cpf' => $cpf]);
 
         try {
+            if ($this->loginRequiresTurnstile()) {
+                (new TurnstileService())->validateRequest($_POST);
+            }
             $account = $this->authService->attempt($cpf, (string) ($_POST['password'] ?? ''));
+            $_SESSION['login_failure_count'] = 0;
             clear_old_input();
             Auth::login((int) $account['conta_id']);
             (new AccountAccessService())->registerAccessForAccount((int) $account['conta_id'], true);
@@ -100,10 +107,12 @@ class AuthController extends Controller
             flash('success', $successMessage);
             redirect((string) parse_url($redirectUrl, PHP_URL_PATH));
         } catch (\Throwable $e) {
+            $_SESSION['login_failure_count'] = min(20, (int) ($_SESSION['login_failure_count'] ?? 0) + 1);
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => false,
                     'message' => $e->getMessage(),
+                    'redirect' => $this->loginRequiresTurnstile() ? login_modal_url($returnTo) : '',
                 ]);
             }
 
@@ -124,6 +133,7 @@ class AuthController extends Controller
         $this->view('auth/register', [
             'title' => 'Cadastro do Responsável',
             'pageClass' => 'pagina-auth',
+            'turnstileSiteKey' => (new TurnstileService())->siteKey(),
         ]);
     }
 
@@ -142,6 +152,16 @@ class AuthController extends Controller
         ];
 
         remember_old_input($data);
+
+        try {
+            (new TurnstileService())->validateRequest($_POST);
+        } catch (\Throwable $e) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse(['success' => false, 'message' => $e->getMessage()]);
+            }
+            flash('error', $e->getMessage());
+            redirect('/cadastro');
+        }
 
         if ($data['adult_ack'] !== '1') {
             if ($this->isAjaxRequest()) {
@@ -245,6 +265,12 @@ class AuthController extends Controller
             $this->authService->consultarSituacaoCpfParaCadastro($cpf),
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
+    }
+
+    private function loginRequiresTurnstile(): bool
+    {
+        $threshold = max(1, (int) app_config('turnstile_login_failure_threshold', 3));
+        return (int) ($_SESSION['login_failure_count'] ?? 0) >= $threshold;
     }
 
     /**

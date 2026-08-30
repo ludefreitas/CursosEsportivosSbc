@@ -39,4 +39,13 @@ Primeira entrega funcional de um sistema web em PHP MVC para cadastro por CPF, r
 
 ## Observacao importante
 
-O formulario de login ja contem o lembrete para incluir captcha ou validacao humana ao final do projeto.
+## Proteção contra robôs
+
+- O cadastro de nova conta sempre exige Cloudflare Turnstile.
+- O login passa a exigir Turnstile depois de 3 tentativas consecutivas sem sucesso.
+- A inscrição pública feita somente por CPF sempre exige Turnstile.
+- Configure `TURNSTILE_SITE_KEY` e `TURNSTILE_SECRET_KEY` no ambiente ou copie `config/app.local.example.php` para `config/app.local.php` e informe as chaves sem versionar o arquivo local.
+
+### Pendências planejadas
+
+Ao revisar o estado do projeto, lembrar de reavaliar a proteção contra automação na recuperação de senha, em futuros formulários públicos de contato e em eventual agendamento sem autenticação. Não aplicar a verificação na navegação pública nem nas operações administrativas autenticadas sem evidência de abuso.

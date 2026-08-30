@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS cronogramas_modalidade (
     inscricoes_fim DATETIME NULL,
     matriculas_inicio DATETIME NULL,
     matriculas_fim DATETIME NULL,
+    permitir_inscricao_periodo_matricula TINYINT(1) NOT NULL DEFAULT 0,
     inscricoes_abertas_inicio DATETIME NULL,
     inscricoes_abertas_fim DATETIME NULL,
     aulas_inicio DATE NULL,
@@ -37,7 +38,7 @@ ALTER TABLE turmas ADD COLUMN cronograma_modalidade_id BIGINT UNSIGNED NULL AFTE
 
 INSERT INTO cronogramas_modalidade (
     temporada_id, modalidade_id, nome, data_inicio, data_fim, inscricoes_inicio, inscricoes_fim,
-    matriculas_inicio, matriculas_fim, inscricoes_abertas_inicio,
+    matriculas_inicio, matriculas_fim, permitir_inscricao_periodo_matricula, inscricoes_abertas_inicio,
     inscricoes_abertas_fim, aulas_inicio, aulas_fim, possui_edital,
     numero_edital, link_edital
 )
@@ -51,6 +52,7 @@ SELECT DISTINCT
     te.inscricoes_fim,
     te.matriculas_inicio,
     te.matriculas_fim,
+    te.permitir_inscricao_periodo_matricula,
     te.inscricoes_abertas_inicio,
     te.inscricoes_abertas_fim,
     te.aulas_inicio,

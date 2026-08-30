@@ -152,6 +152,15 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 <?php if ($sectionName === 'agenda') { ?>
     <?php
     $trainingLocations = [];
+    $formatTrainingSpaceOption = static function (array $space): string {
+        $locationNickname = trim((string) ($space['local_apelido'] ?? ''));
+
+        if ($locationNickname === '') {
+            $locationNickname = trim((string) ($space['local_nome'] ?? ''));
+        }
+
+        return $locationNickname . ' — ' . trim((string) ($space['nome'] ?? ''));
+    };
 
     foreach (($trainingSpaces ?? []) as $space) {
         $locationId = (int) ($space['local_treino_id'] ?? 0);
@@ -532,7 +541,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 <option value="">Selecione</option>
                                 <?php foreach (($trainingSpaces ?? []) as $space) { ?>
                                     <option value="<?php echo e((string) $space['id']); ?>">
-                                        <?php echo e($space['local_nome'] . ' - ' . $space['nome'] . ' (' . $space['tipo_espaco'] . ')'); ?>
+                                        <?php echo e($formatTrainingSpaceOption($space)); ?>
                                     </option>
                                 <?php } ?>
                             </select>
@@ -847,7 +856,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                     <option value="">Selecione</option>
                                     <?php foreach (($trainingSpaces ?? []) as $space) { ?>
                                         <option value="<?php echo e((string) $space['id']); ?>">
-                                            <?php echo e($space['local_nome'] . ' - ' . $space['nome'] . ' (' . $space['tipo_espaco'] . ')'); ?>
+                                            <?php echo e($formatTrainingSpaceOption($space)); ?>
                                         </option>
                                     <?php } ?>
                                 </select>
@@ -1058,7 +1067,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 <option value="">Opcional</option>
                                 <?php foreach (($trainingSpaces ?? []) as $space) { ?>
                                     <option value="<?php echo e((string) $space['id']); ?>">
-                                        <?php echo e($space['local_nome'] . ' - ' . $space['nome'] . ' (' . $space['tipo_espaco'] . ')'); ?>
+                                        <?php echo e($formatTrainingSpaceOption($space)); ?>
                                     </option>
                                 <?php } ?>
                             </select>
@@ -1224,7 +1233,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                     <option value="">Opcional</option>
                                     <?php foreach (($trainingSpaces ?? []) as $space) { ?>
                                         <option value="<?php echo e((string) $space['id']); ?>">
-                                            <?php echo e($space['local_nome'] . ' - ' . $space['nome'] . ' (' . $space['tipo_espaco'] . ')'); ?>
+                                            <?php echo e($formatTrainingSpaceOption($space)); ?>
                                         </option>
                                     <?php } ?>
                                 </select>
@@ -2459,6 +2468,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 <div class="grid-two"><label><span>Disponível para consulta: início</span><input type="date" name="data_inicio" required></label><label><span>Disponível para consulta: fim</span><input type="date" name="data_fim" required></label></div>
                 <div class="grid-two"><label><span>Inscrição inicial: início</span><input type="datetime-local" name="inscricoes_inicio"></label><label><span>Inscrição inicial: fim</span><input type="datetime-local" name="inscricoes_fim"></label></div>
                 <div class="grid-two"><label><span>Matrículas: início</span><input type="datetime-local" name="matriculas_inicio"></label><label><span>Matrículas: fim</span><input type="datetime-local" name="matriculas_fim"></label></div>
+                <label class="checkbox-chip"><input type="checkbox" name="permitir_inscricao_periodo_matricula" value="1"><span>Aceitar inscrições durante o período de matrícula</span></label>
                 <div class="grid-two"><label><span>Inscrições abertas: início</span><input type="datetime-local" name="inscricoes_abertas_inicio"></label><label><span>Inscrições abertas: fim</span><input type="datetime-local" name="inscricoes_abertas_fim"></label></div>
                 <div class="grid-two"><label><span>Aulas: início</span><input type="date" name="aulas_inicio"></label><label><span>Aulas: fim</span><input type="date" name="aulas_fim"></label></div>
                 <label class="checkbox-chip"><input type="checkbox" name="possui_edital" value="1" data-modality-schedule-notice-toggle="1"><span>Este cronograma possui edital específico</span></label>

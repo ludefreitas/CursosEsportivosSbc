@@ -41,9 +41,11 @@
                 <span>Li e aceito as politicas de privacidade e os termos de uso do site. O documento será implementado em detalhes depois.</span>
             </label>
 
-            <div class="alert-inline">
-                Ao final do projeto, lembrem-se de incluir aqui a verificação "não sou robô" ou "sou humano".
-            </div>
+            <?php if (!empty($turnstileSiteKey)) { ?>
+                <div class="cf-turnstile" data-sitekey="<?php echo e((string) $turnstileSiteKey); ?>" data-action="cadastro"></div>
+            <?php } else { ?>
+                <div class="alert-inline">A verificação de segurança está temporariamente indisponível.</div>
+            <?php } ?>
 
             <button type="submit" class="btn btn-primary">Criar cadastro</button>
         </form>

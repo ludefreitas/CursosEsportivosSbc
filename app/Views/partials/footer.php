@@ -121,6 +121,7 @@
     </div>
     <script>
         window.APP_BASE_URL = <?php echo json_encode(url('/'), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
+        window.TURNSTILE_SITE_KEY = <?php echo json_encode((string) app_config('turnstile_site_key', ''), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
     </script>
     <script src="<?php echo e(asset_url('js/core.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/auth.js')); ?>"></script>

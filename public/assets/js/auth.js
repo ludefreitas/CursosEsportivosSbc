@@ -225,6 +225,10 @@
                         const mensagemErro = String(response.message || 'Não foi possível concluir a operação agora.');
                         const redirectErro = String(response.redirect || '');
 
+                        if (window.turnstile && typeof window.turnstile.reset === 'function') {
+                            $form.find('.cf-turnstile').each(function () { window.turnstile.reset(this); });
+                        }
+
                         App.core.abrirPopup('erro', mensagemErro, function () {
                             if (redirectErro !== '') {
                                 window.location.href = redirectErro;

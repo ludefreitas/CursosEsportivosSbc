@@ -1687,6 +1687,58 @@
                 return $('#admin-weekly-schedule-form');
             }
 
+            const weeklyScheduleFieldHelp = {
+                espaco_treino_id: 'Define o espaço físico em que o horário acontecerá. O local de treino é identificado automaticamente a partir do espaço selecionado.',
+                modalidade_id: 'Define a modalidade esportiva oferecida neste horário e utilizada nos filtros da agenda.',
+                tipo_horario: 'Indica a finalidade do horário semanal: avaliação, treino ou aula.',
+                dia_semana: 'Define o dia da semana em que este horário se repetirá.',
+                sexo: 'Restringe o horário por sexo. Selecione Livre para permitir o agendamento de qualquer pessoa que atenda aos demais critérios.',
+                hora_inicio: 'Informa o horário em que a atividade começa.',
+                hora_fim: 'Informa o horário em que a atividade termina. Também é usado para definir a duração e verificar conflitos.',
+                criterio_faixa_etaria: 'Define se a faixa etária será conferida pela idade exata na data da atividade ou somente pelo ano de nascimento.',
+                idade_minima: 'Define a menor idade permitida para agendar este horário, conforme o critério etário escolhido.',
+                idade_maxima: 'Define a maior idade permitida para agendar este horário, conforme o critério etário escolhido.',
+                regra_atestado_clinico: 'A regra global é o comportamento padrão do sistema quando este horário não possui uma regra própria. Para o atestado clínico, a regra global exige um atestado válido em todos os horários. Selecione Exigir ou Dispensar para substituir esse padrão somente neste horário.',
+                regra_atestado_dermatologico: 'A regra global é o comportamento padrão do sistema quando este horário não possui uma regra própria. Para o atestado dermatológico, a regra global exige um atestado válido nas modalidades aquáticas e o dispensa nas modalidades terrestres. Selecione Exigir ou Dispensar para substituir esse padrão somente neste horário.',
+                vagas_geral: 'Define a quantidade de vagas destinadas ao público geral em cada ocorrência deste horário.',
+                vagas_pcd: 'Define a quantidade de vagas destinadas a pessoas com deficiência (PCD) em cada ocorrência.',
+                vagas_plm: 'Define a quantidade de vagas destinadas a pessoas com limitação de mobilidade (PLM) em cada ocorrência.',
+                vagas_pvs: 'Define a quantidade de vagas destinadas a pessoas em vulnerabilidade social (PVS) em cada ocorrência.',
+                janela_agendamento_tipo: 'Define quando cada ocorrência ficará disponível para agendamento. Semana atual e próxima: exibe somente horários da semana atual e da próxima, do início da semana atual até o domingo da próxima, e encerra cada agendamento 2 horas antes da atividade. Dias fixos da semana: abre e fecha a agenda nos dias e horários semanais informados para a semana da ocorrência. Antecedência da ocorrência: abre a agenda a quantidade de dias informada antes da atividade e fecha a quantidade de horas informada antes do seu início.',
+                janela_horas_antes_fechamento: 'Define quantas horas antes do início da atividade o agendamento será encerrado.',
+                janela_abertura_dia_semana: 'Define o dia fixo da semana em que a agenda será aberta quando for usada a janela semanal fixa.',
+                janela_abertura_hora: 'Define o horário de abertura da agenda no dia semanal escolhido.',
+                janela_fechamento_dia_semana: 'Define o dia fixo da semana em que a agenda será fechada quando for usada a janela semanal fixa.',
+                janela_fechamento_hora: 'Define o horário de fechamento da agenda no dia semanal escolhido.',
+                janela_dias_antecedencia: 'Define quantos dias antes de cada atividade a ocorrência ficará disponível para agendamento.',
+                ativo: 'Define se o horário já será disponibilizado como ativo após o cadastro. Horários inativos não ficam disponíveis para novos agendamentos.'
+            };
+
+            function ensureWeeklyScheduleFieldHelp($form) {
+                if (!$form || $form.length === 0) {
+                    return;
+                }
+
+                Object.keys(weeklyScheduleFieldHelp).forEach(function (fieldName) {
+                    const $field = $form.find('[name="' + fieldName + '"]').first();
+                    const $labelText = $field.closest('label').children('span').first();
+
+                    if ($field.length === 0 || $labelText.length === 0 || $labelText.find('[data-weekly-schedule-field-help="' + fieldName + '"]').length > 0) {
+                        return;
+                    }
+
+                    $('<button>', {
+                        type: 'button',
+                        class: 'season-field-help weekly-schedule-field-help',
+                        text: '?',
+                        title: 'Explicação deste campo',
+                        'aria-label': 'Explicação do campo ' + $labelText.text().trim()
+                    })
+                        .attr('data-weekly-schedule-field-help', fieldName)
+                        .appendTo($labelText);
+                });
+            }
+
             function syncWeeklyScheduleWindowFields($form) {
                 if (!$form || $form.length === 0) {
                     return;
@@ -1772,8 +1824,11 @@
                     return;
                 }
 
+                const $createForm = $('#admin-weekly-schedule-create-form');
+
+                ensureWeeklyScheduleFieldHelp($createForm);
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
-                syncWeeklyScheduleWindowFields($('#admin-weekly-schedule-create-form'));
+                syncWeeklyScheduleWindowFields($createForm);
                 window.setTimeout(function () {
                     $modal.find('select, input').filter(':visible').first().trigger('focus');
                 }, 0);
@@ -1861,6 +1916,21 @@
 
             $(document).on('click', '#admin-weekly-schedule-create-close, #admin-weekly-schedule-create-cancel', function () {
                 closeCreateModal();
+            });
+
+            $(document).on('click', '[data-weekly-schedule-field-help]', function (event) {
+                const fieldName = String($(this).attr('data-weekly-schedule-field-help') || '');
+                const message = weeklyScheduleFieldHelp[fieldName];
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                if (!message) {
+                    return;
+                }
+
+                App.core.abrirPopup('sucesso', message);
+                $('#popup-titulo').text('Ajuda sobre o campo');
             });
 
             $(document).on('input change', '#admin-weekly-schedule-create-form input[name="idade_minima"], #admin-weekly-schedule-create-form input[name="idade_maxima"], #admin-weekly-schedule-create-form select[name="criterio_faixa_etaria"], #admin-weekly-schedule-form input[name="idade_minima"], #admin-weekly-schedule-form input[name="idade_maxima"], #admin-weekly-schedule-form select[name="criterio_faixa_etaria"]', function () {
@@ -2034,6 +2104,7 @@
 
             syncWeeklyScheduleAgePreview($('#admin-weekly-schedule-create-form'));
             syncWeeklyScheduleAgePreview(getForm());
+            ensureWeeklyScheduleFieldHelp($('#admin-weekly-schedule-create-form'));
             syncWeeklyScheduleWindowFields($('#admin-weekly-schedule-create-form'));
             syncWeeklyScheduleWindowFields(getForm());
         },
@@ -4351,6 +4422,7 @@
                 if (!season || Number($('#admin-modality-schedule-form [name="cronograma_modalidade_id"]').val() || 0) > 0) return;
                 ['inscricoes_inicio', 'inscricoes_fim', 'matriculas_inicio', 'matriculas_fim', 'inscricoes_abertas_inicio', 'inscricoes_abertas_fim'].forEach(function (field) { $('#admin-modality-schedule-form [name="' + field + '"]').val(toLocalDateTime(season[field])); });
                 ['data_inicio', 'data_fim', 'aulas_inicio', 'aulas_fim'].forEach(function (field) { $('#admin-modality-schedule-form [name="' + field + '"]').val(String(season[field] || '')); });
+                $('#admin-modality-schedule-form [name="permitir_inscricao_periodo_matricula"]').prop('checked', Number(season.permitir_inscricao_periodo_matricula || 0) === 1);
                 const modalityText = $('#admin-modality-schedule-form [name="modalidade_id"] option:selected').text();
                 $('#admin-modality-schedule-form [name="nome"]').val((modalityText && modalityText !== 'Selecione' ? modalityText + ' - ' : '') + String(season.nome || ''));
             });
@@ -4816,6 +4888,13 @@
                         .append($('<input>', { type: 'number', name: 'limite_inscricoes_adicionais', min: 3, value: 3 }));
                     $initialLimit.after($releaseFields, $additionalLimit);
                 }
+                if ($form.find('[name="permitir_inscricao_periodo_matricula"]').length === 0) {
+                    const $enrollmentPeriod = $form.find('[name="matriculas_fim"]').closest('.grid-two');
+                    const $allowEnrollmentDuringRegistration = $('<label>', { class: 'checkbox-chip' })
+                        .append($('<input>', { type: 'checkbox', name: 'permitir_inscricao_periodo_matricula', value: '1' }))
+                        .append($('<span>', { text: 'Aceitar inscrições durante o período de matrícula' }));
+                    $enrollmentPeriod.after($allowEnrollmentDuringRegistration);
+                }
             }
 
             const seasonFieldHelp = {
@@ -4831,6 +4910,7 @@
                 inscricoes_fim: 'Data e horário em que termina o período inicial de inscrições da temporada.',
                 matriculas_inicio: 'Data e horário a partir dos quais as matrículas poderão ser realizadas ou confirmadas.',
                 matriculas_fim: 'Data e horário limite para realizar ou confirmar as matrículas.',
+                permitir_inscricao_periodo_matricula: 'Define se novas inscrições também poderão ser realizadas entre o início e o fim do período de matrícula. Ao criar um cronograma de modalidade, esta escolha será copiada da temporada e poderá ser alterada de forma independente.',
                 inscricoes_abertas_inicio: 'Início do período posterior de inscrições abertas, quando ainda houver disponibilidade.',
                 inscricoes_abertas_fim: 'Encerramento do período posterior de inscrições abertas.',
                 aulas_inicio: 'Primeiro dia previsto para as aulas da temporada.',

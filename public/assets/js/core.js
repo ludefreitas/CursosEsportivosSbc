@@ -255,6 +255,13 @@
                     '<button type="button" class="popup-close-icon popup-route-inline-close" data-close-popup="#popup-route-modal" aria-label="Fechar formulario">&times;</button>' +
                     String(html || '')
                 );
+                if (window.turnstile && typeof window.turnstile.render === 'function') {
+                    $content.find('.cf-turnstile').each(function () {
+                        if (!$(this).children().length) {
+                            window.turnstile.render(this);
+                        }
+                    });
+                }
             }).fail(function (xhr) {
                 const erro = App.core.extrairMensagemErroAjax(xhr);
 

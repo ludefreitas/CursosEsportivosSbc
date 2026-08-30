@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Services\CourseEnrollmentService;
+use App\Services\TurnstileService;
 
 class CourseEnrollmentController extends Controller
 {
@@ -81,6 +82,9 @@ class CourseEnrollmentController extends Controller
     public function enroll(): void
     {
         try {
+            if (!Auth::check() && trim((string) ($_POST['cpf'] ?? '')) !== '') {
+                (new TurnstileService())->validateRequest($_POST);
+            }
             $result = $this->service->enroll($_POST);
             $message = $result['status'] === 'lista_espera'
                 ? 'Inscrição recebida e incluída na lista de espera.'
