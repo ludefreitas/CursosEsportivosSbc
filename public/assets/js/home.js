@@ -425,19 +425,18 @@
                 $form.append($('<input>', { type: 'hidden', name: 'turma_id', value: classId }));
                 $form.append($('<label>').append($('<span>', { text: 'CPF da pessoa' })).append($('<input>', { type: 'text', name: 'cpf', placeholder: '000.000.000-00', required: true })));
                 $form.append($('<label>', { class: 'checkbox-chip' }).append($('<input>', { type: 'checkbox', name: 'aceite_termos', value: '1', required: true })).append($('<span>', { text: 'Aceito os termos da inscrição' })));
-                const $turnstile = $('<div>', { class: 'cf-turnstile', 'data-sitekey': String(window.TURNSTILE_SITE_KEY || ''), 'data-action': 'inscricao_cpf' });
-                if (String(window.TURNSTILE_SITE_KEY || '') !== '') {
-                    $form.append($turnstile);
-                } else {
-                    $form.append($('<div>', { class: 'alert-inline', text: 'A verificação de segurança está temporariamente indisponível.' }));
-                }
-                $form.append($('<button>', { type: 'submit', class: 'btn btn-primary', text: 'Confirmar inscrição por CPF' }));
+                const $verification = $('<div>', { class: 'human-verification', 'data-human-verification': '1' })
+                    .append($('<input>', { type: 'hidden', name: 'human_verification_id' }))
+                    .append($('<input>', { type: 'text', name: 'website', value: '', class: 'hidden', tabindex: '-1', autocomplete: 'off', 'aria-hidden': 'true' }))
+                    .append($('<label>', { class: 'checkbox-line' })
+                        .append($('<input>', { type: 'checkbox', name: 'human_verification', value: '1', required: true }))
+                        .append($('<span>', { text: 'Não sou robô' })));
+                const $submit = $('<button>', { type: 'submit', class: 'btn btn-primary', text: 'Confirmar inscrição por CPF', disabled: true });
+                $form.append($verification, $submit);
                 $('#home-course-cpf-subtitle').text(String(courseClass.nome || ''));
                 $('#home-course-cpf-content').empty().append($form);
                 $('#home-course-cpf-modal').removeClass('hidden').attr('aria-hidden', 'false');
-                if ($turnstile.parent().length > 0 && window.turnstile && typeof window.turnstile.render === 'function') {
-                    window.turnstile.render($turnstile[0]);
-                }
+                App.core.renovarVerificacaoHumana($form).always(function () { $submit.prop('disabled', false); });
             });
             $(document).on('click', '[data-home-course-detail-close="1"]', function () { $('#home-course-enrollment-modal, #home-course-cpf-modal, #home-course-vacancies-modal').addClass('hidden').attr('aria-hidden', 'true'); });
             $(document).on('click', '#home-course-enrollment-modal, #home-course-cpf-modal, #home-course-vacancies-modal', function (event) { if (event.target === this) $(this).addClass('hidden').attr('aria-hidden', 'true'); });
@@ -453,14 +452,14 @@
                 $.ajax({ url: $form.attr('action'), method: 'POST', data: new FormData($form[0]), processData: false, contentType: false, dataType: 'json', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
                     .done(function (response) {
                         if (!response || response.success === false) {
-                            if (window.turnstile && typeof window.turnstile.reset === 'function') $form.find('.cf-turnstile').each(function () { window.turnstile.reset(this); });
+                            if (response && response.human_verification_refresh) App.core.renovarVerificacaoHumana($form);
                             App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível concluir a inscrição.'));
                             return;
                         }
                         $('#home-course-enrollment-modal, #home-course-cpf-modal').addClass('hidden').attr('aria-hidden', 'true');
                         App.core.abrirPopup('sucesso', String(response.message || 'Inscrição realizada com sucesso.'), loadClasses);
                     }).fail(function (xhr) {
-                        if (window.turnstile && typeof window.turnstile.reset === 'function') $form.find('.cf-turnstile').each(function () { window.turnstile.reset(this); });
+                        App.core.renovarVerificacaoHumana($form);
                         App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
                     })
                     .always(function () { $button.prop('disabled', false); });

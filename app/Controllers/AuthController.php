@@ -7,7 +7,7 @@ use App\Core\Controller;
 use App\Services\AccountAccessService;
 use App\Services\AuthService;
 use App\Services\ProfileService;
-use App\Services\TurnstileService;
+use App\Services\HumanVerificationService;
 
 class AuthController extends Controller
 {
@@ -38,8 +38,8 @@ class AuthController extends Controller
             'title' => 'Entrar',
             'pageClass' => 'pagina-auth',
             'returnTo' => safe_internal_path((string) ($_GET['return_to'] ?? '/dashboard'), '/dashboard'),
-            'turnstileRequired' => $this->loginRequiresTurnstile(),
-            'turnstileSiteKey' => (new TurnstileService())->siteKey(),
+            'humanVerificationRequired' => $this->loginRequiresHumanVerification(),
+            'humanVerification' => $this->loginRequiresHumanVerification() ? (new HumanVerificationService())->createChallenge() : null,
         ]);
     }
 
@@ -53,8 +53,8 @@ class AuthController extends Controller
         remember_old_input(['cpf' => $cpf]);
 
         try {
-            if ($this->loginRequiresTurnstile()) {
-                (new TurnstileService())->validateRequest($_POST);
+            if ($this->loginRequiresHumanVerification()) {
+                (new HumanVerificationService())->validateRequest($_POST);
             }
             $account = $this->authService->attempt($cpf, (string) ($_POST['password'] ?? ''));
             $_SESSION['login_failure_count'] = 0;
@@ -112,7 +112,8 @@ class AuthController extends Controller
                 $this->jsonResponse([
                     'success' => false,
                     'message' => $e->getMessage(),
-                    'redirect' => $this->loginRequiresTurnstile() ? login_modal_url($returnTo) : '',
+                    'redirect' => $this->loginRequiresHumanVerification() ? login_modal_url($returnTo) : '',
+                    'human_verification_refresh' => true,
                 ]);
             }
 
@@ -133,7 +134,7 @@ class AuthController extends Controller
         $this->view('auth/register', [
             'title' => 'Cadastro do Responsável',
             'pageClass' => 'pagina-auth',
-            'turnstileSiteKey' => (new TurnstileService())->siteKey(),
+            'humanVerification' => (new HumanVerificationService())->createChallenge(),
         ]);
     }
 
@@ -154,10 +155,10 @@ class AuthController extends Controller
         remember_old_input($data);
 
         try {
-            (new TurnstileService())->validateRequest($_POST);
+            (new HumanVerificationService())->validateRequest($_POST);
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
-                $this->jsonResponse(['success' => false, 'message' => $e->getMessage()]);
+                $this->jsonResponse(['success' => false, 'message' => $e->getMessage(), 'human_verification_refresh' => true]);
             }
             flash('error', $e->getMessage());
             redirect('/cadastro');
@@ -267,9 +268,14 @@ class AuthController extends Controller
         );
     }
 
-    private function loginRequiresTurnstile(): bool
+    public function humanVerificationChallenge(): void
     {
-        $threshold = max(1, (int) app_config('turnstile_login_failure_threshold', 3));
+        $this->jsonResponse(['success' => true, 'challenge' => (new HumanVerificationService())->createChallenge()]);
+    }
+
+    private function loginRequiresHumanVerification(): bool
+    {
+        $threshold = max(1, (int) app_config('human_verification_login_failure_threshold', 3));
         return (int) ($_SESSION['login_failure_count'] ?? 0) >= $threshold;
     }
 

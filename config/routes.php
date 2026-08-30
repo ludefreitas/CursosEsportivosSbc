@@ -31,6 +31,7 @@ return [
     ['GET', '/cadastro', [AuthController::class, 'showRegister']],
     ['POST', '/cadastro', [AuthController::class, 'register']],
     ['GET', '/api/cpf/cadastro-status', [AuthController::class, 'checkRegisterCpf']],
+    ['GET', '/api/verificacao-humana', [AuthController::class, 'humanVerificationChallenge']],
     ['POST', '/logout', [AuthController::class, 'logout']],
     ['GET', '/perfil/completar', [ProfileController::class, 'showComplete']],
     ['POST', '/perfil/completar', [ProfileController::class, 'complete']],

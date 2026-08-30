@@ -12,12 +12,12 @@
                 <span>Senha</span>
                 <input type="password" name="password" required>
             </label>
-            <?php if (!empty($turnstileRequired)) { ?>
-                <?php if (!empty($turnstileSiteKey)) { ?>
-                    <div class="cf-turnstile" data-sitekey="<?php echo e((string) $turnstileSiteKey); ?>" data-action="login"></div>
-                <?php } else { ?>
-                    <div class="alert-inline">A verificação de segurança está temporariamente indisponível.</div>
-                <?php } ?>
+            <?php if (!empty($humanVerificationRequired)) { ?>
+                <div class="human-verification" data-human-verification="1">
+                    <input type="hidden" name="human_verification_id" value="<?php echo e((string) ($humanVerification['id'] ?? '')); ?>">
+                    <input type="text" name="website" value="" class="hidden" tabindex="-1" autocomplete="off" aria-hidden="true">
+                    <label class="checkbox-line"><input type="checkbox" name="human_verification" value="1" required><span>Não sou robô</span></label>
+                </div>
             <?php } ?>
             <button type="submit" class="btn btn-primary">Entrar</button>
         </form>

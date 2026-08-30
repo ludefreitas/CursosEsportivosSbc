@@ -41,10 +41,10 @@ Primeira entrega funcional de um sistema web em PHP MVC para cadastro por CPF, r
 
 ## Proteção contra robôs
 
-- O cadastro de nova conta sempre exige Cloudflare Turnstile.
-- O login passa a exigir Turnstile depois de 3 tentativas consecutivas sem sucesso.
-- A inscrição pública feita somente por CPF sempre exige Turnstile.
-- Configure `TURNSTILE_SITE_KEY` e `TURNSTILE_SECRET_KEY` no ambiente ou copie `config/app.local.example.php` para `config/app.local.php` e informe as chaves sem versionar o arquivo local.
+- O cadastro de nova conta sempre exige o clique em “Não sou robô”.
+- O login passa a exigir essa confirmação depois de 3 tentativas consecutivas sem sucesso.
+- A inscrição pública feita somente por CPF sempre exige essa confirmação.
+- A verificação é interna e não depende de Cloudflare, chave externa ou configuração no servidor.
 
 ### Pendências planejadas
 

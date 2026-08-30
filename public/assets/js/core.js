@@ -19,6 +19,17 @@
             return appBaseUrl + '/' + String(path).replace(/^\/+/, '');
         },
 
+        renovarVerificacaoHumana: function ($form) {
+            const $verification = $form.find('[data-human-verification="1"]').first();
+            if ($verification.length === 0) return $.Deferred().resolve().promise();
+            return $.getJSON(App.core.buildUrl('/api/verificacao-humana'))
+                .done(function (response) {
+                    $verification.find('[name="human_verification_id"]').val(String((response && response.challenge && response.challenge.id) || ''));
+                    $verification.find('[name="human_verification"]').prop('checked', false);
+                    $verification.find('[name="website"]').val('');
+                });
+        },
+
         escapeHtml: function (value) {
             return String(value == null ? '' : value)
                 .replace(/&/g, '&amp;')
@@ -255,13 +266,6 @@
                     '<button type="button" class="popup-close-icon popup-route-inline-close" data-close-popup="#popup-route-modal" aria-label="Fechar formulario">&times;</button>' +
                     String(html || '')
                 );
-                if (window.turnstile && typeof window.turnstile.render === 'function') {
-                    $content.find('.cf-turnstile').each(function () {
-                        if (!$(this).children().length) {
-                            window.turnstile.render(this);
-                        }
-                    });
-                }
             }).fail(function (xhr) {
                 const erro = App.core.extrairMensagemErroAjax(xhr);
 

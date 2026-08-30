@@ -5,7 +5,7 @@ namespace App\Controllers;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Services\CourseEnrollmentService;
-use App\Services\TurnstileService;
+use App\Services\HumanVerificationService;
 
 class CourseEnrollmentController extends Controller
 {
@@ -83,7 +83,7 @@ class CourseEnrollmentController extends Controller
     {
         try {
             if (!Auth::check() && trim((string) ($_POST['cpf'] ?? '')) !== '') {
-                (new TurnstileService())->validateRequest($_POST);
+                (new HumanVerificationService())->validateRequest($_POST);
             }
             $result = $this->service->enroll($_POST);
             $message = $result['status'] === 'lista_espera'
@@ -95,7 +95,7 @@ class CourseEnrollmentController extends Controller
             flash('success', $message);
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
-                $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+                $this->jsonResponse(['success' => false, 'message' => $e->getMessage(), 'human_verification_refresh' => true], 422);
             }
             flash('error', $e->getMessage());
         }

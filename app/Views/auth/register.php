@@ -41,11 +41,11 @@
                 <span>Li e aceito as politicas de privacidade e os termos de uso do site. O documento será implementado em detalhes depois.</span>
             </label>
 
-            <?php if (!empty($turnstileSiteKey)) { ?>
-                <div class="cf-turnstile" data-sitekey="<?php echo e((string) $turnstileSiteKey); ?>" data-action="cadastro"></div>
-            <?php } else { ?>
-                <div class="alert-inline">A verificação de segurança está temporariamente indisponível.</div>
-            <?php } ?>
+            <div class="human-verification" data-human-verification="1">
+                <input type="hidden" name="human_verification_id" value="<?php echo e((string) ($humanVerification['id'] ?? '')); ?>">
+                <input type="text" name="website" value="" class="hidden" tabindex="-1" autocomplete="off" aria-hidden="true">
+                <label class="checkbox-line"><input type="checkbox" name="human_verification" value="1" required><span>Não sou robô</span></label>
+            </div>
 
             <button type="submit" class="btn btn-primary">Criar cadastro</button>
         </form>
