@@ -306,6 +306,24 @@ $suggestedCourseModalities = array_slice($suggestedCourseModalities, 0, 3);
     </div>
 </div>
 
+<div id="home-training-modalities-modal" class="popup-overlay hidden" aria-hidden="true">
+    <div class="popup-card home-all-locations-modal-card" role="dialog" aria-modal="true" aria-labelledby="home-training-modalities-title">
+        <div class="popup-head">
+            <div>
+                <span class="eyebrow">Agenda de treinos</span>
+                <h3 id="home-training-modalities-title">Modalidades disponíveis</h3>
+                <p class="muted" id="home-training-modalities-subtitle"></p>
+            </div>
+            <button type="button" class="popup-close-icon" data-home-training-modalities-close="1" aria-label="Fechar modalidades">&times;</button>
+        </div>
+        <div class="popup-body home-all-locations-list" id="home-training-modalities-list"></div>
+        <div class="popup-actions">
+            <button type="button" class="btn btn-secondary" data-home-training-modalities-back="1">Voltar aos locais</button>
+            <button type="button" class="btn btn-secondary" data-home-training-modalities-close="1">Fechar</button>
+        </div>
+    </div>
+</div>
+
 <div id="home-training-calendar-modal" class="popup-overlay hidden" aria-hidden="true">
 <section class="popup-card home-training-calendar-card" id="home-training-agenda" data-home-authenticated="<?php echo \App\Core\Auth::check() ? '1' : '0'; ?>" role="dialog" aria-modal="true" aria-labelledby="home-training-calendar-title">
     <div class="popup-head section-head">
@@ -319,18 +337,12 @@ $suggestedCourseModalities = array_slice($suggestedCourseModalities, 0, 3);
         <button type="button" class="popup-close-icon" data-home-training-calendar-close="1" aria-label="Fechar agenda de treinos">&times;</button>
     </div>
     <div class="popup-body">
-        <label class="home-training-modality-filter">
-            <span>Modalidade</span>
-            <select id="home-training-modality">
-                <option value="0">Todas as modalidades</option>
-                <?php foreach (($trainingModalities ?? []) as $modality) { ?>
-                    <option value="<?php echo e((string) ($modality['id'] ?? '')); ?>"><?php echo e((string) ($modality['nome'] ?? '')); ?></option>
-                <?php } ?>
-            </select>
-        </label>
+        <input type="hidden" id="home-training-modality" value="0">
+        <p class="home-training-calendar-filter-summary" id="home-training-calendar-filter-summary"></p>
         <div id="home-training-calendar"></div>
     </div>
     <div class="popup-actions">
+        <button type="button" class="btn btn-secondary" data-home-training-calendar-back="1">Voltar às modalidades</button>
         <button type="button" class="btn btn-secondary" data-home-training-calendar-close="1">Fechar</button>
     </div>
 </section>

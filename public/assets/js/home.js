@@ -470,6 +470,7 @@
             const calendarElement = document.getElementById('home-training-calendar');
             const $section = $('#home-training-agenda');
             const $calendarModal = $('#home-training-calendar-modal');
+            const $modalitiesModal = $('#home-training-modalities-modal');
             const $locationsCard = $('#home-training-locations');
             const $dayModal = $('#home-training-day-modal');
             let locations = [];
@@ -525,16 +526,13 @@
             }
 
             function loadLocationModalities(locationId) {
-                const $select = $('#home-training-modality');
+                const $list = $('#home-training-modalities-list');
 
                 if (modalitiesRequest && typeof modalitiesRequest.abort === 'function') {
                     modalitiesRequest.abort();
                 }
 
-                $select
-                    .prop('disabled', true)
-                    .empty()
-                    .append($('<option>', { value: '0', text: 'Carregando modalidades...' }));
+                $list.html('<p class="muted">Carregando modalidades...</p>');
 
                 modalitiesRequest = $.getJSON(App.core.buildUrl('/api/agenda/modalidades-por-local'), {
                     local_treino_id: locationId
@@ -542,43 +540,66 @@
                     const modalities = response && Array.isArray(response.modalities) ? response.modalities : [];
 
                     if (!response || response.success === false) {
-                        $select.empty().append($('<option>', { value: '0', text: 'Todas as modalidades' }));
+                        $list.html('<p class="muted">Não foi possível carregar as modalidades deste local.</p>');
                         App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar as modalidades deste local.'));
                         return;
                     }
 
-                    $select.empty().append($('<option>', { value: '0', text: 'Todas as modalidades' }));
+                    $list.empty().append($('<button>', {
+                        type: 'button',
+                        class: 'home-all-location-button',
+                        'data-home-training-modality': '0'
+                    }).append($('<strong>', { text: 'Todas as modalidades' })));
                     modalities.forEach(function (modality) {
-                        $select.append($('<option>', {
-                            value: String(modality.id || ''),
-                            text: String(modality.nome || '')
-                        }));
+                        $list.append($('<button>', {
+                            type: 'button',
+                            class: 'home-all-location-button',
+                            'data-home-training-modality': String(modality.id || '')
+                        }).append($('<strong>', { text: String(modality.nome || '') })));
                     });
-                    $select.val('0');
                 }).fail(function (xhr, status) {
                     if (status !== 'abort') {
-                        $select.empty().append($('<option>', { value: '0', text: 'Todas as modalidades' }));
+                        $list.html('<p class="muted">Não foi possível carregar as modalidades deste local.</p>');
                         const error = App.core.extrairMensagemErroAjax(xhr);
                         App.core.abrirPopup('erro', error.mensagem);
                     }
                 }).always(function (_response, status) {
                     if (status !== 'abort') {
-                        $select.prop('disabled', false);
                         modalitiesRequest = null;
                     }
                 });
             }
 
-            function calendarAspectRatio() {
-                if (window.innerHeight <= 600) {
-                    if (window.innerWidth <= 560) return 1.65;
-                    if (window.innerWidth <= 820) return 2.2;
-                    return 2.9;
+            function calendarAvailableHeight() {
+                const card = $calendarModal.find('.home-training-calendar-card').get(0);
+                const head = card ? card.querySelector(':scope > .popup-head') : null;
+                const body = card ? card.querySelector(':scope > .popup-body') : null;
+                const actions = card ? card.querySelector(':scope > .popup-actions') : null;
+                const summary = document.getElementById('home-training-calendar-filter-summary');
+                const viewportGap = window.innerWidth <= 720 ? 8 : 16;
+                let reserved = 220;
+
+                if (card && !$calendarModal.hasClass('hidden')) {
+                    const bodyStyle = body ? window.getComputedStyle(body) : null;
+                    const bodyPadding = bodyStyle
+                        ? (parseFloat(bodyStyle.paddingTop) || 0) + (parseFloat(bodyStyle.paddingBottom) || 0)
+                        : 0;
+                    const summaryStyle = summary ? window.getComputedStyle(summary) : null;
+                    const summaryMargin = summaryStyle
+                        ? (parseFloat(summaryStyle.marginTop) || 0) + (parseFloat(summaryStyle.marginBottom) || 0)
+                        : 0;
+                    reserved = (head ? head.offsetHeight : 0)
+                        + (actions ? actions.offsetHeight : 0)
+                        + (summary ? summary.offsetHeight + summaryMargin : 0)
+                        + bodyPadding;
                 }
-                if (window.innerWidth <= 560) return 1.35;
-                if (window.innerWidth <= 820) return 1.8;
-                if (window.innerHeight <= 800) return 2.65;
-                return 2.4;
+
+                return Math.max(220, window.innerHeight - viewportGap - reserved);
+            }
+
+            function fitTrainingCalendar() {
+                calendar.setOption('height', calendarAvailableHeight());
+                calendar.updateSize();
             }
 
             function statusFromEvent(event) {
@@ -745,11 +766,10 @@
             const calendar = new FullCalendar.Calendar(calendarElement, {
                 locale: 'pt-br',
                 initialView: 'dayGridMonth',
-                height: 'auto',
-                aspectRatio: calendarAspectRatio(),
+                height: Math.max(220, window.innerHeight - 220),
                 headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
                 windowResize: function () {
-                    calendar.setOption('aspectRatio', calendarAspectRatio());
+                    fitTrainingCalendar();
                 },
                 events: {
                     url: App.core.buildUrl('/api/agenda/eventos'),
@@ -793,16 +813,43 @@
                 if (!selectedLocationId) return;
                 $('#home-all-training-locations-modal').addClass('hidden').attr('aria-hidden', 'true');
                 const location = locations.find(function (item) { return Number(item.id || 0) === selectedLocationId; });
-                $('#home-training-calendar-location').text(location ? '— ' + String(location.apelido_local || location.nome_local || '') : '');
+                const locationLabel = location ? String(location.apelido_local || location.nome_local || '') : 'Local selecionado';
+                $('#home-training-calendar-location').text('— ' + locationLabel);
+                $('#home-training-modalities-subtitle').text('Escolha uma modalidade disponível em ' + locationLabel + '.');
+                $('#home-training-modality').val('0').data('label', 'Todas as modalidades');
                 loadLocationModalities(selectedLocationId);
+                $modalitiesModal.removeClass('hidden').attr('aria-hidden', 'false');
+            });
+
+            $(document).on('click', '[data-home-training-modality]', function () {
+                const modalityId = Number($(this).attr('data-home-training-modality') || 0);
+                const modalityLabel = String($(this).find('strong').first().text() || 'Todas as modalidades').trim();
+                const location = locations.find(function (item) { return Number(item.id || 0) === selectedLocationId; });
+                const locationLabel = location ? String(location.apelido_local || location.nome_local || '') : 'Local selecionado';
+                $('#home-training-modality').val(String(modalityId)).data('label', modalityLabel);
+                $('#home-training-calendar-filter-summary').text(locationLabel + ' — ' + modalityLabel + '.');
+                $modalitiesModal.addClass('hidden').attr('aria-hidden', 'true');
                 $calendarModal.removeClass('hidden').attr('aria-hidden', 'false');
                 calendar.refetchEvents();
                 window.setTimeout(function () {
-                    calendar.updateSize();
+                    fitTrainingCalendar();
                 }, 50);
             });
 
-            $(document).on('change', '#home-training-modality', function () { calendar.refetchEvents(); });
+            $(document).on('click', '[data-home-training-modalities-back="1"]', function () {
+                $modalitiesModal.addClass('hidden').attr('aria-hidden', 'true');
+                $('#home-all-training-locations-modal').removeClass('hidden').attr('aria-hidden', 'false');
+            });
+            $(document).on('click', '[data-home-training-modalities-close="1"]', function () {
+                $modalitiesModal.addClass('hidden').attr('aria-hidden', 'true');
+            });
+            $(document).on('click', '#home-training-modalities-modal', function (event) {
+                if (event.target === this) $modalitiesModal.addClass('hidden').attr('aria-hidden', 'true');
+            });
+            $(document).on('click', '[data-home-training-calendar-back="1"]', function () {
+                $calendarModal.addClass('hidden').attr('aria-hidden', 'true');
+                $modalitiesModal.removeClass('hidden').attr('aria-hidden', 'false');
+            });
             $(document).on('click', '[data-home-training-day-close="1"]', function () { $dayModal.addClass('hidden').attr('aria-hidden', 'true'); });
             $(document).on('click', '#agenda-details-modal-back', function () {
                 if (App.agenda && typeof App.agenda.fecharModalDetalhesHorario === 'function') {

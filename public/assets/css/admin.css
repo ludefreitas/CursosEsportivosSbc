@@ -496,6 +496,82 @@
 .admin-agenda-filter-form {
     margin-bottom: 18px;
 }
+.admin-agenda-calendar-access-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+.admin-agenda-calendar-access-card h2,
+.admin-agenda-calendar-access-card p {
+    margin-top: 0;
+}
+.admin-agenda-calendar-access-card p {
+    margin-bottom: 0;
+}
+.admin-agenda-calendar-access-card .btn {
+    flex: 0 0 auto;
+}
+.admin-agenda-flow-card {
+    width: min(760px, 100%);
+}
+.admin-agenda-calendar-modal-card {
+    width: min(1120px, 100%);
+    max-height: calc(100dvh - 40px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.admin-agenda-flow-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+.admin-agenda-flow-option {
+    min-height: 52px;
+    padding: 12px 16px;
+    border: 1px solid var(--brand-700);
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--brand-900), var(--brand-500));
+    color: #fff;
+    font-weight: 700;
+    text-align: center;
+    cursor: pointer;
+}
+.admin-agenda-flow-option:hover,
+.admin-agenda-flow-option:focus-visible {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+}
+.admin-agenda-calendar-modal-card .admin-popup-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+}
+.admin-agenda-calendar-modal-card .admin-calendar-shell {
+    min-height: 0;
+}
+.admin-agenda-calendar-modal-card .fc-toolbar {
+    margin-bottom: 8px;
+}
+.admin-agenda-calendar-modal-card .fc-toolbar-title {
+    font-size: clamp(17px, 2vw, 24px);
+}
+.admin-agenda-calendar-modal-card .fc-button {
+    padding: 5px 9px;
+    font-size: 12px;
+}
+.admin-agenda-calendar-modal-card .fc-daygrid-day-frame {
+    min-height: 0;
+}
+.admin-agenda-calendar-modal-card > .popup-head,
+.admin-agenda-calendar-modal-card > .popup-actions {
+    position: relative;
+    z-index: 2;
+    flex: 0 0 auto;
+    background: #fffdf8;
+}
 .admin-agenda-filter-row {
     display: flex;
     flex-wrap: wrap;
@@ -1382,4 +1458,40 @@
     background: var(--brand-900, #0b4d63);
     outline: 2px solid rgba(23, 107, 131, 0.28);
     outline-offset: 2px;
+}
+@media (max-width: 700px) {
+    .admin-agenda-calendar-access-card {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .admin-agenda-calendar-access-card .btn {
+        width: 100%;
+    }
+    .admin-agenda-flow-options {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .admin-agenda-calendar-modal-card .admin-popup-body {
+        padding-inline: 10px;
+    }
+    .admin-agenda-calendar-modal-card {
+        max-height: calc(100dvh - 12px);
+    }
+    .admin-agenda-calendar-modal-card .fc {
+        font-size: 10px;
+    }
+    .admin-agenda-calendar-modal-card .fc-toolbar {
+        gap: 5px;
+        margin-bottom: 6px;
+    }
+    .admin-agenda-calendar-modal-card .fc-toolbar-title {
+        font-size: 17px;
+    }
+    .admin-agenda-calendar-modal-card .fc-button {
+        padding: 4px 6px;
+        font-size: 11px;
+    }
+    .admin-agenda-calendar-modal-card .fc-col-header-cell-cushion,
+    .admin-agenda-calendar-modal-card .fc-daygrid-day-number {
+        padding: 1px 3px;
+    }
 }

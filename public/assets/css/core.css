@@ -1102,6 +1102,50 @@ body.pagina-error label span {
 .post-grid { grid-template-columns: repeat(3, 1fr); }
 .checkbox-line { display: flex; gap: 12px; align-items: flex-start; }
 .checkbox-line input { width: auto; margin-top: 3px; }
+.human-verification {
+    width: min(100%, 230px);
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    border: 1px solid #b8b8b8;
+    border-radius: 4px;
+    background: #f1f1f1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.human-verification .checkbox-line {
+    width: 100%;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+.human-verification .checkbox-line input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    padding: 0;
+    border-radius: 2px;
+    cursor: pointer;
+    accent-color: var(--brand-700);
+}
+.human-verification label.checkbox-line span {
+    position: static;
+    width: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--text);
+    line-height: 1.25;
+}
+.human-verification:focus-within {
+    border-color: var(--brand-700);
+    box-shadow: 0 0 0 3px rgba(29, 111, 140, 0.14);
+}
 .flash {
     margin: 12px 0 18px 0;
     padding: 14px 16px;

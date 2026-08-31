@@ -1006,7 +1006,7 @@
                         const mensagemHelper = String(response.mensagem_helper || '');
                         $input.data('cpfCadastroPermitido', podeCriarConta);
                         $input.data('cpfCadastroStatus', status);
-                        $message.text(mensagemHelper || 'Situação do CPF atualizada.');
+                        $message.text(podeCriarConta ? (mensagemHelper || 'CPF disponível para criar uma nova conta.') : '');
 
                         $input.attr(
                             'data-remote-validation-error',
