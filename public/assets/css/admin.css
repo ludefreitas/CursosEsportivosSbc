@@ -858,6 +858,45 @@
 }
 .admin-booking-occurrence-card .table-wrap {
     max-width: 100%;
+    overflow-x: hidden;
+}
+
+@media (min-width: 1001px) {
+    .admin-booking-occurrence-table,
+    .professor-view .admin-daily-bookings-table {
+        width: 100%;
+        table-layout: fixed;
+    }
+    .admin-booking-occurrence-table th,
+    .admin-booking-occurrence-table td,
+    .professor-view .admin-daily-bookings-table th,
+    .professor-view .admin-daily-bookings-table td {
+        min-width: 0;
+        padding-inline: 8px;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+    .admin-booking-occurrence-table th:nth-child(1) { width: 42%; }
+    .admin-booking-occurrence-table th:nth-child(2) { width: 8%; }
+    .admin-booking-occurrence-table th:nth-child(3) { width: 12%; }
+    .admin-booking-occurrence-table th:nth-child(4) { width: 12%; }
+    .admin-booking-occurrence-table th:nth-child(5) { width: 12%; }
+    .admin-booking-occurrence-table th:nth-child(6) { width: 14%; }
+    .admin-booking-occurrence-table .admin-booking-person-inline,
+    .professor-view .admin-daily-bookings-table .admin-booking-person-inline {
+        white-space: normal;
+    }
+    .admin-booking-occurrence-table .admin-booking-status-option,
+    .professor-view .admin-daily-bookings-table .admin-booking-status-option {
+        white-space: normal;
+    }
+    .professor-view .admin-daily-bookings-table th:nth-child(1) { width: 10%; }
+    .professor-view .admin-daily-bookings-table th:nth-child(2) { width: 32%; }
+    .professor-view .admin-daily-bookings-table th:nth-child(3) { width: 7%; }
+    .professor-view .admin-daily-bookings-table th:nth-child(4) { width: 11%; }
+    .professor-view .admin-daily-bookings-table th:nth-child(5) { width: 11%; }
+    .professor-view .admin-daily-bookings-table th:nth-child(6) { width: 13%; }
+    .professor-view .admin-daily-bookings-table th:nth-child(7) { width: 16%; }
 }
 #admin-booking-justification-modal {
     z-index: 2200;

@@ -569,6 +569,12 @@ function format_cpf(string $cpf): string
 
 function format_cpf_professor(string $cpf): string
 {
+    $cpf = trim($cpf);
+
+    if (preg_match('/^\*{3}\.\d{3}\.\d{3}-\*{2}$/', $cpf) === 1) {
+        return $cpf;
+    }
+
     $digits = preg_replace('/\D+/', '', $cpf) ?? '';
 
     if (strlen($digits) !== 11) {

@@ -4696,7 +4696,7 @@ class AdminService
             $conditions[] = 'PLM';
         }
 
-        return $conditions !== [] ? implode(', ', $conditions) : 'Nenhuma';
+        return $conditions !== [] ? implode(', ', $conditions) : '';
     }
 
     /**

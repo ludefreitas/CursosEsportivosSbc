@@ -881,10 +881,24 @@
                 return parts.length > 0 ? parts.join(' - ') : '-';
             }
 
+            function formatPersonCpf(value) {
+                const original = String(value || '').trim();
+                const digits = original.replace(/\D+/g, '');
+
+                if (/^\*{3}\.\d{3}\.\d{3}-\*{2}$/.test(original)) {
+                    return original;
+                }
+                if (digits.length === 11) {
+                    return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+                }
+
+                return original || '-';
+            }
+
             function formatResponsible(name, cpf) {
                 const parts = [
                     String(name || '').trim(),
-                    cpf ? String(cpf).replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : ''
+                    cpf ? formatPersonCpf(cpf) : ''
                 ].filter(function (item) {
                     return item !== '';
                 });
@@ -921,7 +935,7 @@
                 currentPerson = person;
                 $('#admin-person-details-subtitle').text('Consultando ' + String(person.nome_completo || '') + ' sem sair desta página.');
                 $('#admin-person-details-full-name').text(String(person.nome_completo || '-'));
-                $('#admin-person-details-cpf').text(person.cpf ? String(person.cpf).replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '-');
+                $('#admin-person-details-cpf').text(formatPersonCpf(person.cpf));
                 $('#admin-person-details-sex').text(formatSex(person.sexo));
                 $('#admin-person-details-birth-date').text(String(person.data_nascimento || '-'));
                 $('#admin-person-details-registration').text(formatRegistration(person.cadastro_completo));
@@ -959,7 +973,7 @@
 
                 setValue('#admin-person-id', person.id);
                 setValue('#admin-person-full-name', person.nome_completo);
-                setValue('#admin-person-cpf', person.cpf ? String(person.cpf).replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '');
+                setValue('#admin-person-cpf', person.cpf ? formatPersonCpf(person.cpf) : '');
                 setValue('#admin-person-sexo', person.sexo || '');
                 setValue('#admin-person-birth-date', person.data_nascimento || '');
                 setValue('#admin-person-cadastro-completo', Number(person.cadastro_completo || 0) === 1 ? '1' : '0');
@@ -977,9 +991,9 @@
                 setValue('#admin-person-emergency-contact-name', person.contato_emergencia_nome || '');
                 setValue('#admin-person-emergency-contact-phone', person.contato_emergencia_telefone || '');
                 setValue('#admin-person-responsavel1-nome', person.responsavel1_nome || '');
-                setValue('#admin-person-responsavel1-cpf', person.responsavel1_cpf ? String(person.responsavel1_cpf).replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '');
+                setValue('#admin-person-responsavel1-cpf', person.responsavel1_cpf ? formatPersonCpf(person.responsavel1_cpf) : '');
                 setValue('#admin-person-responsavel2-nome', person.responsavel2_nome || '');
-                setValue('#admin-person-responsavel2-cpf', person.responsavel2_cpf ? String(person.responsavel2_cpf).replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '');
+                setValue('#admin-person-responsavel2-cpf', person.responsavel2_cpf ? formatPersonCpf(person.responsavel2_cpf) : '');
                 $('#admin-person-eh-pcd').prop('checked', Number(person.eh_pcd || 0) === 1);
                 $('#admin-person-eh-pvs').prop('checked', Number(person.eh_pvs || 0) === 1);
                 $('#admin-person-eh-plm').prop('checked', Number(person.eh_plm || 0) === 1);
@@ -1107,7 +1121,7 @@
 
                     if ($row.length > 0) {
                         $row.find('[data-person-edit="1"]').text(String(person.nome_completo || ''));
-                        $row.find('td').eq(1).text(person.cpf ? String(person.cpf).replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '');
+                        $row.find('td').eq(1).text(person.cpf ? formatPersonCpf(person.cpf) : '');
                         $row.find('[data-person-cadastro]').text(Number(person.cadastro_completo || 0) === 1 ? 'Completo' : 'Pendente');
                     }
 
@@ -1138,7 +1152,12 @@
 
         iniciarConsultaUsuariosAdmin: function () {
             function formatCpf(value) {
-                const digits = String(value || '').replace(/\D+/g, '');
+                const original = String(value || '').trim();
+                const digits = original.replace(/\D+/g, '');
+
+                if (/^\*{3}\.\d{3}\.\d{3}-\*{2}$/.test(original)) {
+                    return original;
+                }
 
                 if (digits.length !== 11) {
                     return digits !== '' ? digits : '-';

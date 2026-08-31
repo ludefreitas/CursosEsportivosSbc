@@ -398,7 +398,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             </div>
 
                             <div class="table-wrap">
-                                <table class="data-table">
+                                <table class="data-table admin-daily-bookings-table">
                                     <thead>
                                         <tr>
                                             <th>Horário</th>
@@ -423,9 +423,9 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                 </td>
                                                 <td class="admin-booking-person-inline">
                                                     <strong><?php echo e((string) ($booking['nome_completo'] ?? '')); ?></strong>
-                                                    <span>CPF: <?php echo e(format_cpf((string) ($booking['cpf'] ?? ''))); ?></span>
+                                                    <span>CPF: <?php echo e(!empty($professorView) ? format_cpf_professor((string) ($booking['cpf'] ?? '')) : format_cpf((string) ($booking['cpf'] ?? ''))); ?></span>
                                                     <span><?php echo e($booking['idade'] === null ? 'Idade não informada' : (string) $booking['idade'] . ' anos'); ?></span>
-                                                    <span><?php echo e((string) ($booking['condicoes'] ?? 'Nenhuma condição especial')); ?></span>
+                                                    <?php if (trim((string) ($booking['condicoes'] ?? '')) !== '') { ?><span><?php echo e((string) $booking['condicoes']); ?></span><?php } ?>
                                                     <?php if (trim((string) ($booking['telefone_whatsapp'] ?? '')) !== '') { ?><a href="<?php echo e((string) $booking['whatsapp_url']); ?>" target="_blank" rel="noopener noreferrer">WhatsApp: <?php echo e((string) $booking['telefone_whatsapp']); ?></a><?php } ?>
                                                     <?php if (trim((string) ($booking['email'] ?? '')) !== '') { ?><span><?php echo e((string) $booking['email']); ?></span><?php } ?>
                                                 </td>

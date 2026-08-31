@@ -110,10 +110,15 @@ class CourseEnrollmentService
     public function listForManagement(): array
     {
         $pdo = Database::connection();
-        $stmt = $pdo->query("SELECT i.id, i.status, i.created_at, i.motivo_status, p.nome_completo, p.cpf, t.nome AS turma_nome, te.nome AS temporada_nome, m.nome AS modalidade_nome FROM inscricoes_turma i INNER JOIN pessoas p ON p.id = i.pessoa_id INNER JOIN turmas t ON t.id = i.turma_id INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id WHERE i.status IN ('aguardando_matricula', 'lista_espera', 'matriculada') ORDER BY i.status ASC, i.created_at ASC");
+        $stmt = $pdo->query("SELECT i.id, i.status, i.created_at, i.motivo_status, p.nome_completo, p.cpf, p.eh_pcd, p.eh_pvs, p.eh_plm, t.nome AS turma_nome, te.nome AS temporada_nome, m.nome AS modalidade_nome FROM inscricoes_turma i INNER JOIN pessoas p ON p.id = i.pessoa_id INNER JOIN turmas t ON t.id = i.turma_id INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id WHERE i.status IN ('aguardando_matricula', 'lista_espera', 'matriculada') ORDER BY i.status ASC, i.created_at ASC");
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         foreach ($rows as &$row) {
             $row['status_label'] = self::STATUS_LABELS[(string) $row['status']] ?? (string) $row['status'];
+            $conditions = [];
+            if ((int) ($row['eh_pcd'] ?? 0) === 1) { $conditions[] = 'PCD'; }
+            if ((int) ($row['eh_pvs'] ?? 0) === 1) { $conditions[] = 'PVS'; }
+            if ((int) ($row['eh_plm'] ?? 0) === 1) { $conditions[] = 'PLM'; }
+            $row['condicoes'] = implode(', ', $conditions);
         }
         return $rows;
     }

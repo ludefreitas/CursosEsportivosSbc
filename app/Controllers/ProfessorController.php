@@ -163,6 +163,7 @@ class ProfessorController extends Controller
                 $occurrence['subtitle'] = (string) ($first['local_nome'] ?? '') . ' - ' . (string) ($first['espaco_nome'] ?? '');
             }
             $currentAdminName = (string) ($user['nome_completo'] ?? '');
+            $professorView = true;
             ob_start();
             require ROOT_PATH . '/app/Views/admin/partials/booking_occurrence_modal_content.php';
             $this->jsonResponse(['success' => true, 'html' => (string) ob_get_clean()]);
