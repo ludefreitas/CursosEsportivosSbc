@@ -2196,12 +2196,13 @@ class AdminService
     /**
      * Lista horários semanais para a área administrativa.
      */
-    public function listWeeklySchedulesForManagement(int $locationId = 0, int $modalityId = 0): array
+    public function listWeeklySchedulesForManagement(int $locationId = 0, int $modalityId = 0, int $creatorAccountId = 0): array
     {
         $pdo = Database::connection();
         $sql = '
             SELECT
                 hs.id,
+                hs.criado_por_conta_id,
                 hs.tipo_horario,
                 hs.dia_semana,
                 hs.hora_inicio,
@@ -2248,6 +2249,11 @@ class AdminService
         if ($modalityId > 0) {
             $conditions[] = 'hs.modalidade_id = :modalidade_id';
             $params[':modalidade_id'] = $modalityId;
+        }
+
+        if ($creatorAccountId > 0) {
+            $conditions[] = 'hs.criado_por_conta_id = :criado_por_conta_id';
+            $params[':criado_por_conta_id'] = $creatorAccountId;
         }
 
         if ($conditions !== []) {
@@ -2579,14 +2585,14 @@ class AdminService
     /**
      * Retorna um horário semanal pronto para preencher o formulario de edição.
      */
-    public function getWeeklyScheduleDetails(int $scheduleId): array
+    public function getWeeklyScheduleDetails(int $scheduleId, int $creatorAccountId = 0): array
     {
         if ($scheduleId <= 0) {
             throw new RuntimeException('Horário semanal inválido.');
         }
 
         $pdo = Database::connection();
-        $stmt = $pdo->prepare('
+        $sql = '
             SELECT
                 hs.*,
                 CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
@@ -2599,9 +2605,15 @@ class AdminService
             INNER JOIN espacos_treino et ON et.id = hs.espaco_treino_id
             INNER JOIN modalidades m ON m.id = hs.modalidade_id
             WHERE hs.id = :id
-            LIMIT 1
-        ');
-        $stmt->execute([':id' => $scheduleId]);
+        ';
+        $params = [':id' => $scheduleId];
+        if ($creatorAccountId > 0) {
+            $sql .= ' AND hs.criado_por_conta_id = :criado_por_conta_id';
+            $params[':criado_por_conta_id'] = $creatorAccountId;
+        }
+        $sql .= ' LIMIT 1';
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
         $schedule = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$schedule) {
@@ -2865,6 +2877,7 @@ class AdminService
 
         $stmt = $pdo->prepare('
             INSERT INTO horarios_semanais (
+                criado_por_conta_id,
                 local_treino_id,
                 espaco_treino_id,
                 modalidade_id,
@@ -2893,6 +2906,7 @@ class AdminService
                 ativo,
                 data_inativacao
             ) VALUES (
+                :criado_por_conta_id,
                 :local_treino_id,
                 :espaco_treino_id,
                 :modalidade_id,
@@ -2923,6 +2937,7 @@ class AdminService
             )
         ');
         $stmt->execute([
+            ':criado_por_conta_id' => $accountId,
             ':local_treino_id' => (int) $space['local_treino_id'],
             ':espaco_treino_id' => (int) $payload['espaco_treino_id'],
             ':modalidade_id' => (int) $payload['modalidade_id'],
@@ -2990,13 +3005,13 @@ class AdminService
     /**
      * Atualiza um horário semanal existente com as mesmas validacoes da criacao.
      */
-    public function updateWeeklySchedule(int $scheduleId, int $accountId, array $data): array
+    public function updateWeeklySchedule(int $scheduleId, int $accountId, array $data, bool $onlyOwnSchedule = false): array
     {
         if ($scheduleId <= 0) {
             throw new RuntimeException('Horário semanal inválido.');
         }
 
-        $existingSchedule = $this->getWeeklyScheduleDetails($scheduleId);
+        $existingSchedule = $this->getWeeklyScheduleDetails($scheduleId, $onlyOwnSchedule ? $accountId : 0);
         $payload = $this->validateWeeklySchedulePayload($data);
         $space = $this->findTrainingSpaceById((int) $payload['espaco_treino_id']);
         $modality = $this->findModalityById((int) $payload['modalidade_id']);
@@ -3105,26 +3120,36 @@ class AdminService
             ],
         ]);
 
-        return $this->getWeeklyScheduleDetails($scheduleId);
+        return $this->getWeeklyScheduleDetails($scheduleId, $onlyOwnSchedule ? $accountId : 0);
     }
 
     /**
      * Inativa um horário semanal.
      */
-    public function deactivateWeeklySchedule(int $scheduleId): void
+    public function deactivateWeeklySchedule(int $scheduleId, int $creatorAccountId = 0): void
     {
         if ($scheduleId <= 0) {
             throw new RuntimeException('Horário semanal inválido.');
         }
 
         $pdo = Database::connection();
-        $stmt = $pdo->prepare('
+        $sql = '
             UPDATE horarios_semanais
             SET ativo = 0,
                 data_inativacao = CURDATE()
             WHERE id = :id
-        ');
-        $stmt->execute([':id' => $scheduleId]);
+        ';
+        $params = [':id' => $scheduleId];
+        if ($creatorAccountId > 0) {
+            $sql .= ' AND criado_por_conta_id = :criado_por_conta_id';
+            $params[':criado_por_conta_id'] = $creatorAccountId;
+        }
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        if ($stmt->rowCount() === 0) {
+            throw new RuntimeException('Horário semanal não encontrado ou não criado por este professor.');
+        }
 
         AuditLogService::record('admin.horario_semanal_inativado', 'horarios_semanais', $scheduleId, [
             'data_inativacao' => date('Y-m-d'),
@@ -3134,20 +3159,30 @@ class AdminService
     /**
      * Reativa um horário semanal e limpa a data de inativacao.
      */
-    public function activateWeeklySchedule(int $scheduleId): void
+    public function activateWeeklySchedule(int $scheduleId, int $creatorAccountId = 0): void
     {
         if ($scheduleId <= 0) {
             throw new RuntimeException('Horário semanal inválido.');
         }
 
         $pdo = Database::connection();
-        $stmt = $pdo->prepare('
+        $sql = '
             UPDATE horarios_semanais
             SET ativo = 1,
                 data_inativacao = NULL
             WHERE id = :id
-        ');
-        $stmt->execute([':id' => $scheduleId]);
+        ';
+        $params = [':id' => $scheduleId];
+        if ($creatorAccountId > 0) {
+            $sql .= ' AND criado_por_conta_id = :criado_por_conta_id';
+            $params[':criado_por_conta_id'] = $creatorAccountId;
+        }
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        if ($stmt->rowCount() === 0) {
+            throw new RuntimeException('Horário semanal não encontrado ou não criado por este professor.');
+        }
 
         AuditLogService::record('admin.horario_semanal_ativado', 'horarios_semanais', $scheduleId, []);
     }
@@ -4019,6 +4054,22 @@ class AdminService
         if (!isset($columns['dispensar_avaliacao_previa'])) {
             $pdo->exec('ALTER TABLE horarios_semanais ADD COLUMN dispensar_avaliacao_previa TINYINT(1) NOT NULL DEFAULT 0 AFTER tipo_horario');
             $pdo->exec('UPDATE horarios_semanais SET dispensar_avaliacao_previa=1 WHERE tipo_horario="avaliacao"');
+        }
+
+        if (!isset($columns['criado_por_conta_id'])) {
+            $pdo->exec('ALTER TABLE horarios_semanais ADD COLUMN criado_por_conta_id BIGINT UNSIGNED NULL AFTER id, ADD INDEX idx_horarios_semanais_criador (criado_por_conta_id)');
+            $pdo->exec("UPDATE horarios_semanais hs
+                SET hs.criado_por_conta_id = (
+                    SELECT la.conta_id
+                    FROM logs_auditoria la
+                    WHERE la.tipo_entidade = 'horarios_semanais'
+                      AND la.entidade_id = hs.id
+                      AND la.tipo_evento = 'admin.horario_semanal_criado'
+                      AND la.conta_id IS NOT NULL
+                    ORDER BY la.id ASC
+                    LIMIT 1
+                )
+                WHERE hs.criado_por_conta_id IS NULL");
         }
 
         $ensured = true;

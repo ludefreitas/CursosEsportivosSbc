@@ -488,6 +488,7 @@ CREATE TABLE IF NOT EXISTS avaliacoes_fisicas (
 
 CREATE TABLE IF NOT EXISTS horarios_semanais (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    criado_por_conta_id BIGINT UNSIGNED NULL,
     local_treino_id BIGINT UNSIGNED NOT NULL,
     espaco_treino_id BIGINT UNSIGNED NOT NULL,
     modalidade_id BIGINT UNSIGNED NOT NULL,
@@ -517,6 +518,8 @@ CREATE TABLE IF NOT EXISTS horarios_semanais (
     data_inativacao DATE NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_horarios_semanais (dia_semana, hora_inicio, ativo),
+    INDEX idx_horarios_semanais_criador (criado_por_conta_id),
+    CONSTRAINT fk_horario_criador FOREIGN KEY (criado_por_conta_id) REFERENCES contas(id) ON DELETE SET NULL,
     CONSTRAINT fk_horario_local FOREIGN KEY (local_treino_id) REFERENCES locais_treino(id),
     CONSTRAINT fk_horario_espaco FOREIGN KEY (espaco_treino_id) REFERENCES espacos_treino(id),
     CONSTRAINT fk_horario_modalidade FOREIGN KEY (modalidade_id) REFERENCES modalidades(id)

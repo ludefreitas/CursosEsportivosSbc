@@ -143,12 +143,12 @@ class ProfessorController extends Controller
 
     public function weeklyScheduleDetails(): void
     {
-        $this->assertProfessorAccess();
+        $user = $this->assertProfessorAccess();
 
         try {
             $this->jsonResponse([
                 'success' => true,
-                'schedule' => $this->adminService->getWeeklyScheduleDetails((int) ($_GET['id'] ?? 0)),
+                'schedule' => $this->adminService->getWeeklyScheduleDetails((int) ($_GET['id'] ?? 0), (int) ($user['conta_id'] ?? 0)),
             ]);
         } catch (\Throwable $e) {
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
@@ -163,7 +163,8 @@ class ProfessorController extends Controller
             $schedule = $this->adminService->updateWeeklySchedule(
                 (int) ($_POST['horario_semanal_id'] ?? 0),
                 (int) ($user['conta_id'] ?? 0),
-                $_POST
+                $_POST,
+                true
             );
             $this->jsonResponse([
                 'success' => true,
@@ -177,10 +178,10 @@ class ProfessorController extends Controller
 
     public function deactivateWeeklySchedule(): void
     {
-        $this->assertProfessorAccess();
+        $user = $this->assertProfessorAccess();
 
         try {
-            $this->adminService->deactivateWeeklySchedule((int) ($_POST['horario_semanal_id'] ?? 0));
+            $this->adminService->deactivateWeeklySchedule((int) ($_POST['horario_semanal_id'] ?? 0), (int) ($user['conta_id'] ?? 0));
             $this->jsonResponse(['success' => true, 'message' => 'Horário semanal inativado com sucesso.']);
         } catch (\Throwable $e) {
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
@@ -189,10 +190,10 @@ class ProfessorController extends Controller
 
     public function activateWeeklySchedule(): void
     {
-        $this->assertProfessorAccess();
+        $user = $this->assertProfessorAccess();
 
         try {
-            $this->adminService->activateWeeklySchedule((int) ($_POST['horario_semanal_id'] ?? 0));
+            $this->adminService->activateWeeklySchedule((int) ($_POST['horario_semanal_id'] ?? 0), (int) ($user['conta_id'] ?? 0));
             $this->jsonResponse(['success' => true, 'message' => 'Horário semanal ativado com sucesso.']);
         } catch (\Throwable $e) {
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
@@ -357,7 +358,7 @@ class ProfessorController extends Controller
             'modalities' => $this->adminService->listModalitiesForManagement(),
             'scheduleFilterOptions' => (new AgendaService())->activeWeeklyScheduleFilterOptions(true),
             'selectedDailyDate' => $dailyDate, 'selectedDailyLocationId' => $dailyLocationId, 'selectedDailySpaceId' => $dailySpaceId,
-            'weeklySchedules' => $this->adminService->listWeeklySchedulesForManagement($locationId, $modalityId),
+            'weeklySchedules' => $this->adminService->listWeeklySchedulesForManagement($locationId, $modalityId, (int) ($user['conta_id'] ?? 0)),
             'specialSchedules' => $this->adminService->listSpecialSchedulesForManagement($locationId, $modalityId),
             'dailyBookings' => array_map(fn (array $booking): array => $this->maskCpfData($booking), $this->adminService->listDailyBookingsForManagement($dailyDate, $dailyLocationId, $dailySpaceId)),
             'currentAdminName' => (string) ($user['nome_completo'] ?? ''),
