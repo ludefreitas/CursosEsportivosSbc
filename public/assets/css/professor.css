@@ -19,10 +19,8 @@
 
 .professor-view #admin-special-schedule-create-modal,
 .professor-view #admin-special-schedule-editor,
-.professor-view .admin-weekly-schedule-actions,
 .professor-view #admin-special-schedule-create-open,
-.professor-view [data-admin-special-schedule-edit],
-.professor-view [data-admin-weekly-schedule-edit] {
+.professor-view [data-admin-special-schedule-edit] {
     display: none !important;
 }
 

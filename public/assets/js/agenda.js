@@ -804,6 +804,11 @@
                 App.agenda.atualizarFiltrosCalendario();
             });
 
+            let agendaModalityNoticeContinuation = null;
+            function continueAgendaModalitySelection($button) { $button.data('modalityPopupConfirmed', true).trigger('click'); }
+            $(document).on('click', '#agenda-modality-notice-continue', function () { const callback=agendaModalityNoticeContinuation; agendaModalityNoticeContinuation=null; $('#agenda-modality-notice-modal').addClass('hidden').attr('aria-hidden','true'); if(callback) callback(); });
+            $(document).on('click', '[data-agenda-modality-notice-close="1"]', function () { agendaModalityNoticeContinuation=null; $('#agenda-modality-notice-modal').addClass('hidden').attr('aria-hidden','true'); });
+
             $(document).on('click', '[data-agenda-filter-kind]', function () {
                 const $button = $(this);
                 const $branch = $button.closest('[data-agenda-filter-branch]');
@@ -814,6 +819,21 @@
                 if (kind !== 'local' && kind !== 'modalidade') {
                     return;
                 }
+                if (kind === 'modalidade' && !$button.data('modalityPopupConfirmed')) {
+                    $.getJSON(App.core.buildUrl('/api/modalidades/popup'), { modalidade_id: value, area: 'agenda' }).done(function(response){
+                        const popup=response&&response.popup;
+                        if(!popup){continueAgendaModalitySelection($button);return;}
+                        agendaModalityNoticeContinuation=function(){continueAgendaModalitySelection($button);};
+                        $('#agenda-modality-notice-title').text(String(popup.titulo||'Aviso da modalidade'));
+                        $('#agenda-modality-notice-main').text(String(popup.texto_principal||''));
+                        $('#agenda-modality-notice-secondary').text(String(popup.texto_secundario||'')).toggleClass('hidden',!popup.texto_secundario);
+                        const image=String(popup.imagem_url||''); $('#agenda-modality-notice-media').toggleClass('hidden',!image); $('#agenda-modality-notice-image').attr('src',image).attr('alt',String(popup.titulo||'Aviso'));
+                        const label=String(popup.rotulo_acao||''), url=String(popup.url_acao||''); $('#agenda-modality-notice-action').toggleClass('hidden',!label||!url).text(label).attr('href',url||'#');
+                        $('#agenda-modality-notice-modal').removeClass('hidden').attr('aria-hidden','false');
+                    }).fail(function(){continueAgendaModalitySelection($button);});
+                    return;
+                }
+                $button.removeData('modalityPopupConfirmed');
 
                 $branch.find('[data-agenda-filter-kind="' + kind + '"]').removeClass('is-active');
                 $button.addClass('is-active');

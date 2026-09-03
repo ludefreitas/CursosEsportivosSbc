@@ -355,6 +355,34 @@
             const isRequired = $field.is('[required]');
             let message = '';
 
+            function isValidCalendarDate(yearText, monthText, dayText) {
+                if (!/^\d{4}$/.test(yearText) || !/^\d{2}$/.test(monthText) || !/^\d{2}$/.test(dayText)) return false;
+                const year = Number(yearText);
+                const month = Number(monthText);
+                const day = Number(dayText);
+                if (year < 1 || month < 1 || month > 12 || day < 1) return false;
+                return day <= new Date(Date.UTC(year, month, 0)).getUTCDate();
+            }
+
+            function dateFieldError() {
+                let match;
+                if (type === 'date') {
+                    match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+                    return match && isValidCalendarDate(match[1], match[2], match[3]) ? '' : 'Informe uma data válida com dia, mês e ano de quatro dígitos.';
+                }
+                if (type === 'datetime-local') {
+                    match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value);
+                    if (!match || !isValidCalendarDate(match[1], match[2], match[3]) || Number(match[4]) > 23 || Number(match[5]) > 59 || Number(match[6] || 0) > 59) {
+                        return 'Informe uma data e um horário válidos, com ano de quatro dígitos.';
+                    }
+                }
+                if (type === 'month') {
+                    match = /^(\d{4})-(\d{2})$/.exec(value);
+                    if (!match || Number(match[2]) < 1 || Number(match[2]) > 12) return 'Informe um mês válido e um ano de quatro dígitos.';
+                }
+                return '';
+            }
+
             if (!field || field.disabled || type === 'hidden' || $field.closest('.hidden').length > 0) {
                 return true;
             }
@@ -387,7 +415,11 @@
                     'personalidade_nome'
                 ];
 
-                if (personNameFields.indexOf(name) >= 0) {
+                const invalidDateMessage = dateFieldError();
+
+                if (invalidDateMessage !== '') {
+                    message = invalidDateMessage;
+                } else if (personNameFields.indexOf(name) >= 0) {
                     const normalizedName = value.replace(/\s+/g, ' ');
 
                     if (!/^[\p{L}]+(?:[ '\u2019-][\p{L}]+)*$/u.test(normalizedName)) {

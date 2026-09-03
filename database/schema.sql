@@ -400,6 +400,9 @@ CREATE TABLE IF NOT EXISTS temporadas (
     data_liberacao_segunda_inscricao DATETIME NULL,
     data_liberacao_inscricoes_adicionais DATETIME NULL,
     limite_inscricoes_adicionais INT UNSIGNED NOT NULL DEFAULT 3,
+    permitir_multiplas_inscricoes_modalidade TINYINT(1) NOT NULL DEFAULT 0,
+    limite_inscricoes_modalidade INT UNSIGNED NOT NULL DEFAULT 1,
+    data_liberacao_multiplas_inscricoes_modalidade DATETIME NULL,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
     CONSTRAINT fk_temporada_origem FOREIGN KEY (origem_temporada_id) REFERENCES origens_temporada(id)
 ) ENGINE=InnoDB;
@@ -423,6 +426,9 @@ CREATE TABLE IF NOT EXISTS cronogramas_modalidade (
     possui_edital TINYINT(1) NOT NULL DEFAULT 0,
     numero_edital VARCHAR(100) NULL,
     link_edital VARCHAR(2048) NULL,
+    permitir_multiplas_inscricoes_modalidade TINYINT(1) NOT NULL DEFAULT 0,
+    limite_inscricoes_modalidade INT UNSIGNED NOT NULL DEFAULT 1,
+    data_liberacao_multiplas_inscricoes_modalidade DATETIME NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_cronograma_modalidade_temporada FOREIGN KEY (temporada_id) REFERENCES temporadas(id),
@@ -456,6 +462,7 @@ CREATE TABLE IF NOT EXISTS turmas (
     vagas_espera_plm INT NOT NULL DEFAULT 0,
     vagas_espera_pvs INT NOT NULL DEFAULT 0,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
+    inscricoes_abertas TINYINT(1) NOT NULL DEFAULT 0,
     CONSTRAINT fk_turmas_temporada FOREIGN KEY (temporada_id) REFERENCES temporadas(id),
     CONSTRAINT fk_turmas_modalidade FOREIGN KEY (modalidade_id) REFERENCES modalidades(id),
     CONSTRAINT fk_turmas_cronograma_modalidade FOREIGN KEY (cronograma_modalidade_id) REFERENCES cronogramas_modalidade(id),
@@ -485,6 +492,7 @@ CREATE TABLE IF NOT EXISTS horarios_semanais (
     espaco_treino_id BIGINT UNSIGNED NOT NULL,
     modalidade_id BIGINT UNSIGNED NOT NULL,
     tipo_horario ENUM('avaliacao', 'treino', 'aula') NOT NULL,
+    dispensar_avaliacao_previa TINYINT(1) NOT NULL DEFAULT 0,
     dia_semana TINYINT UNSIGNED NOT NULL,
     hora_inicio TIME NOT NULL,
     hora_fim TIME NOT NULL,
@@ -519,6 +527,17 @@ CREATE TABLE IF NOT EXISTS agendamentos (
     pessoa_id BIGINT UNSIGNED NOT NULL,
     horario_semanal_id BIGINT UNSIGNED NOT NULL,
     data_agendada DATETIME NOT NULL,
+    horario_dia_semana_snapshot TINYINT UNSIGNED NULL,
+    horario_inicio_snapshot TIME NULL,
+    horario_fim_snapshot TIME NULL,
+    tipo_horario_snapshot VARCHAR(30) NULL,
+    local_treino_id_snapshot BIGINT UNSIGNED NULL,
+    local_nome_snapshot VARCHAR(255) NULL,
+    espaco_treino_id_snapshot BIGINT UNSIGNED NULL,
+    espaco_nome_snapshot VARCHAR(255) NULL,
+    modalidade_id_snapshot BIGINT UNSIGNED NULL,
+    modalidade_nome_snapshot VARCHAR(180) NULL,
+    horario_snapshot_json JSON NULL,
     publico_alvo ENUM('geral', 'pcd', 'plm', 'pvs') NOT NULL DEFAULT 'geral',
     status ENUM('agendado', 'cancelado', 'presente', 'falta', 'justificado') NOT NULL DEFAULT 'agendado',
     chamada_por_conta_id BIGINT UNSIGNED NULL,
@@ -526,6 +545,8 @@ CREATE TABLE IF NOT EXISTS agendamentos (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT NULL,
     INDEX idx_agendamentos_pessoa_data (pessoa_id, data_agendada, status),
+    INDEX idx_agendamentos_snapshot_local (local_treino_id_snapshot),
+    INDEX idx_agendamentos_snapshot_modalidade (modalidade_id_snapshot),
     CONSTRAINT fk_agendamento_chamada_conta FOREIGN KEY (chamada_por_conta_id) REFERENCES contas(id),
     CONSTRAINT fk_agendamento_pessoa FOREIGN KEY (pessoa_id) REFERENCES pessoas(id),
     CONSTRAINT fk_agendamento_horario FOREIGN KEY (horario_semanal_id) REFERENCES horarios_semanais(id)
@@ -694,6 +715,30 @@ CREATE TABLE IF NOT EXISTS site_popups (
     updated_at TIMESTAMP NULL DEFAULT NULL,
     INDEX idx_site_popups_status_datas (status, data_inicio, data_fim),
     CONSTRAINT fk_site_popup_conta FOREIGN KEY (criado_por_conta_id) REFERENCES contas(id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS modalidade_popups (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    modalidade_id BIGINT UNSIGNED NOT NULL,
+    area ENUM('cursos','agenda') NOT NULL,
+    titulo VARCHAR(180) NOT NULL,
+    texto_principal TEXT NOT NULL,
+    texto_secundario TEXT NULL,
+    imagem_url VARCHAR(255) NULL,
+    rotulo_acao VARCHAR(90) NULL,
+    url_acao VARCHAR(255) NULL,
+    data_inicio DATETIME NOT NULL,
+    data_fim DATETIME NOT NULL,
+    status ENUM('ativo','arquivado','excluido') NOT NULL DEFAULT 'ativo',
+    criado_por_conta_id BIGINT UNSIGNED NOT NULL,
+    atualizado_por_conta_id BIGINT UNSIGNED NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT NULL,
+    UNIQUE KEY uq_modalidade_popup_area (modalidade_id, area),
+    INDEX idx_modalidade_popup_publico (area, status, data_inicio, data_fim),
+    CONSTRAINT fk_modalidade_popup_modalidade FOREIGN KEY (modalidade_id) REFERENCES modalidades(id),
+    CONSTRAINT fk_modalidade_popup_criador FOREIGN KEY (criado_por_conta_id) REFERENCES contas(id),
+    CONSTRAINT fk_modalidade_popup_atualizador FOREIGN KEY (atualizado_por_conta_id) REFERENCES contas(id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS home_quadros_informativos (

@@ -6,6 +6,7 @@ use App\Core\Auth;
 use App\Core\Controller;
 use App\Services\CourseEnrollmentService;
 use App\Services\HumanVerificationService;
+use App\Services\ModalityPopupService;
 
 class CourseEnrollmentController extends Controller
 {
@@ -73,6 +74,18 @@ class CourseEnrollmentController extends Controller
             $this->jsonResponse([
                 'success' => true,
                 'details' => $this->service->getClassEnrollmentDetails((int) ($_GET['turma_id'] ?? 0)),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function modalityPopup(): void
+    {
+        try {
+            $this->jsonResponse([
+                'success' => true,
+                'popup' => (new ModalityPopupService())->findActive((int) ($_GET['modalidade_id'] ?? 0), (string) ($_GET['area'] ?? 'cursos')),
             ]);
         } catch (\Throwable $e) {
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);

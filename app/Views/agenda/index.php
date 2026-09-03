@@ -250,3 +250,12 @@
         </div>
     </div>
 <?php } ?>
+
+<div id="agenda-modality-notice-modal" class="popup-overlay hidden" aria-hidden="true">
+    <div class="popup-card popup-site-card" role="dialog" aria-modal="true" aria-labelledby="agenda-modality-notice-title">
+        <div class="popup-head popup-site-head"><h3 id="agenda-modality-notice-title"></h3><button type="button" class="popup-close-icon" data-agenda-modality-notice-close="1" aria-label="Fechar">&times;</button></div>
+        <div class="popup-site-media hidden" id="agenda-modality-notice-media"><img id="agenda-modality-notice-image" src="" alt=""></div>
+        <div class="popup-body popup-site-body"><p id="agenda-modality-notice-main"></p><p class="muted" id="agenda-modality-notice-secondary"></p></div>
+        <div class="popup-actions"><a class="btn btn-secondary hidden" id="agenda-modality-notice-action" href="#"></a><button type="button" class="btn btn-primary" id="agenda-modality-notice-continue">Continuar</button></div>
+    </div>
+</div>

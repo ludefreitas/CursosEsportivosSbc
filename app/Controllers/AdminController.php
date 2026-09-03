@@ -19,6 +19,7 @@ use App\Services\ExternalLocationService;
 use App\Services\ExternalHealthCertificateService;
 use App\Services\SpaceAccessibilityService;
 use App\Services\CourseEnrollmentService;
+use App\Services\ModalityPopupService;
 use DateTimeImmutable;
 
 class AdminController extends Controller
@@ -33,6 +34,7 @@ class AdminController extends Controller
     private ExternalPersonService $externalPersonService;
     private ExternalLocationService $externalLocationService;
     private ExternalHealthCertificateService $externalHealthCertificateService;
+    private ModalityPopupService $modalityPopupService;
 
     /**
      * Inicializa servicos da área administrativa.
@@ -49,6 +51,7 @@ class AdminController extends Controller
         $this->externalPersonService = new ExternalPersonService();
         $this->externalLocationService = new ExternalLocationService();
         $this->externalHealthCertificateService = new ExternalHealthCertificateService();
+        $this->modalityPopupService = new ModalityPopupService();
     }
 
     /**
@@ -82,6 +85,7 @@ class AdminController extends Controller
                 'modalidades',
                 'temporadas',
                 'turmas',
+                'turmas-locais',
             ];
             $masterSections = [
                 'migracao-cadastros',
@@ -2204,9 +2208,10 @@ class AdminController extends Controller
             $courseService = new CourseEnrollmentService();
             $data['courseSeasons'] = $courseService->listSeasonsForManagement();
             $data['modalitySchedules'] = $courseService->listModalitySchedulesForManagement();
+            $data['modalityPopups'] = $this->modalityPopupService->listAll();
         }
 
-        if (in_array($sectionName, ['temporadas', 'turmas'], true)) {
+        if (in_array($sectionName, ['temporadas', 'turmas', 'turmas-locais'], true)) {
             $courseService = new CourseEnrollmentService();
             $data['courseManagementView'] = $sectionName;
             $data['courseSeasons'] = $courseService->listSeasonsForManagement();
@@ -2372,6 +2377,7 @@ class AdminController extends Controller
                 (int) ($user['conta_id'] ?? 0),
                 (int) ($_POST['modalidade_id'] ?? 0)
             );
+            $modalityPopups = $this->modalityPopupService->listAll();
             $this->jsonResponse(['success' => true, 'message' => 'Modalidade excluída com sucesso.']);
         } catch (\Throwable $e) {
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
@@ -2475,7 +2481,8 @@ class AdminController extends Controller
                 throw new \RuntimeException('Não foi possível identificar a turma que será editada.');
             }
             (new CourseEnrollmentService())->createClass((int) $user['conta_id'], $_POST);
-            $this->jsonResponse(['success' => true, 'message' => !empty($_POST['id']) ? 'Turma atualizada com sucesso.' : 'Turma criada com sucesso.', 'html' => $this->renderCourseManagementPanelHtml('turmas')]);
+            $view = ($_POST['course_management_view'] ?? '') === 'turmas-locais' ? 'turmas-locais' : 'turmas';
+            $this->jsonResponse(['success' => true, 'message' => !empty($_POST['id']) ? 'Turma atualizada com sucesso.' : 'Turma criada com sucesso.', 'html' => $this->renderCourseManagementPanelHtml($view)]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
@@ -2484,7 +2491,7 @@ class AdminController extends Controller
         $user = $this->assertAdminAccess();
         try {
             (new CourseEnrollmentService())->deactivate(trim((string) ($_POST['entidade'] ?? '')), (int) ($_POST['id'] ?? 0), (int) $user['conta_id']);
-            $view = trim((string) ($_POST['entidade'] ?? '')) === 'temporada' ? 'temporadas' : 'turmas';
+            $view = trim((string) ($_POST['entidade'] ?? '')) === 'temporada' ? 'temporadas' : (($_POST['course_management_view'] ?? '') === 'turmas-locais' ? 'turmas-locais' : 'turmas');
             $this->jsonResponse(['success' => true, 'message' => 'Registro inativado com sucesso.', 'html' => $this->renderCourseManagementPanelHtml($view)]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
@@ -2494,7 +2501,8 @@ class AdminController extends Controller
         $user = $this->assertAdminAccess();
         try {
             (new CourseEnrollmentService())->assignProfessor((int) ($_POST['turma_id'] ?? 0), (int) ($_POST['professor_conta_id'] ?? 0), (int) $user['conta_id']);
-            $this->jsonResponse(['success' => true, 'message' => 'Professor atribuído à turma com sucesso.', 'html' => $this->renderCourseManagementPanelHtml('turmas')]);
+            $view = ($_POST['course_management_view'] ?? '') === 'turmas-locais' ? 'turmas-locais' : 'turmas';
+            $this->jsonResponse(['success' => true, 'message' => 'Professor atribuído à turma com sucesso.', 'html' => $this->renderCourseManagementPanelHtml($view)]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
@@ -2505,9 +2513,72 @@ class AdminController extends Controller
         $this->jsonResponse(['success' => true, 'html' => $this->renderCourseManagementPanelHtml($view)]);
     }
 
+    public function storeModalityPopup(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $this->modalityPopupService->save((int) $user['conta_id'], $_POST);
+            $this->jsonResponse(['success' => true, 'message' => 'Pop-up da modalidade salvo com sucesso.']);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function deleteModalityPopup(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $this->modalityPopupService->delete((int) $user['conta_id'], (int) ($_POST['modalidade_popup_id'] ?? 0));
+            $this->jsonResponse(['success' => true, 'message' => 'Pop-up da modalidade excluído com sucesso.']);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function filterCourseClasses(): void
+    {
+        $this->assertAdminAccess();
+        $view = (string) ($_GET['tipo'] ?? 'turmas');
+        $view = $view === 'turmas-locais' ? 'turmas-locais' : 'turmas';
+        $seasonId = max(0, (int) ($_GET['temporada_id'] ?? 0));
+        $groupId = max(0, (int) ($_GET['grupo_id'] ?? 0));
+        if ($seasonId <= 0) {
+            $this->jsonResponse(['success' => false, 'message' => 'Selecione uma temporada válida.'], 422);
+            return;
+        }
+
+        $courseManagementView = $view;
+        $allClasses = (new CourseEnrollmentService())->listClassesForManagement();
+        $seasonClasses = array_values(array_filter($allClasses, static fn (array $class): bool => (int) ($class['temporada_id'] ?? 0) === $seasonId));
+        $groupField = $view === 'turmas-locais' ? 'local_treino_id' : 'modalidade_id';
+        $groupNameField = $view === 'turmas-locais' ? 'local_nome' : 'modalidade_nome';
+        $courseClassGroups = [];
+        foreach ($seasonClasses as $class) {
+            $id = (int) ($class[$groupField] ?? 0);
+            if ($id > 0) $courseClassGroups[$id] = (string) ($class[$groupNameField] ?? '');
+        }
+        natcasesort($courseClassGroups);
+        $courseClasses = $groupId > 0
+            ? array_values(array_filter($seasonClasses, static fn (array $class): bool => (int) ($class[$groupField] ?? 0) === $groupId))
+            : [];
+
+        ob_start();
+        require ROOT_PATH . '/app/Views/admin/partials/course_class_group_buttons.php';
+        $groupsHtml = (string) ob_get_clean();
+        ob_start();
+        require ROOT_PATH . '/app/Views/admin/partials/course_class_card_list.php';
+        $classesHtml = (string) ob_get_clean();
+        $this->jsonResponse([
+            'success' => true,
+            'groups_html' => $groupsHtml,
+            'classes_html' => $classesHtml,
+            'count' => count($courseClasses),
+        ]);
+    }
+
     private function renderCourseManagementPanelHtml(string $view = 'temporadas'): string
     {
-        $courseManagementView = $view === 'turmas' ? 'turmas' : 'temporadas';
+        $courseManagementView = in_array($view, ['turmas', 'turmas-locais'], true) ? $view : 'temporadas';
         $courseService = new CourseEnrollmentService();
         $courseSeasons = $courseService->listSeasonsForManagement();
         $courseSeasonOrigins = $courseService->listSeasonOriginsForManagement();

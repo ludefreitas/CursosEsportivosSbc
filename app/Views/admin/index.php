@@ -26,7 +26,8 @@
             <button type="button" class="admin-nav-button" data-admin-nav-target="locais-espacos">Locais e espaços</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="modalidades">Modalidade</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="temporadas">Temporadas</button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="turmas">Turmas</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="turmas">Turmas por modalidade</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="turmas-locais">Turmas por local</button>
             <?php if (!empty($canAccessMasterSections)) { ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="configuracoes">Configurações</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="outras-areas">Outras áreas</button>

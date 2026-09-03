@@ -74,6 +74,15 @@ $suggestedCourseModalities = array_slice($suggestedCourseModalities, 0, 3);
     </div>
 </div>
 
+<div id="home-modality-notice-modal" class="popup-overlay hidden" aria-hidden="true">
+    <div class="popup-card popup-site-card" role="dialog" aria-modal="true" aria-labelledby="home-modality-notice-title">
+        <div class="popup-head popup-site-head"><h3 id="home-modality-notice-title"></h3><button type="button" class="popup-close-icon" data-home-modality-notice-close="1" aria-label="Fechar">&times;</button></div>
+        <div class="popup-site-media hidden" id="home-modality-notice-media"><img id="home-modality-notice-image" src="" alt=""></div>
+        <div class="popup-body popup-site-body"><p id="home-modality-notice-main"></p><p class="muted" id="home-modality-notice-secondary"></p></div>
+        <div class="popup-actions"><a class="btn btn-secondary hidden" id="home-modality-notice-action" href="#"></a><button type="button" class="btn btn-primary" id="home-modality-notice-continue">Continuar</button></div>
+    </div>
+</div>
+
 <section class="hero">
     <div class="hero-copy">
         <?php if ($homeAdminMode) { ?><div class="admin-home-inline-actions"><button type="button" class="btn btn-secondary admin-home-small-button" data-home-edit="apresentacao">Editar</button><button type="button" class="btn btn-primary admin-home-small-button" data-home-publish="apresentacao">Publicar</button></div><?php } ?>

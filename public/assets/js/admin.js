@@ -32,6 +32,9 @@
                 $('select[data-sexo-select="1"]').trigger('change');
                 syncDailyBookingSpaceOptions();
                 initAdminAgendaCalendar();
+                if (typeof App.admin.initializeAdminClassBrowsers === 'function') {
+                    App.admin.initializeAdminClassBrowsers($host);
+                }
                 if (typeof App.admin.montarPreviaConteudoHome === 'function') {
                     App.admin.montarPreviaConteudoHome();
                 }
@@ -1727,6 +1730,7 @@
                 espaco_treino_id: 'Define o espaço físico em que o horário acontecerá. O local de treino é identificado automaticamente a partir do espaço selecionado.',
                 modalidade_id: 'Define a modalidade esportiva oferecida neste horário e utilizada nos filtros da agenda.',
                 tipo_horario: 'Indica a finalidade do horário semanal: avaliação, treino ou aula.',
+                dispensar_avaliacao_previa: 'Para treino ou aula, define se a pessoa precisa possuir uma avaliação física apta para a mesma modalidade. Em horários de avaliação, essa exigência não se aplica.',
                 dia_semana: 'Define o dia da semana em que este horário se repetirá.',
                 sexo: 'Restringe o horário por sexo. Selecione Livre para permitir o agendamento de qualquer pessoa que atenda aos demais critérios.',
                 hora_inicio: 'Informa o horário em que a atividade começa.',
@@ -1796,6 +1800,23 @@
                 $form.find('[data-window-rule-help]').text(helpMessages[type] || '');
             }
 
+            function syncWeeklyScheduleEvaluationRequirement($form) {
+                if (!$form || $form.length === 0) return;
+                const isEvaluation = String($form.find('select[name="tipo_horario"]').val() || '') === 'avaliacao';
+                const $field = $form.find('select[name="dispensar_avaliacao_previa"]');
+                const $help = $form.find('[data-evaluation-requirement-help="1"]');
+
+                if (isEvaluation) {
+                    $field.val('1').prop('disabled', true);
+                    $help.text('Não se aplica: este horário é destinado à própria avaliação.');
+                } else {
+                    $field.prop('disabled', false);
+                    $help.text($field.val() === '1'
+                        ? 'A pessoa poderá agendar este treino ou aula sem avaliação física apta na modalidade.'
+                        : 'A pessoa deverá possuir avaliação física apta na modalidade para agendar.');
+                }
+            }
+
             function currentAgendaFilters() {
                 const $filterForm = $('#admin-agenda-filter-form');
                 const $dailyForm = $('#admin-daily-bookings-filter-form');
@@ -1850,6 +1871,7 @@
                     $form[0].reset();
                     syncWeeklyScheduleAgePreview($form);
                     syncWeeklyScheduleWindowFields($form);
+                    syncWeeklyScheduleEvaluationRequirement($form);
                 }
             }
 
@@ -1865,6 +1887,7 @@
                 ensureWeeklyScheduleFieldHelp($createForm);
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
                 syncWeeklyScheduleWindowFields($createForm);
+                syncWeeklyScheduleEvaluationRequirement($createForm);
                 window.setTimeout(function () {
                     $modal.find('select, input').filter(':visible').first().trigger('focus');
                 }, 0);
@@ -1879,6 +1902,7 @@
                 setValue('#admin-weekly-schedule-space', schedule.espaco_treino_id);
                 setValue('#admin-weekly-schedule-modality', schedule.modalidade_id);
                 setValue('#admin-weekly-schedule-type', schedule.tipo_horario || 'avaliacao');
+                setValue('#admin-weekly-schedule-evaluation-requirement', Number(schedule.dispensar_avaliacao_previa || 0) === 1 ? '1' : '0');
                 setValue('#admin-weekly-schedule-weekday', schedule.dia_semana);
                 setValue('#admin-weekly-schedule-sex', schedule.sexo || '');
                 setValue('#admin-weekly-schedule-start', String(schedule.hora_inicio || '').slice(0, 5));
@@ -1902,6 +1926,7 @@
                 setValue('#admin-weekly-schedule-active', Number(schedule.ativo || 0) === 1 ? '1' : '0');
                 syncWeeklyScheduleAgePreview(getForm());
                 syncWeeklyScheduleWindowFields(getForm());
+                syncWeeklyScheduleEvaluationRequirement(getForm());
 
                 $('#admin-weekly-schedule-editor-subtitle').text(
                     'Editando ' + String(schedule.modalidade_nome || '') + ' em ' + String(schedule.local_nome || '') + ' sem sair da agenda administrativa.'
@@ -1909,14 +1934,16 @@
             }
 
             $(document).on('click', '[data-weekly-schedule-edit="1"]', function () {
-                const scheduleId = Number($(this).data('weeklyScheduleId') || 0);
+                const $button = $(this);
+                const scheduleId = Number($button.data('weeklyScheduleId') || 0);
+                const detailUrl = String($button.attr('data-weekly-schedule-detail-url') || adminUrl('/admin/horarios-semanais/detalhe'));
 
                 if (!scheduleId) {
                     App.core.abrirPopup('erro', 'Não foi possível identificar o horário selecionado.');
                     return;
                 }
 
-                $.getJSON(adminUrl('/admin/horarios-semanais/detalhe'), { id: scheduleId })
+                $.getJSON(detailUrl, { id: scheduleId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.schedule) {
                             App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar este horário.'));
@@ -1975,6 +2002,10 @@
 
             $(document).on('change', '#admin-weekly-schedule-create-form select[name="janela_agendamento_tipo"], #admin-weekly-schedule-form select[name="janela_agendamento_tipo"]', function () {
                 syncWeeklyScheduleWindowFields($(this).closest('form'));
+            });
+
+            $(document).on('change', '#admin-weekly-schedule-create-form select[name="tipo_horario"], #admin-weekly-schedule-create-form select[name="dispensar_avaliacao_previa"], #admin-weekly-schedule-form select[name="tipo_horario"], #admin-weekly-schedule-form select[name="dispensar_avaliacao_previa"]', function () {
+                syncWeeklyScheduleEvaluationRequirement($(this).closest('form'));
             });
 
             $(document).on('click', '#admin-weekly-schedule-editor', function (event) {
@@ -4419,15 +4450,159 @@
                     App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
                 }).always(function () { $button.prop('disabled', false); });
             });
+            function modalityPopupModal() { return $('#admin-modality-popup-modal'); }
+            function closeModalityPopupModal() { modalityPopupModal().addClass('hidden').attr('aria-hidden', 'true'); }
+            function fillModalityPopupForm(record) {
+                const $form = $('#admin-modality-popup-form');
+                $form.get(0).reset();
+                Object.keys(record || {}).forEach(function (key) {
+                    const $field = $form.find('[name="' + key + '"]');
+                    if (!$field.length) return;
+                    $field.val($field.attr('type') === 'datetime-local' ? String(record[key] || '').replace(' ', 'T').slice(0, 16) : String(record[key] == null ? '' : record[key]));
+                });
+                const editing = Number(record && record.id || 0) > 0;
+                const area = String(record && record.area || 'cursos');
+                $form.find('[name="area"]').val(area);
+                $('#admin-modality-popup-area-label').text(area === 'agenda' ? 'Agenda pública' : 'Inscrições dos cursos esportivos');
+                $form.find('[name="modalidade_popup_id"]').val(editing ? String(record.id) : '');
+                $('#admin-modality-popup-delete').toggleClass('hidden', !editing).attr('data-popup-id', editing ? String(record.id) : '');
+                $('#admin-modality-popup-title').text(editing ? 'Editar pop-up da modalidade' : 'Criar pop-up da modalidade');
+                $('#admin-modality-popup-subtitle').text(String(record.modalidade_nome || ''));
+            }
+            $(document).on('click', '.admin-modality-popup-create', function () {
+                fillModalityPopupForm({ modalidade_id: $(this).attr('data-modality-id'), modalidade_nome: $(this).attr('data-modality-name'), area: String($(this).attr('data-popup-area') || 'cursos'), status: 'ativo' });
+                modalityPopupModal().removeClass('hidden').attr('aria-hidden', 'false');
+            });
+            $(document).on('click', '.admin-modality-popup-manage', function () {
+                let record = {}; try { record = JSON.parse(String($(this).attr('data-popup') || '{}')); } catch (error) { record = {}; }
+                fillModalityPopupForm(record); modalityPopupModal().removeClass('hidden').attr('aria-hidden', 'false');
+            });
+            $(document).on('click', '[data-modality-popup-close="1"], #admin-modality-popup-modal', function (event) {
+                if ($(event.target).is('#admin-modality-popup-modal') || $(event.target).is('[data-modality-popup-close="1"]')) closeModalityPopupModal();
+            });
+            $(document).on('submit', '#admin-modality-popup-form', function (event) {
+                event.preventDefault(); const $form=$(this); const $button=$form.find('[type="submit"]').prop('disabled',true);
+                $.ajax({url:App.core.buildUrl('/admin/modalidades/popups'),method:'POST',dataType:'json',data:$form.serialize()})
+                    .done(function(response){if(!response||response.success===false){App.core.abrirPopup('erro',String(response&&response.message||'Não foi possível salvar o pop-up.'));return;} closeModalityPopupModal(); App.admin.activateSection('modalidades'); App.core.abrirPopup('sucesso',String(response.message));})
+                    .fail(function(xhr){App.core.abrirPopup('erro',App.core.extrairMensagemErroAjax(xhr).mensagem);}).always(function(){$button.prop('disabled',false);});
+            });
+            $(document).on('click', '#admin-modality-popup-delete', function () {
+                const id=Number($(this).attr('data-popup-id')||0); if(!id||!window.confirm('Deseja excluir este pop-up da modalidade?')) return;
+                $.post(App.core.buildUrl('/admin/modalidades/popups/excluir'),{modalidade_popup_id:id},function(response){if(!response||response.success===false){App.core.abrirPopup('erro',String(response&&response.message||'Não foi possível excluir.'));return;} closeModalityPopupModal(); App.admin.activateSection('modalidades'); App.core.abrirPopup('sucesso',String(response.message));},'json').fail(function(xhr){App.core.abrirPopup('erro',App.core.extrairMensagemErroAjax(xhr).mensagem);});
+            });
             function scheduleModal() { return $('#admin-modality-schedule-modal'); }
             function closeScheduleModal() { scheduleModal().addClass('hidden').attr('aria-hidden', 'true'); }
             function scheduleData(attribute) {
                 try { return JSON.parse(String($('[data-admin-section="modalidades"]').attr(attribute) || '[]')); } catch (error) { return []; }
             }
             function toLocalDateTime(value) { return String(value || '').replace(' ', 'T').slice(0, 16); }
+            function formatBrazilianDate(value) {
+                const raw = String(value || '');
+                const parts = raw.slice(0, 10).split('-');
+                if (parts.length !== 3) return '';
+                const time = raw.length >= 16 ? raw.slice(11, 16) : '';
+                return parts[2] + '/' + parts[1] + '/' + parts[0] + (time ? ' às ' + time : '');
+            }
+            function validateCoursePeriodChronology($form) {
+                const fieldNames = ['data_inicio', 'data_fim', 'inscricoes_inicio', 'inscricoes_fim', 'matriculas_inicio', 'matriculas_fim', 'inscricoes_abertas_inicio', 'inscricoes_abertas_fim', 'aulas_inicio', 'aulas_fim'];
+                const fields = {};
+                const values = {};
+                fieldNames.forEach(function (name) {
+                    fields[name] = $form.find('[name="' + name + '"]').get(0) || null;
+                    values[name] = fields[name] && fields[name].value ? new Date(fields[name].value.length === 10 ? fields[name].value + 'T00:00:00' : fields[name].value) : null;
+                    if (fields[name]) {
+                        fields[name].setCustomValidity('');
+                        $(fields[name]).removeAttr('data-period-validation-error data-remote-validation-error');
+                    }
+                });
+                function setPeriodError(field, message) {
+                    if (!field) return;
+                    $(field).attr('data-period-validation-error', message).attr('data-remote-validation-error', message);
+                    field.setCustomValidity(message);
+                }
+                function before(earlier, later, message) {
+                    if (!values[earlier] || !values[later] || values[earlier].getTime() < values[later].getTime()) return true;
+                    setPeriodError(fields[later], message);
+                    return false;
+                }
+                let valid = true;
+                valid = before('data_inicio', 'data_fim', 'O fim da publicação deve ser posterior ao seu início.') && valid;
+                valid = before('data_inicio', 'inscricoes_inicio', 'O início da inscrição inicial deve ser posterior ao início da publicação.') && valid;
+                valid = before('inscricoes_inicio', 'inscricoes_fim', 'O fim da inscrição inicial deve ser posterior ao seu início.') && valid;
+                valid = before('inscricoes_fim', 'matriculas_inicio', 'As matrículas devem começar somente depois do encerramento da inscrição inicial.') && valid;
+                valid = before('matriculas_inicio', 'matriculas_fim', 'O fim das matrículas deve ser posterior ao seu início.') && valid;
+
+                const enrollmentDuringRegistration = $form.find('[name="permitir_inscricao_periodo_matricula"]').is(':checked');
+                if (enrollmentDuringRegistration && values.inscricoes_abertas_inicio && values.matriculas_inicio && values.matriculas_fim) {
+                    if (values.inscricoes_abertas_inicio < values.matriculas_inicio || values.inscricoes_abertas_inicio > values.matriculas_fim) {
+                        setPeriodError(fields.inscricoes_abertas_inicio, 'Inscrições abertas: início deve estar entre ' + formatBrazilianDate(fields.matriculas_inicio.value) + ' e ' + formatBrazilianDate(fields.matriculas_fim.value) + '.');
+                        valid = false;
+                    }
+                }
+                valid = before('inscricoes_abertas_inicio', 'inscricoes_abertas_fim', 'O fim das inscrições abertas deve ser posterior ao seu início.') && valid;
+                valid = before('data_inicio', 'aulas_inicio', 'O início das aulas deve ser posterior ao início da publicação.') && valid;
+                valid = before('matriculas_inicio', 'aulas_inicio', 'O início das aulas deve ser posterior ao início das matrículas.') && valid;
+                valid = before('aulas_inicio', 'aulas_fim', 'O fim das aulas deve ser posterior ao seu início.') && valid;
+                fieldNames.forEach(function (name) {
+                    if (fields[name] && $(fields[name]).attr('data-validation-touched') === '1') App.core.validarCampoInline(fields[name], true);
+                });
+                return valid;
+            }
+            function updateModalityRegistrationEnrollmentField() {
+                const $form = $('#admin-modality-schedule-form');
+                const enabled = $form.find('[name="permitir_inscricao_periodo_matricula"]').is(':checked');
+                const $field = $form.find('[name="inscricoes_abertas_inicio"]');
+                const registrationStart = String($form.find('[name="matriculas_inicio"]').val() || '');
+                const registrationEnd = String($form.find('[name="matriculas_fim"]').val() || '');
+                const $range = $form.find('[data-modality-registration-enrollment-range="1"]');
+                $field.prop('required', true);
+                if (enabled) {
+                    $field.removeAttr('min max');
+                    const formattedStart = formatBrazilianDate(registrationStart);
+                    const formattedEnd = formatBrazilianDate(registrationEnd);
+                    $range.toggleClass('hidden', !formattedStart || !formattedEnd)
+                        .text(formattedStart && formattedEnd ? 'Inscrições abertas: início deve estar entre ' + formattedStart + ' e ' + formattedEnd + '.' : '');
+                } else {
+                    $field.removeAttr('min max');
+                    $range.addClass('hidden').text('');
+                }
+                validateCoursePeriodChronology($form);
+            }
+            function modalityRuleFromForm($form) {
+                return {
+                    permitir: $form.find('[name="permitir_multiplas_inscricoes_modalidade"]').is(':checked') ? 1 : 0,
+                    limite: String($form.find('[name="limite_inscricoes_modalidade"]').val() || '1'),
+                    liberacao: String($form.find('[name="data_liberacao_multiplas_inscricoes_modalidade"]').val() || '')
+                };
+            }
+            function describeModalityRule(rule) {
+                if (Number(rule && rule.permitir || 0) !== 1) {
+                    return 'Regra que será aplicada: somente 1 inscrição por CPF nesta modalidade.';
+                }
+                const release = formatBrazilianDate(String(rule && rule.liberacao || '')) || 'data e horário ainda não informados';
+                return 'Regra que será aplicada: até ' + String(rule && rule.limite || '2') + ' inscrições por CPF nesta modalidade, liberadas a partir de ' + release + '.';
+            }
+            function modalityScheduleSiblings($form) {
+                const currentId = String($form.find('[name="cronograma_modalidade_id"]').val() || '');
+                const seasonId = String($form.find('[name="temporada_id"]').val() || '');
+                const modalityId = String($form.find('[name="modalidade_id"]').val() || '');
+                return scheduleData('data-modality-schedules').filter(function (item) {
+                    return String(item.id || '') !== currentId && String(item.temporada_id || '') === seasonId && String(item.modalidade_id || '') === modalityId;
+                });
+            }
+            function updateModalityMultipleScheduleWarning($form) {
+                const schedules = modalityScheduleSiblings($form);
+                const enabled = $form.find('[name="permitir_multiplas_inscricoes_modalidade"]').is(':checked');
+                const $warning = $form.find('[data-modality-multiple-siblings-warning="1"]');
+                $warning.toggleClass('hidden', !enabled || schedules.length === 0).text(enabled && schedules.length > 0
+                    ? 'Existem ' + schedules.length + ' outro(s) cronograma(s) desta modalidade nesta temporada. ' + describeModalityRule(modalityRuleFromForm($form)) + ' Ao confirmar, ela será aplicada a todos esses cronogramas.'
+                    : '');
+                $form.data('modality-schedule-siblings', schedules);
+            }
             function fillScheduleForm(record) {
                 const $form = $('#admin-modality-schedule-form');
                 $form[0].reset();
+                $form.find('[name="cronograma_modalidade_id"]').val(record && record.id ? String(record.id) : '');
                 Object.keys(record || {}).forEach(function (key) {
                     const $field = $form.find('[name="' + key + '"]');
                     if (!$field.length) return;
@@ -4438,6 +4613,13 @@
                 const hasNotice = $form.find('[name="possui_edital"]').is(':checked');
                 $form.find('[data-modality-schedule-notice-fields="1"]').toggleClass('hidden', !hasNotice);
                 $form.find('[name="numero_edital"], [name="link_edital"]').prop('required', hasNotice);
+                const allowMultiple = $form.find('[name="permitir_multiplas_inscricoes_modalidade"]').is(':checked');
+                $form.find('[data-modality-multiple-fields="1"]').toggleClass('hidden', !allowMultiple).find('input').prop('required', allowMultiple);
+                $form.data('original-modality-rule', JSON.stringify({ permitir: allowMultiple ? 1 : 0, limite: String($form.find('[name="limite_inscricoes_modalidade"]').val() || '1'), liberacao: String($form.find('[name="data_liberacao_multiplas_inscricoes_modalidade"]').val() || '') }));
+                $form.data('modality-schedule-sibling-count', Math.max(0, Number(record && record.total_cronogramas_modalidade || 1) - 1));
+                updateModalityMultipleScheduleWarning($form);
+                updateModalityRegistrationEnrollmentField();
+                validateCoursePeriodChronology($form);
             }
             $(document).on('click', '#admin-modality-schedule-create', function () {
                 fillScheduleForm({});
@@ -4453,22 +4635,80 @@
             $(document).on('click', '[data-modality-schedule-close="1"], #admin-modality-schedule-modal', function (event) {
                 if ($(event.target).is('#admin-modality-schedule-modal') || $(event.target).is('[data-modality-schedule-close="1"]')) closeScheduleModal();
             });
-            $(document).on('change', '#admin-modality-schedule-form [name="temporada_id"]', function () {
-                const season = scheduleData('data-modality-seasons').find(function (item) { return String(item.id) === String($(this).val()); }.bind(this));
-                if (!season || Number($('#admin-modality-schedule-form [name="cronograma_modalidade_id"]').val() || 0) > 0) return;
-                ['inscricoes_inicio', 'inscricoes_fim', 'matriculas_inicio', 'matriculas_fim', 'inscricoes_abertas_inicio', 'inscricoes_abertas_fim'].forEach(function (field) { $('#admin-modality-schedule-form [name="' + field + '"]').val(toLocalDateTime(season[field])); });
-                ['data_inicio', 'data_fim', 'aulas_inicio', 'aulas_fim'].forEach(function (field) { $('#admin-modality-schedule-form [name="' + field + '"]').val(String(season[field] || '')); });
-                $('#admin-modality-schedule-form [name="permitir_inscricao_periodo_matricula"]').prop('checked', Number(season.permitir_inscricao_periodo_matricula || 0) === 1);
-                const modalityText = $('#admin-modality-schedule-form [name="modalidade_id"] option:selected').text();
-                $('#admin-modality-schedule-form [name="nome"]').val((modalityText && modalityText !== 'Selecione' ? modalityText + ' - ' : '') + String(season.nome || ''));
-            });
-            $(document).on('change', '#admin-modality-schedule-form [name="modalidade_id"]', function () { $('#admin-modality-schedule-form [name="temporada_id"]').trigger('change'); });
+            function copySeasonToModalitySchedule() {
+                const $form = $('#admin-modality-schedule-form');
+                const seasonId = String($form.find('[name="temporada_id"]').val() || '');
+                const season = scheduleData('data-modality-seasons').find(function (item) { return String(item.id) === seasonId; });
+                if (!season) {
+                    App.core.abrirPopup('erro', 'Selecione primeiro a temporada cujo cronograma será utilizado.');
+                    return;
+                }
+                ['inscricoes_inicio', 'inscricoes_fim', 'matriculas_inicio', 'matriculas_fim', 'inscricoes_abertas_inicio', 'inscricoes_abertas_fim'].forEach(function (field) { $form.find('[name="' + field + '"]').val(toLocalDateTime(season[field])); });
+                ['data_inicio', 'data_fim', 'aulas_inicio', 'aulas_fim'].forEach(function (field) { $form.find('[name="' + field + '"]').val(String(season[field] || '')); });
+                $form.find('[name="permitir_inscricao_periodo_matricula"]').prop('checked', Number(season.permitir_inscricao_periodo_matricula || 0) === 1);
+                const hasNotice = Number(season.possui_edital || 0) === 1;
+                $form.find('[name="possui_edital"]').prop('checked', hasNotice);
+                $form.find('[name="numero_edital"]').val(hasNotice ? String(season.numero_edital || '') : '');
+                $form.find('[name="link_edital"]').val(hasNotice ? String(season.link_edital || '') : '');
+                $form.find('[data-modality-schedule-notice-fields="1"]').toggleClass('hidden', !hasNotice).find('input').prop('required', hasNotice);
+                const allowMultiple = Number(season.permitir_multiplas_inscricoes_modalidade || 0) === 1;
+                $form.find('[name="permitir_multiplas_inscricoes_modalidade"]').prop('checked', allowMultiple);
+                $form.find('[name="limite_inscricoes_modalidade"]').val(String(season.limite_inscricoes_modalidade || 2));
+                $form.find('[name="data_liberacao_multiplas_inscricoes_modalidade"]').val(toLocalDateTime(season.data_liberacao_multiplas_inscricoes_modalidade));
+                $form.find('[data-modality-multiple-fields="1"]').toggleClass('hidden', !allowMultiple).find('input').prop('required', allowMultiple);
+                updateModalityRegistrationEnrollmentField();
+                validateCoursePeriodChronology($form);
+                const modalityText = $form.find('[name="modalidade_id"] option:selected').text();
+                if (!$form.find('[name="nome"]').val()) $form.find('[name="nome"]').val((modalityText && modalityText !== 'Selecione' ? modalityText + ' - ' : '') + String(season.nome || ''));
+                App.core.abrirPopup('sucesso', 'O cronograma da temporada foi copiado. Revise os dados antes de salvar.');
+            }
+            $(document).on('click', '#admin-modality-schedule-use-season', copySeasonToModalitySchedule);
             $(document).on('change', '[data-modality-schedule-notice-toggle="1"]', function () {
                 const enabled = $(this).is(':checked');
                 $('#admin-modality-schedule-form [data-modality-schedule-notice-fields="1"]').toggleClass('hidden', !enabled).find('input').prop('required', enabled);
             });
+            $(document).on('change', '[data-modality-multiple-toggle="1"]', function () {
+                const enabled = $(this).is(':checked');
+                const $form = $('#admin-modality-schedule-form');
+                $form.find('[data-modality-multiple-fields="1"]').toggleClass('hidden', !enabled).find('input').prop('required', enabled);
+                updateModalityMultipleScheduleWarning($form);
+            });
+            $(document).on('change', '#admin-modality-schedule-form [name="temporada_id"], #admin-modality-schedule-form [name="modalidade_id"]', function () { updateModalityMultipleScheduleWarning($(this).closest('form')); });
+            $(document).on('input change', '#admin-modality-schedule-form [name="limite_inscricoes_modalidade"], #admin-modality-schedule-form [name="data_liberacao_multiplas_inscricoes_modalidade"]', function () { updateModalityMultipleScheduleWarning($(this).closest('form')); });
+            $(document).on('change', '[data-modality-registration-enrollment-toggle="1"], #admin-modality-schedule-form [name="matriculas_inicio"], #admin-modality-schedule-form [name="matriculas_fim"]', updateModalityRegistrationEnrollmentField);
+            $(document).on('input change', '#admin-modality-schedule-form [name="data_inicio"], #admin-modality-schedule-form [name="data_fim"], #admin-modality-schedule-form [name="inscricoes_inicio"], #admin-modality-schedule-form [name="inscricoes_fim"], #admin-modality-schedule-form [name="matriculas_inicio"], #admin-modality-schedule-form [name="matriculas_fim"], #admin-modality-schedule-form [name="inscricoes_abertas_inicio"], #admin-modality-schedule-form [name="inscricoes_abertas_fim"], #admin-modality-schedule-form [name="aulas_inicio"], #admin-modality-schedule-form [name="aulas_fim"]', function () { validateCoursePeriodChronology($(this).closest('form')); });
             $(document).on('submit', '#admin-modality-schedule-form', function (event) {
-                event.preventDefault(); const $form = $(this); const $button = $form.find('button[type="submit"]').prop('disabled', true);
+                event.preventDefault(); const $form = $(this);
+                if (!validateCoursePeriodChronology($form)) { $form.get(0).reportValidity(); return; }
+                const currentId = String($form.find('[name="cronograma_modalidade_id"]').val() || '');
+                const seasonId = String($form.find('[name="temporada_id"]').val() || '');
+                const scheduleName = String($form.find('[name="nome"]').val() || '').trim().toLocaleLowerCase('pt-BR');
+                const duplicatedName = scheduleData('data-modality-schedules').some(function (schedule) {
+                    return String(schedule.id || '') !== currentId
+                        && String(schedule.temporada_id || '') === seasonId
+                        && String(schedule.nome || '').trim().toLocaleLowerCase('pt-BR') === scheduleName;
+                });
+                if (duplicatedName) {
+                    App.core.abrirPopup('erro', 'Já existe um cronograma com este nome na temporada selecionada. Informe um nome diferente.');
+                    $form.find('[name="nome"]').trigger('focus');
+                    return;
+                }
+                $form.find('[name="aplicar_regra_modalidade_todos_cronogramas"]').remove();
+                const editing = Number($form.find('[name="cronograma_modalidade_id"]').val() || 0) > 0;
+                const currentRule = JSON.stringify(modalityRuleFromForm($form));
+                const siblings = modalityScheduleSiblings($form);
+                let mustConfirm = editing && currentRule !== String($form.data('original-modality-rule') || '') && siblings.length > 0;
+                if (!editing && siblings.length > 0) {
+                    const reference = siblings[0];
+                    const referenceRule = JSON.stringify({ permitir: Number(reference.permitir_multiplas_inscricoes_modalidade || 0) === 1 ? 1 : 0, limite: String(reference.limite_inscricoes_modalidade || '1'), liberacao: toLocalDateTime(reference.data_liberacao_multiplas_inscricoes_modalidade) });
+                    mustConfirm = currentRule !== referenceRule;
+                }
+                if (mustConfirm) {
+                    const confirmationMessage = 'Já existem ' + siblings.length + ' outro(s) cronograma(s) desta modalidade nesta temporada.\n\n' + describeModalityRule(modalityRuleFromForm($form)) + '\n\nA regra será aplicada a todos eles. Deseja prosseguir?';
+                    if (!window.confirm(confirmationMessage)) return;
+                    $form.append($('<input>', { type: 'hidden', name: 'aplicar_regra_modalidade_todos_cronogramas', value: '1' }));
+                }
+                const $button = $form.find('button[type="submit"]').prop('disabled', true);
                 $.ajax({ url: App.core.buildUrl('/admin/modalidades/cronogramas'), method: 'POST', dataType: 'json', data: $form.serialize() })
                     .done(function (response) { if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar o cronograma.')); return; } closeScheduleModal(); App.admin.activateSection('modalidades'); App.core.abrirPopup('sucesso', String(response.message)); })
                     .fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); }).always(function () { $button.prop('disabled', false); });
@@ -4782,12 +5022,64 @@
         },
 
         iniciarGerenciamentoTemporadasTurmas: function () {
+            function formatBrazilianDate(value) {
+                const raw = String(value || '');
+                const parts = raw.slice(0, 10).split('-');
+                if (parts.length !== 3) return '';
+                const time = raw.length >= 16 ? raw.slice(11, 16) : '';
+                return parts[2] + '/' + parts[1] + '/' + parts[0] + (time ? ' às ' + time : '');
+            }
+
             function modalFor(type) {
                 return $(type === 'season' ? '#course-season-modal' : '#course-class-modal');
             }
 
             function closeModals() {
                 $('#course-season-modal, #course-class-modal, #course-professor-modal').addClass('hidden').attr('aria-hidden', 'true');
+            }
+
+            function validateCoursePeriodChronology($form) {
+                const fieldNames = ['data_inicio', 'data_fim', 'inscricoes_inicio', 'inscricoes_fim', 'matriculas_inicio', 'matriculas_fim', 'inscricoes_abertas_inicio', 'inscricoes_abertas_fim', 'aulas_inicio', 'aulas_fim'];
+                const fields = {};
+                const values = {};
+                fieldNames.forEach(function (name) {
+                    fields[name] = $form.find('[name="' + name + '"]').get(0) || null;
+                    values[name] = fields[name] && fields[name].value ? new Date(fields[name].value.length === 10 ? fields[name].value + 'T00:00:00' : fields[name].value) : null;
+                    if (fields[name]) {
+                        fields[name].setCustomValidity('');
+                        $(fields[name]).removeAttr('data-period-validation-error data-remote-validation-error');
+                    }
+                });
+                function setPeriodError(field, message) {
+                    if (!field) return;
+                    $(field).attr('data-period-validation-error', message).attr('data-remote-validation-error', message);
+                    field.setCustomValidity(message);
+                }
+                function before(earlier, later, message) {
+                    if (!values[earlier] || !values[later] || values[earlier].getTime() < values[later].getTime()) return true;
+                    setPeriodError(fields[later], message);
+                    return false;
+                }
+                let valid = true;
+                valid = before('data_inicio', 'data_fim', 'O fim da publicação deve ser posterior ao seu início.') && valid;
+                valid = before('data_inicio', 'inscricoes_inicio', 'O início da inscrição inicial deve ser posterior ao início da publicação.') && valid;
+                valid = before('inscricoes_inicio', 'inscricoes_fim', 'O fim da inscrição inicial deve ser posterior ao seu início.') && valid;
+                valid = before('inscricoes_fim', 'matriculas_inicio', 'As matrículas devem começar somente depois do encerramento da inscrição inicial.') && valid;
+                valid = before('matriculas_inicio', 'matriculas_fim', 'O fim das matrículas deve ser posterior ao seu início.') && valid;
+                if ($form.find('[name="permitir_inscricao_periodo_matricula"]').is(':checked') && values.inscricoes_abertas_inicio && values.matriculas_inicio && values.matriculas_fim) {
+                    if (values.inscricoes_abertas_inicio < values.matriculas_inicio || values.inscricoes_abertas_inicio > values.matriculas_fim) {
+                        setPeriodError(fields.inscricoes_abertas_inicio, 'Inscrições abertas: início deve estar entre ' + formatBrazilianDate(fields.matriculas_inicio.value) + ' e ' + formatBrazilianDate(fields.matriculas_fim.value) + '.');
+                        valid = false;
+                    }
+                }
+                valid = before('inscricoes_abertas_inicio', 'inscricoes_abertas_fim', 'O fim das inscrições abertas deve ser posterior ao seu início.') && valid;
+                valid = before('data_inicio', 'aulas_inicio', 'O início das aulas deve ser posterior ao início da publicação.') && valid;
+                valid = before('matriculas_inicio', 'aulas_inicio', 'O início das aulas deve ser posterior ao início das matrículas.') && valid;
+                valid = before('aulas_inicio', 'aulas_fim', 'O fim das aulas deve ser posterior ao seu início.') && valid;
+                fieldNames.forEach(function (name) {
+                    if (fields[name] && $(fields[name]).attr('data-validation-touched') === '1') App.core.validarCampoInline(fields[name], true);
+                });
+                return valid;
             }
 
             function normalizeDateTime(value) {
@@ -4846,7 +5138,53 @@
                         .attr('data-season-id', String(schedule.temporada_id || ''))
                         .attr('data-modality-id', String(schedule.modalidade_id || '')));
                 });
-                $form.find('[name="modalidade_id"]').closest('label').after($('<label>').append($('<span>', { text: 'Cronograma da modalidade' })).append($select));
+                const $label = $('<label>').append($('<span>', { text: 'Cronograma da modalidade' })).append($select)
+                    .append($('<small>', { class: 'field-error hidden', 'data-class-schedule-warning': '1' }));
+                const $catalog = $('<div>', { class: 'class-schedule-catalog hidden', 'data-class-schedule-catalog': '1' });
+                $form.find('[name="modalidade_id"]').closest('label').after($label, $catalog);
+            }
+
+            function classScheduleData($form) {
+                try { return JSON.parse(String($form.closest('[data-course-modality-schedules]').attr('data-course-modality-schedules') || '[]')); } catch (error) { return []; }
+            }
+
+            function compactScheduleDate(value) {
+                if (!value) return 'Não informado';
+                return formatBrazilianDate(String(value));
+            }
+
+            function renderClassScheduleCatalog($form) {
+                const seasonId = String($form.find('[name="temporada_id"]').val() || '');
+                const modalityId = String($form.find('[name="modalidade_id"]').val() || '');
+                const selectedId = String($form.find('[name="cronograma_modalidade_id"]').val() || '');
+                const schedules = classScheduleData($form).filter(function (schedule) {
+                    return String(schedule.temporada_id || '') === seasonId && String(schedule.modalidade_id || '') === modalityId;
+                });
+                const $catalog = $form.find('[data-class-schedule-catalog="1"]').empty().toggleClass('hidden', schedules.length === 0);
+                schedules.forEach(function (schedule) {
+                    const multiple = Number(schedule.permitir_multiplas_inscricoes_modalidade || 0) === 1
+                        ? 'Até ' + String(schedule.limite_inscricoes_modalidade || 2) + ' por CPF/modalidade após ' + compactScheduleDate(schedule.data_liberacao_multiplas_inscricoes_modalidade)
+                        : 'Uma inscrição por CPF/modalidade';
+                    const notice = Number(schedule.possui_edital || 0) === 1 ? 'Edital ' + String(schedule.numero_edital || 'informado') : 'Sem edital específico';
+                    const $card = $('<button>', { type: 'button', class: 'class-schedule-option' + (String(schedule.id) === selectedId ? ' is-selected' : ''), 'data-class-schedule-option': String(schedule.id) })
+                        .append($('<strong>', { text: String(schedule.nome || 'Cronograma') }))
+                        .append($('<span>', { text: 'Publicação: ' + compactScheduleDate(schedule.data_inicio) + ' a ' + compactScheduleDate(schedule.data_fim) }))
+                        .append($('<span>', { text: 'Inscrição inicial: ' + compactScheduleDate(schedule.inscricoes_inicio) + ' a ' + compactScheduleDate(schedule.inscricoes_fim) }))
+                        .append($('<span>', { text: 'Matrículas: ' + compactScheduleDate(schedule.matriculas_inicio) + ' a ' + compactScheduleDate(schedule.matriculas_fim) }))
+                        .append($('<span>', { text: 'Inscrição durante matrículas: ' + (Number(schedule.permitir_inscricao_periodo_matricula || 0) === 1 ? 'Sim' : 'Não') }))
+                        .append($('<span>', { text: 'Inscrições abertas: ' + compactScheduleDate(schedule.inscricoes_abertas_inicio) + ' a ' + compactScheduleDate(schedule.inscricoes_abertas_fim) }))
+                        .append($('<span>', { text: 'Aulas: ' + compactScheduleDate(schedule.aulas_inicio) + ' a ' + compactScheduleDate(schedule.aulas_fim) }))
+                        .append($('<span>', { text: notice + ' · ' + multiple }));
+                    $catalog.append($card);
+                });
+            }
+
+            function ensureClassOpenEnrollmentField($form) {
+                if ($form.find('[name="inscricoes_abertas"]').length) return;
+                const $field = $('<label>', { class: 'checkbox-chip' })
+                    .append($('<input>', { type: 'checkbox', name: 'inscricoes_abertas', value: '1' }))
+                    .append($('<span>', { text: 'Inscrições abertas nesta turma' }));
+                $form.find('button[type="submit"]').before($field);
             }
 
             function filterClassSchedules($form, selectedId) {
@@ -4859,6 +5197,14 @@
                 });
                 if (selectedId) $select.val(String(selectedId));
                 if (!$select.val() || $select.find('option:selected').prop('disabled')) $select.val('');
+                const availableCount = $select.find('option[data-season-id]').filter(function () { return !$(this).prop('disabled'); }).length;
+                const missingSchedule = Boolean(seasonId && modalityId && availableCount === 0);
+                const $warning = $form.find('[data-class-schedule-warning="1"]');
+                $warning.toggleClass('hidden', !missingSchedule).text(missingSchedule ? 'Esta modalidade não possui cronograma na temporada selecionada. Crie primeiro o cronograma da modalidade.' : '');
+                $select.prop('disabled', missingSchedule);
+                $form.find('button[type="submit"]').prop('disabled', missingSchedule);
+                renderClassScheduleCatalog($form);
+                return !missingSchedule;
             }
 
             function fillForm($form, record) {
@@ -4927,10 +5273,22 @@
                 if ($form.find('[name="permitir_inscricao_periodo_matricula"]').length === 0) {
                     const $enrollmentPeriod = $form.find('[name="matriculas_fim"]').closest('.grid-two');
                     const $allowEnrollmentDuringRegistration = $('<label>', { class: 'checkbox-chip' })
-                        .append($('<input>', { type: 'checkbox', name: 'permitir_inscricao_periodo_matricula', value: '1' }))
+                        .append($('<input>', { type: 'checkbox', name: 'permitir_inscricao_periodo_matricula', value: '1', 'data-season-registration-enrollment-toggle': '1' }))
                         .append($('<span>', { text: 'Aceitar inscrições durante o período de matrícula' }));
-                    $enrollmentPeriod.after($allowEnrollmentDuringRegistration);
+                    const $registrationRange = $('<small>', { class: 'hidden', 'data-season-registration-enrollment-range': '1' });
+                    $enrollmentPeriod.after($allowEnrollmentDuringRegistration, $registrationRange);
                 }
+                if ($form.find('[name="permitir_multiplas_inscricoes_modalidade"]').length === 0) {
+                    const $loggedEnrollment = $form.find('[name="permitir_inscricao_logada"]').closest('label');
+                    const $toggle = $('<label>', { class: 'checkbox-chip' })
+                        .append($('<input>', { type: 'checkbox', name: 'permitir_multiplas_inscricoes_modalidade', value: '1', 'data-season-multiple-toggle': '1' }))
+                        .append($('<span>', { text: 'Aceitar mais de uma inscrição por CPF na mesma modalidade' }));
+                    const $fields = $('<div>', { class: 'grid-two hidden', 'data-season-multiple-fields': '1' })
+                        .append($('<label>').append($('<span>', { text: 'Máximo de inscrições por CPF/modalidade' })).append($('<input>', { type: 'number', name: 'limite_inscricoes_modalidade', min: 2, value: 2 })))
+                        .append($('<label>').append($('<span>', { text: 'Liberar inscrições adicionais em' })).append($('<input>', { type: 'datetime-local', name: 'data_liberacao_multiplas_inscricoes_modalidade' })));
+                    $loggedEnrollment.before($toggle, $fields);
+                }
+                $form.find('[name="nome"], [name="tipo_periodicidade"], [name="data_inicio"], [name="data_fim"], [name="inscricoes_inicio"], [name="inscricoes_fim"], [name="matriculas_inicio"], [name="matriculas_fim"], [name="inscricoes_abertas_inicio"], [name="inscricoes_abertas_fim"], [name="aulas_inicio"], [name="aulas_fim"], [name="status"], [name="limite_inscricoes_periodo"], [name="data_liberacao_segunda_inscricao"], [name="data_liberacao_inscricoes_adicionais"], [name="limite_inscricoes_adicionais"]').prop('required', true);
             }
 
             const seasonFieldHelp = {
@@ -4947,7 +5305,7 @@
                 matriculas_inicio: 'Data e horário a partir dos quais as matrículas poderão ser realizadas ou confirmadas.',
                 matriculas_fim: 'Data e horário limite para realizar ou confirmar as matrículas.',
                 permitir_inscricao_periodo_matricula: 'Define se novas inscrições também poderão ser realizadas entre o início e o fim do período de matrícula. Ao criar um cronograma de modalidade, esta escolha será copiada da temporada e poderá ser alterada de forma independente.',
-                inscricoes_abertas_inicio: 'Início do período posterior de inscrições abertas, quando ainda houver disponibilidade.',
+                inscricoes_abertas_inicio: 'Início do período de inscrições abertas. Quando a temporada aceitar inscrições durante as matrículas, esta data deverá estar entre o início e o fim do período de matrículas.',
                 inscricoes_abertas_fim: 'Encerramento do período posterior de inscrições abertas.',
                 aulas_inicio: 'Primeiro dia previsto para as aulas da temporada.',
                 aulas_fim: 'Último dia previsto para as aulas da temporada.',
@@ -4980,13 +5338,33 @@
                 $form.find('[name="numero_edital"], [name="link_edital"]').prop('required', enabled);
             }
 
+            function updateSeasonRegistrationEnrollmentField($form) {
+                const enabled = $form.find('[name="permitir_inscricao_periodo_matricula"]').is(':checked');
+                const $field = $form.find('[name="inscricoes_abertas_inicio"]');
+                const registrationStart = String($form.find('[name="matriculas_inicio"]').val() || '');
+                const registrationEnd = String($form.find('[name="matriculas_fim"]').val() || '');
+                const $range = $form.find('[data-season-registration-enrollment-range="1"]');
+                $field.prop('required', true);
+                if (enabled) {
+                    $field.removeAttr('min max');
+                    const formattedStart = formatBrazilianDate(registrationStart);
+                    const formattedEnd = formatBrazilianDate(registrationEnd);
+                    $range.toggleClass('hidden', !formattedStart || !formattedEnd)
+                        .text(formattedStart && formattedEnd ? 'Inscrições abertas: início deve estar entre ' + formattedStart + ' e ' + formattedEnd + '.' : '');
+                } else {
+                    $field.removeAttr('min max');
+                    $range.addClass('hidden').text('');
+                }
+                validateCoursePeriodChronology($form);
+            }
+
             function openModal(type, record) {
                 const $modal = modalFor(type);
                 const $form = $modal.find('[data-course-form="' + type + '"]');
                 if ($form.find('[name="operacao"]').length === 0) {
                     $form.append($('<input>', { type: 'hidden', name: 'operacao' }));
                 }
-                if (type === 'class') { ensureClassAgeCriterionField($form); ensureClassScheduleField($form); }
+                if (type === 'class') { ensureClassAgeCriterionField($form); ensureClassScheduleField($form); ensureClassOpenEnrollmentField($form); }
                 if (type === 'season') { ensureSeasonNoticeFields($form); ensureSeasonFieldHelp($form); }
                 fillForm($form, record || {});
                 if (type === 'class') filterClassSchedules($form, record && record.cronograma_modalidade_id);
@@ -4996,7 +5374,13 @@
                     $form.find('[name="limite_inscricoes_periodo"]').val('1');
                     $form.find('[name="limite_inscricoes_adicionais"]').val('3');
                 }
-                if (type === 'season') updateSeasonNoticeFields($form);
+                if (type === 'season') {
+                    const allowMultiple = $form.find('[name="permitir_multiplas_inscricoes_modalidade"]').is(':checked');
+                    $form.find('[data-season-multiple-fields="1"]').toggleClass('hidden', !allowMultiple).find('input').prop('required', allowMultiple);
+                    updateSeasonNoticeFields($form);
+                    updateSeasonRegistrationEnrollmentField($form);
+                    validateCoursePeriodChronology($form);
+                }
                 $('#course-' + type + '-modal-title').text((record ? 'Editar ' : 'Criar ') + (type === 'season' ? 'temporada' : 'turma'));
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
             }
@@ -5007,8 +5391,96 @@
                 const sectionName = String($updatedPanel.attr('data-admin-section') || '');
                 if (!sectionName) return false;
                 $('[data-admin-section="' + sectionName + '"]').replaceWith($updatedPanel);
+                initializeAdminClassBrowsers($updatedPanel);
                 return true;
             }
+
+            function layoutClassFilterLine($line) {
+                if (!$line || !$line.length || $line.hasClass('hidden')) return;
+                const $options = $line.find('[data-class-filter-options]').first();
+                const $more = $line.find('[data-class-filter-more]').first();
+                const firstButton = $options.find('.admin-class-filter-button:visible').get(0);
+                if (!firstButton) { $more.addClass('hidden'); return; }
+                const expanded = $line.hasClass('is-expanded');
+                $more.addClass('hidden');
+                const optionsElement = $options.get(0);
+                const needsMore = optionsElement.scrollWidth > optionsElement.clientWidth + 2;
+                $more.toggleClass('hidden', !needsMore);
+                $options.toggleClass('is-expanded', expanded && needsMore);
+                $more.text(expanded ? 'Menos...' : 'Mais...').attr('aria-expanded', expanded ? 'true' : 'false');
+            }
+
+            function loadAdminClassBrowser($browser, groupId) {
+                const seasonId = String($browser.find('[data-class-season].is-active').attr('data-class-season') || '');
+                const url = String($browser.attr('data-class-filter-url') || '');
+                const view = String($browser.attr('data-class-management-view') || 'turmas');
+                const selectedGroupId = String(groupId || '');
+                if (!seasonId || !url) return;
+                $browser.addClass('is-loading');
+                $.ajax({
+                    url: url,
+                    method: 'GET',
+                    dataType: 'json',
+                    data: { tipo: view, temporada_id: seasonId, grupo_id: selectedGroupId },
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar as turmas.'));
+                        return;
+                    }
+                    if (!selectedGroupId) {
+                        $browser.find('[data-class-filter-options="group"]').html(String(response.groups_html || ''));
+                        $browser.find('[data-class-group-line]').removeClass('is-expanded');
+                    }
+                    $browser.find('[data-class-results]').html(String(response.classes_html || ''));
+                    const count = Number(response.count || 0);
+                    $browser.find('[data-class-result-summary]').text(selectedGroupId ? (count === 1 ? '1 turma encontrada.' : count + ' turmas encontradas.') : '');
+                    window.requestAnimationFrame(function () {
+                        layoutClassFilterLine($browser.find('[data-class-filter-line="season"]'));
+                        layoutClassFilterLine($browser.find('[data-class-group-line]'));
+                    });
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () {
+                    $browser.removeClass('is-loading');
+                });
+            }
+
+            function initializeAdminClassBrowsers($context) {
+                const $browsers = $context && $context.is && $context.is('[data-admin-class-browser]') ? $context : ($context || $(document)).find('[data-admin-class-browser]');
+                $browsers.each(function () {
+                    const $browser = $(this);
+                    layoutClassFilterLine($browser.find('[data-class-filter-line="season"]'));
+                    const $activeSeason = $browser.find('[data-class-season].is-active').first();
+                    if ($activeSeason.length) loadAdminClassBrowser($browser, '');
+                });
+            }
+            App.admin.initializeAdminClassBrowsers = initializeAdminClassBrowsers;
+
+            $(document).on('click', '[data-admin-class-browser] [data-class-season]', function () {
+                const $browser = $(this).closest('[data-admin-class-browser]');
+                $browser.find('[data-class-season]').removeClass('is-active');
+                $(this).addClass('is-active');
+                $browser.find('[data-class-filter-options="group"]').html('<span class="muted">Carregando...</span>');
+                $browser.find('[data-class-results]').html('<p class="muted">Selecione uma opção para consultar as turmas.</p>');
+                $browser.find('[data-class-result-summary]').text('');
+                loadAdminClassBrowser($browser, '');
+            });
+            $(document).on('click', '[data-admin-class-browser] [data-class-group]', function () {
+                const $browser = $(this).closest('[data-admin-class-browser]');
+                $(this).closest('[data-class-group-line]').find('[data-class-group]').removeClass('is-active');
+                $(this).addClass('is-active');
+                loadAdminClassBrowser($browser, String($(this).attr('data-class-group') || ''));
+            });
+            $(document).on('click', '[data-admin-class-browser] [data-class-filter-more]', function () {
+                const $line = $(this).closest('.admin-class-filter-line').toggleClass('is-expanded');
+                layoutClassFilterLine($line);
+            });
+            $(window).off('resize.adminClassBrowser').on('resize.adminClassBrowser', function () {
+                window.clearTimeout(App.state.adminClassBrowserResizeTimer);
+                App.state.adminClassBrowserResizeTimer = window.setTimeout(function () { $('[data-admin-class-browser]').each(function () { layoutClassFilterLine($(this).find('[data-class-filter-line="season"]')); layoutClassFilterLine($(this).find('[data-class-group-line]:not(.hidden)')); }); }, 120);
+            });
+            initializeAdminClassBrowsers($(document));
 
             $(document).on('click', '[data-course-create]', function () {
                 openModal(String($(this).attr('data-course-create') || ''), null);
@@ -5021,6 +5493,17 @@
             });
             $(document).on('change', '[data-course-form="class"] [name="temporada_id"], [data-course-form="class"] [name="modalidade_id"]', function () {
                 filterClassSchedules($(this).closest('form'), '');
+            });
+            $(document).on('change', '[data-course-form="class"] [name="cronograma_modalidade_id"]', function () {
+                renderClassScheduleCatalog($(this).closest('form'));
+            });
+            $(document).on('click', '[data-class-schedule-option]', function () {
+                const $form = $(this).closest('form');
+                $form.find('[name="cronograma_modalidade_id"]').val(String($(this).attr('data-class-schedule-option') || '')).trigger('change');
+            });
+            $(document).on('change', '[data-season-multiple-toggle="1"]', function () {
+                const enabled = $(this).is(':checked');
+                $(this).closest('form').find('[data-season-multiple-fields="1"]').toggleClass('hidden', !enabled).find('input').prop('required', enabled);
             });
 
             $(document).on('click', '[data-course-modal-close="1"]', closeModals);
@@ -5046,6 +5529,8 @@
                     .always(function () { $button.prop('disabled', false); });
             });
             $(document).on('change', '[data-season-notice-toggle="1"]', function () { updateSeasonNoticeFields($(this).closest('form')); });
+            $(document).on('change', '[data-season-registration-enrollment-toggle="1"], [data-course-form="season"] [name="matriculas_inicio"], [data-course-form="season"] [name="matriculas_fim"]', function () { updateSeasonRegistrationEnrollmentField($(this).closest('form')); });
+            $(document).on('input change', '[data-course-form="season"] [name="data_inicio"], [data-course-form="season"] [name="data_fim"], [data-course-form="season"] [name="inscricoes_inicio"], [data-course-form="season"] [name="inscricoes_fim"], [data-course-form="season"] [name="matriculas_inicio"], [data-course-form="season"] [name="matriculas_fim"], [data-course-form="season"] [name="inscricoes_abertas_inicio"], [data-course-form="season"] [name="inscricoes_abertas_fim"], [data-course-form="season"] [name="aulas_inicio"], [data-course-form="season"] [name="aulas_fim"]', function () { validateCoursePeriodChronology($(this).closest('form')); });
             $(document).on('click', '[data-season-field-help]', function (event) {
                 event.preventDefault(); event.stopPropagation();
                 const name = String($(this).attr('data-season-field-help') || '');
@@ -5057,6 +5542,7 @@
             $(document).on('submit', '[data-course-form="season"], [data-course-form="class"]', function (event) {
                 event.preventDefault();
                 const $form = $(this);
+                if ($form.is('[data-course-form="season"]') && !validateCoursePeriodChronology($form)) { $form.get(0).reportValidity(); return; }
                 if (String($form.find('[name="operacao"]').val() || '') === 'editar' && Number($form.find('[name="id"]').val() || 0) <= 0) {
                     App.core.abrirPopup('erro', 'Não foi possível identificar o registro que será editado. Feche o modal e tente novamente.');
                     return;

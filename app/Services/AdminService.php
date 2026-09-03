@@ -33,6 +33,7 @@ class AdminService
         $this->ensureHealthCertificateSchema();
         $this->ensureWeeklyScheduleAgeRuleSchema();
         $this->ensureSpecialScheduleSchema();
+        $this->ensureBookingSnapshotSchema();
     }
 
     /**
@@ -2395,14 +2396,14 @@ class AdminService
                 p.eh_pcd,
                 p.eh_pvs,
                 p.eh_plm,
-                hs.tipo_horario,
-                m.nome AS modalidade_nome,
-                lt.id AS local_treino_id,
-                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                COALESCE(a.tipo_horario_snapshot, hs.tipo_horario) AS tipo_horario,
+                COALESCE(a.modalidade_nome_snapshot, m.nome) AS modalidade_nome,
+                COALESCE(a.local_treino_id_snapshot, lt.id) AS local_treino_id,
+                COALESCE(a.local_nome_snapshot, CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
                     THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
-                    ELSE lt.nome_local END AS local_nome,
-                et.id AS espaco_treino_id,
-                et.nome AS espaco_nome,
+                    ELSE lt.nome_local END) AS local_nome,
+                COALESCE(a.espaco_treino_id_snapshot, et.id) AS espaco_treino_id,
+                COALESCE(a.espaco_nome_snapshot, et.nome) AS espaco_nome,
                 chamada_pessoa.nome_completo AS chamada_por_nome
             FROM agendamentos a
             INNER JOIN pessoas p ON p.id = a.pessoa_id
@@ -2420,12 +2421,12 @@ class AdminService
         ];
 
         if ($locationId > 0) {
-            $sql .= ' AND hs.local_treino_id = :local_treino_id';
+            $sql .= ' AND COALESCE(a.local_treino_id_snapshot, hs.local_treino_id) = :local_treino_id';
             $params[':local_treino_id'] = $locationId;
         }
 
         if ($spaceId > 0) {
-            $sql .= ' AND hs.espaco_treino_id = :espaco_treino_id';
+            $sql .= ' AND COALESCE(a.espaco_treino_id_snapshot, hs.espaco_treino_id) = :espaco_treino_id';
             $params[':espaco_treino_id'] = $spaceId;
         }
 
@@ -2480,18 +2481,18 @@ class AdminService
                 p.eh_pvs,
                 p.eh_plm,
                 hs.id AS horario_semanal_id,
-                hs.tipo_horario,
-                hs.vagas_geral,
-                hs.vagas_pcd,
-                hs.vagas_plm,
-                hs.vagas_pvs,
-                m.nome AS modalidade_nome,
-                lt.id AS local_treino_id,
-                CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
+                COALESCE(a.tipo_horario_snapshot, hs.tipo_horario) AS tipo_horario,
+                COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(a.horario_snapshot_json, "$.vagas_geral")) AS UNSIGNED), hs.vagas_geral) AS vagas_geral,
+                COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(a.horario_snapshot_json, "$.vagas_pcd")) AS UNSIGNED), hs.vagas_pcd) AS vagas_pcd,
+                COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(a.horario_snapshot_json, "$.vagas_plm")) AS UNSIGNED), hs.vagas_plm) AS vagas_plm,
+                COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(a.horario_snapshot_json, "$.vagas_pvs")) AS UNSIGNED), hs.vagas_pvs) AS vagas_pvs,
+                COALESCE(a.modalidade_nome_snapshot, m.nome) AS modalidade_nome,
+                COALESCE(a.local_treino_id_snapshot, lt.id) AS local_treino_id,
+                COALESCE(a.local_nome_snapshot, CASE WHEN NULLIF(TRIM(lt.apelido_local), "") IS NOT NULL
                     THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
-                    ELSE lt.nome_local END AS local_nome,
-                et.id AS espaco_treino_id,
-                et.nome AS espaco_nome,
+                    ELSE lt.nome_local END) AS local_nome,
+                COALESCE(a.espaco_treino_id_snapshot, et.id) AS espaco_treino_id,
+                COALESCE(a.espaco_nome_snapshot, et.nome) AS espaco_nome,
                 chamada_pessoa.nome_completo AS chamada_por_nome
             FROM agendamentos a
             INNER JOIN pessoas p ON p.id = a.pessoa_id
@@ -2526,7 +2527,7 @@ class AdminService
         $range = $this->resolveAdminCalendarRange($rangeStart, $rangeEnd);
         $today = new DateTimeImmutable('today');
         $bookedOccurrences = $this->loadBookedWeeklyScheduleOccurrences($range['start'], $range['end']);
-        $events = [];
+        $weeklyEvents = [];
 
         foreach ($schedules as $schedule) {
             foreach ($this->buildAdminCalendarOccurrencesForRange($schedule, $range['start'], $range['end'], $today) as $occurrence) {
@@ -2539,9 +2540,30 @@ class AdminService
                     }
                 }
 
-                $events[] = $occurrence;
+                $occurrenceStart = str_replace('T', ' ', (string) ($occurrence['extendedProps']['occurrence_start'] ?? $occurrence['start'] ?? ''));
+                $weeklyEvents[(int) ($schedule['id'] ?? 0) . '|' . $occurrenceStart] = $occurrence;
             }
         }
+
+        // Agendamentos existentes conservam o retrato aceito pelo usuário,
+        // mesmo após uma edição do cadastro do horário semanal.
+        foreach ($this->loadBookingSnapshotOccurrences($locationId, $modalityId, $range['start'], $range['end']) as $snapshot) {
+            $start = new DateTimeImmutable((string) $snapshot['data_agendada']);
+            $endParts = array_map('intval', explode(':', (string) $snapshot['hora_fim']));
+            $end = $start->setTime($endParts[0] ?? 0, $endParts[1] ?? 0, $endParts[2] ?? 0);
+            if ($end <= $start) $end = $end->modify('+1 day');
+            $schedule = [
+                'id' => (int) $snapshot['horario_semanal_id'], 'ativo' => 1,
+                'modalidade_nome' => (string) $snapshot['modalidade_nome'],
+                'tipo_horario' => (string) $snapshot['tipo_horario'],
+                'local_nome' => (string) $snapshot['local_nome'],
+                'espaco_nome' => (string) $snapshot['espaco_nome'],
+            ];
+            $key = (int) $snapshot['horario_semanal_id'] . '|' . $start->format('Y-m-d H:i:s');
+            $weeklyEvents[$key] = $this->buildAdminCalendarEvent($schedule, $start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s'));
+        }
+
+        $events = array_values($weeklyEvents);
 
         foreach ($this->loadSpecialSchedulesForManagementCalendar($locationId, $modalityId, $range['start'], $range['end']) as $specialSchedule) {
             $events[] = $specialSchedule;
@@ -2847,6 +2869,7 @@ class AdminService
                 espaco_treino_id,
                 modalidade_id,
                 tipo_horario,
+                dispensar_avaliacao_previa,
                 dia_semana,
                 hora_inicio,
                 hora_fim,
@@ -2874,6 +2897,7 @@ class AdminService
                 :espaco_treino_id,
                 :modalidade_id,
                 :tipo_horario,
+                :dispensar_avaliacao_previa,
                 :dia_semana,
                 :hora_inicio,
                 :hora_fim,
@@ -2903,6 +2927,7 @@ class AdminService
             ':espaco_treino_id' => (int) $payload['espaco_treino_id'],
             ':modalidade_id' => (int) $payload['modalidade_id'],
             ':tipo_horario' => $payload['tipo_horario'],
+            ':dispensar_avaliacao_previa' => (int) $payload['dispensar_avaliacao_previa'],
             ':dia_semana' => (int) $payload['dia_semana'],
             ':hora_inicio' => $payload['hora_inicio'],
             ':hora_fim' => $payload['hora_fim'],
@@ -2936,6 +2961,7 @@ class AdminService
             'modalidade_id' => (int) $payload['modalidade_id'],
             'modalidade_nome' => $modality['nome'],
             'tipo_horario' => $payload['tipo_horario'],
+            'dispensar_avaliacao_previa' => (int) $payload['dispensar_avaliacao_previa'],
             'dia_semana' => (int) $payload['dia_semana'],
             'hora_inicio' => $payload['hora_inicio'],
             'hora_fim' => $payload['hora_fim'],
@@ -2989,6 +3015,7 @@ class AdminService
                 espaco_treino_id = :espaco_treino_id,
                 modalidade_id = :modalidade_id,
                 tipo_horario = :tipo_horario,
+                dispensar_avaliacao_previa = :dispensar_avaliacao_previa,
                 dia_semana = :dia_semana,
                 hora_inicio = :hora_inicio,
                 hora_fim = :hora_fim,
@@ -3019,6 +3046,7 @@ class AdminService
             ':espaco_treino_id' => (int) $payload['espaco_treino_id'],
             ':modalidade_id' => (int) $payload['modalidade_id'],
             ':tipo_horario' => $payload['tipo_horario'],
+            ':dispensar_avaliacao_previa' => (int) $payload['dispensar_avaliacao_previa'],
             ':dia_semana' => (int) $payload['dia_semana'],
             ':hora_inicio' => $payload['hora_inicio'],
             ':hora_fim' => $payload['hora_fim'],
@@ -3051,6 +3079,7 @@ class AdminService
                 'espaco_treino_id' => (int) $payload['espaco_treino_id'],
                 'modalidade_id' => (int) $payload['modalidade_id'],
                 'tipo_horario' => $payload['tipo_horario'],
+                'dispensar_avaliacao_previa' => (int) $payload['dispensar_avaliacao_previa'],
                 'dia_semana' => (int) $payload['dia_semana'],
                 'hora_inicio' => $payload['hora_inicio'],
                 'hora_fim' => $payload['hora_fim'],
@@ -3434,6 +3463,7 @@ class AdminService
             'espaco_treino_id' => (int) ($data['espaco_treino_id'] ?? 0),
             'modalidade_id' => (int) ($data['modalidade_id'] ?? 0),
             'tipo_horario' => trim((string) ($data['tipo_horario'] ?? '')),
+            'dispensar_avaliacao_previa' => !empty($data['dispensar_avaliacao_previa']) ? 1 : 0,
             'dia_semana' => (int) ($data['dia_semana'] ?? 0),
             'hora_inicio' => $this->normalizeTimeValue((string) ($data['hora_inicio'] ?? '')),
             'hora_fim' => $this->normalizeTimeValue((string) ($data['hora_fim'] ?? '')),
@@ -3471,6 +3501,10 @@ class AdminService
 
         if (!in_array($payload['tipo_horario'], ['avaliacao', 'treino', 'aula'], true)) {
             throw new RuntimeException('Selecione um tipo válido para o horário semanal.');
+        }
+
+        if ($payload['tipo_horario'] === 'avaliacao') {
+            $payload['dispensar_avaliacao_previa'] = 1;
         }
 
         if ($payload['dia_semana'] < 1 || $payload['dia_semana'] > 7) {
@@ -3706,12 +3740,14 @@ class AdminService
             FROM horarios_semanais
             WHERE espaco_treino_id = :espaco_treino_id
               AND dia_semana = :dia_semana
+              AND tipo_horario = :tipo_horario
               AND ativo = 1
               AND NOT (:hora_fim <= hora_inicio OR :hora_inicio >= hora_fim)
         ';
         $params = [
             ':espaco_treino_id' => (int) $payload['espaco_treino_id'],
             ':dia_semana' => (int) $payload['dia_semana'],
+            ':tipo_horario' => $payload['tipo_horario'],
             ':hora_inicio' => $payload['hora_inicio'],
             ':hora_fim' => $payload['hora_fim'],
         ];
@@ -3727,7 +3763,7 @@ class AdminService
         $stmtOverlap->execute($params);
 
         if ($stmtOverlap->fetchColumn()) {
-            throw new RuntimeException('Já existe um horário semanal ativo neste espaço com sobreposição de dia e horário.');
+            throw new RuntimeException('Já existe um horário semanal ativo do mesmo tipo neste espaço com sobreposição de dia e horário.');
         }
     }
 
@@ -3980,6 +4016,63 @@ class AdminService
             $pdo->exec('ALTER TABLE horarios_semanais ADD COLUMN criterio_faixa_etaria ENUM("idade_exata", "ano_nascimento") NOT NULL DEFAULT "idade_exata" AFTER idade_maxima');
         }
 
+        if (!isset($columns['dispensar_avaliacao_previa'])) {
+            $pdo->exec('ALTER TABLE horarios_semanais ADD COLUMN dispensar_avaliacao_previa TINYINT(1) NOT NULL DEFAULT 0 AFTER tipo_horario');
+            $pdo->exec('UPDATE horarios_semanais SET dispensar_avaliacao_previa=1 WHERE tipo_horario="avaliacao"');
+        }
+
+        $ensured = true;
+    }
+
+    /** Garante que relatórios administrativos possam usar o retrato histórico. */
+    private function ensureBookingSnapshotSchema(): void
+    {
+        static $ensured = false;
+        if ($ensured) return;
+        $pdo = Database::connection();
+        $columns = [];
+        foreach ($pdo->query('SHOW COLUMNS FROM agendamentos')->fetchAll(PDO::FETCH_ASSOC) as $column) {
+            $columns[(string) ($column['Field'] ?? '')] = true;
+        }
+        $definitions = [
+            'horario_dia_semana_snapshot' => 'TINYINT UNSIGNED NULL', 'horario_inicio_snapshot' => 'TIME NULL',
+            'horario_fim_snapshot' => 'TIME NULL', 'tipo_horario_snapshot' => 'VARCHAR(30) NULL',
+            'local_treino_id_snapshot' => 'BIGINT UNSIGNED NULL', 'local_nome_snapshot' => 'VARCHAR(255) NULL',
+            'espaco_treino_id_snapshot' => 'BIGINT UNSIGNED NULL', 'espaco_nome_snapshot' => 'VARCHAR(255) NULL',
+            'modalidade_id_snapshot' => 'BIGINT UNSIGNED NULL', 'modalidade_nome_snapshot' => 'VARCHAR(180) NULL',
+            'horario_snapshot_json' => 'JSON NULL',
+        ];
+        $alterations = [];
+        foreach ($definitions as $name => $definition) {
+            if (!isset($columns[$name])) $alterations[] = 'ADD COLUMN ' . $name . ' ' . $definition;
+        }
+        if ($alterations !== []) $pdo->exec('ALTER TABLE agendamentos ' . implode(', ', $alterations));
+        $pdo->exec("UPDATE agendamentos a
+            INNER JOIN horarios_semanais hs ON hs.id=a.horario_semanal_id
+            INNER JOIN locais_treino lt ON lt.id=hs.local_treino_id
+            INNER JOIN espacos_treino et ON et.id=hs.espaco_treino_id
+            INNER JOIN modalidades m ON m.id=hs.modalidade_id
+            SET a.horario_dia_semana_snapshot=hs.dia_semana,
+                a.horario_inicio_snapshot=TIME(a.data_agendada), a.horario_fim_snapshot=hs.hora_fim,
+                a.tipo_horario_snapshot=hs.tipo_horario,
+                a.local_treino_id_snapshot=hs.local_treino_id,
+                a.local_nome_snapshot=COALESCE(NULLIF(TRIM(lt.apelido_local), ''),lt.nome_local),
+                a.espaco_treino_id_snapshot=hs.espaco_treino_id, a.espaco_nome_snapshot=et.nome,
+                a.modalidade_id_snapshot=hs.modalidade_id, a.modalidade_nome_snapshot=m.nome,
+                a.horario_snapshot_json=JSON_OBJECT('versao',1,'dia_semana',hs.dia_semana,
+                    'hora_inicio',TIME_FORMAT(TIME(a.data_agendada),'%H:%i:%s'),'hora_fim',hs.hora_fim,
+                    'tipo_horario',hs.tipo_horario,'dispensar_avaliacao_previa',hs.dispensar_avaliacao_previa,
+                    'local_treino_id',hs.local_treino_id,
+                    'local_nome',COALESCE(NULLIF(TRIM(lt.apelido_local), ''),lt.nome_local),
+                    'espaco_treino_id',hs.espaco_treino_id,'espaco_nome',et.nome,
+                    'modalidade_id',hs.modalidade_id,'modalidade_nome',m.nome,
+                    'idade_minima',hs.idade_minima,'idade_maxima',hs.idade_maxima,
+                    'criterio_faixa_etaria',hs.criterio_faixa_etaria,'sexo',hs.sexo,
+                    'regra_atestado_clinico',hs.regra_atestado_clinico,
+                    'regra_atestado_dermatologico',hs.regra_atestado_dermatologico,
+                    'vagas_geral',hs.vagas_geral,'vagas_pcd',hs.vagas_pcd,
+                    'vagas_plm',hs.vagas_plm,'vagas_pvs',hs.vagas_pvs)
+            WHERE a.horario_snapshot_json IS NULL");
         $ensured = true;
     }
 
@@ -4477,6 +4570,29 @@ class AdminService
         }
 
         return $occurrences;
+    }
+
+    /** Carrega uma ocorrência por horário/data usando seu retrato histórico. */
+    private function loadBookingSnapshotOccurrences(int $locationId, int $modalityId, DateTimeImmutable $start, DateTimeImmutable $end): array
+    {
+        $stmt = Database::connection()->prepare('SELECT a.horario_semanal_id, a.data_agendada,
+                COALESCE(a.horario_fim_snapshot, hs.hora_fim) AS hora_fim,
+                COALESCE(a.tipo_horario_snapshot, hs.tipo_horario) AS tipo_horario,
+                COALESCE(a.local_nome_snapshot, lt.apelido_local, lt.nome_local) AS local_nome,
+                COALESCE(a.espaco_nome_snapshot, et.nome) AS espaco_nome,
+                COALESCE(a.modalidade_nome_snapshot, m.nome) AS modalidade_nome
+            FROM agendamentos a
+            INNER JOIN horarios_semanais hs ON hs.id=a.horario_semanal_id
+            INNER JOIN locais_treino lt ON lt.id=hs.local_treino_id
+            INNER JOIN espacos_treino et ON et.id=hs.espaco_treino_id
+            INNER JOIN modalidades m ON m.id=hs.modalidade_id
+            WHERE a.data_agendada>=:inicio AND a.data_agendada<:fim
+              AND COALESCE(a.local_treino_id_snapshot,hs.local_treino_id)=:local
+              AND COALESCE(a.modalidade_id_snapshot,hs.modalidade_id)=:modalidade
+            GROUP BY a.horario_semanal_id, a.data_agendada, hora_fim, tipo_horario, local_nome, espaco_nome, modalidade_nome');
+        $stmt->execute([':inicio' => $start->format('Y-m-d H:i:s'), ':fim' => $end->format('Y-m-d H:i:s'),
+            ':local' => $locationId, ':modalidade' => $modalityId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     /**
