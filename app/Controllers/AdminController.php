@@ -2420,6 +2420,25 @@ class AdminController extends Controller
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
+    public function deleteCourseSeason(): void
+    {
+        $user = $this->assertAdminAccess();
+        if (!$this->canAccessMasterSections($user)) {
+            $this->jsonResponse(['success' => false, 'message' => 'Somente o administrador master pode excluir temporadas.'], 403);
+            return;
+        }
+        try {
+            (new CourseEnrollmentService())->deleteSeason((int) $user['conta_id'], (int) ($_POST['temporada_id'] ?? 0));
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Temporada excluída com sucesso.',
+                'html' => $this->renderCourseManagementPanelHtml('temporadas'),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
     public function storeSeasonOrigin(): void
     {
         $user = $this->assertAdminAccess();
@@ -2606,6 +2625,8 @@ class AdminController extends Controller
 
     private function renderCourseManagementPanelHtml(string $view = 'temporadas'): string
     {
+        $currentAdmin = $this->assertAdminAccess();
+        $canAccessMasterSections = $this->canAccessMasterSections($currentAdmin);
         $courseManagementView = in_array($view, ['turmas', 'turmas-locais'], true) ? $view : 'temporadas';
         $courseService = new CourseEnrollmentService();
         $courseSeasons = $courseService->listSeasonsForManagement();

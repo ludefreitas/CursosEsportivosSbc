@@ -412,6 +412,39 @@ class CourseEnrollmentService
         return ['id' => $id];
     }
 
+    public function deleteSeason(int $accountId, int $id): void
+    {
+        if ($id <= 0) {
+            throw new RuntimeException('Temporada inválida.');
+        }
+        $pdo = Database::connection();
+        $this->ensureCourseSeasonSchema($pdo);
+
+        $season = $pdo->prepare('SELECT nome FROM temporadas WHERE id=:id LIMIT 1');
+        $season->execute([':id' => $id]);
+        $seasonName = $season->fetchColumn();
+        if ($seasonName === false) {
+            throw new RuntimeException('Temporada não encontrada.');
+        }
+
+        $scheduleCount = $pdo->prepare('SELECT COUNT(*) FROM cronogramas_modalidade WHERE temporada_id=:id');
+        $scheduleCount->execute([':id' => $id]);
+        $classCount = $pdo->prepare('SELECT COUNT(*) FROM turmas WHERE temporada_id=:id');
+        $classCount->execute([':id' => $id]);
+        $schedules = (int) $scheduleCount->fetchColumn();
+        $classes = (int) $classCount->fetchColumn();
+        if ($schedules > 0 || $classes > 0) {
+            $associations = [];
+            if ($schedules > 0) $associations[] = $schedules . ' cronograma(s) de modalidade';
+            if ($classes > 0) $associations[] = $classes . ' turma(s)';
+            throw new RuntimeException('A temporada não pode ser excluída porque possui ' . implode(' e ', $associations) . ' associado(s). Remova ou transfira essas associações antes de excluir a temporada.');
+        }
+
+        $delete = $pdo->prepare('DELETE FROM temporadas WHERE id=:id LIMIT 1');
+        $delete->execute([':id' => $id]);
+        AuditLogService::record('temporada.excluida', 'temporadas', $id, ['conta_id' => $accountId, 'nome' => (string) $seasonName]);
+    }
+
     public function createClass(int $accountId, array $data): array
     {
         $required = ['temporada_id', 'modalidade_id', 'local_treino_id', 'espaco_treino_id', 'nome'];

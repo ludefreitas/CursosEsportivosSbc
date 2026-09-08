@@ -2522,7 +2522,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         </article>
 
         <div class="popup-overlay hidden" id="admin-modality-schedule-modal" aria-hidden="true"><div class="popup-card popup-admin-card" role="dialog" aria-modal="true"><div class="popup-head"><h3 id="admin-modality-schedule-modal-title">Criar cronograma</h3><button type="button" class="popup-close-icon" data-modality-schedule-close="1" aria-label="Fechar">&times;</button></div><div class="popup-body">
-            <form class="stack-form" id="admin-modality-schedule-form" data-manual-submit="1"><input type="hidden" name="cronograma_modalidade_id">
+            <form class="stack-form" id="admin-modality-schedule-form" data-manual-submit="1" novalidate><input type="hidden" name="cronograma_modalidade_id">
                 <div class="grid-two"><label><span>Temporada</span><select name="temporada_id" required><option value="">Selecione</option><?php foreach (($courseSeasons ?? []) as $season) { ?><option value="<?php echo e((string) $season['id']); ?>"><?php echo e((string) $season['nome']); ?></option><?php } ?></select></label><label><span>Modalidade</span><select name="modalidade_id" required><option value="">Selecione</option><?php foreach (($courseModalitiesManagement ?? []) as $modality) { ?><option value="<?php echo e((string) $modality['id']); ?>"><?php echo e((string) $modality['nome']); ?></option><?php } ?></select></label></div>
                 <button type="button" class="btn btn-secondary" id="admin-modality-schedule-use-season">Utilizar o cronograma da temporada indicada</button>
                 <small class="muted">Copia todos os períodos e as informações do edital da temporada. Os campos poderão ser alterados antes de salvar.</small>

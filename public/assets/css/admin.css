@@ -123,6 +123,38 @@
     white-space: nowrap;
 }
 
+.course-season-summary-link {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-primary-dark, #15546b);
+    font: inherit;
+    font-weight: 700;
+    text-align: left;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.course-season-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px 14px;
+}
+
+.course-season-summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 9px 11px;
+    border: 1px solid #e2d7c7;
+    border-radius: 10px;
+    background: #fffdf9;
+}
+
+.course-season-summary-item span {
+    overflow-wrap: anywhere;
+}
+
 #course-season-modal .popup-admin-card,
 #course-class-modal .popup-admin-card {
     display: flex;
@@ -138,6 +170,10 @@
 }
 
 @media (max-width: 700px) {
+    .course-season-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
     .course-table-heading {
         align-items: stretch;
         flex-direction: column;
