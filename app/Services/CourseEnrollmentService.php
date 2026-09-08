@@ -631,7 +631,7 @@ class CourseEnrollmentService
         }
         $token = $this->findEnrollmentToken($pdo, $tokenValue, $classId, $tokenCpf);
         $class = $this->applyCalculatedClassStatus($pdo, $class);
-        if ($token === null && (string) ($season['status'] ?? 'planejada') !== 'ativa') {
+        if ($token === null && (int) ($season['ativo'] ?? 0) !== 1) {
             throw new RuntimeException('Esta temporada não está ativa para receber inscrições.');
         }
         $now = new DateTimeImmutable();
