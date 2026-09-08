@@ -1801,7 +1801,7 @@
             }
 
             function modalHasChanges(modal) {
-                return Boolean(modal && modal.querySelector('form[data-unsaved-changes="1"]'));
+                return Boolean(modal && modal.querySelector('form[data-confirm-modal-exit="1"], form[data-unsaved-changes="1"]'));
             }
 
             function confirmExit(modal, event) {

@@ -93,6 +93,12 @@
                 <?php } ?>
             </nav>
         </header>
+        <?php if (!$isAuthenticated) { ?>
+            <div class="site-header-register-invite">
+                Não é cadastrado?
+                <a href="<?php echo e(url('/cadastro')); ?>" data-open-route-modal="<?php echo e(url('/cadastro')); ?>">Cadastre-se clicando aqui.</a>
+            </div>
+        <?php } ?>
         <div id="site-header-certificate-alerts-region">
             <?php require ROOT_PATH . '/app/Views/partials/header_certificate_alerts.php'; ?>
         </div>

@@ -12,6 +12,9 @@
                 <span>Senha</span>
                 <input type="password" name="password" required>
             </label>
+            <div class="auth-recovery-link">
+                <a href="<?php echo e(url('/recuperar-senha')); ?>" data-open-route-modal="<?php echo e(url('/recuperar-senha')); ?>">Recuperar senha</a>
+            </div>
             <?php if (!empty($humanVerificationRequired)) { ?>
                 <div class="human-verification" data-human-verification="1">
                     <input type="hidden" name="human_verification_id" value="<?php echo e((string) ($humanVerification['id'] ?? '')); ?>">

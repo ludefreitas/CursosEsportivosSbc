@@ -2,7 +2,7 @@
     <div class="auth-card modal-page-card">
         <h1>Recuperar senha</h1>
         <p>Informe os dados da pessoa titular da conta e cadastre uma nova senha.</p>
-        <form method="POST" action="<?php echo e(url('/recuperar-senha')); ?>" class="stack-form" data-ajax-form="1" data-password-recovery-form="1">
+        <form method="POST" action="<?php echo e(url('/recuperar-senha')); ?>" class="stack-form" data-ajax-form="1" data-password-recovery-form="1" data-confirm-modal-exit="1">
             <label><span>CPF</span><input type="text" name="cpf" placeholder="000.000.000-00" inputmode="numeric" autocomplete="username" maxlength="14" required><small class="form-field-message hidden" data-recovery-cpf-error="1"></small></label>
             <label><span>Data de nascimento</span><input type="text" name="birth_date" placeholder="dd/mm/aaaa" inputmode="numeric" autocomplete="bday" maxlength="10" data-birth-date-mask="1" required><small class="form-field-message hidden" data-birth-date-error="1"></small></label>
             <label><span>Nova senha</span><input type="password" name="password" minlength="6" autocomplete="new-password" required></label>

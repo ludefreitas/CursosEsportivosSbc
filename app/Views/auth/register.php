@@ -8,7 +8,7 @@
             Preencha o CPF com atenção. Depois de vinculado ao cadastro da pessoa, qualquer correção desse dado pode depender do suporte.
         </div>
 
-        <form method="POST" action="<?php echo e(url('/cadastro')); ?>" class="stack-form" data-ajax-form="1" data-follow-redirect="1">
+        <form method="POST" action="<?php echo e(url('/cadastro')); ?>" class="stack-form" data-ajax-form="1" data-follow-redirect="1" data-confirm-modal-exit="1">
             <label>
                 <span>Nome completo</span>
                 <input type="text" name="full_name" value="<?php echo old('full_name'); ?>" required>

@@ -434,6 +434,20 @@ body.pagina-error .site-header::after {
     text-decoration: underline;
 }
 
+.site-header-register-invite {
+    width: min(1180px, calc(100% - 32px));
+    margin: 3px auto 0;
+    font-size: clamp(0.72rem, 1.2vw, 0.88rem);
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.site-header-register-invite a {
+    color: var(--color-primary, #14536a);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
 .site-header .site-nav {
     display: flex;
     align-items: center;
@@ -1081,6 +1095,17 @@ body.pagina-error .site-nav > .inline-form .link-button,
 }
 .content-card { width: 100%; }
 .stack-form { display: grid; gap: 16px; }
+
+.auth-recovery-link {
+    margin-top: -8px;
+    text-align: right;
+}
+
+.auth-recovery-link a {
+    color: var(--color-primary, #14536a);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
 label span {
     display: block;
     font-size: 14px;
@@ -1833,6 +1858,11 @@ body.pagina-error label span {
         width: calc(100% - 16px);
         padding: 12px;
         border-radius: 18px;
+    }
+
+    .site-header-register-invite {
+        width: auto;
+        margin: 3px 12px 0;
     }
 
     .site-header .site-nav {
