@@ -48,6 +48,38 @@ class AuthService
     }
 
     /**
+     * Redefine a senha quando CPF e data de nascimento identificam a mesma conta.
+     */
+    public function recoverPassword(string $cpf, string $birthDate, string $newPassword): void
+    {
+        $cpf = normalize_cpf($cpf);
+        if (!validar_cpf($cpf)) {
+            throw new RuntimeException('Informe um CPF válido no formato 000.000.000-00.');
+        }
+
+        $birth = \DateTimeImmutable::createFromFormat('!d/m/Y', trim($birthDate));
+        $birthErrors = \DateTimeImmutable::getLastErrors();
+        if (!$birth || ($birthErrors !== false && (($birthErrors['warning_count'] ?? 0) > 0 || ($birthErrors['error_count'] ?? 0) > 0)) || $birth->format('d/m/Y') !== trim($birthDate)) {
+            throw new RuntimeException('Informe uma data de nascimento válida no formato dia/mês/ano.');
+        }
+        if (strlen($newPassword) < 6) {
+            throw new RuntimeException('A nova senha deve ter pelo menos 6 caracteres.');
+        }
+
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('SELECT c.id FROM contas c INNER JOIN pessoas p ON p.cpf = c.cpf WHERE c.cpf = :cpf AND p.data_nascimento = :nascimento AND c.ativo = 1 LIMIT 1');
+        $stmt->execute([':cpf' => $cpf, ':nascimento' => $birth->format('Y-m-d')]);
+        $accountId = (int) ($stmt->fetchColumn() ?: 0);
+        if ($accountId <= 0) {
+            throw new RuntimeException('Não foi possível confirmar os dados informados. Confira o CPF e a data de nascimento.');
+        }
+
+        $update = $pdo->prepare('UPDATE contas SET senha_hash = :senha_hash, updated_at = NOW() WHERE id = :id LIMIT 1');
+        $update->execute([':senha_hash' => password_hash($newPassword, PASSWORD_DEFAULT), ':id' => $accountId]);
+        AuditLogService::record('autenticacao.senha_recuperada', 'contas', $accountId, ['cpf' => $cpf]);
+    }
+
+    /**
      * Registra um novo responsável maior de idade.
      */
     public function registerResponsible(array $data): array

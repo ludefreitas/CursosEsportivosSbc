@@ -6016,6 +6016,98 @@
             });
         },
 
+        iniciarDetalhesInscricoesCursos: function () {
+            if (App.admin._courseEnrollmentDetailsBound) return;
+            App.admin._courseEnrollmentDetailsBound = true;
+
+            const parseData = function ($element, attribute) {
+                try { return JSON.parse(String($element.attr(attribute) || '{}')); }
+                catch (error) { return {}; }
+            };
+            const openModal = function (title, $content) {
+                const $modal = $('#course-enrollment-info-modal').last();
+                $modal.find('#course-enrollment-info-title').text(title);
+                $modal.find('#course-enrollment-info-body').empty().append($content);
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+            };
+            const detailLine = function (label, value) {
+                return $('<p>').append($('<strong>', { text: label + ': ' })).append(document.createTextNode(String(value || '-')));
+            };
+            const formatHistoryDate = function (value) {
+                const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+                return match ? match[3] + '/' + match[2] + '/' + match[1] + (match[4] ? ' ' + match[4] + ':' + match[5] : '') : String(value || '-');
+            };
+
+            $(document).on('click', '.course-address-open', function () {
+                const address = parseData($(this), 'data-address');
+                const lines = [
+                    [address.logradouro, address.numero].filter(Boolean).join(', '),
+                    address.complemento,
+                    [address.bairro, address.cidade, address.uf].filter(Boolean).join(' — '),
+                    address.cep ? 'CEP: ' + address.cep : '',
+                    address.telefone ? 'Telefone/WhatsApp: ' + address.telefone : '',
+                    address.emergencia_nome || address.emergencia_telefone ? 'Contato de emergência: ' + [address.emergencia_nome, address.emergencia_telefone].filter(Boolean).join(' — ') : ''
+                ].filter(Boolean);
+                openModal('Endereço da pessoa', $('<div>').append($('<p>', { text: lines.length ? lines.join('\n') : 'Endereço não informado.', class: 'preserve-lines' })));
+            });
+            $(document).on('click', '.course-status-history-open', function () {
+                const $button = $(this);
+                const history = parseData($button, 'data-history');
+                const $list = $('<div>', { class: 'course-status-history-list' });
+                if (!Array.isArray(history) || history.length === 0) {
+                    $list.append($('<p>', { text: 'Ainda não existem alterações de status registradas.' }));
+                } else {
+                    history.forEach(function (item) {
+                        const previous = String(item.status_anterior_label || '').trim();
+                        const transition = previous ? previous + ' → ' + String(item.status_novo_label || '') : String(item.status_novo_label || '');
+                        const $entry = $('<article>').append($('<strong>', { text: transition }));
+                        $entry.append($('<small>', { text: formatHistoryDate(item.criado_em) + ' · ' + String(item.alterado_por || 'Sistema') }));
+                        if (String(item.motivo || '').trim()) $entry.append($('<p>', { text: 'Motivo: ' + String(item.motivo) }));
+                        $list.append($entry);
+                    });
+                }
+                openModal('Alterações da inscrição Nº ' + String($button.attr('data-enrollment-number') || ''), $list);
+            });
+            $(document).on('click', '.course-enrollment-details-open', function () {
+                const details = parseData($(this), 'data-details');
+                const $content = $('<div>', { class: 'course-enrollment-details' });
+                $content.append($('<h4>', { text: 'Detalhes da inscrição Nº ' + String(details.id || '') }));
+                $content.append($('<p>', { class: 'course-enrollment-detail-person', text: String(details.nome || '') + (details.idade !== null && details.idade !== undefined ? ' — ' + String(details.idade) + ' anos' : '') }));
+                $content.append(detailLine('Turma / Temporada', String(details.turma || '-') + ' / ' + String(details.temporada || '-')));
+                $content.append(detailLine('Horário', details.horario));
+                $content.append(detailLine('Local da aula', details.local));
+                $content.append(detailLine('Data da inscrição', details.data_inscricao));
+                $content.append(detailLine('Com laudo?', details.com_laudo));
+                $content.append(detailLine('Pessoa PCD?', details.pcd));
+                $content.append(detailLine('Responsável pela inscrição', [details.responsavel, details.responsavel_email].filter(Boolean).join(' — ')));
+                $content.append(detailLine('Status da inscrição', details.status));
+                $content.append(detailLine('Início previsto das aulas', details.aulas_inicio));
+                const $links = $('<div>', { class: 'course-enrollment-detail-links' });
+                $links.append($('<button>', { type: 'button', class: 'link-button course-future-link', 'data-future-label': 'Declaração Aluno', text: 'Declaração Aluno' }));
+                $links.append($('<button>', { type: 'button', class: 'link-button course-more-enrollments', text: 'Mais inscrições de ' + String(details.nome || 'esta pessoa') }).data('items', details.outras_inscricoes || []));
+                $content.append($links);
+                openModal('Detalhes da inscrição', $content);
+            });
+            $(document).on('click', '.course-more-enrollments', function () {
+                const items = $(this).data('items') || [];
+                const $list = $('<div>', { class: 'course-status-history-list' });
+                if (!items.length) $list.append($('<p>', { text: 'Nenhuma outra inscrição encontrada nesta relação.' }));
+                items.forEach(function (item) {
+                    $list.append($('<article>').append($('<strong>', { text: '[' + String(item.id) + '] ' + String(item.turma || '') })).append($('<small>', { text: String(item.temporada || '') + ' · ' + String(item.status || '') + ' · ' + String(item.data || '') })));
+                });
+                openModal('Inscrições da pessoa', $list);
+            });
+            $(document).on('click', '.course-future-link', function (event) {
+                event.preventDefault();
+                App.core.abrirPopup('informacao', String($(this).attr('data-future-label') || 'Este recurso') + ' será disponibilizado em uma atualização futura.');
+            });
+            $(document).on('click', '[data-course-enrollment-modal-close="1"], #course-enrollment-info-modal', function (event) {
+                if ($(event.target).is('#course-enrollment-info-modal') || $(event.target).is('[data-course-enrollment-modal-close="1"]')) {
+                    $('#course-enrollment-info-modal').addClass('hidden').attr('aria-hidden', 'true');
+                }
+            });
+        },
+
         init: function () {
             const initializers = [
                 'iniciarSecoesAdmin',
@@ -6041,7 +6133,8 @@
                 'iniciarModalSuspensoesLocal',
                 'iniciarEditorConteudoHome',
                 'iniciarMigracaoCadastrosExternos',
-                'iniciarGerenciamentoOrigensTemporada'
+                'iniciarGerenciamentoOrigensTemporada',
+                'iniciarDetalhesInscricoesCursos'
             ];
 
             initializers.forEach(function (initializer) {

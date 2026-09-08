@@ -190,7 +190,7 @@
                     return false;
                 }
 
-                return ['/login', '/cadastro', '/perfil/completar'].indexOf(normalizedPath.slice(basePath.length) || '/') >= 0;
+                return ['/login', '/cadastro', '/recuperar-senha', '/perfil/completar'].indexOf(normalizedPath.slice(basePath.length) || '/') >= 0;
             } catch (error) {
                 return false;
             }

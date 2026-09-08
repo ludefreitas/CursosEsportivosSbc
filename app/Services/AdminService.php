@@ -1647,6 +1647,25 @@ class AdminService
         AuditLogService::record('admin.espaco_treino_atualizado', 'espacos_treino', $spaceId, ['antes' => $before, 'depois' => $data]);
     }
 
+    /**
+     * Retorna um atestado de saúde para visualização por usuário autorizado.
+     */
+    public function getHealthCertificateDocumentForAdmin(int $certificateId): array
+    {
+        if ($certificateId <= 0) {
+            throw new RuntimeException('Atestado inválido.');
+        }
+
+        $stmt = Database::connection()->prepare('SELECT id, pessoa_id, tipo_atestado, nome_arquivo, caminho_arquivo FROM atestados_saude WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $certificateId]);
+        $document = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$document) {
+            throw new RuntimeException('Atestado não encontrado.');
+        }
+
+        return $document;
+    }
+
     private function validateTrainingSpacePayload(array $data): array
     {
         $locationId = (int) ($data['local_treino_id'] ?? 0);

@@ -87,12 +87,75 @@
                 return;
             }
 
+            if (action === 'recuperar-senha') {
+                App.core.abrirModalDeRota(App.core.buildUrl('/recuperar-senha'));
+                return;
+            }
+
             if (action === 'completar-cadastro') {
                 App.core.abrirConfirmacaoCompletarCadastro(parsed.searchParams.get('return_to') || '/dashboard');
             }
         },
 
         iniciarFormulariosAjax: function () {
+            const recoveryDateIsValid = function (value) {
+                const match = String(value || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+                if (!match) return false;
+                const day = Number(match[1]);
+                const month = Number(match[2]);
+                const year = Number(match[3]);
+                const date = new Date(year, month - 1, day);
+                return year >= 1900 && year <= new Date().getFullYear() && date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+            };
+
+            $(document).on('input', '[data-birth-date-mask="1"]', function () {
+                const digits = String($(this).val() || '').replace(/\D+/g, '').slice(0, 8);
+                let masked = digits.slice(0, 2);
+                if (digits.length > 2) masked += '/' + digits.slice(2, 4);
+                if (digits.length > 4) masked += '/' + digits.slice(4, 8);
+                $(this).val(masked);
+                $(this).removeClass('is-invalid').removeAttr('aria-invalid');
+                $(this).siblings('[data-birth-date-error="1"]').addClass('hidden').text('');
+            });
+
+            $(document).on('submit', '[data-password-recovery-form="1"]', function (event) {
+                const $form = $(this);
+                const $date = $form.find('[name="birth_date"]');
+                const $dateError = $form.find('[data-birth-date-error="1"]');
+                const $cpf = $form.find('[name="cpf"]');
+                const $cpfError = $form.find('[data-recovery-cpf-error="1"]');
+                const $confirmation = $form.find('[name="password_confirmation"]');
+                const $confirmationError = $form.find('[data-password-confirmation-error="1"]');
+                let valid = true;
+
+                if (!App.core.cpfValido($cpf.val())) {
+                    valid = false;
+                    $cpf.addClass('is-invalid').attr('aria-invalid', 'true');
+                    $cpfError.removeClass('hidden').text('Informe um CPF válido no formato 000.000.000-00.');
+                } else {
+                    $cpf.removeClass('is-invalid').removeAttr('aria-invalid');
+                    $cpfError.addClass('hidden').text('');
+                }
+                if (!recoveryDateIsValid($date.val())) {
+                    valid = false;
+                    $date.addClass('is-invalid').attr('aria-invalid', 'true');
+                    $dateError.removeClass('hidden').text('Informe uma data válida no formato dd/mm/aaaa.');
+                }
+                if (String($form.find('[name="password"]').val() || '') !== String($confirmation.val() || '')) {
+                    valid = false;
+                    $confirmation.addClass('is-invalid').attr('aria-invalid', 'true');
+                    $confirmationError.removeClass('hidden').text('As senhas informadas não são iguais.');
+                } else {
+                    $confirmation.removeClass('is-invalid').removeAttr('aria-invalid');
+                    $confirmationError.addClass('hidden').text('');
+                }
+                if (!valid) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    App.core.abrirPopup('erro', 'Confira o CPF, a data de nascimento e a confirmação da nova senha antes de prosseguir.');
+                }
+            });
+
             $(document).on('click', '#popup-fechar', function () {
                 App.core.fecharPopup();
             });

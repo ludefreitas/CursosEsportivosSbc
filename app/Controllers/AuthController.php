@@ -268,6 +268,60 @@ class AuthController extends Controller
         );
     }
 
+    /**
+     * Exibe o formulário simplificado de recuperação de senha.
+     */
+    public function showPasswordRecovery(): void
+    {
+        if (Auth::check()) {
+            redirect('/dashboard');
+        }
+
+        if (!$this->isAjaxRequest() || (string) ($_GET['modal'] ?? '') !== '1') {
+            redirect('/?abrir=recuperar-senha');
+        }
+
+        $this->view('auth/recover_password', [
+            'title' => 'Recuperar senha',
+            'pageClass' => 'pagina-auth',
+            'humanVerification' => (new HumanVerificationService())->createChallenge(),
+        ]);
+    }
+
+    /**
+     * Confere CPF e nascimento antes de substituir a senha da conta.
+     */
+    public function recoverPassword(): void
+    {
+        try {
+            (new HumanVerificationService())->validateRequest($_POST);
+            $password = (string) ($_POST['password'] ?? '');
+            $confirmation = (string) ($_POST['password_confirmation'] ?? '');
+            if ($password !== $confirmation) {
+                throw new \RuntimeException('A confirmação da nova senha não corresponde à senha informada.');
+            }
+
+            $this->authService->recoverPassword(
+                (string) ($_POST['cpf'] ?? ''),
+                (string) ($_POST['birth_date'] ?? ''),
+                $password
+            );
+
+            clear_old_input();
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse(['success' => true, 'message' => 'Senha alterada com sucesso. Você já pode entrar usando a nova senha.']);
+            }
+            flash('success', 'Senha alterada com sucesso. Você já pode entrar usando a nova senha.');
+            redirect('/');
+        } catch (\Throwable $e) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse(['success' => false, 'message' => $e->getMessage(), 'human_verification_refresh' => true]);
+            }
+            flash('error', $e->getMessage());
+            redirect('/?abrir=recuperar-senha');
+        }
+    }
+
     public function humanVerificationChallenge(): void
     {
         $this->jsonResponse(['success' => true, 'challenge' => (new HumanVerificationService())->createChallenge()]);

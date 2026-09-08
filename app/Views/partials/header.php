@@ -54,7 +54,7 @@
                             <input type="password" name="password" placeholder="Senha" autocomplete="current-password" required>
                         </label>
                         <button type="submit" class="header-login-submit" aria-label="Entrar">Ir <span aria-hidden="true">➜</span></button>
-                        <a href="<?php echo e(url('/login')); ?>" class="header-login-recovery">Recuperar senha</a>
+                        <a href="<?php echo e(url('/recuperar-senha')); ?>" class="header-login-recovery">Recuperar senha</a>
                     </form>
                 <?php } ?>
             </div>

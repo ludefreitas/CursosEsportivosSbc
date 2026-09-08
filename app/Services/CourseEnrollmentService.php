@@ -149,8 +149,63 @@ class CourseEnrollmentService
     {
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
-        $stmt = $pdo->query("SELECT i.id, i.numero_ordem, i.status, i.created_at, i.motivo_status, p.nome_completo, p.cpf, p.eh_pcd, p.eh_pvs, p.eh_plm, t.nome AS turma_nome, te.nome AS temporada_nome, m.nome AS modalidade_nome FROM inscricoes_turma i INNER JOIN pessoas p ON p.id = i.pessoa_id INNER JOIN turmas t ON t.id = i.turma_id INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id WHERE i.status IN ('aguardando_matricula', 'lista_espera', 'matriculada') ORDER BY t.id ASC, i.numero_ordem ASC, i.created_at ASC");
+        $stmt = $pdo->query("SELECT
+                i.id, i.turma_id, i.pessoa_id, i.numero_ordem, i.status, i.created_at, i.updated_at, i.motivo_status,
+                p.nome_completo, p.cpf, p.data_nascimento, p.email, p.telefone_whatsapp,
+                p.cep, p.logradouro, p.numero_endereco, p.complemento, p.bairro, p.cidade, p.uf,
+                p.contato_emergencia_nome, p.contato_emergencia_telefone,
+                p.eh_pcd, p.eh_pvs, p.eh_plm,
+                t.nome AS turma_nome, t.dias_semana, t.hora_inicio, t.hora_fim,
+                te.nome AS temporada_nome, m.nome AS modalidade_nome,
+                COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome,
+                cm.aulas_inicio,
+                responsavel.nome_completo AS responsavel_nome,
+                responsavel.email AS responsavel_email,
+                responsavel.telefone_whatsapp AS responsavel_whatsapp,
+                (SELECT cp.numero_nis
+                   FROM certificados_pessoa cp
+                   INNER JOIN tipos_certificados tc ON tc.id = cp.tipo_certificado_id
+                  WHERE cp.pessoa_id = p.id AND tc.slug = 'pvs'
+                  ORDER BY cp.updated_at DESC, cp.created_at DESC, cp.id DESC LIMIT 1) AS numero_nis,
+                (SELECT COUNT(*) FROM certificados_pessoa cp
+                  INNER JOIN tipos_certificados tc ON tc.id = cp.tipo_certificado_id
+                  WHERE cp.pessoa_id = p.id AND tc.slug = 'pcd') AS possui_laudo,
+                (SELECT MIN(hm.criado_em) FROM inscricoes_turma_historico hm
+                  WHERE hm.inscricao_turma_id = i.id AND hm.status_novo = 'matriculada') AS data_matricula,
+                ac.id AS atestado_clinico_id, ac.validade_certificado AS atestado_clinico_validade,
+                ad.id AS atestado_dermatologico_id, ad.validade_certificado AS atestado_dermatologico_validade
+            FROM inscricoes_turma i
+            INNER JOIN pessoas p ON p.id = i.pessoa_id
+            INNER JOIN turmas t ON t.id = i.turma_id
+            INNER JOIN temporadas te ON te.id = t.temporada_id
+            INNER JOIN modalidades m ON m.id = t.modalidade_id
+            INNER JOIN locais_treino l ON l.id = t.local_treino_id
+            INNER JOIN espacos_treino e ON e.id = t.espaco_treino_id
+            LEFT JOIN cronogramas_modalidade cm ON cm.id = t.cronograma_modalidade_id
+            LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id = p.id AND vr.data_fim IS NULL
+            LEFT JOIN pessoas responsavel ON responsavel.id = vr.responsavel_pessoa_id
+            LEFT JOIN atestados_saude ac ON ac.pessoa_id = p.id AND ac.tipo_atestado = 'clinico'
+            LEFT JOIN atestados_saude ad ON ad.pessoa_id = p.id AND ad.tipo_atestado = 'dermatologico'
+            WHERE i.status IN ('aguardando_matricula', 'lista_espera', 'matriculada', 'suspensa')
+            ORDER BY t.id ASC, i.numero_ordem ASC, i.created_at ASC");
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $histories = [];
+        if ($rows !== []) {
+            $ids = array_map(static fn (array $row): int => (int) $row['id'], $rows);
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $historyStmt = $pdo->prepare("SELECT h.*, COALESCE(actor.nome_completo, 'Sistema') AS alterado_por
+                FROM inscricoes_turma_historico h
+                LEFT JOIN contas c ON c.id = h.alterado_por_conta_id
+                LEFT JOIN pessoas actor ON actor.cpf = c.cpf
+                WHERE h.inscricao_turma_id IN ($placeholders)
+                ORDER BY h.criado_em DESC, h.id DESC");
+            $historyStmt->execute($ids);
+            foreach ($historyStmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $history) {
+                $history['status_anterior_label'] = self::STATUS_LABELS[(string) ($history['status_anterior'] ?? '')] ?? (string) ($history['status_anterior'] ?? '');
+                $history['status_novo_label'] = self::STATUS_LABELS[(string) ($history['status_novo'] ?? '')] ?? (string) ($history['status_novo'] ?? '');
+                $histories[(int) $history['inscricao_turma_id']][] = $history;
+            }
+        }
         foreach ($rows as &$row) {
             $row['status_label'] = self::STATUS_LABELS[(string) $row['status']] ?? (string) $row['status'];
             $conditions = [];
@@ -158,7 +213,14 @@ class CourseEnrollmentService
             if ((int) ($row['eh_pvs'] ?? 0) === 1) { $conditions[] = 'PVS'; }
             if ((int) ($row['eh_plm'] ?? 0) === 1) { $conditions[] = 'PLM'; }
             $row['condicoes'] = implode(', ', $conditions);
+            $row['idade'] = calculate_age((string) ($row['data_nascimento'] ?? ''));
+            $row['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($row['dias_semana'] ?? ''));
+            $row['historico'] = $histories[(int) $row['id']] ?? [];
+            if ((string) ($row['status'] ?? '') === 'matriculada' && empty($row['data_matricula'])) {
+                $row['data_matricula'] = $row['updated_at'] ?: $row['created_at'];
+            }
         }
+        unset($row);
         return $rows;
     }
 
@@ -807,9 +869,6 @@ class CourseEnrollmentService
             throw new RuntimeException('Status inválido para atualização da inscrição.');
         }
         $reason = trim($reason);
-        if ($reason === '') {
-            throw new RuntimeException('Informe o motivo da alteração da inscrição.');
-        }
 
         $pdo = Database::connection();
         $stmt = $pdo->prepare("SELECT i.id, i.status, i.turma_id, i.publico_alvo, p.cpf FROM inscricoes_turma i INNER JOIN pessoas p ON p.id = i.pessoa_id WHERE i.id = :id AND i.status IN ('aguardando_matricula', 'lista_espera', 'matriculada', 'suspensa') LIMIT 1");
@@ -828,11 +887,6 @@ class CourseEnrollmentService
         if ($status === 'matriculada' && $enrollment['status'] !== 'matriculada' && $this->availableSeats($pdo, $this->findClass($pdo, (int) $enrollment['turma_id']), (string) $enrollment['publico_alvo']) <= 0 && $token === null && !$this->accountHasRole($pdo, $accountId, 'master_admin')) {
             throw new RuntimeException('Não há vaga normal disponível para esta cota.');
         }
-        if ($status === 'suspensa' && trim($reason) === '') {
-            throw new RuntimeException('Informe o motivo da suspensão.');
-        }
-
-        if ($status === 'suspensa' && trim((string) $suspensionEnd) === '') { throw new RuntimeException('Informe o prazo final da suspensão.'); }
         $stmt = $pdo->prepare('UPDATE inscricoes_turma SET status = :status, motivo_status = :motivo, suspensa_inicio = CASE WHEN :status_suspensa = "suspensa" THEN NOW() ELSE NULL END, suspensa_fim = :suspensa_fim, updated_at = NOW() WHERE id = :id');
         $stmt->execute([':status' => $status, ':motivo' => $reason, ':status_suspensa' => $status, ':suspensa_fim' => $status === 'suspensa' ? $suspensionEnd : null, ':id' => $enrollmentId]);
         $history = $pdo->prepare('INSERT INTO inscricoes_turma_historico (inscricao_turma_id, status_anterior, status_novo, motivo, alterado_por_conta_id) VALUES (:id, :anterior, :novo, :motivo, :conta)');

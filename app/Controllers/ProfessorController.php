@@ -323,6 +323,24 @@ class ProfessorController extends Controller
         } catch (\Throwable $e) { http_response_code(404); echo 'Arquivo não encontrado.'; exit; }
     }
 
+    public function healthCertificateDocument(): void
+    {
+        $this->assertProfessorAccess();
+        try {
+            $document = $this->adminService->getHealthCertificateDocumentForAdmin((int) ($_GET['certificate_id'] ?? 0));
+            $relativePath = (string) ($document['caminho_arquivo'] ?? '');
+            $absolutePath = ROOT_PATH . '/public' . $relativePath;
+            if ($relativePath === '' || !is_file($absolutePath)) { throw new \RuntimeException('Arquivo não encontrado.'); }
+            while (ob_get_level() > 0) { ob_end_clean(); }
+            header('Content-Type: application/pdf');
+            header('Content-Length: ' . (string) filesize($absolutePath));
+            header('Content-Disposition: inline; filename="' . rawurlencode(basename((string) ($document['nome_arquivo'] ?? 'atestado.pdf'))) . '"');
+            header('X-Content-Type-Options: nosniff');
+            readfile($absolutePath);
+            exit;
+        } catch (\Throwable $e) { http_response_code(404); echo 'Arquivo não encontrado.'; exit; }
+    }
+
     private function buildPeopleData(): array
     {
         $peopleLimit = max(1, min(AdminService::MAX_PEOPLE_LIMIT, (int) ($_GET['people_limit'] ?? AdminService::DEFAULT_PEOPLE_LIMIT)));
