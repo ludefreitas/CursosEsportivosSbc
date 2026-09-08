@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Services\CourseEnrollmentService;
 use App\Services\HumanVerificationService;
 use App\Services\ModalityPopupService;
+use App\Services\LocationPopupService;
 
 class CourseEnrollmentController extends Controller
 {
@@ -85,7 +86,26 @@ class CourseEnrollmentController extends Controller
         try {
             $this->jsonResponse([
                 'success' => true,
-                'popup' => (new ModalityPopupService())->findActive((int) ($_GET['modalidade_id'] ?? 0), (string) ($_GET['area'] ?? 'cursos')),
+                'popup' => (new ModalityPopupService())->findActive(
+                    (int) ($_GET['modalidade_id'] ?? 0),
+                    (string) ($_GET['area'] ?? 'cursos'),
+                    (int) ($_GET['local_treino_id'] ?? 0)
+                ),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function locationPopup(): void
+    {
+        try {
+            $this->jsonResponse([
+                'success' => true,
+                'popup' => (new LocationPopupService())->findActive(
+                    (int) ($_GET['local_treino_id'] ?? 0),
+                    (string) ($_GET['area'] ?? 'cursos')
+                ),
             ]);
         } catch (\Throwable $e) {
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
@@ -99,9 +119,12 @@ class CourseEnrollmentController extends Controller
                 (new HumanVerificationService())->validateRequest($_POST);
             }
             $result = $this->service->enroll($_POST);
-            $message = $result['status'] === 'lista_espera'
-                ? 'Inscrição recebida e incluída na lista de espera.'
-                : 'Inscrição recebida. Aguarde a matrícula pelo professor.';
+            $message = 'Inscrição realizada com sucesso. Status: ' . (string) $result['status_label'] . '.';
+            if ($result['status'] === 'lista_espera') {
+                $message .= ' Esta inscrição está em uma lista de espera. Quando surgir uma vaga, o professor ou responsável pela turma entrará em contato. Mantenha seu número de telefone/WhatsApp atualizado.';
+            } elseif (!empty($result['orientacao_matricula'])) {
+                $message .= ' ' . (string) $result['orientacao_matricula'];
+            }
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse(['success' => true, 'message' => $message, 'redirect' => url('/cursos')]);
             }

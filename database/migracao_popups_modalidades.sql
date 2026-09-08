@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS modalidade_popups (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     modalidade_id BIGINT UNSIGNED NOT NULL,
+    local_treino_id BIGINT UNSIGNED NULL,
     area ENUM('cursos','agenda') NOT NULL,
     titulo VARCHAR(180) NOT NULL,
     texto_principal TEXT NOT NULL,
@@ -15,9 +16,10 @@ CREATE TABLE IF NOT EXISTS modalidade_popups (
     atualizado_por_conta_id BIGINT UNSIGNED NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT NULL,
-    UNIQUE KEY uq_modalidade_popup_area (modalidade_id, area),
+    INDEX idx_modalidade_popup_escopo (modalidade_id, area, local_treino_id),
     INDEX idx_modalidade_popup_publico (area, status, data_inicio, data_fim),
     CONSTRAINT fk_modalidade_popup_modalidade FOREIGN KEY (modalidade_id) REFERENCES modalidades(id),
+    CONSTRAINT fk_modalidade_popup_local FOREIGN KEY (local_treino_id) REFERENCES locais_treino(id),
     CONSTRAINT fk_modalidade_popup_criador FOREIGN KEY (criado_por_conta_id) REFERENCES contas(id),
     CONSTRAINT fk_modalidade_popup_atualizador FOREIGN KEY (atualizado_por_conta_id) REFERENCES contas(id)
 ) ENGINE=InnoDB;

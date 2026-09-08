@@ -604,6 +604,19 @@
 .admin-modality-popup-instruction {
     color: var(--muted);
 }
+.admin-modality-popup-scope {
+    color: var(--text);
+    font-weight: 700;
+}
+.admin-location-popup-areas {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(125px, 1fr));
+    gap: 10px;
+    min-width: 270px;
+}
+@media (max-width: 900px) {
+    .admin-location-popup-areas { grid-template-columns: 1fr; min-width: 150px; }
+}
 .admin-modality-popup-fixed-area {
     padding: 10px 13px;
     border: 1px solid var(--line);
@@ -1661,4 +1674,32 @@
     .admin-agenda-calendar-modal-card .fc-daygrid-day-number {
         padding: 1px 3px;
     }
+}
+.admin-space-accessibility-list {
+    display: grid;
+    gap: 10px;
+}
+
+.admin-space-accessibility-item {
+    border: 1px solid #d8e1e5;
+    border-radius: 10px;
+    padding: 8px 10px;
+}
+
+.admin-space-accessibility-barriers {
+    display: grid;
+    gap: 5px;
+    margin: 7px 0 0 24px;
+    padding: 8px 10px;
+    border-left: 3px solid #27869a;
+    background: #f2f7f8;
+}
+
+.admin-space-accessibility-barriers.hidden {
+    display: none;
+}
+
+.admin-space-accessibility-barriers .checkbox-line {
+    align-items: flex-start;
+    font-size: 0.9rem;
 }

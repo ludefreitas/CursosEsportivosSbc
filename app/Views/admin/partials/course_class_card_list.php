@@ -11,7 +11,7 @@
                 <p><strong>Dias:</strong> <?php echo e((string) ($class['dias_semana_descricao'] ?? 'Não informado')); ?></p>
                 <p><strong>Horário:</strong> <?php if (!empty($class['hora_inicio']) && !empty($class['hora_fim'])) { echo e(substr((string) $class['hora_inicio'], 0, 5) . ' às ' . substr((string) $class['hora_fim'], 0, 5)); } else { echo 'Não informado'; } ?></p>
                 <p><strong>Professor:</strong> <?php echo e((string) ($class['professor_nome'] ?? 'Sem professor')); ?></p>
-                <p><strong>Status:</strong> <?php echo !empty($class['ativo']) ? 'Ativa' : 'Inativa'; ?></p>
+                <p><strong>Status:</strong> <?php echo e((string) ($class['status_label'] ?? (!empty($class['ativo']) ? 'Planejada' : 'Inscrições suspensas'))); ?></p>
             </div>
             <div class="course-row-actions admin-class-card-actions">
                 <button type="button" class="btn btn-primary" data-course-edit="class" data-course-record="<?php echo e((string) json_encode($class, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>">Editar</button>

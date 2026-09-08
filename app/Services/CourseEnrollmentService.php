@@ -24,41 +24,57 @@ class CourseEnrollmentService
         'desistente' => 'Desistente',
         'suspensa' => 'Suspensa',
     ];
+    private const CLASS_STATUS_LABELS = [
+        'planejada' => 'Planejada',
+        'processo_inicial' => 'Em processo inicial de inscrição',
+        'periodo_matricula' => 'Em período de matrícula',
+        'inscricoes_abertas' => 'Inscrições abertas',
+        'inscricoes_suspensas' => 'Inscrições suspensas',
+        'inscricoes_encerradas' => 'Inscrições encerradas',
+    ];
 
     public function listOpenClasses(?int $locationId = null, ?int $modalityId = null): array
     {
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
         $this->ensureCourseAgeCriterionSchema($pdo);
-        $sql = "\n            SELECT t.id, t.nome, t.idade_minima, t.idade_maxima, t.vagas_totais, t.vagas_geral,\n                   t.vagas_pcd, t.vagas_plm, t.vagas_pvs, t.modalidade_id, t.local_treino_id,\n                   te.id AS temporada_id, te.nome AS temporada_nome, cm.data_inicio, cm.data_fim,\n                   cm.inscricoes_inicio, cm.inscricoes_fim, cm.matriculas_inicio, cm.matriculas_fim,\n                   cm.permitir_inscricao_periodo_matricula, te.permitir_inscricao_por_cpf,\n                   te.permitir_inscricao_logada, m.nome AS modalidade_nome, l.nome_local,\n                   COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome,\n                   nm.nome AS nivel_nome\n            FROM turmas t\n            INNER JOIN temporadas te ON te.id = t.temporada_id\n            INNER JOIN cronogramas_modalidade cm ON cm.id = t.cronograma_modalidade_id\n            INNER JOIN modalidades m ON m.id = t.modalidade_id\n            INNER JOIN locais_treino l ON l.id = t.local_treino_id\n            INNER JOIN espacos_treino e ON e.id = t.espaco_treino_id\n            LEFT JOIN niveis_modalidade nm ON nm.id = t.nivel_modalidade_id\n            WHERE t.ativo = 1 AND te.ativo = 1 AND te.status = 'ativa' AND m.ativo = 1 AND l.ativo = 1 AND e.ativo = 1\n              AND CURDATE() BETWEEN cm.data_inicio AND cm.data_fim\n              AND (\n                    ((cm.inscricoes_inicio IS NULL OR NOW() >= cm.inscricoes_inicio)\n                     AND (cm.inscricoes_fim IS NULL OR NOW() <= cm.inscricoes_fim))\n                    OR\n                    (cm.permitir_inscricao_periodo_matricula = 1\n                     AND (cm.matriculas_inicio IS NULL OR NOW() >= cm.matriculas_inicio)\n                     AND (cm.matriculas_fim IS NULL OR NOW() <= cm.matriculas_fim))\n              )";
+        $this->synchronizeCalculatedClassStatuses($pdo);
+        $sql = "SELECT t.*, te.id AS temporada_id, te.nome AS temporada_nome,
+                       cm.data_inicio, cm.data_fim, cm.inscricoes_inicio, cm.inscricoes_fim,
+                       cm.matriculas_inicio, cm.matriculas_fim, cm.inscricoes_abertas_inicio,
+                       cm.inscricoes_abertas_fim, cm.permitir_inscricao_periodo_matricula,
+                       te.permitir_inscricao_por_cpf, te.permitir_inscricao_logada,
+                       m.nome AS modalidade_nome, l.nome_local,
+                       COALESCE(l.apelido_local, l.nome_local) AS local_nome,
+                       e.nome AS espaco_nome, nm.nome AS nivel_nome
+                FROM turmas t
+                INNER JOIN temporadas te ON te.id=t.temporada_id
+                INNER JOIN cronogramas_modalidade cm ON cm.id=t.cronograma_modalidade_id
+                INNER JOIN modalidades m ON m.id=t.modalidade_id
+                INNER JOIN locais_treino l ON l.id=t.local_treino_id
+                INNER JOIN espacos_treino e ON e.id=t.espaco_treino_id
+                LEFT JOIN niveis_modalidade nm ON nm.id=t.nivel_modalidade_id
+                WHERE te.ativo=1
+                  AND m.ativo=1 AND l.ativo=1 AND e.ativo=1
+                  AND CURDATE() BETWEEN cm.data_inicio AND cm.data_fim
+                  AND t.status NOT IN ('inscricoes_suspensas', 'inscricoes_encerradas')";
         $params = [];
-        $sql .= ' AND t.inscricoes_abertas = 1';
-        if (($locationId ?? 0) > 0) {
-            $sql .= ' AND t.local_treino_id = :local_id';
-            $params[':local_id'] = $locationId;
-        }
-        if (($modalityId ?? 0) > 0) {
-            $sql .= ' AND t.modalidade_id = :modalidade_id';
-            $params[':modalidade_id'] = $modalityId;
-        }
+        if (($locationId ?? 0) > 0) { $sql .= ' AND t.local_treino_id=:local_id'; $params[':local_id'] = $locationId; }
+        if (($modalityId ?? 0) > 0) { $sql .= ' AND t.modalidade_id=:modalidade_id'; $params[':modalidade_id'] = $modalityId; }
         $sql .= ' ORDER BY te.data_inicio ASC, m.nome ASC, t.nome ASC';
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
-
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         foreach ($classes as &$class) {
-            $criterionStmt = $pdo->prepare('SELECT criterio_faixa_etaria, sexo, dias_semana, hora_inicio, hora_fim FROM turmas WHERE id = :id LIMIT 1');
-            $criterionStmt->execute([':id' => (int) $class['id']]);
-            $eligibility = $criterionStmt->fetch(PDO::FETCH_ASSOC) ?: [];
-            $class['criterio_faixa_etaria'] = normalize_age_rule_mode((string) ($eligibility['criterio_faixa_etaria'] ?? 'idade_exata'));
-            $class['sexo'] = (string) ($eligibility['sexo'] ?? '');
-            $class['dias_semana'] = (string) ($eligibility['dias_semana'] ?? '');
-            $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($eligibility['dias_semana'] ?? ''));
-            $class['hora_inicio'] = (string) ($eligibility['hora_inicio'] ?? '');
-            $class['hora_fim'] = (string) ($eligibility['hora_fim'] ?? '');
-            $class['periodo_dia'] = $this->describeClassDayPeriod((string) ($eligibility['hora_inicio'] ?? ''));
+            $class['criterio_faixa_etaria'] = normalize_age_rule_mode((string) ($class['criterio_faixa_etaria'] ?? 'idade_exata'));
+            $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? ''));
+            $class['periodo_dia'] = $this->describeClassDayPeriod((string) ($class['hora_inicio'] ?? ''));
             $class['vagas_disponiveis'] = $this->availableSeats($pdo, $class);
             $class['faixa_etaria_descricao'] = $this->describeClassAgeRule($class);
+            $class['status_label'] = self::CLASS_STATUS_LABELS[(string) $class['status']] ?? (string) $class['status'];
+            $class['permite_inscricao'] = (string) $class['status'] === 'processo_inicial'
+                || (string) $class['status'] === 'inscricoes_abertas'
+                || ((string) $class['status'] === 'periodo_matricula' && !empty($class['permitir_inscricao_periodo_matricula']));
         }
         unset($class);
         return $classes;
@@ -91,12 +107,28 @@ class CourseEnrollmentService
 
     public function listForAuthenticatedAccount(): array
     {
-        if (!Auth::check()) {
-            return [];
-        }
-
+        if (!Auth::check()) { return []; }
         $pdo = Database::connection();
-        $stmt = $pdo->prepare("\n            SELECT i.id, i.status, i.created_at, i.updated_at, i.motivo_status,\n                   p.nome_completo, p.cpf, t.nome AS turma_nome, te.nome AS temporada_nome,\n                   m.nome AS modalidade_nome, COALESCE(l.apelido_local, l.nome_local) AS local_nome\n            FROM inscricoes_turma i\n            INNER JOIN pessoas p ON p.id = i.pessoa_id\n            INNER JOIN turmas t ON t.id = i.turma_id\n            INNER JOIN temporadas te ON te.id = t.temporada_id\n            INNER JOIN modalidades m ON m.id = t.modalidade_id\n            INNER JOIN locais_treino l ON l.id = t.local_treino_id\n            WHERE EXISTS (\n                SELECT 1 FROM contas c\n                INNER JOIN pessoas titular ON titular.cpf = c.cpf\n                LEFT JOIN vinculos_responsaveis vr ON vr.responsavel_pessoa_id = titular.id\n                WHERE c.id = :conta_id AND (p.id = titular.id OR p.id = vr.dependente_pessoa_id)\n            )\n            ORDER BY i.created_at DESC\n        ");
+        $this->ensureCourseSeasonSchema($pdo);
+        $stmt = $pdo->prepare("SELECT i.id, i.numero_ordem, i.posicao_lista_espera, i.status, i.created_at, i.updated_at, i.motivo_status,
+                   p.nome_completo, p.cpf, t.nome AS turma_nome, t.dias_semana, t.hora_inicio, t.hora_fim,
+                   te.nome AS temporada_nome, m.nome AS modalidade_nome,
+                   cm.matriculas_inicio AS cronograma_matriculas_inicio,
+                   cm.matriculas_fim AS cronograma_matriculas_fim,
+                   COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome
+            FROM inscricoes_turma i
+            INNER JOIN pessoas p ON p.id=i.pessoa_id
+            INNER JOIN turmas t ON t.id=i.turma_id
+            INNER JOIN temporadas te ON te.id=t.temporada_id
+            INNER JOIN modalidades m ON m.id=t.modalidade_id
+            INNER JOIN cronogramas_modalidade cm ON cm.id=t.cronograma_modalidade_id
+            INNER JOIN locais_treino l ON l.id=t.local_treino_id
+            INNER JOIN espacos_treino e ON e.id=t.espaco_treino_id
+            WHERE EXISTS (
+                SELECT 1 FROM contas c INNER JOIN pessoas titular ON titular.cpf=c.cpf
+                LEFT JOIN vinculos_responsaveis vr ON vr.responsavel_pessoa_id=titular.id
+                WHERE c.id=:conta_id AND (p.id=titular.id OR p.id=vr.dependente_pessoa_id)
+            ) ORDER BY i.created_at DESC");
         $stmt->execute([':conta_id' => Auth::id()]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         foreach ($rows as &$row) {
@@ -104,6 +136,11 @@ class CourseEnrollmentService
             $seasonStmt = $pdo->prepare('SELECT te.status FROM inscricoes_turma i INNER JOIN turmas t ON t.id = i.turma_id INNER JOIN temporadas te ON te.id = t.temporada_id WHERE i.id = :id LIMIT 1');
             $seasonStmt->execute([':id' => (int) $row['id']]);
             $row['temporada_encerrada'] = $seasonStmt->fetchColumn() === 'encerrada';
+            $row['orientacao'] = $row['status'] === 'aguardando_matricula'
+                ? $this->registrationGuidance($row)
+                : ($row['status'] === 'lista_espera'
+                    ? 'Esta inscrição está em uma lista de espera. Quando surgir uma vaga, o professor ou responsável pela turma entrará em contato. Mantenha seu número de telefone/WhatsApp atualizado.'
+                    : '');
         }
         return $rows;
     }
@@ -111,7 +148,8 @@ class CourseEnrollmentService
     public function listForManagement(): array
     {
         $pdo = Database::connection();
-        $stmt = $pdo->query("SELECT i.id, i.status, i.created_at, i.motivo_status, p.nome_completo, p.cpf, p.eh_pcd, p.eh_pvs, p.eh_plm, t.nome AS turma_nome, te.nome AS temporada_nome, m.nome AS modalidade_nome FROM inscricoes_turma i INNER JOIN pessoas p ON p.id = i.pessoa_id INNER JOIN turmas t ON t.id = i.turma_id INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id WHERE i.status IN ('aguardando_matricula', 'lista_espera', 'matriculada') ORDER BY i.status ASC, i.created_at ASC");
+        $this->ensureCourseSeasonSchema($pdo);
+        $stmt = $pdo->query("SELECT i.id, i.numero_ordem, i.status, i.created_at, i.motivo_status, p.nome_completo, p.cpf, p.eh_pcd, p.eh_pvs, p.eh_plm, t.nome AS turma_nome, te.nome AS temporada_nome, m.nome AS modalidade_nome FROM inscricoes_turma i INNER JOIN pessoas p ON p.id = i.pessoa_id INNER JOIN turmas t ON t.id = i.turma_id INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id WHERE i.status IN ('aguardando_matricula', 'lista_espera', 'matriculada') ORDER BY t.id ASC, i.numero_ordem ASC, i.created_at ASC");
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         foreach ($rows as &$row) {
             $row['status_label'] = self::STATUS_LABELS[(string) $row['status']] ?? (string) $row['status'];
@@ -212,10 +250,15 @@ class CourseEnrollmentService
     public function listClassesForManagement(): array
     {
         $pdo = Database::connection();
+        $this->ensureCourseSeasonSchema($pdo);
         $this->ensureCourseAgeCriterionSchema($pdo);
+        $this->synchronizeCalculatedClassStatuses($pdo);
         $stmt = $pdo->query("SELECT t.*, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio, te.data_fim AS temporada_fim, m.nome AS modalidade_nome, cm.nome AS cronograma_nome, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome, nm.nome AS nivel_nome, professor.nome_completo AS professor_nome FROM turmas t INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id LEFT JOIN cronogramas_modalidade cm ON cm.id = t.cronograma_modalidade_id INNER JOIN locais_treino l ON l.id = t.local_treino_id INNER JOIN espacos_treino e ON e.id = t.espaco_treino_id LEFT JOIN niveis_modalidade nm ON nm.id = t.nivel_modalidade_id LEFT JOIN contas pc ON pc.id = t.professor_conta_id LEFT JOIN pessoas professor ON professor.cpf = pc.cpf ORDER BY te.data_inicio DESC, t.nome ASC");
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        foreach ($classes as &$class) { $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? '')); }
+        foreach ($classes as &$class) {
+            $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? ''));
+            $class['status_label'] = self::CLASS_STATUS_LABELS[(string) ($class['status'] ?? '')] ?? (string) ($class['status'] ?? '');
+        }
         unset($class);
         return $classes;
     }
@@ -374,6 +417,7 @@ class CourseEnrollmentService
         $required = ['temporada_id', 'modalidade_id', 'local_treino_id', 'espaco_treino_id', 'nome'];
         foreach ($required as $field) { if (trim((string) ($data[$field] ?? '')) === '') { throw new RuntimeException('Preencha todos os campos obrigatórios da turma.'); } }
         $pdo = Database::connection();
+        $this->ensureCourseSeasonSchema($pdo);
         $this->ensureCourseAgeCriterionSchema($pdo);
         $id = (int) ($data['id'] ?? 0);
         $scheduleId = (int) ($data['cronograma_modalidade_id'] ?? 0);
@@ -411,6 +455,7 @@ class CourseEnrollmentService
             $id = (int) $pdo->lastInsertId();
             AuditLogService::record('turma.criada', 'turmas', $id, ['conta_id' => $accountId]);
         }
+        $this->synchronizeCalculatedClassStatuses($pdo, $id);
         return ['id' => $id];
     }
 
@@ -422,7 +467,8 @@ class CourseEnrollmentService
         ];
         if (!isset($tables[$entity]) || $id <= 0) { throw new RuntimeException('Registro inválido para inativação.'); }
         $table = $tables[$entity];
-        $stmt = Database::connection()->prepare("UPDATE {$table} SET ativo = 0 WHERE id = :id LIMIT 1");
+        $statusSql = $entity === 'turma' ? ", status = 'inscricoes_suspensas'" : '';
+        $stmt = Database::connection()->prepare("UPDATE {$table} SET ativo = 0{$statusSql} WHERE id = :id LIMIT 1");
         $stmt->execute([':id' => $id]);
         if ($stmt->rowCount() === 0) { throw new RuntimeException('Registro não encontrado ou já inativo.'); }
         AuditLogService::record($entity . '.inativada', $table, $id, ['conta_id' => $accountId]);
@@ -449,11 +495,16 @@ class CourseEnrollmentService
     public function listClassesForProfessor(int $accountId): array
     {
         $pdo = Database::connection();
+        $this->ensureCourseSeasonSchema($pdo);
         $this->ensureCourseAgeCriterionSchema($pdo);
+        $this->synchronizeCalculatedClassStatuses($pdo);
         $stmt = $pdo->prepare("SELECT t.*, te.nome AS temporada_nome, m.nome AS modalidade_nome, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome FROM turmas t INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id INNER JOIN locais_treino l ON l.id = t.local_treino_id INNER JOIN espacos_treino e ON e.id = t.espaco_treino_id WHERE t.professor_conta_id = :professor_id AND t.ativo = 1 ORDER BY te.data_inicio DESC, t.nome ASC");
         $stmt->execute([':professor_id' => $accountId]);
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        foreach ($classes as &$class) { $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? '')); }
+        foreach ($classes as &$class) {
+            $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? ''));
+            $class['status_label'] = self::CLASS_STATUS_LABELS[(string) ($class['status'] ?? '')] ?? (string) ($class['status'] ?? '');
+        }
         unset($class);
         return $classes;
     }
@@ -471,6 +522,7 @@ class CourseEnrollmentService
     {
         $pdo = Database::connection();
         $class = $this->findClass($pdo, $classId);
+        $class = $this->applyCalculatedClassStatus($pdo, $class);
         $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? ''));
         $class['periodo_dia'] = $this->describeClassDayPeriod((string) ($class['hora_inicio'] ?? ''));
         $class['criterio_faixa_etaria'] = normalize_age_rule_mode((string) ($class['criterio_faixa_etaria'] ?? 'idade_exata'));
@@ -490,6 +542,7 @@ class CourseEnrollmentService
                 $age = calculate_age((string) ($person['data_nascimento'] ?? ''));
                 $reasons = [];
                 if ((int) ($person['cadastro_completo'] ?? 0) !== 1) $reasons[] = 'Cadastro incompleto';
+                if (empty($class['permite_inscricao'])) $reasons[] = 'Esta turma está com o status ' . mb_strtolower((string) $class['status_label'], 'UTF-8') . ' e não recebe inscrições neste momento';
                 if (!$this->personMatchesClassAgeRule($person, $class)) $reasons[] = $this->classAgeBlockReason($person, $class);
                 $requiredSex = trim((string) ($class['sexo'] ?? ''));
                 if ($requiredSex !== '' && $requiredSex !== (string) ($person['sexo'] ?? '')) $reasons[] = 'Sexo não permitido para esta turma';
@@ -498,6 +551,15 @@ class CourseEnrollmentService
                 if ((int) $duplicate->fetchColumn() > 0) $reasons[] = 'Pessoa já inscrita nesta turma';
                 $person['idade'] = $age;
                 $person['publico_alvo'] = $this->resolvePublic($pdo, (int) $person['id']);
+                if ($class['status'] === 'processo_inicial'
+                    && $this->availableSeats($pdo, $class, (string) $person['publico_alvo']) <= 0
+                    && $this->availableWaitlistSeats($pdo, $class, (string) $person['publico_alvo']) <= 0) {
+                    $reasons[] = 'Não há vagas nem lugares na lista de espera para o público-alvo desta pessoa';
+                }
+                if (in_array((string) $class['status'], ['periodo_matricula', 'inscricoes_abertas'], true)
+                    && $this->availableWaitlistSeats($pdo, $class, (string) $person['publico_alvo']) <= 0) {
+                    $reasons[] = 'Não há lugares disponíveis na lista de espera para o público-alvo desta pessoa';
+                }
                 $person['elegivel'] = $reasons === [];
                 $person['motivo_bloqueio'] = implode('; ', $reasons);
                 $people[] = $person;
@@ -528,17 +590,24 @@ class CourseEnrollmentService
         $season['permitir_inscricao_periodo_matricula'] = (int) ($class['cronograma_permitir_inscricao_matricula'] ?? 0);
         $season['inscricoes_abertas_inicio'] = $class['cronograma_inscricoes_abertas_inicio'] ?? null;
         $season['inscricoes_abertas_fim'] = $class['cronograma_inscricoes_abertas_fim'] ?? null;
-        if ((string) ($season['status'] ?? 'planejada') !== 'ativa') {
+        $tokenCpf = $cpf;
+        if ($tokenCpf === '' && $personId > 0 && $tokenValue !== '') {
+            $tokenPerson = $pdo->prepare('SELECT cpf FROM pessoas WHERE id=:id LIMIT 1');
+            $tokenPerson->execute([':id' => $personId]);
+            $tokenCpf = normalize_cpf((string) ($tokenPerson->fetchColumn() ?: ''));
+        }
+        $token = $this->findEnrollmentToken($pdo, $tokenValue, $classId, $tokenCpf);
+        $class = $this->applyCalculatedClassStatus($pdo, $class);
+        if ($token === null && (string) ($season['status'] ?? 'planejada') !== 'ativa') {
             throw new RuntimeException('Esta temporada não está ativa para receber inscrições.');
         }
-        $token = $this->findEnrollmentToken($pdo, $tokenValue, $classId, $cpf);
         $now = new DateTimeImmutable();
         $today = $now->format('Y-m-d');
-        if ($today < (string) ($class['cronograma_data_inicio'] ?? '') || $today > (string) ($class['cronograma_data_fim'] ?? '9999-12-31')) {
+        if ($token === null && ($today < (string) ($class['cronograma_data_inicio'] ?? '') || $today > (string) ($class['cronograma_data_fim'] ?? '9999-12-31'))) {
             throw new RuntimeException('Esta turma não está disponível para consulta e inscrição neste período.');
         }
-        if (empty($class['inscricoes_abertas'])) throw new RuntimeException('As inscrições desta turma não estão abertas.');
-        if (!$this->withinSeasonEnrollment($season, $now)) {
+        if ($token === null && empty($class['permite_inscricao'])) throw new RuntimeException('Esta turma está com o status ' . $class['status_label'] . ' e não recebe inscrições neste momento.');
+        if ($token === null && !$this->withinSeasonEnrollment($season, $now)) {
             throw new RuntimeException('As inscrições para o cronograma desta modalidade não estão abertas no momento.');
         }
 
@@ -577,15 +646,19 @@ class CourseEnrollmentService
             throw new RuntimeException('Esta temporada não permite inscrições pelo sistema logado.');
         }
 
-        $this->validateAge($person, $class, $token !== null);
-        $this->validateDuplicate($pdo, $classId, (int) $person['id']);
-        $this->validateSeasonLimit($pdo, $season, (int) $person['id'], $now, $token !== null);
-        $this->validateModalityLimit($pdo, $class, (int) $person['id'], $now, $token !== null);
+        $pdo->beginTransaction();
+        try {
+            $lock = $pdo->prepare('SELECT id FROM turmas WHERE id=:id FOR UPDATE');
+            $lock->execute([':id' => $classId]);
+            $this->validateAge($person, $class, $token !== null);
+            $this->validateDuplicate($pdo, $classId, (int) $person['id']);
+            $this->validateSeasonLimit($pdo, $season, (int) $person['id'], $now, $token !== null);
+            $this->validateModalityLimit($pdo, $class, (int) $person['id'], $now, $token !== null);
 
         $publico = $this->resolvePublic($pdo, (int) $person['id']);
         if ($token !== null) { $publico = (string) $token['publico_alvo']; }
         $this->validatePublic($pdo, (int) $person['id'], $publico, $token !== null);
-        $forceWaitlist = $this->isOpenEnrollmentPhase($season, $now);
+        $forceWaitlist = (string) $class['status'] !== 'processo_inicial';
         $status = $forceWaitlist || $this->availableSeats($pdo, $class, $publico) <= 0
             ? 'lista_espera'
             : 'aguardando_matricula';
@@ -594,9 +667,13 @@ class CourseEnrollmentService
             throw new RuntimeException('A lista de espera desta cota já atingiu o limite de vagas.');
         }
 
-        $stmt = $pdo->prepare("\n            INSERT INTO inscricoes_turma (turma_id, pessoa_id, publico_alvo, status, posicao_lista_espera, inscrito_por_conta_id, created_at)\n            VALUES (:turma_id, :pessoa_id, :publico, :status, :posicao, :conta_id, NOW())\n        ");
+        $orderStmt = $pdo->prepare('SELECT COALESCE(MAX(numero_ordem), 0) + 1 FROM inscricoes_turma WHERE turma_id=:turma');
+        $orderStmt->execute([':turma' => $classId]);
+        $orderNumber = (int) $orderStmt->fetchColumn();
+        $stmt = $pdo->prepare("\n            INSERT INTO inscricoes_turma (turma_id, numero_ordem, pessoa_id, publico_alvo, status, posicao_lista_espera, inscrito_por_conta_id, created_at)\n            VALUES (:turma_id, :numero_ordem, :pessoa_id, :publico, :status, :posicao, :conta_id, NOW())\n        ");
         $stmt->execute([
             ':turma_id' => $classId,
+            ':numero_ordem' => $orderNumber,
             ':pessoa_id' => (int) $person['id'],
             ':publico' => $publico,
             ':status' => $status,
@@ -604,6 +681,9 @@ class CourseEnrollmentService
             ':conta_id' => Auth::check() ? Auth::id() : null,
         ]);
         $enrollmentId = (int) $pdo->lastInsertId();
+        if ($token !== null) {
+            $pdo->prepare('UPDATE tokens_inscricao_turma SET usos_realizados=usos_realizados+1, ativo=IF(usos_realizados+1>=usos_maximos,0,ativo) WHERE id=:id')->execute([':id' => (int) $token['id']]);
+        }
 
         AuditLogService::record('inscricao_turma.criada', 'inscricoes_turma', $enrollmentId, [
             'turma_id' => $classId,
@@ -612,7 +692,12 @@ class CourseEnrollmentService
             'conta_id' => Auth::check() ? Auth::id() : null,
         ]);
 
-        return ['id' => $enrollmentId, 'status' => $status, 'status_label' => self::STATUS_LABELS[$status]];
+            $pdo->commit();
+            return ['id' => $enrollmentId, 'numero_ordem' => $orderNumber, 'status' => $status, 'status_label' => self::STATUS_LABELS[$status], 'orientacao_matricula' => $status === 'aguardando_matricula' ? $this->registrationGuidance($class) : ''];
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+            throw $e;
+        }
     }
 
     public function cancel(int $enrollmentId): void
@@ -733,11 +818,23 @@ class CourseEnrollmentService
     {
         $this->ensureCourseSeasonSchema($pdo);
         $this->ensureCourseAgeCriterionSchema($pdo);
-        $stmt = $pdo->prepare('SELECT t.*, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio, te.data_fim AS temporada_fim, cm.data_inicio AS cronograma_data_inicio, cm.data_fim AS cronograma_data_fim, cm.aulas_inicio, cm.inscricoes_inicio AS cronograma_inscricoes_inicio, cm.inscricoes_fim AS cronograma_inscricoes_fim, cm.matriculas_inicio AS cronograma_matriculas_inicio, cm.matriculas_fim AS cronograma_matriculas_fim, cm.permitir_inscricao_periodo_matricula AS cronograma_permitir_inscricao_matricula, cm.inscricoes_abertas_inicio AS cronograma_inscricoes_abertas_inicio, cm.inscricoes_abertas_fim AS cronograma_inscricoes_abertas_fim, cm.permitir_multiplas_inscricoes_modalidade AS cronograma_multiplas_modalidade, cm.limite_inscricoes_modalidade AS cronograma_limite_modalidade, cm.data_liberacao_multiplas_inscricoes_modalidade AS cronograma_liberacao_modalidade FROM turmas t INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN cronogramas_modalidade cm ON cm.id = t.cronograma_modalidade_id WHERE t.id = :id AND t.ativo = 1 AND te.ativo = 1 LIMIT 1');
+        $this->synchronizeCalculatedClassStatuses($pdo, $id);
+        $stmt = $pdo->prepare('SELECT t.*, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio, te.data_fim AS temporada_fim, cm.data_inicio AS cronograma_data_inicio, cm.data_fim AS cronograma_data_fim, cm.aulas_inicio, cm.inscricoes_inicio AS cronograma_inscricoes_inicio, cm.inscricoes_fim AS cronograma_inscricoes_fim, cm.matriculas_inicio AS cronograma_matriculas_inicio, cm.matriculas_fim AS cronograma_matriculas_fim, cm.permitir_inscricao_periodo_matricula AS cronograma_permitir_inscricao_matricula, cm.inscricoes_abertas_inicio AS cronograma_inscricoes_abertas_inicio, cm.inscricoes_abertas_fim AS cronograma_inscricoes_abertas_fim, cm.permitir_multiplas_inscricoes_modalidade AS cronograma_multiplas_modalidade, cm.limite_inscricoes_modalidade AS cronograma_limite_modalidade, cm.data_liberacao_multiplas_inscricoes_modalidade AS cronograma_liberacao_modalidade, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome FROM turmas t INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN cronogramas_modalidade cm ON cm.id = t.cronograma_modalidade_id INNER JOIN locais_treino l ON l.id=t.local_treino_id INNER JOIN espacos_treino e ON e.id=t.espaco_treino_id WHERE t.id = :id LIMIT 1');
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) { throw new RuntimeException('Turma não encontrada ou indisponível.'); }
         return $row;
+    }
+
+    private function applyCalculatedClassStatus(PDO $pdo, array $class): array
+    {
+        $status = $this->calculatedClassStatus($class);
+        $class['status'] = $status;
+        $class['status_label'] = self::CLASS_STATUS_LABELS[$status] ?? $status;
+        $class['permite_inscricao'] = $status === 'processo_inicial'
+            || $status === 'inscricoes_abertas'
+            || ($status === 'periodo_matricula' && !empty($class['cronograma_permitir_inscricao_matricula'] ?? $class['permitir_inscricao_periodo_matricula'] ?? 0));
+        return $class;
     }
 
     private function findSeason(PDO $pdo, int $id): array
@@ -949,6 +1046,75 @@ class CourseEnrollmentService
         if ((int) $stmt->fetchColumn() >= $limit) throw new RuntimeException('O limite de ' . $limit . ' inscrição(ões) por CPF nesta modalidade já foi atingido.');
     }
 
+    private function calculatedClassStatus(array $class, ?DateTimeImmutable $now = null): string
+    {
+        $stored = (string) ($class['status'] ?? 'planejada');
+        if ($stored === 'inscricoes_suspensas') { return $stored; }
+        $now = $now ?? new DateTimeImmutable();
+        $date = static fn(string $key): ?DateTimeImmutable => empty($class[$key]) ? null : new DateTimeImmutable((string) $class[$key]);
+        $initialStart = $date('cronograma_inscricoes_inicio') ?? $date('inscricoes_inicio');
+        $initialEnd = $date('cronograma_inscricoes_fim') ?? $date('inscricoes_fim');
+        $registrationStart = $date('cronograma_matriculas_inicio') ?? $date('matriculas_inicio');
+        $registrationEnd = $date('cronograma_matriculas_fim') ?? $date('matriculas_fim');
+        $openStart = $date('cronograma_inscricoes_abertas_inicio') ?? $date('inscricoes_abertas_inicio');
+        $openEnd = $date('cronograma_inscricoes_abertas_fim') ?? $date('inscricoes_abertas_fim');
+
+        if ($openEnd && $now > $openEnd) { return 'inscricoes_encerradas'; }
+        if ($initialStart && $initialEnd && $now >= $initialStart && $now <= $initialEnd) { return 'processo_inicial'; }
+        if (($registrationStart && $registrationEnd && $now >= $registrationStart && $now <= $registrationEnd)
+            || ($initialEnd && $openStart && $now > $initialEnd && $now < $openStart)) {
+            return 'periodo_matricula';
+        }
+        if ($openStart && $openEnd && $now >= $openStart && $now <= $openEnd) { return 'inscricoes_abertas'; }
+        return 'planejada';
+    }
+
+    private function synchronizeCalculatedClassStatuses(PDO $pdo, ?int $classId = null): void
+    {
+        $sql = 'SELECT t.id, t.status, t.ativo, cm.inscricoes_inicio AS cronograma_inscricoes_inicio,
+                       cm.inscricoes_fim AS cronograma_inscricoes_fim,
+                       cm.matriculas_inicio AS cronograma_matriculas_inicio,
+                       cm.matriculas_fim AS cronograma_matriculas_fim,
+                       cm.permitir_inscricao_periodo_matricula,
+                       cm.inscricoes_abertas_inicio AS cronograma_inscricoes_abertas_inicio,
+                       cm.inscricoes_abertas_fim AS cronograma_inscricoes_abertas_fim
+                FROM turmas t INNER JOIN cronogramas_modalidade cm ON cm.id=t.cronograma_modalidade_id';
+        $params = [];
+        if (($classId ?? 0) > 0) { $sql .= ' WHERE t.id=:id'; $params[':id'] = $classId; }
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $update = $pdo->prepare('UPDATE turmas SET status=:status, inscricoes_abertas=:abertas WHERE id=:id');
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $class) {
+            $status = empty($class['ativo']) ? 'inscricoes_suspensas' : $this->calculatedClassStatus($class);
+            $accepts = $status === 'processo_inicial' || $status === 'inscricoes_abertas'
+                || ($status === 'periodo_matricula' && !empty($class['permitir_inscricao_periodo_matricula']));
+            $update->execute([':status' => $status, ':abertas' => $accepts ? 1 : 0, ':id' => (int) $class['id']]);
+        }
+    }
+
+    private function registrationGuidance(array $class): string
+    {
+        $startValue = trim((string) ($class['cronograma_matriculas_inicio'] ?? $class['matriculas_inicio'] ?? ''));
+        $endValue = trim((string) ($class['cronograma_matriculas_fim'] ?? $class['matriculas_fim'] ?? ''));
+        $weekdays = array_map('intval', array_filter(explode(',', $this->normalizeClassWeekdays((string) ($class['dias_semana'] ?? '')))));
+        if ($startValue === '' || $endValue === '' || $weekdays === [] || empty($class['hora_inicio']) || empty($class['hora_fim'])) { return ''; }
+        $start = new DateTimeImmutable($startValue);
+        $end = new DateTimeImmutable($endValue);
+        $dates = [];
+        for ($day = $start->setTime(0, 0); $day <= $end; $day = $day->modify('+1 day')) {
+            $weekday = (int) $day->format('N');
+            if (in_array($weekday, $weekdays, true)) { $dates[] = $day->format('d/m/Y'); }
+        }
+        if ($dates === []) { return ''; }
+        $last = array_pop($dates);
+        $dateText = $dates === [] ? $last : implode(', ', $dates) . ' e ' . $last;
+        return (count($dates) > 0 ? 'Compareça nos dias ' : 'Compareça no dia ') . $dateText
+            . ', das ' . substr((string) $class['hora_inicio'], 0, 5) . ' às ' . substr((string) $class['hora_fim'], 0, 5)
+            . ', em ' . (string) ($class['local_nome'] ?? 'local informado')
+            . (!empty($class['espaco_nome']) ? ' — ' . (string) $class['espaco_nome'] : '')
+            . ', para efetuar a matrícula.';
+    }
+
     private function ensureCourseAgeCriterionSchema(PDO $pdo): void
     {
         if (self::$courseAgeCriterionSchemaChecked) { return; }
@@ -1055,6 +1221,15 @@ class CourseEnrollmentService
         if (!$classOpenColumn || !$classOpenColumn->fetch(PDO::FETCH_ASSOC)) {
             $pdo->exec('ALTER TABLE turmas ADD COLUMN inscricoes_abertas TINYINT(1) NOT NULL DEFAULT 0 AFTER ativo');
             $pdo->exec('UPDATE turmas SET inscricoes_abertas=1 WHERE ativo=1');
+        }
+        $classStatusColumn = $pdo->query("SHOW COLUMNS FROM turmas LIKE 'status'");
+        if (!$classStatusColumn || !$classStatusColumn->fetch(PDO::FETCH_ASSOC)) {
+            $pdo->exec("ALTER TABLE turmas ADD COLUMN status VARCHAR(40) NOT NULL DEFAULT 'planejada' AFTER inscricoes_abertas");
+            $pdo->exec("UPDATE turmas SET status=IF(ativo=1, 'planejada', 'inscricoes_suspensas')");
+        }
+        $enrollmentOrderColumn = $pdo->query("SHOW COLUMNS FROM inscricoes_turma LIKE 'numero_ordem'");
+        if (!$enrollmentOrderColumn || !$enrollmentOrderColumn->fetch(PDO::FETCH_ASSOC)) {
+            $pdo->exec('ALTER TABLE inscricoes_turma ADD COLUMN numero_ordem INT UNSIGNED NULL AFTER turma_id');
         }
         $pdo->exec('UPDATE turmas t INNER JOIN (SELECT temporada_id, modalidade_id, MIN(id) AS cronograma_id FROM cronogramas_modalidade GROUP BY temporada_id, modalidade_id HAVING COUNT(*)=1) unico ON unico.temporada_id=t.temporada_id AND unico.modalidade_id=t.modalidade_id SET t.cronograma_modalidade_id=unico.cronograma_id WHERE t.cronograma_modalidade_id IS NULL OR t.cronograma_modalidade_id=0');
         if (!$originTableAlreadyExisted || $originIdColumnAdded) {

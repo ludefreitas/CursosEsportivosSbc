@@ -80,6 +80,13 @@ textarea.field-invalid {
 .field-validation-message.hidden {
     display: none;
 }
+.field-invalid-container {
+    padding: 7px;
+    border: 2px solid var(--accent-red);
+    border-radius: 10px;
+    background: var(--accent-red-soft);
+    box-shadow: 0 0 0 3px rgba(192, 74, 49, 0.12);
+}
 img,
 svg,
 video,
@@ -1227,6 +1234,10 @@ body.pagina-error label span {
 }
 .popup-overlay#popup-route-modal {
     z-index: 2100;
+}
+#home-modality-notice-modal,
+#agenda-modality-notice-modal {
+    z-index: 2250;
 }
 .popup-overlay.hidden {
     display: none;

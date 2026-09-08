@@ -20,6 +20,7 @@ use App\Services\ExternalHealthCertificateService;
 use App\Services\SpaceAccessibilityService;
 use App\Services\CourseEnrollmentService;
 use App\Services\ModalityPopupService;
+use App\Services\LocationPopupService;
 use DateTimeImmutable;
 
 class AdminController extends Controller
@@ -35,6 +36,7 @@ class AdminController extends Controller
     private ExternalLocationService $externalLocationService;
     private ExternalHealthCertificateService $externalHealthCertificateService;
     private ModalityPopupService $modalityPopupService;
+    private LocationPopupService $locationPopupService;
 
     /**
      * Inicializa servicos da área administrativa.
@@ -52,6 +54,7 @@ class AdminController extends Controller
         $this->externalLocationService = new ExternalLocationService();
         $this->externalHealthCertificateService = new ExternalHealthCertificateService();
         $this->modalityPopupService = new ModalityPopupService();
+        $this->locationPopupService = new LocationPopupService();
     }
 
     /**
@@ -1287,6 +1290,7 @@ class AdminController extends Controller
                 (string) ($_GET['location_search'] ?? ''),
                 $locationLimit
             );
+            $locationPopups = $this->locationPopupService->listAll();
 
             ob_start();
             require ROOT_PATH . '/app/Views/admin/partials/training_location_rows.php';
@@ -2184,6 +2188,7 @@ class AdminController extends Controller
                 (string) $data['locationSearch'],
                 (int) $data['locationLimit']
             );
+            $data['locationPopups'] = $this->locationPopupService->listAll();
             $data['eligibleLocationManagers'] = $this->adminService->listEligibleLocationManagers();
             $data['spaceSearch'] = (string) ($_GET['space_search'] ?? '');
             $data['spaceLimit'] = (int) ($_GET['space_limit'] ?? AdminService::DEFAULT_TRAINING_SPACE_LIMIT);
@@ -2192,6 +2197,7 @@ class AdminController extends Controller
             $data['spaceFormLocations'] = $this->adminService->listTrainingLocationsForSpaceForm();
             $data['eligibleSpaceSupervisors'] = $this->adminService->listEligibleSpaceSupervisors();
             $data['spaceAccessibilityOptions'] = (new SpaceAccessibilityService())->options();
+            $data['spaceAccessibilityBarrierOptions'] = (new SpaceAccessibilityService())->barrierOptions();
             $data['trainingSpaces'] = $this->adminService->listTrainingSpacesForManagement(
                 (string) $data['spaceSearch'],
                 (int) $data['spaceLimit']
@@ -2209,6 +2215,7 @@ class AdminController extends Controller
             $data['courseSeasons'] = $courseService->listSeasonsForManagement();
             $data['modalitySchedules'] = $courseService->listModalitySchedulesForManagement();
             $data['modalityPopups'] = $this->modalityPopupService->listAll();
+            $data['courseLocationsManagement'] = $this->adminService->listTrainingLocationsForSpaceForm();
         }
 
         if (in_array($sectionName, ['temporadas', 'turmas', 'turmas-locais'], true)) {
@@ -2377,7 +2384,6 @@ class AdminController extends Controller
                 (int) ($user['conta_id'] ?? 0),
                 (int) ($_POST['modalidade_id'] ?? 0)
             );
-            $modalityPopups = $this->modalityPopupService->listAll();
             $this->jsonResponse(['success' => true, 'message' => 'Modalidade excluída com sucesso.']);
         } catch (\Throwable $e) {
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
@@ -2535,6 +2541,28 @@ class AdminController extends Controller
         }
     }
 
+    public function storeLocationPopup(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $this->locationPopupService->save((int) $user['conta_id'], $_POST);
+            $this->jsonResponse(['success' => true, 'message' => 'Pop-up do local salvo com sucesso.']);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function deleteLocationPopup(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $this->locationPopupService->delete((int) $user['conta_id'], (int) ($_POST['local_popup_id'] ?? 0));
+            $this->jsonResponse(['success' => true, 'message' => 'Pop-up do local excluído com sucesso.']);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
     public function filterCourseClasses(): void
     {
         $this->assertAdminAccess();
@@ -2600,6 +2628,7 @@ class AdminController extends Controller
         $locationLimit = (int) ($_POST['location_limit'] ?? AdminService::DEFAULT_TRAINING_LOCATION_LIMIT);
         $locationLimit = max(1, min(AdminService::MAX_TRAINING_LOCATION_LIMIT, $locationLimit));
         $trainingLocations = $this->adminService->listTrainingLocationsForManagement($locationSearch, $locationLimit);
+        $locationPopups = $this->locationPopupService->listAll();
 
         ob_start();
         require ROOT_PATH . '/app/Views/admin/partials/training_location_rows.php';

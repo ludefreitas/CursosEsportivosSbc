@@ -1485,6 +1485,7 @@ class AdminService
                 et.tipo_espaco,
                 et.capacidade_base,
                 et.acessibilidade_deficiencias_indisponiveis,
+                et.acessibilidade_barreiras,
                 et.supervisor_espaco,
                 et.ativo,
                 lt.id AS local_treino_id,
@@ -1550,6 +1551,13 @@ class AdminService
             $space['acessibilidade_deficiencias_indisponiveis_rotulos'] = $accessibility->labels(
                 $space['acessibilidade_deficiencias_indisponiveis_lista']
             );
+            $space['acessibilidade_barreiras_lista'] = $accessibility->normalizeBarriers(
+                (string) ($space['acessibilidade_barreiras'] ?? ''),
+                $space['acessibilidade_deficiencias_indisponiveis_lista']
+            );
+            $space['acessibilidade_barreiras_rotulos'] = $accessibility->barrierLabels(
+                $space['acessibilidade_barreiras_lista']
+            );
         }
         unset($space);
 
@@ -1591,8 +1599,8 @@ class AdminService
         $payload = $this->validateTrainingSpacePayload($data);
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
-            INSERT INTO espacos_treino (local_treino_id, supervisor_espaco, nome, tipo_espaco, capacidade_base, acessibilidade_deficiencias_indisponiveis, ativo)
-            VALUES (:local_treino_id, :supervisor_espaco, :nome, :tipo_espaco, :capacidade_base, :acessibilidade_deficiencias_indisponiveis, :ativo)
+            INSERT INTO espacos_treino (local_treino_id, supervisor_espaco, nome, tipo_espaco, capacidade_base, acessibilidade_deficiencias_indisponiveis, acessibilidade_barreiras, ativo)
+            VALUES (:local_treino_id, :supervisor_espaco, :nome, :tipo_espaco, :capacidade_base, :acessibilidade_deficiencias_indisponiveis, :acessibilidade_barreiras, :ativo)
         ');
         $stmt->execute($payload);
 
@@ -1623,6 +1631,7 @@ class AdminService
                 tipo_espaco = :tipo_espaco,
                 capacidade_base = :capacidade_base,
                 acessibilidade_deficiencias_indisponiveis = :acessibilidade_deficiencias_indisponiveis,
+                acessibilidade_barreiras = :acessibilidade_barreiras,
                 ativo = :ativo
             WHERE id = :id
         ');
@@ -1645,12 +1654,26 @@ class AdminService
         $name = trim((string) ($data['nome'] ?? ''));
         $type = trim((string) ($data['tipo_espaco'] ?? ''));
         $capacity = max(0, (int) ($data['capacidade_base'] ?? 0));
-        $unavailableAccessibility = (new SpaceAccessibilityService())->encode($data['acessibilidade_deficiencias_indisponiveis'] ?? []);
+        $accessibilityService = new SpaceAccessibilityService();
+        $selectedAccessibility = $accessibilityService->normalize($data['acessibilidade_deficiencias_indisponiveis'] ?? []);
+        $unavailableAccessibility = $accessibilityService->encode($selectedAccessibility);
+        $accessibilityBarriers = $accessibilityService->normalizeBarriers($data['acessibilidade_barreiras'] ?? [], $selectedAccessibility);
+        foreach ($selectedAccessibility as $disability) {
+            if (empty($accessibilityBarriers[$disability])) {
+                $label = $accessibilityService->options()[$disability] ?? $disability;
+                throw new RuntimeException('Informe pelo menos uma barreira de acessibilidade para a deficiência ' . $label . '.');
+            }
+        }
         $active = isset($data['ativo']) && (string) $data['ativo'] === '0' ? 0 : 1;
         $pdo = Database::connection();
 
         if ($locationId <= 0 || $name === '' || $type === '') {
             throw new RuntimeException('Informe o local, o nome e o tipo do espaço.');
+        }
+
+        $hasPool = $this->isPoolSpaceDescription($name, $type);
+        if (!$hasPool && in_array('piscina_sem_equipamento_transferencia', $accessibilityBarriers['fisica'] ?? [], true)) {
+            throw new RuntimeException('A barreira de entrada e saída da água só pode ser usada quando o nome ou o tipo do espaço indicar uma piscina.');
         }
 
         $locationCheck = $pdo->prepare('SELECT 1 FROM locais_treino WHERE id = :id');
@@ -1681,8 +1704,32 @@ class AdminService
             ':tipo_espaco' => $type,
             ':capacidade_base' => $capacity,
             ':acessibilidade_deficiencias_indisponiveis' => $unavailableAccessibility,
+            ':acessibilidade_barreiras' => $accessibilityService->encodeBarriers($accessibilityBarriers, $selectedAccessibility),
             ':ativo' => $active,
         ];
+    }
+
+    private function isPoolSpaceDescription(string $name, string $type): bool
+    {
+        $description = mb_strtolower(trim($name . ' ' . $type), 'UTF-8');
+        $transliterated = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $description);
+        $normalized = strtolower($transliterated !== false ? $transliterated : $description);
+        $normalized = trim((string) preg_replace('/[^a-z0-9]+/', ' ', $normalized));
+
+        if (str_contains($normalized, 'piscin')
+            || preg_match('/tanque.*natacao/', $normalized) === 1
+            || preg_match('/(complexo|centro|area).*aquatic/', $normalized) === 1
+            || str_contains($normalized, 'natatorio')) {
+            return true;
+        }
+
+        foreach (preg_split('/\s+/', $normalized) ?: [] as $word) {
+            if (strlen($word) >= 5 && levenshtein($word, 'piscina') <= 2) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

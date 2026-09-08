@@ -332,6 +332,7 @@ CREATE TABLE IF NOT EXISTS espacos_treino (
     tipo_espaco VARCHAR(80) NOT NULL,
     capacidade_base INT NOT NULL DEFAULT 0,
     acessibilidade_deficiencias_indisponiveis TEXT NULL,
+    acessibilidade_barreiras TEXT NULL,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
     CONSTRAINT fk_espaco_local FOREIGN KEY (local_treino_id) REFERENCES locais_treino(id),
     CONSTRAINT fk_espaco_supervisor FOREIGN KEY (supervisor_espaco) REFERENCES contas(id) ON DELETE SET NULL
@@ -463,6 +464,7 @@ CREATE TABLE IF NOT EXISTS turmas (
     vagas_espera_pvs INT NOT NULL DEFAULT 0,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
     inscricoes_abertas TINYINT(1) NOT NULL DEFAULT 0,
+    status ENUM('planejada', 'processo_inicial', 'periodo_matricula', 'inscricoes_abertas', 'inscricoes_suspensas', 'inscricoes_encerradas') NOT NULL DEFAULT 'planejada',
     CONSTRAINT fk_turmas_temporada FOREIGN KEY (temporada_id) REFERENCES temporadas(id),
     CONSTRAINT fk_turmas_modalidade FOREIGN KEY (modalidade_id) REFERENCES modalidades(id),
     CONSTRAINT fk_turmas_cronograma_modalidade FOREIGN KEY (cronograma_modalidade_id) REFERENCES cronogramas_modalidade(id),
@@ -611,6 +613,7 @@ CREATE TABLE IF NOT EXISTS agenda_horarios_especiais_inscricoes (
 CREATE TABLE IF NOT EXISTS inscricoes_turma (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     turma_id BIGINT UNSIGNED NOT NULL,
+    numero_ordem INT UNSIGNED NOT NULL,
     pessoa_id BIGINT UNSIGNED NOT NULL,
     publico_alvo ENUM('geral', 'pcd', 'plm', 'pvs') NOT NULL DEFAULT 'geral',
     status ENUM('aguardando_matricula', 'matriculada', 'lista_espera', 'cancelada', 'excluida', 'excluida_por_falta', 'desistente', 'suspensa') NOT NULL DEFAULT 'aguardando_matricula',
@@ -626,6 +629,7 @@ CREATE TABLE IF NOT EXISTS inscricoes_turma (
     CONSTRAINT fk_inscricao_criador FOREIGN KEY (inscrito_por_conta_id) REFERENCES contas(id) ON DELETE SET NULL,
     CONSTRAINT fk_inscricao_cancelador FOREIGN KEY (cancelado_por_conta_id) REFERENCES contas(id) ON DELETE SET NULL,
     INDEX idx_inscricoes_turma_pessoa_status (turma_id, pessoa_id, status),
+    UNIQUE INDEX uq_inscricao_numero_ordem_turma (turma_id, numero_ordem),
     INDEX idx_inscricoes_pessoa_status (pessoa_id, status)
 ) ENGINE=InnoDB;
 
@@ -723,6 +727,7 @@ CREATE TABLE IF NOT EXISTS site_popups (
 CREATE TABLE IF NOT EXISTS modalidade_popups (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     modalidade_id BIGINT UNSIGNED NOT NULL,
+    local_treino_id BIGINT UNSIGNED NULL,
     area ENUM('cursos','agenda') NOT NULL,
     titulo VARCHAR(180) NOT NULL,
     texto_principal TEXT NOT NULL,
@@ -737,11 +742,36 @@ CREATE TABLE IF NOT EXISTS modalidade_popups (
     atualizado_por_conta_id BIGINT UNSIGNED NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT NULL,
-    UNIQUE KEY uq_modalidade_popup_area (modalidade_id, area),
+    INDEX idx_modalidade_popup_escopo (modalidade_id, area, local_treino_id),
     INDEX idx_modalidade_popup_publico (area, status, data_inicio, data_fim),
     CONSTRAINT fk_modalidade_popup_modalidade FOREIGN KEY (modalidade_id) REFERENCES modalidades(id),
+    CONSTRAINT fk_modalidade_popup_local FOREIGN KEY (local_treino_id) REFERENCES locais_treino(id),
     CONSTRAINT fk_modalidade_popup_criador FOREIGN KEY (criado_por_conta_id) REFERENCES contas(id),
     CONSTRAINT fk_modalidade_popup_atualizador FOREIGN KEY (atualizado_por_conta_id) REFERENCES contas(id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS local_popups (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    local_treino_id BIGINT UNSIGNED NOT NULL,
+    area ENUM('cursos','agenda') NOT NULL,
+    titulo VARCHAR(180) NOT NULL,
+    texto_principal TEXT NOT NULL,
+    texto_secundario TEXT NULL,
+    imagem_url VARCHAR(255) NULL,
+    rotulo_acao VARCHAR(90) NULL,
+    url_acao VARCHAR(255) NULL,
+    data_inicio DATETIME NOT NULL,
+    data_fim DATETIME NOT NULL,
+    status ENUM('ativo','arquivado','excluido') NOT NULL DEFAULT 'ativo',
+    criado_por_conta_id BIGINT UNSIGNED NOT NULL,
+    atualizado_por_conta_id BIGINT UNSIGNED NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT NULL,
+    UNIQUE KEY uq_local_popup_area (local_treino_id, area),
+    INDEX idx_local_popup_publico (area, status, data_inicio, data_fim),
+    CONSTRAINT fk_local_popup_local FOREIGN KEY (local_treino_id) REFERENCES locais_treino(id),
+    CONSTRAINT fk_local_popup_criador FOREIGN KEY (criado_por_conta_id) REFERENCES contas(id),
+    CONSTRAINT fk_local_popup_atualizador FOREIGN KEY (atualizado_por_conta_id) REFERENCES contas(id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS home_quadros_informativos (

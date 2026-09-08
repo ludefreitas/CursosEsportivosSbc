@@ -806,6 +806,19 @@
 
             let agendaModalityNoticeContinuation = null;
             function continueAgendaModalitySelection($button) { $button.data('modalityPopupConfirmed', true).trigger('click'); }
+            function openAgendaModalityNotice(modalityId, locationId, continuation) {
+                $.getJSON(App.core.buildUrl('/api/modalidades/popup'), { modalidade_id: modalityId, area: 'agenda', local_treino_id: locationId }).done(function(response){
+                    const popup=response&&response.popup;
+                    if(!popup){continuation();return;}
+                    agendaModalityNoticeContinuation=continuation;
+                    $('#agenda-modality-notice-title').text(String(popup.titulo||'Aviso da modalidade'));
+                    $('#agenda-modality-notice-main').text(String(popup.texto_principal||''));
+                    $('#agenda-modality-notice-secondary').text(String(popup.texto_secundario||'')).toggleClass('hidden',!popup.texto_secundario);
+                    const image=String(popup.imagem_url||''); $('#agenda-modality-notice-media').toggleClass('hidden',!image); $('#agenda-modality-notice-image').attr('src',image).attr('alt',String(popup.titulo||'Aviso'));
+                    const label=String(popup.rotulo_acao||''), url=String(popup.url_acao||''); $('#agenda-modality-notice-action').toggleClass('hidden',!label||!url).text(label).attr('href',url||'#');
+                    $('#agenda-modality-notice-modal').removeClass('hidden').attr('aria-hidden','false');
+                }).fail(continuation);
+            }
             $(document).on('click', '#agenda-modality-notice-continue', function () { const callback=agendaModalityNoticeContinuation; agendaModalityNoticeContinuation=null; $('#agenda-modality-notice-modal').addClass('hidden').attr('aria-hidden','true'); if(callback) callback(); });
             $(document).on('click', '[data-agenda-modality-notice-close="1"]', function () { agendaModalityNoticeContinuation=null; $('#agenda-modality-notice-modal').addClass('hidden').attr('aria-hidden','true'); });
 
@@ -819,18 +832,14 @@
                 if (kind !== 'local' && kind !== 'modalidade') {
                     return;
                 }
-                if (kind === 'modalidade' && !$button.data('modalityPopupConfirmed')) {
-                    $.getJSON(App.core.buildUrl('/api/modalidades/popup'), { modalidade_id: value, area: 'agenda' }).done(function(response){
-                        const popup=response&&response.popup;
-                        if(!popup){continueAgendaModalitySelection($button);return;}
-                        agendaModalityNoticeContinuation=function(){continueAgendaModalitySelection($button);};
-                        $('#agenda-modality-notice-title').text(String(popup.titulo||'Aviso da modalidade'));
-                        $('#agenda-modality-notice-main').text(String(popup.texto_principal||''));
-                        $('#agenda-modality-notice-secondary').text(String(popup.texto_secundario||'')).toggleClass('hidden',!popup.texto_secundario);
-                        const image=String(popup.imagem_url||''); $('#agenda-modality-notice-media').toggleClass('hidden',!image); $('#agenda-modality-notice-image').attr('src',image).attr('alt',String(popup.titulo||'Aviso'));
-                        const label=String(popup.rotulo_acao||''), url=String(popup.url_acao||''); $('#agenda-modality-notice-action').toggleClass('hidden',!label||!url).text(label).attr('href',url||'#');
-                        $('#agenda-modality-notice-modal').removeClass('hidden').attr('aria-hidden','false');
-                    }).fail(function(){continueAgendaModalitySelection($button);});
+                const currentLocationId = Number($('#agenda-local-filter').val() || 0);
+                const currentModalityId = Number($('#agenda-modality-filter').val() || 0);
+                if (kind === 'modalidade' && currentLocationId > 0 && !$button.data('modalityPopupConfirmed')) {
+                    openAgendaModalityNotice(value, currentLocationId, function(){continueAgendaModalitySelection($button);});
+                    return;
+                }
+                if (kind === 'local' && currentModalityId > 0 && !$button.data('modalityPopupConfirmed')) {
+                    openAgendaModalityNotice(currentModalityId, value, function(){continueAgendaModalitySelection($button);});
                     return;
                 }
                 $button.removeData('modalityPopupConfirmed');

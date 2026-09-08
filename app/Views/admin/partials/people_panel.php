@@ -584,7 +584,7 @@
     </div>
 </div>
 
-<?php if (empty($professorView)) { ?><div class="popup-overlay hidden" id="admin-user-roles-modal" aria-hidden="true">
+<?php if (empty($professorView) && !empty($canManageRoles)) { ?><div class="popup-overlay hidden" id="admin-user-roles-modal" aria-hidden="true">
     <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-user-roles-title">
         <div class="popup-head admin-popup-head">
             <div>

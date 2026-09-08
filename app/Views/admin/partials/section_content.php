@@ -2041,6 +2041,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 <th>Administrador</th>
                                 <th>Coordenador</th>
                                 <th>Status</th>
+                                <th>Pop-ups públicos</th>
                                 <th>Ação</th>
                             </tr>
                         </thead>
@@ -2051,6 +2052,21 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 </div>
             </article>
         </section>
+
+        <div class="popup-overlay hidden" id="admin-location-popup-modal" aria-hidden="true"><div class="popup-card popup-admin-card" role="dialog" aria-modal="true">
+            <div class="popup-head"><div><h3 id="admin-location-popup-title">Criar pop-up do local</h3><p class="muted" id="admin-location-popup-subtitle"></p></div><button type="button" class="popup-close-icon" data-location-popup-close="1" aria-label="Fechar">&times;</button></div>
+            <div class="popup-body"><form class="stack-form" id="admin-location-popup-form" data-manual-submit="1">
+                <input type="hidden" name="local_popup_id"><input type="hidden" name="local_treino_id"><input type="hidden" name="area" value="cursos">
+                <div class="admin-modality-popup-fixed-area"><strong>Área de exibição:</strong> <span id="admin-location-popup-area-label">Inscrições dos cursos esportivos</span></div>
+                <div class="grid-two"><label><span>Título</span><input type="text" name="titulo" maxlength="180" required></label><label><span>Status</span><select name="status"><option value="ativo">Ativo</option><option value="arquivado">Arquivado</option></select></label></div>
+                <label><span>Texto principal</span><textarea name="texto_principal" rows="3" required></textarea></label>
+                <label><span>Texto secundário</span><textarea name="texto_secundario" rows="2"></textarea></label>
+                <label><span>Imagem (URL)</span><input type="text" name="imagem_url" placeholder="https://... ou /assets/imagens/..."></label>
+                <div class="grid-two"><label><span>Rótulo do botão ou link</span><input type="text" name="rotulo_acao" maxlength="90"></label><label><span>URL de destino</span><input type="text" name="url_acao"></label></div>
+                <div class="grid-two"><label><span>Início da exibição</span><input type="datetime-local" name="data_inicio" required></label><label><span>Fim da exibição</span><input type="datetime-local" name="data_fim" required></label></div>
+                <div class="popup-actions"><button type="button" class="btn btn-danger hidden" id="admin-location-popup-delete">Excluir</button><button type="button" class="btn btn-secondary" data-location-popup-close="1">Cancelar</button><button type="submit" class="btn btn-primary">Salvar pop-up</button></div>
+            </form></div>
+        </div></div>
 
         <div id="admin-external-location-modal" class="popup-overlay hidden" aria-hidden="true" data-list-url="<?php echo e(url('/admin/migracao-locais/lista')); ?>">
             <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-external-location-title">
@@ -2327,12 +2343,23 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <fieldset class="stack-form admin-space-accessibility-options">
                             <legend>Acessibilidade do espaço</legend>
                             <p class="muted">Marque somente as deficiências para as quais este espaço não oferece acessibilidade adequada. A informação gerará um aviso, sem impedir o agendamento ou a inscrição.</p>
-                            <div class="chips-wrap">
+                            <div class="admin-space-accessibility-list">
                                 <?php foreach (($spaceAccessibilityOptions ?? []) as $accessibilitySlug => $accessibilityLabel) { ?>
-                                    <label class="checkbox-line">
-                                        <input type="checkbox" name="acessibilidade_deficiencias_indisponiveis[]" value="<?php echo e((string) $accessibilitySlug); ?>">
-                                        <span><?php echo e((string) $accessibilityLabel); ?></span>
-                                    </label>
+                                    <div class="admin-space-accessibility-item" data-space-accessibility-item="<?php echo e((string) $accessibilitySlug); ?>">
+                                        <label class="checkbox-line">
+                                            <input type="checkbox" name="acessibilidade_deficiencias_indisponiveis[]" value="<?php echo e((string) $accessibilitySlug); ?>" data-space-accessibility-toggle="<?php echo e((string) $accessibilitySlug); ?>">
+                                            <span><?php echo e((string) $accessibilityLabel); ?></span>
+                                        </label>
+                                        <div class="admin-space-accessibility-barriers hidden" data-space-accessibility-barriers="<?php echo e((string) $accessibilitySlug); ?>">
+                                            <small>Indique a barreira existente:</small>
+                                            <?php foreach (($spaceAccessibilityBarrierOptions[$accessibilitySlug] ?? []) as $barrierSlug => $barrierLabel) { ?>
+                                                <label class="checkbox-line" <?php echo $barrierSlug === 'piscina_sem_equipamento_transferencia' ? 'data-pool-only-barrier="1"' : ''; ?>>
+                                                    <input type="checkbox" name="acessibilidade_barreiras[<?php echo e((string) $accessibilitySlug); ?>][]" value="<?php echo e((string) $barrierSlug); ?>">
+                                                    <span><?php echo e((string) $barrierLabel); ?></span>
+                                                </label>
+                                            <?php } ?>
+                                        </div>
+                                    </div>
                                 <?php } ?>
                             </div>
                         </fieldset>
@@ -2465,6 +2492,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             <div class="popup-body"><form class="stack-form" id="admin-modality-popup-form" data-manual-submit="1">
                 <input type="hidden" name="modalidade_popup_id"><input type="hidden" name="modalidade_id"><input type="hidden" name="area" value="cursos">
                 <div class="admin-modality-popup-fixed-area"><strong>Área de exibição:</strong> <span id="admin-modality-popup-area-label">Inscrições dos cursos esportivos</span></div>
+                <label><span>Local de exibição (opcional)</span><select name="local_treino_id"><option value="">Todos os locais</option><?php foreach (($courseLocationsManagement ?? []) as $location) { ?><option value="<?php echo e((string) $location['id']); ?>"><?php echo e((string) ($location['apelido_local'] ?: $location['nome_local'])); ?></option><?php } ?></select><small class="muted">Sem selecionar um local, o aviso será exibido para esta modalidade em todos os locais. Um aviso específico do local terá prioridade.</small></label>
                 <div class="grid-two"><label><span>Título</span><input type="text" name="titulo" maxlength="180" required></label><label><span>Status</span><select name="status"><option value="ativo">Ativo</option><option value="arquivado">Arquivado</option></select></label></div>
                 <label><span>Texto principal</span><textarea name="texto_principal" rows="3" required></textarea></label>
                 <label><span>Texto secundário</span><textarea name="texto_secundario" rows="2"></textarea></label>

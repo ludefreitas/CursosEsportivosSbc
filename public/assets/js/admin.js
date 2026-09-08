@@ -3650,6 +3650,55 @@
                 }, 250);
             });
 
+            function closeLocationPopupModal() { $('#admin-location-popup-modal').addClass('hidden').attr('aria-hidden', 'true'); }
+            function fillLocationPopupForm(record) {
+                const $form = $('#admin-location-popup-form');
+                $form.get(0).reset();
+                Object.keys(record || {}).forEach(function (key) {
+                    const $field = $form.find('[name="' + key + '"]');
+                    if (!$field.length) return;
+                    $field.val($field.attr('type') === 'datetime-local' ? String(record[key] || '').replace(' ', 'T').slice(0, 16) : String(record[key] == null ? '' : record[key]));
+                });
+                const editing = Number(record && record.id || 0) > 0;
+                const area = String(record && record.area || 'cursos');
+                $form.find('[name="local_popup_id"]').val(editing ? String(record.id) : '');
+                $form.find('[name="area"]').val(area);
+                $('#admin-location-popup-area-label').text(area === 'agenda' ? 'Agenda pública' : 'Inscrições dos cursos esportivos');
+                $('#admin-location-popup-title').text(editing ? 'Editar pop-up do local' : 'Criar pop-up do local');
+                $('#admin-location-popup-subtitle').text(String(record.apelido_local || record.nome_local || record.local_nome || ''));
+                $('#admin-location-popup-delete').toggleClass('hidden', !editing).attr('data-popup-id', editing ? String(record.id) : '');
+            }
+            $(document).on('click', '.admin-location-popup-create', function () {
+                const $modal = $('#admin-location-popup-modal');
+                if ($modal.length === 0) {
+                    App.core.abrirPopup('erro', 'Não foi possível carregar o formulário do pop-up do local. Atualize a seção e tente novamente.');
+                    return;
+                }
+                fillLocationPopupForm({local_treino_id:$(this).attr('data-location-id'),local_nome:$(this).attr('data-location-name'),area:$(this).attr('data-popup-area'),status:'ativo'});
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+            });
+            $(document).on('click', '.admin-location-popup-manage', function () {
+                let record={}; try{record=JSON.parse(String($(this).attr('data-popup')||'{}'));}catch(error){record={};}
+                fillLocationPopupForm(record); $('#admin-location-popup-modal').removeClass('hidden').attr('aria-hidden', 'false');
+            });
+            $(document).on('click', '[data-location-popup-close="1"], #admin-location-popup-modal', function (event) {
+                if ($(event.target).is('#admin-location-popup-modal') || $(event.target).is('[data-location-popup-close="1"]')) closeLocationPopupModal();
+            });
+            $(document).on('submit', '#admin-location-popup-form', function (event) {
+                event.preventDefault(); const $form=$(this), $button=$form.find('[type="submit"]').prop('disabled',true);
+                $.post(App.core.buildUrl('/admin/locais/popups'),$form.serialize(),function(response){
+                    if(!response||response.success===false){App.core.abrirPopup('erro',String(response&&response.message||'Não foi possível salvar o pop-up.'));return;}
+                    closeLocationPopupModal(); App.admin.activateSection('locais-espacos'); App.core.abrirPopup('sucesso',String(response.message));
+                },'json').fail(function(xhr){App.core.abrirPopup('erro',App.core.extrairMensagemErroAjax(xhr).mensagem);}).always(function(){$button.prop('disabled',false);});
+            });
+            $(document).on('click', '#admin-location-popup-delete', function () {
+                const id=Number($(this).attr('data-popup-id')||0); if(!id||!window.confirm('Deseja excluir este pop-up do local?')) return;
+                $.post(App.core.buildUrl('/admin/locais/popups/excluir'),{local_popup_id:id},function(response){
+                    if(!response||response.success===false){App.core.abrirPopup('erro',String(response&&response.message||'Não foi possível excluir.'));return;}
+                    closeLocationPopupModal(); App.admin.activateSection('locais-espacos'); App.core.abrirPopup('sucesso',String(response.message));
+                },'json').fail(function(xhr){App.core.abrirPopup('erro',App.core.extrairMensagemErroAjax(xhr).mensagem);});
+            });
+
         },
 
         iniciarFiltroEspacosTreino: function () {
@@ -3796,6 +3845,7 @@
                 $form.find('input[name="nome"]').val(String(space.nome_espaco || ''));
                 $form.find('input[name="tipo_espaco"]').val(String(space.descricao || 'Espaço esportivo').slice(0, 80));
                 $form.find('input[name="capacidade_base"]').val('0');
+                syncSpaceAccessibilityBarriers($form);
                 $('#admin-external-space-modal').addClass('hidden').attr('aria-hidden', 'true');
                 getModal().removeClass('hidden').attr('aria-hidden', 'false');
                 if (!space.local_treino_id) {
@@ -3814,6 +3864,58 @@
                 getModal().addClass('hidden').attr('aria-hidden', 'true');
             }
 
+            function syncSpaceAccessibilityBarriers($form) {
+                const hasPool = inferPoolSpace($form);
+                $form.find('[data-pool-only-barrier="1"]').toggleClass('hidden', !hasPool);
+                if (!hasPool) {
+                    $form.find('[data-pool-only-barrier="1"] input[type="checkbox"]').prop('checked', false);
+                }
+                $form.find('[data-space-accessibility-toggle]').each(function () {
+                    const slug = String($(this).attr('data-space-accessibility-toggle') || '');
+                    const selected = $(this).is(':checked');
+                    const $barriers = $form.find('[data-space-accessibility-barriers="' + slug + '"]');
+                    $barriers.toggleClass('hidden', !selected);
+                    $barriers.find('input[type="checkbox"]').prop('required', false);
+                    if (!selected) {
+                        $barriers.find('input[type="checkbox"]').prop('checked', false);
+                    }
+                });
+            }
+
+            function normalizeSpaceDescription(value) {
+                return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+            }
+
+            function editDistance(left, right) {
+                const a = String(left || '');
+                const b = String(right || '');
+                const row = Array.from({ length: b.length + 1 }, function (_, index) { return index; });
+                for (let i = 1; i <= a.length; i += 1) {
+                    let previous = row[0];
+                    row[0] = i;
+                    for (let j = 1; j <= b.length; j += 1) {
+                        const saved = row[j];
+                        row[j] = Math.min(row[j] + 1, row[j - 1] + 1, previous + (a[i - 1] === b[j - 1] ? 0 : 1));
+                        previous = saved;
+                    }
+                }
+                return row[b.length];
+            }
+
+            function inferPoolSpace($form) {
+                const description = normalizeSpaceDescription(
+                    String($form.find('[name="nome"]').val() || '') + ' ' + String($form.find('[name="tipo_espaco"]').val() || '')
+                );
+                if (description === '') return false;
+                const words = description.split(/\s+/);
+                const poolMatch = description.indexOf('piscin') !== -1
+                    || /tanque.*natacao/.test(description)
+                    || /(complexo|centro|area).*aquatic/.test(description)
+                    || description.indexOf('natatorio') !== -1
+                    || words.some(function (word) { return word.length >= 5 && editDistance(word, 'piscina') <= 2; });
+                return poolMatch;
+            }
+
             function prepareCreate() {
                 const $form = $('#admin-training-space-form');
 
@@ -3823,6 +3925,7 @@
                 $form.attr('action', String($form.data('createAction') || ''));
                 $form.find('input[name="espaco_treino_id"]').val('');
                 $form.find('input[name="espaco_externo_migracao_id"]').val('');
+                syncSpaceAccessibilityBarriers($form);
                 $('#admin-training-space-modal-title').text('Criar espaço de treino');
                 $('#admin-training-space-submit').text('Cadastrar espaço');
             }
@@ -3852,6 +3955,16 @@
                 $form.find('input[name="acessibilidade_deficiencias_indisponiveis[]"]').each(function () {
                     $(this).prop('checked', unavailableAccessibility.indexOf(String($(this).val())) !== -1);
                 });
+                const accessibilityBarriers = space.acessibilidade_barreiras && typeof space.acessibilidade_barreiras === 'object'
+                    ? space.acessibilidade_barreiras
+                    : {};
+                $form.find('input[name^="acessibilidade_barreiras["]').each(function () {
+                    const match = String($(this).attr('name') || '').match(/^acessibilidade_barreiras\[([^\]]+)\]/);
+                    const disability = match ? match[1] : '';
+                    const selectedBarriers = Array.isArray(accessibilityBarriers[disability]) ? accessibilityBarriers[disability].map(String) : [];
+                    $(this).prop('checked', selectedBarriers.indexOf(String($(this).val())) !== -1);
+                });
+                syncSpaceAccessibilityBarriers($form);
                 $form.find('select[name="ativo"]').val(String(Number(space.ativo || 0)));
                 $('#admin-training-space-modal-title').text('Editar espaço de treino');
                 $('#admin-training-space-submit').text('Salvar alterações');
@@ -3862,6 +3975,18 @@
                 event.preventDefault();
 
                 const $form = $(this);
+                let missingBarrierLabel = '';
+                $form.find('[data-space-accessibility-toggle]:checked').each(function () {
+                    const slug = String($(this).attr('data-space-accessibility-toggle') || '');
+                    const hasBarrier = $form.find('[data-space-accessibility-barriers="' + slug + '"] input[type="checkbox"]:checked').length > 0;
+                    if (!hasBarrier && missingBarrierLabel === '') {
+                        missingBarrierLabel = String($(this).siblings('span').text() || slug);
+                    }
+                });
+                if (missingBarrierLabel !== '') {
+                    App.core.abrirPopup('erro', 'Informe pelo menos uma barreira de acessibilidade para a deficiência ' + missingBarrierLabel + '.');
+                    return;
+                }
                 const $button = $form.find('button[type="submit"]').first();
                 const $filterForm = $('#admin-training-space-filter-form');
                 const data = $form.serialize() + '&' + $.param({
@@ -3896,6 +4021,14 @@
                 }).always(function () {
                     $button.prop('disabled', false);
                 });
+            });
+
+            $(document).on('change', '#admin-training-space-form [data-space-accessibility-toggle]', function () {
+                syncSpaceAccessibilityBarriers($(this).closest('form'));
+            });
+
+            $(document).on('input change', '#admin-training-space-form [name="nome"], #admin-training-space-form [name="tipo_espaco"]', function () {
+                syncSpaceAccessibilityBarriers($(this).closest('form'));
             });
 
             $(document).on('click', '#admin-training-space-close, #admin-training-space-cancel', closeModal);
@@ -4429,6 +4562,7 @@
                     $modal().removeClass('hidden').attr('aria-hidden', 'false');
                 }).fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); });
             });
+
             $(document).on('click', '.admin-modality-delete', function () {
                 const $button = $(this);
                 const id = Number($button.data('modalityId') || 0);
@@ -5361,6 +5495,17 @@
             function openModal(type, record) {
                 const $modal = modalFor(type);
                 const $form = $modal.find('[data-course-form="' + type + '"]');
+                if ($modal.length === 0 || $form.length === 0) {
+                    App.core.abrirPopup('erro', 'Não foi possível carregar o formulário solicitado. Atualize a seção e tente novamente.');
+                    return;
+                }
+                // Permite que o evento AJAX trate também formulários incompletos e
+                // apresente claramente o primeiro campo inválido dentro do modal.
+                $form.attr({
+                    novalidate: 'novalidate',
+                    'data-own-submit-validation': '1',
+                    'data-manual-submit': '1'
+                });
                 if ($form.find('[name="operacao"]').length === 0) {
                     $form.append($('<input>', { type: 'hidden', name: 'operacao' }));
                 }
@@ -5385,13 +5530,30 @@
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
             }
 
-            function replacePanel(response) {
+            function replacePanel(response, classFilterState) {
                 if (!response || !response.html) return false;
                 const $updatedPanel = $(String(response.html)).first();
                 const sectionName = String($updatedPanel.attr('data-admin-section') || '');
                 if (!sectionName) return false;
                 $('[data-admin-section="' + sectionName + '"]').replaceWith($updatedPanel);
-                initializeAdminClassBrowsers($updatedPanel);
+                const $browser = $updatedPanel.find('[data-admin-class-browser]').first();
+                if (classFilterState && $browser.length) {
+                    $browser.find('[data-class-season]').removeClass('is-active');
+                    const $season = $browser.find('[data-class-season="' + String(classFilterState.seasonId || '') + '"]').first();
+                    ($season.length ? $season : $browser.find('[data-class-season]').first()).addClass('is-active');
+                    layoutClassFilterLine($browser.find('[data-class-filter-line="season"]'));
+                    loadAdminClassBrowser($browser, '').done(function (filterResponse) {
+                        if (!filterResponse || filterResponse.success === false) return;
+                        const groupId = String(classFilterState.groupId || '');
+                        const $group = $browser.find('[data-class-group="' + groupId + '"]').first();
+                        if (!$group.length) return;
+                        $browser.find('[data-class-group]').removeClass('is-active');
+                        $group.addClass('is-active');
+                        loadAdminClassBrowser($browser, groupId);
+                    });
+                } else {
+                    initializeAdminClassBrowsers($updatedPanel);
+                }
                 return true;
             }
 
@@ -5417,7 +5579,7 @@
                 const selectedGroupId = String(groupId || '');
                 if (!seasonId || !url) return;
                 $browser.addClass('is-loading');
-                $.ajax({
+                return $.ajax({
                     url: url,
                     method: 'GET',
                     dataType: 'json',
@@ -5480,8 +5642,6 @@
                 window.clearTimeout(App.state.adminClassBrowserResizeTimer);
                 App.state.adminClassBrowserResizeTimer = window.setTimeout(function () { $('[data-admin-class-browser]').each(function () { layoutClassFilterLine($(this).find('[data-class-filter-line="season"]')); layoutClassFilterLine($(this).find('[data-class-group-line]:not(.hidden)')); }); }, 120);
             });
-            initializeAdminClassBrowsers($(document));
-
             $(document).on('click', '[data-course-create]', function () {
                 openModal(String($(this).attr('data-course-create') || ''), null);
             });
@@ -5539,14 +5699,76 @@
             });
             $(document).on('click', '#course-season-modal, #course-class-modal', function (event) { if (event.target === this) closeModals(); });
 
-            $(document).on('submit', '[data-course-form="season"], [data-course-form="class"]', function (event) {
-                event.preventDefault();
-                const $form = $(this);
-                if ($form.is('[data-course-form="season"]') && !validateCoursePeriodChronology($form)) { $form.get(0).reportValidity(); return; }
+            function saveCourseForm($form) {
+                if (!$form.length || $form.attr('data-course-saving') === '1') return;
+                const $currentClassBrowser = $form.closest('[data-admin-section]').find('[data-admin-class-browser]').first();
+                const classFilterState = $form.is('[data-course-form="class"]') && $currentClassBrowser.length ? {
+                    seasonId: String($currentClassBrowser.find('[data-class-season].is-active').attr('data-class-season') || ''),
+                    groupId: String($currentClassBrowser.find('[data-class-group].is-active').attr('data-class-group') || '')
+                } : null;
+                function showFirstInvalid(message) {
+                    const formElement = $form.get(0);
+                    let firstInvalid = formElement.__appFirstInvalidField
+                        || $form.find('.field-invalid').get(0)
+                        || null;
+                    // O pseudo-seletor :invalid não é suportado de forma segura
+                    // por todas as versões do jQuery. Uma exceção aqui interrompia
+                    // o clique antes da abertura do aviso, fazendo o botão parecer
+                    // sem ação.
+                    if (!firstInvalid) {
+                        $form.find('input, select, textarea').each(function () {
+                            if (firstInvalid || this.disabled || String(this.type || '').toLowerCase() === 'hidden' || $(this).closest('.hidden').length > 0) return;
+                            if (typeof this.checkValidity === 'function' && !this.checkValidity()) {
+                                App.core.validarCampoInline(this, true);
+                                firstInvalid = this;
+                            }
+                        });
+                    }
+                    if (firstInvalid) {
+                        const $invalid = $(firstInvalid);
+                        const $label = $invalid.closest('label');
+                        const fieldName = String(
+                            $label.children('span').first().clone().children().remove().end().text()
+                                || $invalid.attr('aria-label')
+                                || $invalid.attr('name')
+                                || 'Campo'
+                        ).trim();
+                        $form.find('.field-invalid-container').removeClass('field-invalid-container');
+                        $label.addClass('field-invalid-container');
+                        message += ' Campo: ' + fieldName + '.';
+
+                        // O aviso geral cobre o formulário enquanto está aberto.
+                        // Ao fechá-lo, posiciona o campo dentro da rolagem do modal
+                        // para que o destaque e a explicação inline fiquem visíveis.
+                        App.core.abrirPopup('erro', message, function () {
+                            firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            window.setTimeout(function () {
+                                try { firstInvalid.focus({ preventScroll: true }); } catch (error) { firstInvalid.focus(); }
+                            }, 180);
+                        });
+                        return;
+                    }
+                    App.core.abrirPopup('erro', 'Não foi possível identificar o campo inválido. Feche o formulário, abra-o novamente e tente salvar.');
+                }
+                if ($form.is('[data-course-form="season"]') && !validateCoursePeriodChronology($form)) {
+                    App.core.validarFormularioInline($form.get(0));
+                    showFirstInvalid('Revise as datas da temporada destacadas no formulário antes de salvar.');
+                    return;
+                }
+                // validarFormularioInline já reúne as regras required, formato,
+                // limites nativos e mensagens remotas. Não chame checkValidity()
+                // novamente aqui: ele dispara o listener global de `invalid`, que
+                // pode limpar uma validade antiga durante a própria consulta e
+                // devolver false quando nenhum campo continua inválido.
+                if (!App.core.validarFormularioInline($form.get(0))) {
+                    showFirstInvalid('Preencha ou corrija o campo destacado antes de salvar.');
+                    return;
+                }
                 if (String($form.find('[name="operacao"]').val() || '') === 'editar' && Number($form.find('[name="id"]').val() || 0) <= 0) {
                     App.core.abrirPopup('erro', 'Não foi possível identificar o registro que será editado. Feche o modal e tente novamente.');
                     return;
                 }
+                $form.attr('data-course-saving', '1');
                 const $button = $form.find('button[type="submit"]').prop('disabled', true);
                 $.ajax({
                     url: $form.attr('action'), method: 'POST', dataType: 'json', data: new FormData($form[0]),
@@ -5554,10 +5776,34 @@
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
                 }).done(function (response) {
                     if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar o registro.')); return; }
-                    replacePanel(response);
+                    replacePanel(response, classFilterState);
                     App.core.abrirPopup('sucesso', String(response.message || 'Registro salvo com sucesso.'));
                 }).fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); })
-                    .always(function () { $button.prop('disabled', false); });
+                    .always(function () { $form.removeAttr('data-course-saving'); $button.prop('disabled', false); });
+            }
+
+            // O clique chama diretamente o salvamento. Assim, a atualização não
+            // depende do submit nativo, que o navegador pode bloquear antes de o
+            // manipulador AJAX receber o evento.
+            $(document).on('click', '[data-course-form="season"] button[type="submit"], [data-course-form="class"] button[type="submit"]', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                try {
+                    saveCourseForm($(this).closest('form'));
+                } catch (error) {
+                    window.console.error('Falha ao salvar temporada ou turma.', error);
+                    App.core.abrirPopup('erro', 'Não foi possível validar o formulário. Feche esta mensagem e tente novamente.');
+                }
+            });
+
+            $(document).on('submit', '[data-course-form="season"], [data-course-form="class"]', function (event) {
+                event.preventDefault();
+                try {
+                    saveCourseForm($(this));
+                } catch (error) {
+                    window.console.error('Falha ao salvar temporada ou turma.', error);
+                    App.core.abrirPopup('erro', 'Não foi possível validar o formulário. Feche esta mensagem e tente novamente.');
+                }
             });
 
             $(document).on('submit', 'form[data-course-deactivate="1"]', function (event) {
@@ -5575,6 +5821,11 @@
                 }).fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); })
                     .always(function () { $button.prop('disabled', false); });
             });
+
+            // A montagem inicial dos filtros pode consultar conteúdo carregado por
+            // AJAX. Ela fica por último para nunca impedir o registro dos eventos
+            // de criar, editar e salvar temporada/turma.
+            initializeAdminClassBrowsers($(document));
         },
 
         iniciarGerenciamentoOrigensTemporada: function () {
@@ -5663,27 +5914,42 @@
         },
 
         init: function () {
-            App.admin.iniciarSecoesAdmin();
-            App.admin.iniciarEditorPessoaAdmin();
-            App.admin.iniciarConsultaUsuariosAdmin();
-            App.admin.iniciarGerenciamentoPapeisAdmin();
-            App.admin.iniciarFiltroPessoasAdmin();
-            App.admin.iniciarEditorHorariosSemanais();
-            App.admin.iniciarEditorEventosEspeciais();
-            App.admin.iniciarValidacaoCondicoesAdmin();
-            App.admin.iniciarValidacaoAtestadosSaudeAdmin();
-            App.admin.iniciarEditorPostagensBlog();
-            App.admin.iniciarEditorComunicacaoOficialAdmin();
-            App.admin.iniciarBuscaEnderecoCep();
-            App.admin.iniciarFiltroLocaisTreino();
-            App.admin.iniciarFiltroEspacosTreino();
-            App.admin.iniciarGerenciamentoModalidades();
-            App.admin.iniciarEditorEspacosTreino();
-            App.admin.iniciarModalSuspensoesLocal();
-            App.admin.iniciarEditorConteudoHome();
-            App.admin.iniciarMigracaoCadastrosExternos();
-            App.admin.iniciarGerenciamentoTemporadasTurmas();
-            App.admin.iniciarGerenciamentoOrigensTemporada();
+            const initializers = [
+                'iniciarSecoesAdmin',
+                // Estes módulos controlam ações essenciais carregadas por AJAX e
+                // devem ser preparados antes dos componentes administrativos mais
+                // complexos.
+                'iniciarFiltroLocaisTreino',
+                'iniciarGerenciamentoTemporadasTurmas',
+                'iniciarEditorPessoaAdmin',
+                'iniciarConsultaUsuariosAdmin',
+                'iniciarGerenciamentoPapeisAdmin',
+                'iniciarFiltroPessoasAdmin',
+                'iniciarEditorHorariosSemanais',
+                'iniciarEditorEventosEspeciais',
+                'iniciarValidacaoCondicoesAdmin',
+                'iniciarValidacaoAtestadosSaudeAdmin',
+                'iniciarEditorPostagensBlog',
+                'iniciarEditorComunicacaoOficialAdmin',
+                'iniciarBuscaEnderecoCep',
+                'iniciarFiltroEspacosTreino',
+                'iniciarGerenciamentoModalidades',
+                'iniciarEditorEspacosTreino',
+                'iniciarModalSuspensoesLocal',
+                'iniciarEditorConteudoHome',
+                'iniciarMigracaoCadastrosExternos',
+                'iniciarGerenciamentoOrigensTemporada'
+            ];
+
+            initializers.forEach(function (initializer) {
+                try {
+                    App.admin[initializer]();
+                } catch (error) {
+                    // Um componente com falha não deve desativar os botões e
+                    // formulários das demais áreas administrativas.
+                    window.console.error('Falha ao iniciar o módulo administrativo ' + initializer + '.', error);
+                }
+            });
         }
     });
 

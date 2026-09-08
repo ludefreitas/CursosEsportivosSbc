@@ -383,7 +383,22 @@
                 return '';
             }
 
-            if (!field || field.disabled || type === 'hidden' || $field.closest('.hidden').length > 0) {
+            if (!field) {
+                return true;
+            }
+
+            if (field.disabled || type === 'hidden' || $field.closest('.hidden').length > 0) {
+                // Um campo condicional pode ter recebido customValidity antes de
+                // ser ocultado. Se esse erro não for removido, checkValidity()
+                // bloqueia o formulário por um campo invisível e nenhum destaque
+                // é apresentado ao usuário.
+                field.setCustomValidity('');
+                $field
+                    .removeClass('field-invalid')
+                    .removeAttr('aria-invalid data-validation-touched data-remote-validation-error data-period-validation-error');
+                $field.closest('label').removeClass('field-invalid-container');
+                const $hiddenMessage = $field.siblings('.field-validation-message').first();
+                if ($hiddenMessage.length) $hiddenMessage.addClass('hidden').text('');
                 return true;
             }
 
@@ -525,6 +540,9 @@
             $field
                 .toggleClass('field-invalid', shouldShow)
                 .attr('aria-invalid', shouldShow ? 'true' : 'false');
+            if ($label.length > 0) {
+                $label.toggleClass('field-invalid-container', shouldShow);
+            }
             if ($message.length > 0) {
                 $message.text(shouldShow && !isCompactHeaderLogin ? message : '').toggleClass('hidden', !shouldShow || isCompactHeaderLogin);
             }
@@ -558,6 +576,11 @@
             const $form = $(form);
             let firstInvalid = null;
 
+            // Limpa a referência da tentativa anterior. O manipulador específico
+            // do formulário pode usar esta propriedade para indicar exatamente
+            // o campo que fez a validação falhar.
+            form.__appFirstInvalidField = null;
+
             $form.find('input, select, textarea').each(function () {
                 const valid = App.core.validarCampoInline(this, true);
 
@@ -567,6 +590,7 @@
             });
 
             if (firstInvalid !== null) {
+                form.__appFirstInvalidField = firstInvalid;
                 firstInvalid.focus({ preventScroll: true });
                 firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return false;
@@ -587,6 +611,13 @@
             }, true);
 
             document.addEventListener('submit', function (event) {
+                // Alguns formulários AJAX possuem validações compostas próprias
+                // (por exemplo, a cronologia de uma temporada). Nesses casos o
+                // manipulador específico precisa receber o submit para limpar e
+                // recalcular as regras antes de decidir se enviará os dados.
+                if ($(event.target).is('[data-own-submit-validation="1"]')) {
+                    return;
+                }
                 if (!App.core.validarFormularioInline(event.target)) {
                     event.preventDefault();
                     event.stopImmediatePropagation();
@@ -1759,6 +1790,86 @@
             });
         },
 
+        iniciarProtecaoFormulariosModal: function () {
+            if (App.state.modalFormProtectionStarted) return;
+            App.state.modalFormProtectionStarted = true;
+
+            function visibleFormModal(element) {
+                const modal = element && element.closest ? element.closest('.popup-overlay') : null;
+                if (!modal || modal.classList.contains('hidden') || modal.getAttribute('aria-hidden') === 'true') return null;
+                return modal.querySelector('form') ? modal : null;
+            }
+
+            function modalHasChanges(modal) {
+                return Boolean(modal && modal.querySelector('form[data-unsaved-changes="1"]'));
+            }
+
+            function confirmExit(modal, event) {
+                if (!modalHasChanges(modal)) return true;
+                if (window.confirm('Deseja realmente sair? Os dados preenchidos serão perdidos.')) return true;
+                event.preventDefault();
+                event.stopPropagation();
+                if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+                return false;
+            }
+
+            function isCloseControl(target, modal) {
+                if (target === modal) return true;
+                const control = target && target.closest ? target.closest('button, a, [role="button"]') : null;
+                if (!control || !modal.contains(control)) return false;
+                const idAndClass = String(control.id || '') + ' ' + String(control.className || '');
+                if (/popup-close|modal-close|(^|[-_])(close|cancel|fechar)([-_]|$)/i.test(idAndClass)) return true;
+                const hasCloseAttribute = Array.from(control.attributes || []).some(function (attribute) {
+                    return /^data-.*(close|cancel)/i.test(attribute.name);
+                });
+                if (hasCloseAttribute) return true;
+                const label = String(control.textContent || '').trim().toLocaleLowerCase('pt-BR');
+                return label === 'cancelar' || label === 'fechar' || label === 'sair';
+            }
+
+            document.addEventListener('input', function (event) {
+                if (!event.isTrusted) return;
+                const modal = visibleFormModal(event.target);
+                const form = event.target && event.target.closest ? event.target.closest('form') : null;
+                if (modal && form) form.setAttribute('data-unsaved-changes', '1');
+            }, true);
+            document.addEventListener('change', function (event) {
+                if (!event.isTrusted) return;
+                const modal = visibleFormModal(event.target);
+                const form = event.target && event.target.closest ? event.target.closest('form') : null;
+                if (modal && form) form.setAttribute('data-unsaved-changes', '1');
+            }, true);
+            document.addEventListener('click', function (event) {
+                const modal = visibleFormModal(event.target);
+                if (modal && isCloseControl(event.target, modal)) confirmExit(modal, event);
+            }, true);
+            document.addEventListener('keydown', function (event) {
+                if (event.key !== 'Escape') return;
+                const modals = Array.from(document.querySelectorAll('.popup-overlay:not(.hidden)[aria-hidden="false"]')).reverse();
+                const modal = modals.find(function (item) { return item.querySelector('form'); });
+                if (modal) confirmExit(modal, event);
+            }, true);
+            window.addEventListener('beforeunload', function (event) {
+                const dirty = document.querySelector('.popup-overlay:not(.hidden) form[data-unsaved-changes="1"]');
+                if (!dirty) return;
+                event.preventDefault();
+                event.returnValue = '';
+            });
+
+            const observer = new MutationObserver(function () {
+                document.querySelectorAll('.popup-overlay').forEach(function (modal) {
+                    const isOpen = !modal.classList.contains('hidden') && modal.getAttribute('aria-hidden') !== 'true';
+                    if (isOpen && modal.getAttribute('data-form-guard-open') !== '1') {
+                        modal.setAttribute('data-form-guard-open', '1');
+                        modal.querySelectorAll('form').forEach(function (form) { form.removeAttribute('data-unsaved-changes'); });
+                    } else if (!isOpen) {
+                        modal.removeAttribute('data-form-guard-open');
+                    }
+                });
+            });
+            observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'aria-hidden'] });
+        },
+
         init: function () {
             App.core.iniciarValidacaoFormularios();
             App.core.iniciarBalaoCpfLoginHeader();
@@ -1779,6 +1890,7 @@
             App.core.iniciarTabelasResponsivas();
             App.core.iniciarMenuHeader();
             App.core.iniciarImportacaoPessoaExterna();
+            App.core.iniciarProtecaoFormulariosModal();
         }
     });
 

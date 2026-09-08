@@ -16,6 +16,10 @@
             <?php echo e($space['tipo_espaco']); ?>
             <?php if (!empty($space['acessibilidade_deficiencias_indisponiveis_rotulos'])) { ?>
                 <br><small class="muted">Acessibilidade não adequada para: <?php echo e(implode(', ', $space['acessibilidade_deficiencias_indisponiveis_rotulos'])); ?></small>
+                <?php $spaceBarrierLabels = array_merge(...array_values($space['acessibilidade_barreiras_rotulos'] ?? [])); ?>
+                <?php if ($spaceBarrierLabels !== []) { ?>
+                    <br><small class="muted">Barreiras: <?php echo e(implode('; ', $spaceBarrierLabels)); ?></small>
+                <?php } ?>
             <?php } ?>
         </td>
         <td><?php echo e((int) $space['ativo'] === 1 ? 'Ativo' : 'Inativo'); ?></td>
@@ -51,6 +55,7 @@
                     'tipo_espaco' => (string) $space['tipo_espaco'],
                     'capacidade_base' => (int) ($space['capacidade_base'] ?? 0),
                     'acessibilidade_deficiencias_indisponiveis' => $space['acessibilidade_deficiencias_indisponiveis_lista'] ?? [],
+                    'acessibilidade_barreiras' => $space['acessibilidade_barreiras_lista'] ?? [],
                     'ativo' => (int) $space['ativo'],
                 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
             >Editar</button>
