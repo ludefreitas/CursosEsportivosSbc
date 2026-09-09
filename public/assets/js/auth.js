@@ -181,6 +181,52 @@
                 }
             });
 
+            $(document).on('click', '#popup-site-actions a[href]', function (event) {
+                const href = String($(this).attr('href') || '').trim();
+
+                if (href === '#fechar-popup') {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    App.core.fecharPopupCustomizado('#popup-site');
+                    return;
+                }
+
+                let destination = null;
+                try {
+                    destination = new URL(href, window.location.href);
+                } catch (error) {
+                    return;
+                }
+
+                const samePage = destination.origin === window.location.origin
+                    && destination.pathname.replace(/\/+$/, '') === window.location.pathname.replace(/\/+$/, '')
+                    && destination.search === window.location.search;
+
+                if (!samePage || destination.hash === '') {
+                    return;
+                }
+
+                let targetId = '';
+                try {
+                    targetId = decodeURIComponent(destination.hash.slice(1));
+                } catch (error) {
+                    targetId = destination.hash.slice(1);
+                }
+
+                const target = document.getElementById(targetId);
+                if (!target) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                App.core.fecharPopupCustomizado('#popup-site');
+                window.history.pushState({}, document.title, destination.pathname + destination.search + destination.hash);
+                window.requestAnimationFrame(function () {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
+
             $(document).on('click', '#popup-profile-completion-confirm', function (event) {
                 if (event.target === this) {
                     App.core.fecharPopupCustomizado('#popup-profile-completion-confirm');

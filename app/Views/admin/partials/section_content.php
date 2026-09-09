@@ -1338,11 +1338,11 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 
                         <fieldset class="site-popup-actions-fieldset">
                             <legend>Botões ou links do pop-up</legend>
-                            <p class="muted">Adicione até 8 botões. Em cada item, informe o texto exibido e a URL de destino.</p>
+                            <p class="muted">Adicione até 8 botões. Use uma URL normal, <strong>/#home-locations-card</strong> para ir aos cursos por centro esportivo ou <strong>#fechar-popup</strong> para apenas fechar.</p>
                             <div id="site-popup-actions-list" class="site-popup-actions-list">
                                 <div class="site-popup-action-row">
                                     <label><span>Texto do botão ou link</span><input type="text" name="rotulos_acao[]" maxlength="90" placeholder="Ex.: Ver agenda"></label>
-                                    <label><span>URL de destino</span><input type="text" name="urls_acao[]" placeholder="/agenda ou https://..."></label>
+                                    <label><span>URL de destino</span><input type="text" name="urls_acao[]" placeholder="/agenda, /#seção ou #fechar-popup"></label>
                                     <button type="button" class="btn btn-secondary site-popup-action-remove" aria-label="Remover este botão">Remover</button>
                                 </div>
                             </div>

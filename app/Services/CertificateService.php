@@ -432,7 +432,10 @@ class CertificateService
         $typeId = $stmt->fetchColumn();
 
         if (!$typeId) {
-            throw new RuntimeException('Tipo de certificado não encontrado para a condição informada.');
+            throw new RuntimeException(
+                'O tipo de certificado desta condição não está configurado no sistema. '
+                . 'Solicite ao administrador a atualização do banco de dados.'
+            );
         }
 
         return (int) $typeId;

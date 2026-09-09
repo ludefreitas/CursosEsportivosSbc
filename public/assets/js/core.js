@@ -1229,7 +1229,7 @@
                     placeholder: 'Ex.: Ver agenda', value: String(dados.rotulo || '')
                 })).appendTo($row);
                 $('<label>').append($('<span>').text('URL de destino')).append($('<input>', {
-                    type: 'text', name: 'urls_acao[]', placeholder: '/agenda ou https://...',
+                    type: 'text', name: 'urls_acao[]', placeholder: '/agenda, /#seção ou #fechar-popup',
                     value: String(dados.url || '')
                 })).appendTo($row);
                 $('<button>', {
