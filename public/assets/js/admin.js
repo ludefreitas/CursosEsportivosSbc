@@ -617,6 +617,14 @@
                 activateSection($(this).data('adminNavTarget'));
             });
 
+            $(document).on('change', '[data-course-enrollment-sort]', function () {
+                const $panel = $(this).closest('[data-admin-section="inscricoes"]');
+                activateSection('inscricoes', {
+                    ordenar_por: String($panel.find('[data-course-enrollment-sort="criterion"]').val() || 'ordem_inscricao'),
+                    direcao: String($panel.find('[data-course-enrollment-sort="direction"]').val() || 'asc')
+                }, { suppressGlobalLoading: true });
+            });
+
             $(document).on('submit', '#admin-agenda-filter-form', function (event) {
                 event.preventDefault();
 
@@ -5377,6 +5385,55 @@
                 $form.find('button[type="submit"]').before($field);
             }
 
+            function ensureClassFieldHelp($form) {
+                const help = {
+                    temporada_id: 'Selecione a temporada à qual a turma pertencerá. A temporada serve de referência para publicação, inscrições e matrículas.',
+                    modalidade_id: 'Selecione a modalidade esportiva oferecida pela turma. A escolha define quais cronogramas estarão disponíveis.',
+                    cronograma_modalidade_id: 'Selecione o cronograma que regerá os períodos de publicação, inscrição, matrícula e aulas desta turma.',
+                    local_treino_id: 'Selecione o local onde as aulas desta turma serão realizadas.',
+                    espaco_treino_id: 'Selecione o espaço específico do local onde as aulas acontecerão, como quadra, sala ou piscina.',
+                    nome: 'Informe um nome que identifique claramente a turma para administradores, professores e público.',
+                    hora_inicio: 'Informe a hora em que a aula começa nos dias da semana selecionados.',
+                    hora_fim: 'Informe a hora em que a aula termina. Ela deve ser posterior à hora inicial.',
+                    criterio_faixa_etaria: 'Escolha se a faixa etária será conferida pela idade exata na data de referência ou apenas pelo ano de nascimento.',
+                    idade_minima: 'Informe a menor idade aceita na turma, conforme o critério etário selecionado.',
+                    idade_maxima: 'Informe a maior idade aceita na turma, conforme o critério etário selecionado.',
+                    sexo: 'Defina se a turma aceita todos os sexos ou se possui uma restrição específica.',
+                    vagas_geral: 'Informe a quantidade de vagas reservadas ao público geral.',
+                    vagas_pcd: 'Informe a quantidade de vagas reservadas a Pessoas com Deficiência (PCD).',
+                    vagas_plm: 'Informe a quantidade de vagas reservadas a Pessoas com Laudo Médico de Doença.',
+                    vagas_pvs: 'Informe a quantidade de vagas reservadas a Pessoas em Vulnerabilidade Social.',
+                    vagas_espera_geral: 'Informe o limite da lista de espera destinado ao público geral.',
+                    vagas_espera_pcd: 'Informe o limite da lista de espera destinado a Pessoas com Deficiência (PCD).',
+                    vagas_espera_plm: 'Informe o limite da lista de espera destinado a Pessoas com Laudo Médico de Doença.',
+                    vagas_espera_pvs: 'Informe o limite da lista de espera destinado a Pessoas em Vulnerabilidade Social.',
+                    vagas_totais: 'Confira o total de vagas da turma. O valor deve corresponder à soma das vagas distribuídas entre os públicos.',
+                    inscricoes_abertas: 'Indica se a turma está habilitada para receber inscrições, sempre respeitando o status da turma e o cronograma selecionado.'
+                };
+                Object.keys(help).forEach(function (name) {
+                    const $field = $form.find('[name="' + name + '"]').first();
+                    if (!$field.length) return;
+                    const $label = $field.closest('label');
+                    const $caption = $label.children('span').first();
+                    if (!$caption.length || $caption.find('[data-field-help-message]').length) return;
+                    $caption.append($('<button>', {
+                        type: 'button',
+                        class: 'field-help-button',
+                        text: '?',
+                        'aria-label': 'Ajuda sobre ' + $caption.clone().children().remove().end().text().trim(),
+                        'data-field-help-message': help[name]
+                    }));
+                });
+                const $daysLegend = $form.find('.course-weekdays-field legend').first();
+                if ($daysLegend.length && !$daysLegend.find('[data-field-help-message]').length) {
+                    $daysLegend.append($('<button>', {
+                        type: 'button', class: 'field-help-button', text: '?',
+                        'aria-label': 'Ajuda sobre dias da semana',
+                        'data-field-help-message': 'Marque todos os dias em que a turma terá aula. É possível escolher qualquer combinação, inclusive dias consecutivos, sábado e domingo.'
+                    }));
+                }
+            }
+
             function filterClassSchedules($form, selectedId) {
                 const seasonId = String($form.find('[name="temporada_id"]').val() || '');
                 const modalityId = String($form.find('[name="modalidade_id"]').val() || '');
@@ -5565,7 +5622,7 @@
                 if ($form.find('[name="operacao"]').length === 0) {
                     $form.append($('<input>', { type: 'hidden', name: 'operacao' }));
                 }
-                if (type === 'class') { ensureClassAgeCriterionField($form); ensureClassScheduleField($form); ensureClassOpenEnrollmentField($form); }
+                if (type === 'class') { ensureClassAgeCriterionField($form); ensureClassScheduleField($form); ensureClassOpenEnrollmentField($form); ensureClassFieldHelp($form); }
                 if (type === 'season') { ensureSeasonNoticeFields($form); ensureSeasonFieldHelp($form); }
                 fillForm($form, record || {});
                 if (type === 'class') filterClassSchedules($form, record && record.cronograma_modalidade_id);
@@ -6085,6 +6142,7 @@
                         const transition = previous ? previous + ' → ' + String(item.status_novo_label || '') : String(item.status_novo_label || '');
                         const $entry = $('<article>').append($('<strong>', { text: transition }));
                         $entry.append($('<small>', { text: formatHistoryDate(item.criado_em) + ' · ' + String(item.alterado_por || 'Sistema') }));
+                        if (String(item.vaga_informada_em || '').trim()) $entry.append($('<p>', { text: 'Vaga comunicada em: ' + formatHistoryDate(item.vaga_informada_em) }));
                         if (String(item.motivo || '').trim()) $entry.append($('<p>', { text: 'Motivo: ' + String(item.motivo) }));
                         $list.append($entry);
                     });
@@ -6119,6 +6177,61 @@
                     $list.append($('<article>').append($('<strong>', { text: '[' + String(item.id) + '] ' + String(item.turma || '') })).append($('<small>', { text: String(item.temporada || '') + ' · ' + String(item.status || '') + ' · ' + String(item.data || '') })));
                 });
                 openModal('Inscrições da pessoa', $list);
+            });
+            $(document).on('click', '.course-status-change-open', function () {
+                const $button = $(this);
+                const enrollmentId = String($button.attr('data-enrollment-id') || '');
+                const enrollmentNumber = String($button.attr('data-enrollment-number') || enrollmentId);
+                const nextStatus = String($button.attr('data-next-status') || '');
+                const nextLabel = String($button.attr('data-next-label') || '');
+                const currentStatus = String($button.attr('data-current-status') || '');
+                const $modal = $('#course-status-change-modal').last();
+                const $form = $modal.find('#course-status-change-form');
+                $form[0].reset();
+                $form.find('[name="inscricao_id"]').val(enrollmentId);
+                $form.find('[name="status"]').val(nextStatus);
+                $modal.find('#course-status-change-question').text('Deseja realmente mudar o status da inscrição \'' + enrollmentNumber + '\' para \'' + nextLabel + '\'?');
+                $modal.find('#course-status-change-date').text(new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date()));
+                const requiresNotice = currentStatus === 'lista_espera' && nextStatus === 'aguardando_matricula';
+                const $noticeFields = $modal.find('#course-vacancy-notice-fields').toggleClass('hidden', !requiresNotice);
+                $noticeFields.find('[name="vaga_informada"], [name="vaga_informada_em"]').prop('required', requiresNotice);
+                if (requiresNotice) {
+                    const now = new Date();
+                    const localValue = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                    $noticeFields.find('[name="vaga_informada_em"]').val(localValue).attr('max', localValue);
+                }
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+            });
+            $(document).on('click', '[data-course-status-change-close="1"], #course-status-change-modal', function (event) {
+                if ($(event.target).is('#course-status-change-modal') || $(event.target).is('[data-course-status-change-close="1"]')) {
+                    $('#course-status-change-modal').addClass('hidden').attr('aria-hidden', 'true');
+                }
+            });
+            $(document).on('submit', '#course-status-change-form', function (event) {
+                event.preventDefault();
+                const $form = $(this);
+                const $submit = $form.find('[type="submit"]');
+                $submit.prop('disabled', true);
+                $.ajax({
+                    url: $form.attr('action'),
+                    method: 'POST',
+                    dataType: 'json',
+                    data: $form.serialize(),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível alterar o status da inscrição.'));
+                        return;
+                    }
+                    const $panel = $('.course-enrollment-management').first();
+                    if ($panel.length && response.panel_html) {
+                        $('#course-enrollment-info-modal, #course-status-change-modal').remove();
+                        $panel.replaceWith(String(response.panel_html));
+                    }
+                    App.core.abrirPopup('sucesso', String(response.message || 'Status da inscrição atualizado com sucesso.'));
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () { $submit.prop('disabled', false); });
             });
             $(document).on('click', '.course-future-link', function (event) {
                 event.preventDefault();

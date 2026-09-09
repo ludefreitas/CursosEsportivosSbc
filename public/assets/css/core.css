@@ -1310,7 +1310,27 @@ body.pagina-error label span {
     display: none;
 }
 .course-enrollment-list { display: grid; gap: 12px; }
+.course-enrollment-title-line { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.course-enrollment-title-line h2 { margin: 0; }
+.course-enrollment-total { min-width: 34px; justify-content: center; font-size: 14px; }
+.course-enrollment-status-summary { display: flex; flex-wrap: wrap; gap: 7px 14px; margin-top: 8px; font-size: 14px; line-height: 1.35; }
+.course-enrollment-status-count { padding: 4px 9px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255, 255, 255, .68); }
+.course-enrollment-sort { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; margin: 0 0 10px; color: var(--muted); font-size: .82rem; }
+.course-enrollment-sort label { width: auto; }
+.course-enrollment-sort select { width: auto; min-height: 32px; padding: 5px 28px 5px 9px; border-radius: 999px; font-size: .82rem; background-color: rgba(255, 255, 255, .78); }
 .course-enrollment-row { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(170px, .8fr) minmax(135px, .55fr) minmax(190px, .7fr); gap: 16px; align-items: center; padding: 14px 10px; border-bottom: 1px solid var(--line); }
+.course-enrollment-status-lista_espera { background: linear-gradient(to bottom, #b9e7f7 0%, #daf3fb 52%, #f2fbfe 100%); }
+.course-enrollment-status-aguardando_matricula {
+    background-color: #d7efdd;
+    background-image: linear-gradient(to bottom, #b8dfc2 0%, #d8f0de 48%, #f4fbf6 100%);
+}
+.course-enrollment-status-matriculada { background: linear-gradient(to bottom, #edf5ef 0%, #f7faf8 50%, #fff 100%); }
+.course-enrollment-status-desistente { background: linear-gradient(to bottom, #d5d9d9 0%, #e9ebeb 52%, #f8f9f9 100%); }
+.course-enrollment-status-cancelada { background: linear-gradient(to bottom, #efc3c3 0%, #f8dddd 52%, #fff3f3 100%); }
+.course-enrollment-status-suspensa { background: linear-gradient(to bottom, #dec9eb 0%, #ecdef3 52%, #faf2f7 100%); }
+.course-enrollment-status-excluida,
+.course-enrollment-status-excluida_por_falta { background: linear-gradient(to bottom, #eceeee 0%, #f7f8f8 52%, #fff 100%); }
+.course-enrollment-row { border-radius: 12px; }
 .course-enrollment-row p { margin: 2px 0; line-height: 1.3; }
 .course-enrollment-person { min-width: 0; font-size: .9rem; }
 .course-enrollment-context { display: grid; gap: 3px; }
@@ -1322,7 +1342,15 @@ body.pagina-error label span {
 .certificate-missing { color: #d16a00; }
 .certificate-expired { display: inline-grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; background: #b3261e; color: #fff; font-size: .72rem; font-weight: 800; }
 .course-special-condition { color: #76502d; font-weight: 700; }
+.course-whatsapp-link,
+.course-whatsapp-link:visited { color: #128c4a; font-weight: 700; }
+.course-whatsapp-link:hover,
+.course-whatsapp-link:focus-visible { color: #087a3b; }
 .course-enrollment-status-form { gap: 7px; }
+.course-enrollment-next-action { display: grid; justify-items: start; gap: 9px; }
+.course-enrollment-next-action .course-status-change-open { color: #075ea8; font-weight: 800; text-decoration: underline; }
+.course-enrollment-links .status-current { border: 0; padding: 0; background: transparent; color: #a32b2b; font: inherit; font-weight: 800; text-decoration: underline; cursor: pointer; }
+.btn-whatsapp { display: inline-flex; width: auto; min-height: 36px; padding: 8px 12px; background: #159447; color: #fff; text-decoration: none; text-align: center; }
 .course-enrollment-status-form input, .course-enrollment-status-form select, .course-enrollment-status-form button { min-height: 38px; }
 .course-enrollment-info-card { width: min(760px, 100%); margin-top: 7vh; }
 .course-enrollment-info-card .popup-body { max-height: 65vh; overflow-y: auto; }
@@ -1590,6 +1618,39 @@ body.pagina-error label span {
     .site-header.is-menu-open .site-nav > .inline-form,
     .site-header.is-menu-open .site-nav > .inline-form .link-button {
         width: 100%;
+    }
+}
+
+.site-popup-actions-fieldset {
+    border: 1px solid var(--border, #ddd2c2);
+    border-radius: 16px;
+    padding: 14px;
+}
+
+.site-popup-actions-list {
+    display: grid;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.site-popup-action-row {
+    display: grid;
+    grid-template-columns: minmax(180px, .8fr) minmax(240px, 1.4fr) auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.site-popup-actions {
+    flex-wrap: wrap;
+}
+
+@media (max-width: 720px) {
+    .site-popup-action-row {
+        grid-template-columns: 1fr;
+    }
+
+    .site-popup-action-row .site-popup-action-remove {
+        justify-self: start;
     }
 }
 
@@ -2060,4 +2121,26 @@ body.pagina-error label span {
 .cep-address-option:focus {
     background: #e8f1ff;
     outline: none;
+}
+.field-help-button {
+    display: inline-grid;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-left: .3rem;
+    padding: 0;
+    place-items: center;
+    vertical-align: middle;
+    border: 0;
+    border-radius: 50%;
+    background: #2c8198;
+    color: #fff;
+    font: 700 .72rem/1 Arial, sans-serif;
+    cursor: pointer;
+}
+
+.field-help-button:hover,
+.field-help-button:focus-visible {
+    background: #14566b;
+    outline: 2px solid rgba(44, 129, 152, .25);
+    outline-offset: 2px;
 }

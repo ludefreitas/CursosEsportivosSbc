@@ -256,9 +256,23 @@ class ProfessorController extends Controller
                 (int) $user['conta_id'],
                 trim((string) ($_POST['motivo'] ?? '')),
                 trim((string) ($_POST['suspensa_fim'] ?? '')) ?: null,
-                trim((string) ($_POST['token'] ?? ''))
+                trim((string) ($_POST['token'] ?? '')),
+                trim((string) ($_POST['vaga_informada_em'] ?? '')) ?: null,
+                !empty($_POST['vaga_informada'])
             );
-            $this->jsonResponse(['success' => true, 'message' => 'Status da inscrição atualizado com sucesso.']);
+            $courseEnrollmentService = new \App\Services\CourseEnrollmentService();
+            $courseEnrollmentSortBy = trim((string) ($_POST['ordenar_por'] ?? 'ordem_inscricao'));
+            $courseEnrollmentSortDirection = trim((string) ($_POST['direcao'] ?? 'asc'));
+            $courseEnrollmentsManagement = $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection);
+            $courseEnrollmentStatusSummary = $courseEnrollmentService->enrollmentStatusSummaryForManagement();
+            $professorView = true;
+            ob_start();
+            require ROOT_PATH . '/app/Views/admin/partials/course_enrollment_panel.php';
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Status da inscrição atualizado com sucesso.',
+                'panel_html' => (string) ob_get_clean(),
+            ]);
         } catch (\Throwable $e) {
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
         }
@@ -363,7 +377,19 @@ class ProfessorController extends Controller
     {
         if ($sectionName === 'inicio') { return ['sectionName' => $sectionName, 'professorView' => true]; }
         if ($sectionName === 'usuarios-pessoas') { return array_merge(['sectionName' => $sectionName, 'professorView' => true], $this->buildPeopleData()); }
-        if ($sectionName === 'inscricoes') { return ['sectionName' => $sectionName, 'professorView' => true, 'courseEnrollmentsManagement' => (new \App\Services\CourseEnrollmentService())->listForManagement()]; }
+        if ($sectionName === 'inscricoes') {
+            $courseEnrollmentService = new \App\Services\CourseEnrollmentService();
+            $courseEnrollmentSortBy = trim((string) ($_GET['ordenar_por'] ?? 'ordem_inscricao'));
+            $courseEnrollmentSortDirection = trim((string) ($_GET['direcao'] ?? 'asc'));
+            return [
+                'sectionName' => $sectionName,
+                'professorView' => true,
+                'courseEnrollmentSortBy' => $courseEnrollmentSortBy,
+                'courseEnrollmentSortDirection' => $courseEnrollmentSortDirection,
+                'courseEnrollmentsManagement' => $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection),
+                'courseEnrollmentStatusSummary' => $courseEnrollmentService->enrollmentStatusSummaryForManagement(),
+            ];
+        }
         if ($sectionName === 'minhas-turmas') { return ['sectionName' => $sectionName, 'professorView' => true, 'professorClasses' => (new \App\Services\CourseEnrollmentService())->listClassesForProfessor((int) ($user['conta_id'] ?? 0))]; }
 
         $locationId = (int) ($_GET['local_treino_id'] ?? 0);

@@ -1334,12 +1334,20 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <label><span>Texto principal</span><textarea name="texto_principal" rows="3" placeholder="Breve mensagem principal do pop-up"></textarea></label>
                         <label><span>Texto secundario</span><textarea name="texto_secundario" rows="3" placeholder="Texto complementar opcional"></textarea></label>
 
-                        <div class="grid-two">
-                            <label><span>Imagem (URL)</span><input type="text" name="imagem_url" placeholder="https://... ou /assets/imagens/..."></label>
-                            <label><span>Rótulo do botão ou link</span><input type="text" name="rotulo_acao" maxlength="90" placeholder="Ex.: Ver agenda"></label>
-                        </div>
+                        <label><span>Imagem (URL)</span><input type="text" name="imagem_url" placeholder="https://... ou /assets/imagens/..."></label>
 
-                        <label><span>URL de destino do botão</span><input type="text" name="url_acao" placeholder="/agenda ou https://..."></label>
+                        <fieldset class="site-popup-actions-fieldset">
+                            <legend>Botões ou links do pop-up</legend>
+                            <p class="muted">Adicione até 8 botões. Em cada item, informe o texto exibido e a URL de destino.</p>
+                            <div id="site-popup-actions-list" class="site-popup-actions-list">
+                                <div class="site-popup-action-row">
+                                    <label><span>Texto do botão ou link</span><input type="text" name="rotulos_acao[]" maxlength="90" placeholder="Ex.: Ver agenda"></label>
+                                    <label><span>URL de destino</span><input type="text" name="urls_acao[]" placeholder="/agenda ou https://..."></label>
+                                    <button type="button" class="btn btn-secondary site-popup-action-remove" aria-label="Remover este botão">Remover</button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-secondary" id="add-site-popup-action">Adicionar outro botão</button>
+                        </fieldset>
 
                         <div class="grid-two">
                             <label><span>Início da exibição</span><input type="datetime-local" name="data_inicio" required></label>
@@ -1395,6 +1403,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 'imagem_url' => $popup['imagem_url'] ?? '',
                                 'rotulo_acao' => $popup['rotulo_acao'] ?? '',
                                 'url_acao' => $popup['url_acao'] ?? '',
+                                'acoes' => $popup['acoes'] ?? [],
                             ];
                             $popupEdit = array_merge($popupPreview, [
                                 'id' => (int) ($popup['id'] ?? 0),
@@ -1418,6 +1427,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                         data-imagem-url="<?php echo e((string) ($popupPreview['imagem_url'] ?? '')); ?>"
                                         data-rotulo-acao="<?php echo e((string) ($popupPreview['rotulo_acao'] ?? '')); ?>"
                                         data-url-acao="<?php echo e((string) ($popupPreview['url_acao'] ?? '')); ?>"
+                                        data-acoes="<?php echo e((string) json_encode($popupPreview['acoes'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
                                     >Visualizar</button>
                                 </div>
                                 <h3><?php echo e($popup['titulo'] ?: 'Pop-up sem título'); ?></h3>

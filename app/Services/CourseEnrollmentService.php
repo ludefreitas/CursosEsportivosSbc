@@ -145,10 +145,28 @@ class CourseEnrollmentService
         return $rows;
     }
 
-    public function listForManagement(): array
+    public function listForManagement(string $sortBy = 'ordem_inscricao', string $sortDirection = 'asc'): array
     {
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
+        $sortExpressions = [
+            'alfabetica' => 'p.nome_completo',
+            'data_inscricao' => 'i.created_at',
+            'ordem_inscricao' => 'COALESCE(NULLIF(i.numero_ordem, 0), 2147483647)',
+            'status' => "CASE i.status
+                WHEN 'matriculada' THEN 1
+                WHEN 'aguardando_matricula' THEN 2
+                WHEN 'lista_espera' THEN 3
+                WHEN 'suspensa' THEN 4
+                WHEN 'excluida_por_falta' THEN 5
+                WHEN 'cancelada' THEN 6
+                WHEN 'desistente' THEN 7
+                WHEN 'excluida' THEN 8
+                ELSE 9 END",
+        ];
+        $sortBy = array_key_exists($sortBy, $sortExpressions) ? $sortBy : 'ordem_inscricao';
+        $sortDirection = strtolower($sortDirection) === 'desc' ? 'DESC' : 'ASC';
+        $orderSql = $sortExpressions[$sortBy] . ' ' . $sortDirection . ', i.id ' . $sortDirection;
         $stmt = $pdo->query("SELECT
                 i.id, i.turma_id, i.pessoa_id, i.numero_ordem, i.status, i.created_at, i.updated_at, i.motivo_status,
                 p.nome_completo, p.cpf, p.data_nascimento, p.email, p.telefone_whatsapp,
@@ -157,7 +175,9 @@ class CourseEnrollmentService
                 p.eh_pcd, p.eh_pvs, p.eh_plm,
                 t.nome AS turma_nome, t.dias_semana, t.hora_inicio, t.hora_fim,
                 te.nome AS temporada_nome, m.nome AS modalidade_nome,
-                COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome,
+                COALESCE(l.apelido_local, l.nome_local) AS local_nome,
+                l.logradouro AS local_logradouro, l.numero_endereco AS local_numero_endereco,
+                l.bairro AS local_bairro, e.nome AS espaco_nome,
                 cm.aulas_inicio,
                 responsavel.nome_completo AS responsavel_nome,
                 responsavel.email AS responsavel_email,
@@ -186,8 +206,7 @@ class CourseEnrollmentService
             LEFT JOIN pessoas responsavel ON responsavel.id = vr.responsavel_pessoa_id
             LEFT JOIN atestados_saude ac ON ac.pessoa_id = p.id AND ac.tipo_atestado = 'clinico'
             LEFT JOIN atestados_saude ad ON ad.pessoa_id = p.id AND ad.tipo_atestado = 'dermatologico'
-            WHERE i.status IN ('aguardando_matricula', 'lista_espera', 'matriculada', 'suspensa')
-            ORDER BY t.id ASC, i.numero_ordem ASC, i.created_at ASC");
+            ORDER BY " . $orderSql);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         $histories = [];
         if ($rows !== []) {
@@ -222,6 +241,30 @@ class CourseEnrollmentService
         }
         unset($row);
         return $rows;
+    }
+
+    /**
+     * Resume todas as inscrições por status para os painéis de gestão.
+     */
+    public function enrollmentStatusSummaryForManagement(): array
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->query('SELECT status, COUNT(*) AS quantidade FROM inscricoes_turma GROUP BY status ORDER BY status');
+        $items = [];
+        $total = 0;
+
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $quantity = (int) ($row['quantidade'] ?? 0);
+            $status = (string) ($row['status'] ?? '');
+            $total += $quantity;
+            $items[] = [
+                'status' => $status,
+                'label' => self::STATUS_LABELS[$status] ?? ucfirst(str_replace('_', ' ', $status)),
+                'quantidade' => $quantity,
+            ];
+        }
+
+        return ['total' => $total, 'por_status' => $items];
     }
 
     public function listSeasonsForManagement(): array
@@ -862,35 +905,54 @@ class CourseEnrollmentService
         return (int) $stmt->fetchColumn() > 0;
     }
 
-    public function changeStatus(int $enrollmentId, string $status, int $accountId, string $reason = '', ?string $suspensionEnd = null, string $exceptionToken = ''): void
+    public function changeStatus(int $enrollmentId, string $status, int $accountId, string $reason = '', ?string $suspensionEnd = null, string $exceptionToken = '', ?string $vacancyNoticeAt = null, bool $vacancyNoticeConfirmed = false): void
     {
-        $allowedStatuses = ['aguardando_matricula', 'matriculada', 'suspensa', 'desistente', 'excluida_por_falta', 'excluida'];
-        if (!in_array($status, $allowedStatuses, true)) {
-            throw new RuntimeException('Status inválido para atualização da inscrição.');
-        }
+        $allowedTransitions = [
+            'lista_espera' => 'aguardando_matricula',
+            'aguardando_matricula' => 'matriculada',
+            'matriculada' => 'desistente',
+        ];
         $reason = trim($reason);
 
         $pdo = Database::connection();
+        $this->ensureCourseSeasonSchema($pdo);
         $stmt = $pdo->prepare("SELECT i.id, i.status, i.turma_id, i.publico_alvo, p.cpf FROM inscricoes_turma i INNER JOIN pessoas p ON p.id = i.pessoa_id WHERE i.id = :id AND i.status IN ('aguardando_matricula', 'lista_espera', 'matriculada', 'suspensa') LIMIT 1");
         $stmt->execute([':id' => $enrollmentId]);
         $enrollment = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$enrollment) {
             throw new RuntimeException('Inscrição não encontrada ou já encerrada.');
         }
-        if ($status === 'excluida' && !$this->accountHasRole($pdo, $accountId, 'master_admin')) {
-            throw new RuntimeException('Somente o Administrador Master pode excluir inscrições.');
+        $currentStatus = (string) $enrollment['status'];
+        if (($allowedTransitions[$currentStatus] ?? null) !== $status) {
+            $expectedStatus = $allowedTransitions[$currentStatus] ?? null;
+            $expectedLabel = $expectedStatus !== null ? (self::STATUS_LABELS[$expectedStatus] ?? $expectedStatus) : '';
+            throw new RuntimeException($expectedLabel !== ''
+                ? 'Esta inscrição só pode avançar para o status "' . $expectedLabel . '".'
+                : 'O status atual desta inscrição não permite nova alteração pelo fluxo normal.');
         }
-        if ($status === 'aguardando_matricula' && $enrollment['status'] !== 'lista_espera' && !$this->accountHasRole($pdo, $accountId, 'master_admin')) {
-            throw new RuntimeException('Somente o Administrador Master pode retornar a inscrição para aguardando matrícula.');
+        $vacancyNoticeSql = null;
+        if ($currentStatus === 'lista_espera') {
+            if (!$vacancyNoticeConfirmed) {
+                throw new RuntimeException('Confirme que o usuário já foi avisado da vaga disponível.');
+            }
+            $vacancyNoticeAt = trim((string) $vacancyNoticeAt);
+            $parsedNotice = $vacancyNoticeAt !== '' ? strtotime($vacancyNoticeAt) : false;
+            if ($parsedNotice === false) {
+                throw new RuntimeException('Informe a data e a hora em que a vaga foi comunicada ao usuário.');
+            }
+            if ($parsedNotice > time()) {
+                throw new RuntimeException('A data e a hora do aviso da vaga não podem estar no futuro.');
+            }
+            $vacancyNoticeSql = date('Y-m-d H:i:s', $parsedNotice);
         }
         $token = $this->findEnrollmentToken($pdo, trim($exceptionToken), (int) $enrollment['turma_id'], normalize_cpf((string) $enrollment['cpf']));
         if ($status === 'matriculada' && $enrollment['status'] !== 'matriculada' && $this->availableSeats($pdo, $this->findClass($pdo, (int) $enrollment['turma_id']), (string) $enrollment['publico_alvo']) <= 0 && $token === null && !$this->accountHasRole($pdo, $accountId, 'master_admin')) {
             throw new RuntimeException('Não há vaga normal disponível para esta cota.');
         }
-        $stmt = $pdo->prepare('UPDATE inscricoes_turma SET status = :status, motivo_status = :motivo, suspensa_inicio = CASE WHEN :status_suspensa = "suspensa" THEN NOW() ELSE NULL END, suspensa_fim = :suspensa_fim, updated_at = NOW() WHERE id = :id');
-        $stmt->execute([':status' => $status, ':motivo' => $reason, ':status_suspensa' => $status, ':suspensa_fim' => $status === 'suspensa' ? $suspensionEnd : null, ':id' => $enrollmentId]);
-        $history = $pdo->prepare('INSERT INTO inscricoes_turma_historico (inscricao_turma_id, status_anterior, status_novo, motivo, alterado_por_conta_id) VALUES (:id, :anterior, :novo, :motivo, :conta)');
-        $history->execute([':id' => $enrollmentId, ':anterior' => $enrollment['status'], ':novo' => $status, ':motivo' => $reason, ':conta' => $accountId]);
+        $stmt = $pdo->prepare('UPDATE inscricoes_turma SET status = :status, motivo_status = :motivo, vaga_informada_em = COALESCE(:vaga_informada_em, vaga_informada_em), updated_at = NOW() WHERE id = :id');
+        $stmt->execute([':status' => $status, ':motivo' => $reason !== '' ? $reason : null, ':vaga_informada_em' => $vacancyNoticeSql, ':id' => $enrollmentId]);
+        $history = $pdo->prepare('INSERT INTO inscricoes_turma_historico (inscricao_turma_id, status_anterior, status_novo, motivo, alterado_por_conta_id, vaga_informada_em) VALUES (:id, :anterior, :novo, :motivo, :conta, :vaga_informada_em)');
+        $history->execute([':id' => $enrollmentId, ':anterior' => $currentStatus, ':novo' => $status, ':motivo' => $reason !== '' ? $reason : null, ':conta' => $accountId, ':vaga_informada_em' => $vacancyNoticeSql]);
         if ($token !== null && $status === 'matriculada') {
             $pdo->prepare('UPDATE tokens_inscricao_turma SET usos_realizados = usos_realizados + 1, ativo = IF(usos_realizados + 1 >= usos_maximos, 0, ativo) WHERE id = :id')->execute([':id' => (int) $token['id']]);
         }
@@ -1317,6 +1379,14 @@ class CourseEnrollmentService
         $enrollmentOrderColumn = $pdo->query("SHOW COLUMNS FROM inscricoes_turma LIKE 'numero_ordem'");
         if (!$enrollmentOrderColumn || !$enrollmentOrderColumn->fetch(PDO::FETCH_ASSOC)) {
             $pdo->exec('ALTER TABLE inscricoes_turma ADD COLUMN numero_ordem INT UNSIGNED NULL AFTER turma_id');
+        }
+        $vacancyNoticeColumn = $pdo->query("SHOW COLUMNS FROM inscricoes_turma LIKE 'vaga_informada_em'");
+        if (!$vacancyNoticeColumn || !$vacancyNoticeColumn->fetch(PDO::FETCH_ASSOC)) {
+            $pdo->exec('ALTER TABLE inscricoes_turma ADD COLUMN vaga_informada_em DATETIME NULL AFTER motivo_status');
+        }
+        $historyVacancyNoticeColumn = $pdo->query("SHOW COLUMNS FROM inscricoes_turma_historico LIKE 'vaga_informada_em'");
+        if (!$historyVacancyNoticeColumn || !$historyVacancyNoticeColumn->fetch(PDO::FETCH_ASSOC)) {
+            $pdo->exec('ALTER TABLE inscricoes_turma_historico ADD COLUMN vaga_informada_em DATETIME NULL AFTER alterado_por_conta_id');
         }
         $pdo->exec('UPDATE turmas t INNER JOIN (SELECT temporada_id, modalidade_id, MIN(id) AS cronograma_id FROM cronogramas_modalidade GROUP BY temporada_id, modalidade_id HAVING COUNT(*)=1) unico ON unico.temporada_id=t.temporada_id AND unico.modalidade_id=t.modalidade_id SET t.cronograma_modalidade_id=unico.cronograma_id WHERE t.cronograma_modalidade_id IS NULL OR t.cronograma_modalidade_id=0');
         if (!$originTableAlreadyExisted || $originIdColumnAdded) {

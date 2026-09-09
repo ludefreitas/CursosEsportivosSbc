@@ -14,6 +14,12 @@
             </div>
         </div>
     </div>
+    <?php
+    $sitePopupActions = (array) ($sitePopupAtivo['acoes'] ?? []);
+    if ($sitePopupActions === [] && !empty($sitePopupAtivo['rotulo_acao']) && !empty($sitePopupAtivo['url_acao'])) {
+        $sitePopupActions[] = ['rotulo' => $sitePopupAtivo['rotulo_acao'], 'url' => $sitePopupAtivo['url_acao']];
+    }
+    ?>
     <div
         id="popup-site"
         class="popup-overlay popup-site-overlay hidden"
@@ -36,10 +42,12 @@
                 <p id="popup-site-texto-principal" class="<?php echo empty($sitePopupAtivo['texto_principal']) ? 'hidden' : ''; ?>"><?php echo e((string) ($sitePopupAtivo['texto_principal'] ?? '')); ?></p>
                 <p id="popup-site-texto-secundario" class="popup-site-secondary <?php echo empty($sitePopupAtivo['texto_secundario']) ? 'hidden' : ''; ?>"><?php echo e((string) ($sitePopupAtivo['texto_secundario'] ?? '')); ?></p>
             </div>
-            <div class="popup-actions popup-site-actions<?php echo empty($sitePopupAtivo['rotulo_acao']) || empty($sitePopupAtivo['url_acao']) ? ' hidden' : ''; ?>">
-                <a id="popup-site-acao" href="<?php echo !empty($sitePopupAtivo['url_acao']) ? e((string) $sitePopupAtivo['url_acao']) : '#'; ?>" class="btn btn-primary">
-                    <?php echo e((string) ($sitePopupAtivo['rotulo_acao'] ?? 'Abrir')); ?>
-                </a>
+            <div class="popup-actions popup-site-actions<?php echo $sitePopupActions === [] ? ' hidden' : ''; ?>" id="popup-site-actions">
+                <?php foreach ($sitePopupActions as $actionIndex => $action) { ?>
+                    <a<?php echo $actionIndex === 0 ? ' id="popup-site-acao"' : ''; ?> href="<?php echo e((string) ($action['url'] ?? '#')); ?>" class="btn btn-primary">
+                        <?php echo e((string) ($action['rotulo'] ?? 'Abrir')); ?>
+                    </a>
+                <?php } ?>
             </div>
         </div>
     </div>

@@ -88,7 +88,7 @@ $conditions = $conditions ?? [];
 
                         <label>
                             <span>
-                                Resumo da documentação
+                                Resumo da documentação <button type="button" class="field-help-button" aria-label="Ajuda sobre resumo da documentação" data-field-help-message="Descreva resumidamente o conteúdo dos documentos enviados e as informações mais importantes para a análise da condição.">?</button>
                                 <?php if (!empty($certificate['descricao_resumida'])) { ?>
                                     <small class="muted">(o resumo atual foi carregado para esta atualização)</small>
                                 <?php } ?>
@@ -98,20 +98,20 @@ $conditions = $conditions ?? [];
 
                         <?php if (in_array((string) ($condition['slug'] ?? ''), ['pcd', 'plm'], true)) { ?>
                             <label>
-                                <span>CID declarado</span>
+                                <span>CID declarado <button type="button" class="field-help-button" aria-label="Ajuda sobre CID declarado" data-field-help-message="Informe o código da Classificação Internacional de Doenças que consta no laudo médico, no formato de uma letra, dois números, ponto e um número, por exemplo: A00.0.">?</button></span>
                                 <input type="text" name="codigo_cid_declarado" data-cid-code="1" maxlength="5" placeholder="A00.0" value="<?php echo e((string) ($certificate['codigo_cid_declarado'] ?? '')); ?>" required>
                                 <small class="muted">Campo obrigatório para <?php echo e(strtoupper((string) ($condition['slug'] ?? ''))); ?> no formato A00.0.</small>
                             </label>
 
                             <label>
-                                <span>Doença declarada</span>
+                                <span>Doença declarada <button type="button" class="field-help-button" aria-label="Ajuda sobre doença declarada" data-field-help-message="Informe por extenso o nome da doença, deficiência ou condição de saúde descrita no laudo médico.">?</button></span>
                                 <input type="text" name="doenca_declarada" value="<?php echo e((string) ($certificate['doenca_declarada'] ?? '')); ?>" required>
                             </label>
                         <?php } ?>
 
                         <?php if ((string) ($condition['slug'] ?? '') === 'pvs') { ?>
                             <label>
-                                <span>Número do CadÚnico (NIS)</span>
+                                <span>Número do CadÚnico (NIS) <button type="button" class="field-help-button" aria-label="Ajuda sobre o NIS" data-field-help-message="Informe os 11 números do NIS da pessoa, conforme aparecem no comprovante do Cadastro Único, sem letras.">?</button></span>
                                 <input
                                     type="text"
                                     name="numero_nis"
@@ -131,7 +131,7 @@ $conditions = $conditions ?? [];
                             $typeOptions = $condition['disability_type_options'] ?? [];
                             ?>
                             <fieldset class="dashboard-certificate-fieldset">
-                                <legend>Tipos de deficiência (PCD)</legend>
+                                <legend>Tipos de deficiência (PCD) <button type="button" class="field-help-button" aria-label="Ajuda sobre tipos de deficiência" data-field-help-message="Marque uma ou mais opções que correspondam às deficiências declaradas no laudo ou documento enviado. É obrigatório selecionar pelo menos uma opção.">?</button></legend>
                                 <div class="dashboard-certificate-checkbox-grid">
                                     <?php foreach ($typeOptions as $typeValue => $typeLabel) { ?>
                                         <label class="checkbox-chip">
@@ -150,14 +150,14 @@ $conditions = $conditions ?? [];
                         <?php } ?>
 
                         <label>
-                            <span>Data de emissão do documento</span>
+                            <span>Data de emissão do documento <button type="button" class="field-help-button" aria-label="Ajuda sobre data de emissão" data-field-help-message="Informe a data em que o laudo, relatório ou comprovante foi emitido, exatamente como consta no documento.">?</button></span>
                             <input type="date" name="data_emissao" value="<?php echo e((string) ($certificate['data_emissao'] ?? '')); ?>">
                             <small class="muted">A validade não é preenchida por você neste envio. Ela será definida no processo de validação.</small>
                         </label>
 
                         <label>
                             <span>
-                                Observacoes
+                                Observações <button type="button" class="field-help-button" aria-label="Ajuda sobre observações" data-field-help-message="Acrescente informações úteis para a análise que não estejam claras nos demais campos. Se não houver informação adicional, o campo pode ficar vazio.">?</button>
                                 <?php if (!empty($certificate['observacoes'])) { ?>
                                     <small class="muted">(as observações atuais foram carregadas para esta atualização)</small>
                                 <?php } ?>
@@ -166,7 +166,7 @@ $conditions = $conditions ?? [];
                         </label>
 
                         <label class="dashboard-certificate-upload-highlight">
-                            <span>Arquivos PDF da condição</span>
+                            <span>Arquivos PDF da condição <button type="button" class="field-help-button" aria-label="Ajuda sobre arquivos PDF" data-field-help-message="Selecione um ou mais documentos em formato PDF que comprovem a condição. Ao atualizar, os arquivos atuais serão substituídos pelos PDFs escolhidos neste envio.">?</button></span>
                             <input type="file" name="documents[]" accept="application/pdf,.pdf" multiple required>
                             <small>Você pode selecionar mais de um arquivo em PDF neste envio.</small>
                             <small>Todos os arquivos atuais desta condição serão substituidos pelos PDFs selecionados agora.</small>

@@ -86,6 +86,17 @@
             $(selector).addClass('hidden').attr('aria-hidden', 'true');
         },
 
+        iniciarAjudaContextualCampos: function () {
+            $(document).off('click.fieldHelp', '[data-field-help-message]').on('click.fieldHelp', '[data-field-help-message]', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                const message = String($(this).attr('data-field-help-message') || '').trim();
+                if (!message) return;
+                App.core.abrirPopup('sucesso', message);
+                $('#popup-titulo').text('Ajuda sobre o campo');
+            });
+        },
+
         shouldSkipLoadingForUrl: function (url, method) {
             const normalizedMethod = String(method || 'GET').toUpperCase();
             const normalizedUrl = App.core.getAppRelativePath(String(url || ''));
@@ -285,8 +296,13 @@
             const textoPrincipal = String(dados.texto_principal || '').trim();
             const textoSecundario = String(dados.texto_secundario || '').trim();
             const imagemUrl = String(dados.imagem_url || '').trim();
-            const rotuloAcao = String(dados.rotulo_acao || '').trim();
-            const urlAcao = String(dados.url_acao || '').trim();
+            let acoes = Array.isArray(dados.acoes) ? dados.acoes : [];
+            if (acoes.length === 0 && (dados.rotulo_acao || dados.url_acao)) {
+                acoes = [{ rotulo: dados.rotulo_acao, url: dados.url_acao }];
+            }
+            acoes = acoes.map(function (acao) {
+                return { rotulo: String(acao.rotulo || '').trim(), url: String(acao.url || '').trim() };
+            }).filter(function (acao) { return acao.rotulo !== '' && acao.url !== ''; });
 
             const $head = $(prefixo + '-head').length ? $(prefixo + '-head') : $(prefixo + '-titulo').closest('.popup-head');
             const $media = $(prefixo + '-media').length ? $(prefixo + '-media') : $(prefixo + '-imagem').closest('.popup-site-media');
@@ -296,26 +312,41 @@
             $(prefixo + '-texto-principal').text(textoPrincipal);
             $(prefixo + '-texto-secundario').text(textoSecundario);
             $(prefixo + '-imagem').attr('src', imagemUrl);
-            $(prefixo + '-acao').text(rotuloAcao);
-            $(prefixo + '-acao').attr('href', urlAcao || '#');
+            $actions.empty();
+            acoes.forEach(function (acao, index) {
+                $('<a>', {
+                    id: index === 0 ? prefixo.replace(/^#/, '') + '-acao' : undefined,
+                    class: 'btn btn-primary',
+                    href: acao.url,
+                    text: acao.rotulo,
+                    target: prefixo === '#popup-preview' ? '_blank' : undefined,
+                    rel: prefixo === '#popup-preview' ? 'noopener noreferrer' : undefined
+                }).appendTo($actions);
+            });
 
             App.core.togglePopupSection($head, titulo !== '');
             App.core.togglePopupSection($(prefixo + '-texto-principal'), textoPrincipal !== '');
             App.core.togglePopupSection($(prefixo + '-texto-secundario'), textoSecundario !== '');
             App.core.togglePopupSection($media, imagemUrl !== '');
-            App.core.togglePopupSection($actions, rotuloAcao !== '' && urlAcao !== '');
+            App.core.togglePopupSection($actions, acoes.length > 0);
         },
 
         lerFormularioPopup: function () {
             const $form = $('#form-site-popup');
+
+            const acoes = [];
+            $form.find('.site-popup-action-row').each(function () {
+                const rotulo = String($(this).find('[name="rotulos_acao[]"]').val() || '').trim();
+                const url = String($(this).find('[name="urls_acao[]"]').val() || '').trim();
+                if (rotulo !== '' || url !== '') acoes.push({ rotulo, url });
+            });
 
             return {
                 titulo: $form.find('input[name="titulo"]').val(),
                 texto_principal: $form.find('textarea[name="texto_principal"]').val(),
                 texto_secundario: $form.find('textarea[name="texto_secundario"]').val(),
                 imagem_url: $form.find('input[name="imagem_url"]').val(),
-                rotulo_acao: $form.find('input[name="rotulo_acao"]').val(),
-                url_acao: $form.find('input[name="url_acao"]').val()
+                acoes: acoes
             };
         },
 
@@ -1190,6 +1221,30 @@
             const $popupSite = $('#popup-site');
             const $popupPreview = $('#popup-preview-site');
 
+            function sitePopupActionRow(acao) {
+                const dados = acao || {};
+                const $row = $('<div>', { class: 'site-popup-action-row' });
+                $('<label>').append($('<span>').text('Texto do botão ou link')).append($('<input>', {
+                    type: 'text', name: 'rotulos_acao[]', maxlength: 90,
+                    placeholder: 'Ex.: Ver agenda', value: String(dados.rotulo || '')
+                })).appendTo($row);
+                $('<label>').append($('<span>').text('URL de destino')).append($('<input>', {
+                    type: 'text', name: 'urls_acao[]', placeholder: '/agenda ou https://...',
+                    value: String(dados.url || '')
+                })).appendTo($row);
+                $('<button>', {
+                    type: 'button', class: 'btn btn-secondary site-popup-action-remove',
+                    'aria-label': 'Remover este botão', text: 'Remover'
+                }).appendTo($row);
+                return $row;
+            }
+
+            function fillSitePopupActions(actions) {
+                const $list = $('#site-popup-actions-list').empty();
+                const normalized = Array.isArray(actions) && actions.length > 0 ? actions : [{}];
+                normalized.slice(0, 8).forEach(function (action) { $list.append(sitePopupActionRow(action)); });
+            }
+
             if ($popupSite.length > 0 && String($popupSite.data('openOnLoad') || '') === '1') {
                 App.core.abrirPopupCustomizado('#popup-site');
             }
@@ -1211,10 +1266,29 @@
                 $form[0].reset();
                 $form.attr('action', String($form.data('createAction') || ''));
                 $form.find('[name="site_popup_id"]').val('');
+                $form.removeAttr('data-unsaved-changes');
                 $('#site-popup-form-title').text('Novo pop-up do site');
                 $('#site-popup-submit').text('Salvar novo pop-up');
+                fillSitePopupActions([]);
                 syncPagesState();
             }
+
+            $(document).on('click', '#add-site-popup-action', function () {
+                const $list = $('#site-popup-actions-list');
+                if ($list.find('.site-popup-action-row').length >= 8) {
+                    App.core.abrirPopup('erro', 'Cada pop-up pode ter no máximo 8 botões ou links.');
+                    return;
+                }
+                $list.append(sitePopupActionRow({}));
+                $('#form-site-popup').attr('data-unsaved-changes', '1');
+            });
+
+            $(document).on('click', '.site-popup-action-remove', function () {
+                const $list = $('#site-popup-actions-list');
+                $(this).closest('.site-popup-action-row').remove();
+                if ($list.find('.site-popup-action-row').length === 0) $list.append(sitePopupActionRow({}));
+                $('#form-site-popup').attr('data-unsaved-changes', '1');
+            });
 
             function openSitePopupFormModal() {
                 $('#site-popup-form-modal').removeClass('hidden').attr('aria-hidden', 'false');
@@ -1228,9 +1302,23 @@
                 }
             }
 
+            function confirmSitePopupFormExit(event) {
+                const nativeEvent = event && (event.originalEvent || event);
+                if (nativeEvent && nativeEvent.modalExitConfirmed === true) return true;
+
+                const $form = $('#form-site-popup');
+                if ($form.length === 0 || $form.attr('data-unsaved-changes') !== '1') return true;
+
+                return window.confirm('Deseja realmente sair? Os dados preenchidos serão perdidos.');
+            }
+
             $(document).on('click', '#open-site-popup-create', function () {
                 resetSitePopupForm();
                 openSitePopupFormModal();
+            });
+
+            $(document).on('input change', '#form-site-popup :input', function () {
+                $('#form-site-popup').attr('data-unsaved-changes', '1');
             });
 
             $(document).on('click', '.site-popup-edit-trigger', function () {
@@ -1251,8 +1339,11 @@
                 $form.find('[name="texto_principal"]').val(String(popup.texto_principal || ''));
                 $form.find('[name="texto_secundario"]').val(String(popup.texto_secundario || ''));
                 $form.find('[name="imagem_url"]').val(String(popup.imagem_url || ''));
-                $form.find('[name="rotulo_acao"]').val(String(popup.rotulo_acao || ''));
-                $form.find('[name="url_acao"]').val(String(popup.url_acao || ''));
+                let actions = Array.isArray(popup.acoes) ? popup.acoes : [];
+                if (actions.length === 0 && (popup.rotulo_acao || popup.url_acao)) {
+                    actions = [{ rotulo: popup.rotulo_acao, url: popup.url_acao }];
+                }
+                fillSitePopupActions(actions);
                 $form.find('[name="data_inicio"]').val(String(popup.data_inicio || ''));
                 $form.find('[name="data_fim"]').val(String(popup.data_fim || ''));
                 $form.find('[name="mostrar_todas_paginas"]').prop('checked', Number(popup.mostrar_todas_paginas || 0) === 1);
@@ -1268,16 +1359,25 @@
                 openSitePopupFormModal();
             });
 
-            $(document).on('click', '#cancel-site-popup-edit, [data-site-popup-form-close="1"]', function () {
+            $(document).on('click', '#cancel-site-popup-edit, [data-site-popup-form-close="1"]', function (event) {
+                if (!confirmSitePopupFormExit(event)) return;
                 closeSitePopupFormModal();
                 resetSitePopupForm();
             });
 
             $(document).on('click', '#site-popup-form-modal', function (event) {
                 if (event.target === this) {
+                    if (!confirmSitePopupFormExit(event)) return;
                     closeSitePopupFormModal();
                     resetSitePopupForm();
                 }
+            });
+
+            $(document).on('keydown', function (event) {
+                if (event.key !== 'Escape' || $('#site-popup-form-modal').hasClass('hidden')) return;
+                if (!confirmSitePopupFormExit(event)) return;
+                closeSitePopupFormModal();
+                resetSitePopupForm();
             });
 
             $(document).on('submit', '#form-site-popup', function (event) {
@@ -1330,12 +1430,15 @@
 
             $(document).on('click', '.popup-preview-trigger', function () {
                 const $button = $(this);
+                let actions = [];
+                try { actions = JSON.parse(String($button.attr('data-acoes') || '[]')); } catch (error) { actions = []; }
 
                 App.core.preencherPopupVisual('#popup-preview', {
                     titulo: $button.data('titulo'),
                     texto_principal: $button.data('textoPrincipal'),
                     texto_secundario: $button.data('textoSecundario'),
                     imagem_url: $button.data('imagemUrl'),
+                    acoes: actions,
                     rotulo_acao: $button.data('rotuloAcao'),
                     url_acao: $button.data('urlAcao')
                 });
@@ -1936,7 +2039,10 @@
 
             function confirmExit(modal, event) {
                 if (!modalHasChanges(modal)) return true;
-                if (window.confirm('Deseja realmente sair? Os dados preenchidos serão perdidos.')) return true;
+                if (window.confirm('Deseja realmente sair? Os dados preenchidos serão perdidos.')) {
+                    event.modalExitConfirmed = true;
+                    return true;
+                }
                 event.preventDefault();
                 event.stopPropagation();
                 if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
@@ -2021,6 +2127,7 @@
             App.core.iniciarMenuHeader();
             App.core.iniciarImportacaoPessoaExterna();
             App.core.iniciarProtecaoFormulariosModal();
+            App.core.iniciarAjudaContextualCampos();
         }
     });
 
