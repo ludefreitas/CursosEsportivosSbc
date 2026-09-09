@@ -87,7 +87,8 @@ class AdminService
                 p.created_at,
                 c.id AS conta_id,
                 c.ativo AS conta_ativa,
-                r.nome_completo AS nome_responsavel
+                r.nome_completo AS nome_responsavel,
+                r.cpf AS cpf_responsavel
             FROM pessoas p
             LEFT JOIN contas c ON c.cpf = p.cpf
             LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id = p.id
@@ -211,6 +212,23 @@ class AdminService
         unset($user);
 
         return $users;
+    }
+
+    /**
+     * Retorna os totais gerais exibidos nos quadros de pessoas e usuários.
+     */
+    public function peopleAndUsersTotals(): array
+    {
+        $row = Database::connection()->query('
+            SELECT
+                (SELECT COUNT(*) FROM pessoas) AS total_pessoas,
+                (SELECT COUNT(*) FROM contas) AS total_usuarios
+        ')->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        return [
+            'people' => (int) ($row['total_pessoas'] ?? 0),
+            'users' => (int) ($row['total_usuarios'] ?? 0),
+        ];
     }
 
     /**
@@ -949,7 +967,10 @@ class AdminService
                 doenca_validada = :doenca_validada,
                 observacao_validacao = :observacao_validacao,
                 validado_por_conta_id = :validado_por_conta_id,
-                validado_em = :validado_em,
+                validado_em = CASE
+                    WHEN :validacao_pendente = 1 THEN NULL
+                    ELSE NOW()
+                END,
                 updated_at = NOW()
             WHERE id = :id
         ');
@@ -960,7 +981,7 @@ class AdminService
             ':doenca_validada' => $validatedDisease !== '' ? $validatedDisease : null,
             ':observacao_validacao' => $validationNote !== '' ? $validationNote : null,
             ':validado_por_conta_id' => $status === 'pendente' ? null : $accountId,
-            ':validado_em' => $status === 'pendente' ? null : date('Y-m-d H:i:s'),
+            ':validacao_pendente' => $status === 'pendente' ? 1 : 0,
             ':id' => (int) $certificate['id'],
         ]);
 
@@ -1132,7 +1153,10 @@ class AdminService
                 validade_certificado = :validade_certificado,
                 observacao_validacao = :observacao_validacao,
                 validado_por_conta_id = :validado_por_conta_id,
-                validado_em = :validado_em,
+                validado_em = CASE
+                    WHEN :validacao_pendente = 1 THEN NULL
+                    ELSE NOW()
+                END,
                 updated_at = NOW()
             WHERE id = :id
         ');
@@ -1143,7 +1167,7 @@ class AdminService
             ':validade_certificado' => $validityDate,
             ':observacao_validacao' => $validationNote !== '' ? $validationNote : null,
             ':validado_por_conta_id' => $status === 'pendente' ? null : $accountId,
-            ':validado_em' => $status === 'pendente' ? null : date('Y-m-d H:i:s'),
+            ':validacao_pendente' => $status === 'pendente' ? 1 : 0,
             ':id' => (int) ($certificate['id'] ?? 0),
         ]);
 
@@ -3985,9 +4009,13 @@ class AdminService
             SELECT
                 cp.*,
                 tc.slug AS condicao_slug,
-                tc.nome AS condicao_nome
+                tc.nome AS condicao_nome,
+                pessoa_atualizadora.id AS ultima_atualizacao_pessoa_id,
+                pessoa_atualizadora.nome_completo AS ultima_atualizacao_pessoa_nome
             FROM certificados_pessoa cp
             INNER JOIN tipos_certificados tc ON tc.id = cp.tipo_certificado_id
+            LEFT JOIN contas conta_atualizadora ON conta_atualizadora.id = cp.validado_por_conta_id
+            LEFT JOIN pessoas pessoa_atualizadora ON pessoa_atualizadora.cpf = conta_atualizadora.cpf
             WHERE cp.pessoa_id = :pessoa_id
               AND tc.slug = :slug
             ORDER BY cp.updated_at DESC, cp.created_at DESC, cp.id DESC

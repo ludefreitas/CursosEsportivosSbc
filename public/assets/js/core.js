@@ -871,10 +871,24 @@
 
             $(document).on('click', 'a[href]', function (event) {
                 const href = String($(this).attr('href') || '').trim();
+                let isSamePageAnchor = false;
+
+                if (href !== '') {
+                    try {
+                        const targetUrl = new URL(href, window.location.href);
+                        isSamePageAnchor = targetUrl.origin === window.location.origin
+                            && targetUrl.pathname === window.location.pathname
+                            && targetUrl.search === window.location.search
+                            && targetUrl.hash !== '';
+                    } catch (error) {
+                        isSamePageAnchor = false;
+                    }
+                }
 
                 if (
                     href === '' ||
                     href.indexOf('#') === 0 ||
+                    isSamePageAnchor ||
                     $(this).attr('target') === '_blank' ||
                     event.ctrlKey ||
                     event.metaKey ||
@@ -1175,23 +1189,139 @@
         iniciarSitePopups: function () {
             const $popupSite = $('#popup-site');
             const $popupPreview = $('#popup-preview-site');
-            const $todasPaginas = $('#popup-todas-paginas');
-            const $paginasAlvo = $('#popup-paginas-alvo');
 
             if ($popupSite.length > 0 && String($popupSite.data('openOnLoad') || '') === '1') {
                 App.core.abrirPopupCustomizado('#popup-site');
             }
 
-            if ($todasPaginas.length > 0) {
-                const syncPagesState = function () {
-                    const disabled = $todasPaginas.is(':checked');
-                    $paginasAlvo.toggleClass('is-disabled', disabled);
-                    $paginasAlvo.find('input[type="checkbox"]').prop('disabled', disabled);
-                };
+            const syncPagesState = function () {
+                const $todasPaginas = $('#popup-todas-paginas');
+                const $paginasAlvo = $('#popup-paginas-alvo');
+                const disabled = $todasPaginas.is(':checked');
+                $paginasAlvo.toggleClass('is-disabled', disabled);
+                $paginasAlvo.find('input[type="checkbox"]').prop('disabled', disabled);
+            };
 
+            syncPagesState();
+            $(document).on('change', '#popup-todas-paginas', syncPagesState);
+
+            function resetSitePopupForm() {
+                const $form = $('#form-site-popup');
+                if ($form.length === 0) return;
+                $form[0].reset();
+                $form.attr('action', String($form.data('createAction') || ''));
+                $form.find('[name="site_popup_id"]').val('');
+                $('#site-popup-form-title').text('Novo pop-up do site');
+                $('#site-popup-submit').text('Salvar novo pop-up');
                 syncPagesState();
-                $(document).on('change', '#popup-todas-paginas', syncPagesState);
             }
+
+            function openSitePopupFormModal() {
+                $('#site-popup-form-modal').removeClass('hidden').attr('aria-hidden', 'false');
+                $('body').addClass('modal-open');
+            }
+
+            function closeSitePopupFormModal() {
+                $('#site-popup-form-modal').addClass('hidden').attr('aria-hidden', 'true');
+                if ($('.popup-overlay:not(.hidden)').length === 0) {
+                    $('body').removeClass('modal-open');
+                }
+            }
+
+            $(document).on('click', '#open-site-popup-create', function () {
+                resetSitePopupForm();
+                openSitePopupFormModal();
+            });
+
+            $(document).on('click', '.site-popup-edit-trigger', function () {
+                const $form = $('#form-site-popup');
+                let popup = {};
+
+                try {
+                    popup = JSON.parse(String($(this).attr('data-popup') || '{}'));
+                } catch (error) {
+                    App.core.abrirPopup('erro', 'Não foi possível carregar os dados deste pop-up.');
+                    return;
+                }
+
+                $form.attr('action', String($form.data('updateAction') || ''));
+                $form.find('[name="site_popup_id"]').val(String(popup.id || ''));
+                $form.find('[name="titulo"]').val(String(popup.titulo || ''));
+                $form.find('[name="status"]').val(String(popup.status || 'ativo'));
+                $form.find('[name="texto_principal"]').val(String(popup.texto_principal || ''));
+                $form.find('[name="texto_secundario"]').val(String(popup.texto_secundario || ''));
+                $form.find('[name="imagem_url"]').val(String(popup.imagem_url || ''));
+                $form.find('[name="rotulo_acao"]').val(String(popup.rotulo_acao || ''));
+                $form.find('[name="url_acao"]').val(String(popup.url_acao || ''));
+                $form.find('[name="data_inicio"]').val(String(popup.data_inicio || ''));
+                $form.find('[name="data_fim"]').val(String(popup.data_fim || ''));
+                $form.find('[name="mostrar_todas_paginas"]').prop('checked', Number(popup.mostrar_todas_paginas || 0) === 1);
+
+                const pages = Array.isArray(popup.paginas_alvo) ? popup.paginas_alvo.map(String) : [];
+                $form.find('[name="paginas_alvo[]"]').each(function () {
+                    $(this).prop('checked', pages.indexOf(String($(this).val())) !== -1);
+                });
+
+                $('#site-popup-form-title').text('Editar pop-up do site');
+                $('#site-popup-submit').text('Salvar alterações');
+                syncPagesState();
+                openSitePopupFormModal();
+            });
+
+            $(document).on('click', '#cancel-site-popup-edit, [data-site-popup-form-close="1"]', function () {
+                closeSitePopupFormModal();
+                resetSitePopupForm();
+            });
+
+            $(document).on('click', '#site-popup-form-modal', function (event) {
+                if (event.target === this) {
+                    closeSitePopupFormModal();
+                    resetSitePopupForm();
+                }
+            });
+
+            $(document).on('submit', '#form-site-popup', function (event) {
+                event.preventDefault();
+                const $form = $(this);
+                const formElement = $form[0];
+                if (formElement && !formElement.checkValidity()) {
+                    formElement.reportValidity();
+                    return;
+                }
+
+                const $button = $('#site-popup-submit');
+                $button.prop('disabled', true);
+                $.ajax({
+                    url: String($form.attr('action') || ''),
+                    method: 'POST',
+                    dataType: 'json',
+                    data: new FormData(formElement),
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar o pop-up.'));
+                        return;
+                    }
+
+                    if (App.admin && typeof App.admin.activateSection === 'function') {
+                        closeSitePopupFormModal();
+                        App.admin.activateSection('pop-ups', {}, { suppressGlobalLoading: true });
+                    } else {
+                        resetSitePopupForm();
+                    }
+                    App.core.abrirPopup('sucesso', String(response.message || 'Pop-up salvo com sucesso.'));
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                }).always(function () {
+                    $button.prop('disabled', false);
+                });
+            });
 
             $(document).on('click', '#preview-site-popup', function () {
                 App.core.preencherPopupVisual('#popup-preview', App.core.lerFormularioPopup());

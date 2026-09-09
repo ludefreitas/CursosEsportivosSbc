@@ -118,6 +118,65 @@ class SitePopupService
     }
 
     /**
+     * Atualiza o conteúdo e as regras de exibição de um pop-up existente.
+     */
+    public function update(int $popupId, array $data): void
+    {
+        if ($popupId <= 0) {
+            throw new RuntimeException('Pop-up inválido para edição.');
+        }
+
+        $payload = $this->normalizePayload($data);
+        $this->validatePayload($payload);
+
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('
+            UPDATE site_popups
+            SET titulo = :titulo,
+                texto_principal = :texto_principal,
+                texto_secundario = :texto_secundario,
+                imagem_url = :imagem_url,
+                rotulo_acao = :rotulo_acao,
+                url_acao = :url_acao,
+                caminhos_paginas = :caminhos_paginas,
+                mostrar_todas_paginas = :mostrar_todas_paginas,
+                data_inicio = :data_inicio,
+                data_fim = :data_fim,
+                status = :status,
+                updated_at = NOW()
+            WHERE id = :id
+              AND status <> "excluido"
+        ');
+        $stmt->execute([
+            ':titulo' => $payload['titulo'],
+            ':texto_principal' => $payload['texto_principal'],
+            ':texto_secundario' => $payload['texto_secundario'],
+            ':imagem_url' => $payload['imagem_url'],
+            ':rotulo_acao' => $payload['rotulo_acao'],
+            ':url_acao' => $payload['url_acao'],
+            ':caminhos_paginas' => $payload['caminhos_paginas'],
+            ':mostrar_todas_paginas' => $payload['mostrar_todas_paginas'],
+            ':data_inicio' => $payload['data_inicio'],
+            ':data_fim' => $payload['data_fim'],
+            ':status' => $payload['status'],
+            ':id' => $popupId,
+        ]);
+
+        if ($stmt->rowCount() === 0) {
+            $exists = $pdo->prepare('SELECT id FROM site_popups WHERE id = :id AND status <> "excluido" LIMIT 1');
+            $exists->execute([':id' => $popupId]);
+            if (!$exists->fetchColumn()) {
+                throw new RuntimeException('O pop-up informado não foi encontrado.');
+            }
+        }
+
+        AuditLogService::record('site_popup.atualizado', 'site_popups', $popupId, [
+            'titulo' => $payload['titulo'],
+            'status' => $payload['status'],
+        ]);
+    }
+
+    /**
      * Atualiza o status para ativo ou arquivado.
      */
     public function updateStatus(int $popupId, string $status): void
@@ -160,6 +219,27 @@ class SitePopupService
         $stmt->execute([':id' => $popupId]);
 
         AuditLogService::record('site_popup.excluido', 'site_popups', $popupId, []);
+    }
+
+    /**
+     * Remove definitivamente um pop-up que já esteja excluído logicamente.
+     */
+    public function destroy(int $popupId): void
+    {
+        if ($popupId <= 0) {
+            throw new RuntimeException('Pop-up inválido.');
+        }
+
+        $pdo = Database::connection();
+        $exists = $pdo->prepare('SELECT id FROM site_popups WHERE id = :id AND status = "excluido" LIMIT 1');
+        $exists->execute([':id' => $popupId]);
+        if (!$exists->fetchColumn()) {
+            throw new RuntimeException('Somente um pop-up com status Excluído pode ser excluído definitivamente.');
+        }
+
+        AuditLogService::record('site_popup.excluido_definitivamente', 'site_popups', $popupId, []);
+        $stmt = $pdo->prepare('DELETE FROM site_popups WHERE id = :id AND status = "excluido"');
+        $stmt->execute([':id' => $popupId]);
     }
 
     /**

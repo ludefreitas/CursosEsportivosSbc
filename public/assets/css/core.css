@@ -622,6 +622,21 @@ body.pagina-error .site-nav > .inline-form .link-button,
     gap: 8px;
     list-style: none;
 }
+
+.site-header-alert-action {
+    display: inline-block;
+    margin-left: 6px;
+    color: var(--brand-900, #124559);
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+[id^="documentacao-condicao-"]:target,
+[id^="documentacao-atestado-"]:target {
+    outline: 3px solid rgba(245, 139, 0, 0.42);
+    outline-offset: 3px;
+}
 .site-header-alert-item,
 .notice-title-with-icon {
     display: flex;
@@ -1105,6 +1120,32 @@ body.pagina-error .site-nav > .inline-form .link-button,
     color: var(--color-primary, #14536a);
     font-size: 0.9rem;
     font-weight: 700;
+}
+
+.people-panel-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.people-panel-title-row h2 {
+    margin: 0;
+}
+
+.people-panel-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    min-height: 26px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    color: #fff;
+    background: var(--brand-700, #176f8a);
+    font-size: 0.85rem;
+    font-weight: 800;
+    line-height: 1;
 }
 label span {
     display: block;

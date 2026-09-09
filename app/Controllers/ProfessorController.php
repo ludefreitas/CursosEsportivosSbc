@@ -348,6 +348,7 @@ class ProfessorController extends Controller
         return [
             'people' => $this->adminService->listUsersAndDependents($peopleLimit, (string) ($_GET['people_search'] ?? '')),
             'usersOnly' => $this->adminService->listUsersOnly($usersLimit, (string) ($_GET['users_search'] ?? '')),
+            'peopleUsersTotals' => $this->adminService->peopleAndUsersTotals(),
             'conditionValidationRows' => $this->adminService->listPeopleRequiringConditionValidation(),
             'healthCertificateValidationRows' => $this->adminService->listPeopleRequiringHealthCertificateValidation(),
             'availableRoles' => [], 'canManageRoles' => false,

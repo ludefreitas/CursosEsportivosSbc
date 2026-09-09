@@ -34,6 +34,18 @@ foreach ($selectedDisabilityTypes as $selectedType) {
         <p><strong>Responsável:</strong> <?php echo e((string) (($person['nome_responsavel'] ?? '') !== '' ? $person['nome_responsavel'] : '-')); ?></p>
         <p><strong>Condição:</strong> <?php echo e((string) ($condition['label'] ?? '-')); ?></p>
         <p><strong>Status atual:</strong> <?php echo e((string) ($certificate['status'] ?? 'Sem certificado enviado')); ?></p>
+        <p><strong>Última atualização da condição:</strong>
+            <?php if (!empty($certificate['ultima_atualizacao_pessoa_id'])) { ?>
+                <?php echo e((string) ($certificate['ultima_atualizacao_pessoa_nome'] ?? 'Pessoa não identificada')); ?>
+                [ <?php echo e((string) $certificate['ultima_atualizacao_pessoa_id']); ?> ]
+                <?php $conditionUpdatedAt = $certificate['validado_em'] ?? $certificate['updated_at'] ?? null; ?>
+                <?php if (!empty($conditionUpdatedAt)) { ?>
+                    — atualizada em <?php echo e(date('d/m/Y H:i', strtotime((string) $conditionUpdatedAt))); ?>
+                <?php } ?>
+            <?php } else { ?>
+                Ainda não registrada
+            <?php } ?>
+        </p>
         <p><strong>Resumo informado pela pessoa:</strong> <?php echo e((string) ($certificate['descricao_resumida'] ?? '-')); ?></p>
         <?php if (in_array((string) ($condition['slug'] ?? ''), ['pcd', 'plm'], true)) { ?>
             <p><strong>CID declarado:</strong> <?php echo e((string) ($certificate['codigo_cid_declarado'] ?? '-')); ?></p>

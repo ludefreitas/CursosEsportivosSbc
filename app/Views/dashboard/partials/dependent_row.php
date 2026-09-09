@@ -1,6 +1,6 @@
 <?php $dependent = $dependent ?? []; ?>
 <?php $healthSummary = $dependent['health_certificates_summary'] ?? []; ?>
-<tr data-dependent-row-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>">
+<tr id="dependente-<?php echo e((string) ($dependent['id'] ?? '0')); ?>" data-dependent-row-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>">
     <td><?php echo e((string) ($dependent['nome_completo'] ?? '')); ?></td>
     <td><?php echo e(format_cpf((string) ($dependent['cpf'] ?? ''))); ?></td>
     <td><?php echo e(!empty($dependent['data_nascimento']) ? date('d/m/Y', strtotime((string) $dependent['data_nascimento'])) : '-'); ?></td>
@@ -25,6 +25,7 @@
                 data-open-health-certificates-modal="1"
                 data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
                 data-certificate-type="clinico"
+                id="documentacao-atestado-<?php echo e((string) ($dependent['id'] ?? '0')); ?>-clinico"
             >Atualizar atestado clínico</button>
         </div>
     </td>
@@ -41,6 +42,7 @@
                 data-open-health-certificates-modal="1"
                 data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
                 data-certificate-type="dermatologico"
+                id="documentacao-atestado-<?php echo e((string) ($dependent['id'] ?? '0')); ?>-dermatologico"
             >Atualizar atestado dermatológico</button>
         </div>
     </td>
@@ -55,6 +57,7 @@
                     data-open-certificates-modal="1"
                     data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
                     data-condition-slug="pcd"
+                    id="documentacao-condicao-<?php echo e((string) ($dependent['id'] ?? '0')); ?>-pcd"
                 >PCD enviar/atualizar documentação</button>
             <?php } ?>
             <?php if ((int) ($dependent['eh_pvs'] ?? 0) === 1) { ?>
@@ -65,7 +68,8 @@
                     data-open-certificates-modal="1"
                     data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
                     data-condition-slug="pvs"
-                >PVS enviar/atualizar documentação</button>
+                    id="documentacao-condicao-<?php echo e((string) ($dependent['id'] ?? '0')); ?>-pvs"
+                >Pessoa em Vulnerabilidade Social enviar/atualizar documentação</button>
             <?php } ?>
             <?php if ((int) ($dependent['eh_plm'] ?? 0) === 1) { ?>
                 <?php $hasConditionAction = true; ?>
@@ -75,7 +79,8 @@
                     data-open-certificates-modal="1"
                     data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
                     data-condition-slug="plm"
-                >PLM enviar/atualizar documentação</button>
+                    id="documentacao-condicao-<?php echo e((string) ($dependent['id'] ?? '0')); ?>-plm"
+                >Pessoa com Laudo Médico de Doença enviar/atualizar documentação</button>
             <?php } ?>
         </div>
         <?php if (!$hasConditionAction) { ?>

@@ -144,8 +144,8 @@ class UserService
         $alerts = [];
         $conditionMap = [
             'eh_pcd' => ['slug' => 'pcd', 'label' => 'PCD'],
-            'eh_pvs' => ['slug' => 'pvs', 'label' => 'PVS'],
-            'eh_plm' => ['slug' => 'plm', 'label' => 'PLM'],
+            'eh_pvs' => ['slug' => 'pvs', 'label' => 'Pessoa em Vulnerabilidade Social'],
+            'eh_plm' => ['slug' => 'plm', 'label' => 'Pessoa com Laudo Médico de Doença'],
         ];
 
         $stmtCertificate = $pdo->prepare('
@@ -181,7 +181,9 @@ class UserService
                 if ($certificate === null || (int) ($certificate['documentos_enviados'] ?? 0) <= 0) {
                     $alerts[] = [
                         'level' => 'warning',
-                        'message' => $person['nome_completo'] . ' foi marcado como ' . $meta['label'] . ' e ainda precisa enviar a documentação para validação do certificado.',
+                        'message' => $person['nome_completo'] . ' foi marcado como ' . $meta['label'] . ' e ainda precisa enviar a documentação para validação da condição.',
+                        'action_url' => url('/dashboard') . '#documentacao-condicao-' . (int) $person['id'] . '-' . $meta['slug'],
+                        'action_label' => 'Enviar documentação',
                     ];
                     continue;
                 }
@@ -193,6 +195,8 @@ class UserService
                     $alerts[] = [
                         'level' => 'warning',
                         'message' => 'A documentação de ' . $person['nome_completo'] . ' para ' . $meta['label'] . ' foi enviada e ainda está pendente de validação.',
+                        'action_url' => url('/dashboard') . '#documentacao-condicao-' . (int) $person['id'] . '-' . $meta['slug'],
+                        'action_label' => 'Ver documentação',
                     ];
                     continue;
                 }
@@ -201,6 +205,8 @@ class UserService
                     $alerts[] = [
                         'level' => 'warning',
                         'message' => 'O certificado de ' . $meta['label'] . ' de ' . $person['nome_completo'] . ' foi validado parcialmente e ainda exige regularização complementar.',
+                        'action_url' => url('/dashboard') . '#documentacao-condicao-' . (int) $person['id'] . '-' . $meta['slug'],
+                        'action_label' => 'Regularizar documentação',
                     ];
                 }
 
@@ -224,6 +230,8 @@ class UserService
                     $alerts[] = [
                         'level' => 'error',
                         'message' => 'O certificado de ' . $meta['label'] . ' de ' . $person['nome_completo'] . ' venceu em ' . $expiryDate->format('d/m/Y') . '.',
+                        'action_url' => url('/dashboard') . '#documentacao-condicao-' . (int) $person['id'] . '-' . $meta['slug'],
+                        'action_label' => 'Atualizar documentação',
                     ];
                     continue;
                 }
@@ -232,6 +240,8 @@ class UserService
                     $alerts[] = [
                         'level' => 'warning',
                         'message' => 'O certificado de ' . $meta['label'] . ' de ' . $person['nome_completo'] . ' vence em ' . $expiryDate->format('d/m/Y') . '.',
+                        'action_url' => url('/dashboard') . '#documentacao-condicao-' . (int) $person['id'] . '-' . $meta['slug'],
+                        'action_label' => 'Atualizar documentação',
                     ];
                 }
             }
@@ -249,12 +259,17 @@ class UserService
                 } catch (\Throwable $e) {
                     continue;
                 }
-                $label = ($imported['tipo_atestado'] ?? '') === 'dermatologico'
+                $certificateType = ($imported['tipo_atestado'] ?? '') === 'dermatologico' ? 'dermatologico' : 'clinico';
+                $label = $certificateType === 'dermatologico'
                     ? 'atestado dermatológico' : 'atestado clínico';
+                $healthAction = [
+                    'action_url' => url('/dashboard') . '#documentacao-atestado-' . (int) $person['id'] . '-' . $certificateType,
+                    'action_label' => 'Atualizar atestado',
+                ];
                 if ($expiryDate < $today) {
-                    $alerts[] = ['level' => 'error', 'message' => 'O ' . $label . ' de ' . $person['nome_completo'] . ' venceu em ' . $expiryDate->format('d/m/Y') . '.'];
+                    $alerts[] = array_merge(['level' => 'error', 'message' => 'O ' . $label . ' de ' . $person['nome_completo'] . ' venceu em ' . $expiryDate->format('d/m/Y') . '.'], $healthAction);
                 } elseif ($expiryDate <= $today->modify('+2 months')) {
-                    $alerts[] = ['level' => 'warning', 'message' => 'O ' . $label . ' de ' . $person['nome_completo'] . ' vence em ' . $expiryDate->format('d/m/Y') . '.'];
+                    $alerts[] = array_merge(['level' => 'warning', 'message' => 'O ' . $label . ' de ' . $person['nome_completo'] . ' vence em ' . $expiryDate->format('d/m/Y') . '.'], $healthAction);
                 }
             }
         }

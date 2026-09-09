@@ -17,6 +17,7 @@
             }
 
             $('.header-login-form').remove();
+            $('.site-header-register-invite').remove();
 
             const navItems = [
                 '<a href="' + App.core.buildUrl('/cursos') + '" class="nav-color-orange">Cursos</a>',
@@ -265,6 +266,7 @@
                 const shouldFollowRedirect = String($form.data('followRedirect') || '') === '1';
                 const shouldReset = String($form.data('successReset') || '') === '1';
                 const removeClosestSelector = String($form.data('removeClosest') || '');
+                const refreshAdminSection = String($form.data('refreshAdminSection') || '');
                 const isInsideRouteModal = $form.closest('#popup-route-modal').length > 0;
                 const authenticatedSessionStarted = App.auth.isAuthenticationFormAction(action);
                 const $submitButton = $form.find('button[type="submit"], input[type="submit"]').first();
@@ -351,6 +353,14 @@
                     App.core.abrirPopup('sucesso', mensagem, function () {
                         if (removeClosestSelector !== '') {
                             $form.closest(removeClosestSelector).remove();
+                        }
+
+                        if (
+                            refreshAdminSection !== ''
+                            && App.admin
+                            && typeof App.admin.activateSection === 'function'
+                        ) {
+                            App.admin.activateSection(refreshAdminSection, {}, { suppressGlobalLoading: true });
                         }
 
                         if (shouldReset) {

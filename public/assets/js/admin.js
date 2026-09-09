@@ -940,7 +940,11 @@
                 $('#admin-person-details-full-name').text(String(person.nome_completo || '-'));
                 $('#admin-person-details-cpf').text(formatPersonCpf(person.cpf));
                 $('#admin-person-details-sex').text(formatSex(person.sexo));
-                $('#admin-person-details-birth-date').text(String(person.data_nascimento || '-'));
+                $('#admin-person-details-birth-date').text((function (value) {
+                    const raw = String(value || '').trim();
+                    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                    return match ? match[3] + '/' + match[2] + '/' + match[1] : (raw || '-');
+                }(person.data_nascimento)));
                 $('#admin-person-details-registration').text(formatRegistration(person.cadastro_completo));
                 $('#admin-person-details-account').text(formatAccountStatus(person));
                 $('#admin-person-details-conditions').text(formatDeclaredConditions(person));
@@ -1187,6 +1191,13 @@
                 return Number(value || 0) === 1 ? 'Completo' : 'Pendente';
             }
 
+            function formatDate(value) {
+                const raw = String(value || '').trim();
+                const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+                return match ? match[3] + '/' + match[2] + '/' + match[1] : (raw || '-');
+            }
+
             function formatDateTime(value) {
                 const raw = String(value || '').trim();
 
@@ -1247,7 +1258,7 @@
                 $('#admin-user-details-email').text(String(user.email || '-'));
                 $('#admin-user-details-phone').text(String(user.telefone_whatsapp || '-'));
                 $('#admin-user-details-sex').text(formatSex(user.sexo));
-                $('#admin-user-details-birth-date').text(String(user.data_nascimento || '-'));
+                $('#admin-user-details-birth-date').text(formatDate(user.data_nascimento));
                 $('#admin-user-details-registration').text(formatRegistration(user.cadastro_completo));
                 $('#admin-user-details-account-status').text(Number(user.conta_ativa || 0) === 1 ? 'Conta ativa' : 'Conta inativa');
                 $('#admin-user-details-roles').text(formatRoles(user.roles));
@@ -1271,14 +1282,14 @@
 
                 const rows = dependents.map(function (dependent) {
                     const registration = Number(dependent.cadastro_completo || 0) === 1 ? 'Completo' : 'Pendente';
-                    const since = String(dependent.data_inicio || '').trim() || '-';
+                    const since = formatDate(dependent.data_inicio);
                     const note = String(dependent.observacoes || '').trim() || '-';
 
                     return '' +
                         '<tr>' +
                             '<td>' + App.core.escapeHtml(String(dependent.nome_completo || '-')) + '</td>' +
                             '<td>' + App.core.escapeHtml(formatCpf(dependent.cpf)) + '</td>' +
-                            '<td>' + App.core.escapeHtml(String(dependent.data_nascimento || '-')) + '</td>' +
+                            '<td>' + App.core.escapeHtml(formatDate(dependent.data_nascimento)) + '</td>' +
                             '<td>' + App.core.escapeHtml(registration) + '</td>' +
                             '<td>' + App.core.escapeHtml(since) + '</td>' +
                             '<td>' + App.core.escapeHtml(note) + '</td>' +
@@ -2490,6 +2501,9 @@
                 const $form = $(this);
                 const $submitButton = $form.find('button[type="submit"]').first();
                 const formData = new FormData($form[0]);
+                const personId = String(formData.get('person_id') || '').trim();
+                const conditionSlug = String(formData.get('condition_slug') || '').trim();
+                const selectedStatus = String(formData.get('status') || '').trim();
 
                 $submitButton.prop('disabled', true);
 
@@ -2521,6 +2535,15 @@
                         getModalContent().html(String(response.html || ''));
                         syncValidationNoteRequirement();
                     }
+
+                    const statusLabels = {
+                        pendente: 'Validação pendente',
+                        reprovado: 'Reprovado',
+                        validado: 'Validado',
+                        validado_parcial: 'Validado parcial'
+                    };
+                    $('[data-condition-status-person="' + personId + '"][data-condition-status-slug="' + conditionSlug + '"]')
+                        .text(String(statusLabels[selectedStatus] || selectedStatus));
 
                     closeModal();
                     App.core.abrirPopup('sucesso', String(response.message || 'Validação atualizada com sucesso.'));

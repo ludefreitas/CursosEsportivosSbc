@@ -442,6 +442,7 @@ class AdminController extends Controller
             $usersSearch = (string) ($_GET['users_search'] ?? '');
             $people = $this->adminService->listUsersAndDependents($peopleLimit, $peopleSearch);
             $usersOnly = $this->adminService->listUsersOnly($usersLimit, $usersSearch);
+            $peopleUsersTotals = $this->adminService->peopleAndUsersTotals();
             $conditionValidationRows = $this->adminService->listPeopleRequiringConditionValidation();
             $availableRoles = $this->adminService->listRolesForManagement();
             $peopleLimitMax = AdminService::MAX_PEOPLE_LIMIT;
@@ -852,6 +853,38 @@ class AdminController extends Controller
     }
 
     /**
+     * Atualiza um pop-up do site sem recarregar a página administrativa.
+     */
+    public function updateSitePopup(): void
+    {
+        $this->assertPopupManagementAccess();
+
+        try {
+            $this->sitePopupService->update((int) ($_POST['site_popup_id'] ?? 0), $_POST);
+
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Pop-up atualizado com sucesso.',
+                ]);
+            }
+
+            flash('success', 'Pop-up atualizado com sucesso.');
+        } catch (\Throwable $e) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+
+            flash('error', $e->getMessage());
+        }
+
+        redirect('/admin');
+    }
+
+    /**
      * Arquiva ou reativa um pop-up do site.
      */
     public function updateSitePopupStatus(): void
@@ -906,6 +939,38 @@ class AdminController extends Controller
             }
 
             flash('success', 'Pop-up excluido com sucesso.');
+        } catch (\Throwable $e) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+
+            flash('error', $e->getMessage());
+        }
+
+        redirect('/admin');
+    }
+
+    /**
+     * Exclui definitivamente um pop-up previamente removido.
+     */
+    public function destroySitePopup(): void
+    {
+        $this->assertPopupManagementAccess();
+
+        try {
+            $this->sitePopupService->destroy((int) ($_POST['site_popup_id'] ?? 0));
+
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => true,
+                    'message' => 'Pop-up excluído definitivamente.',
+                ]);
+            }
+
+            flash('success', 'Pop-up excluído definitivamente.');
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -2045,6 +2110,7 @@ class AdminController extends Controller
 
             $data['people'] = $this->adminService->listUsersAndDependents($peopleLimit, (string) $data['peopleSearch']);
             $data['usersOnly'] = $this->adminService->listUsersOnly($usersLimit, (string) $data['usersSearch']);
+            $data['peopleUsersTotals'] = $this->adminService->peopleAndUsersTotals();
             $data['conditionValidationRows'] = $this->adminService->listPeopleRequiringConditionValidation();
             $data['healthCertificateValidationRows'] = $this->adminService->listPeopleRequiringHealthCertificateValidation();
             $data['availableRoles'] = $this->adminService->listRolesForManagement();

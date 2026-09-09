@@ -1308,11 +1308,19 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         <?php } ?>
 
         <?php if ($sectionName === 'pop-ups' && !empty($canManageSitePopups)) { ?>
-            <section class="grid-two">
-                <article class="content-card">
-                    <h2>Novo pop-up do site</h2>
-                    <p class="muted">Todos os campos do pop-up são opcionais, exceto o período de exibição e a escolha das páginas.</p>
-                    <form method="POST" action="<?php echo e(url('/admin/site-popups')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1" id="form-site-popup" data-conditional-links-form="popup">
+            <section class="popup-management-grid">
+                <div id="site-popup-form-modal" class="popup-overlay hidden" aria-hidden="true">
+                    <div class="popup-card popup-admin-card site-popup-form-modal-card" role="dialog" aria-modal="true" aria-labelledby="site-popup-form-title">
+                        <div class="popup-head admin-popup-head">
+                            <div>
+                                <h2 id="site-popup-form-title">Novo pop-up do site</h2>
+                                <p class="muted">Todos os campos do pop-up são opcionais, exceto o período de exibição e a escolha das páginas.</p>
+                            </div>
+                            <button type="button" class="popup-close-icon" data-site-popup-form-close="1" aria-label="Fechar">&times;</button>
+                        </div>
+                        <div class="popup-body admin-popup-body site-popup-form-modal-body">
+                    <form method="POST" action="<?php echo e(url('/admin/site-popups')); ?>" class="stack-form" id="form-site-popup" data-create-action="<?php echo e(url('/admin/site-popups')); ?>" data-update-action="<?php echo e(url('/admin/site-popups/atualizar')); ?>" data-conditional-links-form="popup">
+                        <input type="hidden" name="site_popup_id" value="">
                         <div class="grid-two">
                             <label><span>Título</span><input type="text" name="titulo" maxlength="180" placeholder="Ex.: Inscrições abertas"></label>
                             <label><span>Status inicial</span>
@@ -1357,13 +1365,19 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 
                         <div class="popup-builder-actions">
                             <button type="button" class="btn btn-secondary" id="preview-site-popup">Pre-visualizar pop-up</button>
-                            <button type="submit" class="btn btn-primary">Salvar novo pop-up</button>
+                            <button type="button" class="btn btn-secondary" id="cancel-site-popup-edit">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" id="site-popup-submit">Salvar novo pop-up</button>
                         </div>
                     </form>
-                </article>
+                        </div>
+                    </div>
+                </div>
 
-                <article class="content-card">
-                    <h2>Biblioteca de pop-ups</h2>
+                <article class="content-card popup-library-card">
+                    <div class="section-head popup-library-head">
+                        <h2>Biblioteca de pop-ups</h2>
+                        <button type="button" class="btn btn-primary" id="open-site-popup-create">Criar pop-up</button>
+                    </div>
                     <div class="post-grid popup-list-grid">
                         <?php if (empty($sitePopups)) { ?>
                             <article class="post-card popup-item-card">
@@ -1382,6 +1396,14 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 'rotulo_acao' => $popup['rotulo_acao'] ?? '',
                                 'url_acao' => $popup['url_acao'] ?? '',
                             ];
+                            $popupEdit = array_merge($popupPreview, [
+                                'id' => (int) ($popup['id'] ?? 0),
+                                'status' => $popupStatus,
+                                'data_inicio' => !empty($popup['data_inicio']) ? date('Y-m-d\TH:i', strtotime((string) $popup['data_inicio'])) : '',
+                                'data_fim' => !empty($popup['data_fim']) ? date('Y-m-d\TH:i', strtotime((string) $popup['data_fim'])) : '',
+                                'mostrar_todas_paginas' => (int) ($popup['mostrar_todas_paginas'] ?? 0),
+                                'paginas_alvo' => array_values(array_filter(array_map('trim', explode(',', (string) ($popup['caminhos_paginas'] ?? ''))))),
+                            ]);
                             ?>
                             <article class="post-card popup-item-card">
                                 <div class="popup-item-head">
@@ -1407,23 +1429,31 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                     <small><strong>Criado por:</strong> <?php echo e($popup['autor_nome'] ?? '-'); ?></small>
                                 </div>
                                 <div class="popup-card-actions">
+                                    <?php if ($popupStatus !== 'excluido') { ?>
+                                        <button type="button" class="btn btn-primary site-popup-edit-trigger" data-popup="<?php echo e((string) json_encode($popupEdit, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>">Editar</button>
+                                    <?php } ?>
                                     <?php if ($popupStatus === 'arquivado') { ?>
-                                        <form method="POST" action="<?php echo e(url('/admin/site-popups/status')); ?>" class="inline-form" data-ajax-form="1">
+                                        <form method="POST" action="<?php echo e(url('/admin/site-popups/status')); ?>" class="inline-form" data-ajax-form="1" data-refresh-admin-section="pop-ups">
                                             <input type="hidden" name="site_popup_id" value="<?php echo e((string) $popup['id']); ?>">
                                             <input type="hidden" name="status" value="ativo">
                                             <button type="submit" class="btn btn-secondary">Ativar novamente</button>
                                         </form>
                                     <?php } elseif ($popupStatus === 'ativo') { ?>
-                                        <form method="POST" action="<?php echo e(url('/admin/site-popups/status')); ?>" class="inline-form" data-ajax-form="1">
+                                        <form method="POST" action="<?php echo e(url('/admin/site-popups/status')); ?>" class="inline-form" data-ajax-form="1" data-refresh-admin-section="pop-ups">
                                             <input type="hidden" name="site_popup_id" value="<?php echo e((string) $popup['id']); ?>">
                                             <input type="hidden" name="status" value="arquivado">
                                             <button type="submit" class="btn btn-secondary">Arquivar</button>
                                         </form>
                                     <?php } ?>
                                     <?php if ($popupStatus !== 'excluido') { ?>
-                                        <form method="POST" action="<?php echo e(url('/admin/site-popups/remover')); ?>" class="inline-form" data-ajax-form="1" data-remove-closest="article">
+                                        <form method="POST" action="<?php echo e(url('/admin/site-popups/remover')); ?>" class="inline-form" data-ajax-form="1" data-refresh-admin-section="pop-ups">
                                             <input type="hidden" name="site_popup_id" value="<?php echo e((string) $popup['id']); ?>">
                                             <button type="submit" class="btn btn-danger">Excluir</button>
+                                        </form>
+                                    <?php } else { ?>
+                                        <form method="POST" action="<?php echo e(url('/admin/site-popups/excluir-definitivamente')); ?>" class="inline-form" data-ajax-form="1" data-refresh-admin-section="pop-ups" data-confirm-delete-message="Deseja excluir este pop-up definitivamente? Esta ação não poderá ser desfeita.">
+                                            <input type="hidden" name="site_popup_id" value="<?php echo e((string) $popup['id']); ?>">
+                                            <button type="submit" class="btn btn-danger">Excluir definitivamente</button>
                                         </form>
                                     <?php } ?>
                                 </div>
@@ -2511,8 +2541,8 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             <div class="table-wrap"><table class="data-table"><thead><tr><th>Cronograma</th><th>Modalidade</th><th>Temporada</th><th>Aulas</th><th>Edital</th><th>Turmas</th><th>Ações</th></tr></thead><tbody id="admin-modality-schedule-list-body">
                 <?php foreach (($modalitySchedules ?? []) as $schedule) { ?>
                     <tr>
-                        <td><?php echo e((string) $schedule['nome']); ?><br><small>Disponível: <?php echo e((string) $schedule['data_inicio']); ?> a <?php echo e((string) $schedule['data_fim']); ?></small></td><td><?php echo e((string) $schedule['modalidade_nome']); ?></td><td><?php echo e((string) $schedule['temporada_nome']); ?></td>
-                        <td><?php echo e((string) ($schedule['aulas_inicio'] ?? '-')); ?> a <?php echo e((string) ($schedule['aulas_fim'] ?? '-')); ?></td>
+                        <td><?php echo e((string) $schedule['nome']); ?><br><small>Disponível: <?php echo e(!empty($schedule['data_inicio']) ? date('d/m/Y', strtotime((string) $schedule['data_inicio'])) : '-'); ?> a <?php echo e(!empty($schedule['data_fim']) ? date('d/m/Y', strtotime((string) $schedule['data_fim'])) : '-'); ?></small></td><td><?php echo e((string) $schedule['modalidade_nome']); ?></td><td><?php echo e((string) $schedule['temporada_nome']); ?></td>
+                        <td><?php echo e(!empty($schedule['aulas_inicio']) ? date('d/m/Y', strtotime((string) $schedule['aulas_inicio'])) : '-'); ?> a <?php echo e(!empty($schedule['aulas_fim']) ? date('d/m/Y', strtotime((string) $schedule['aulas_fim'])) : '-'); ?></td>
                         <td><?php echo !empty($schedule['possui_edital']) ? e((string) ($schedule['numero_edital'] ?? 'Sim')) : 'Não'; ?></td><td><?php echo e((string) ($schedule['total_turmas'] ?? 0)); ?><?php if ((int) ($schedule['total_turmas_sem_cronograma'] ?? 0) > 0) { ?><br><small class="field-error"><?php echo e((string) $schedule['total_turmas_sem_cronograma']); ?> turma(s) desta modalidade ainda sem cronograma definido</small><?php } ?></td>
                         <td><div class="course-row-actions"><button type="button" class="btn btn-secondary admin-modality-schedule-edit" data-schedule="<?php echo e((string) json_encode($schedule, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>">Editar</button><button type="button" class="btn btn-danger admin-modality-schedule-delete" data-schedule-id="<?php echo e((string) $schedule['id']); ?>" data-schedule-name="<?php echo e((string) $schedule['nome']); ?>">Excluir</button></div></td>
                     </tr>

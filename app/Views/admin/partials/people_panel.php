@@ -1,6 +1,9 @@
 <div id="admin-people-panel-shell">
 <article class="content-card" id="admin-people-panel">
-    <h2>Usuários e dependentes</h2>
+    <div class="people-panel-title-row">
+        <h2>Pessoas</h2>
+        <span class="people-panel-count" aria-label="Total de pessoas cadastradas"><?php echo e((string) ($peopleUsersTotals['people'] ?? 0)); ?></span>
+    </div>
     <p class="muted"><?php echo !empty($professorView) ? 'Clique no nome para consultar os dados da pessoa. A lista mostra primeiro os cadastros mais recentes.' : 'Clique no nome para consultar os dados da pessoa e, se precisar, abrir a edição sem redirecionamento. A lista mostra primeiro os cadastros mais recentes.'; ?></p>
     <form method="GET" action="<?php echo e(url(!empty($professorView) ? '/professor/pessoas/lista' : '/admin/pessoas/lista')); ?>" class="stack-form admin-people-filter-form" id="admin-people-filter-form" data-manual-submit="1" data-admin-people-filter="1">
         <div class="admin-people-filter-grid admin-people-filter-row">
@@ -72,7 +75,11 @@
                                                 data-person-id="<?php echo e((string) $person['id']); ?>"
                                                 data-condition-slug="<?php echo e((string) ($indicator['slug'] ?? '')); ?>"
                                             ><?php echo e((string) ($indicator['label'] ?? 'Condição')); ?></button>
-                                            <span class="muted"><?php echo e((string) ($indicator['status_label'] ?? '')); ?></span>
+                                            <span
+                                                class="muted"
+                                                data-condition-status-person="<?php echo e((string) $person['id']); ?>"
+                                                data-condition-status-slug="<?php echo e((string) ($indicator['slug'] ?? '')); ?>"
+                                            ><?php echo e((string) ($indicator['status_label'] ?? '')); ?></span>
                                             <?php if (($indicator['icon_type'] ?? '') === 'warning') { ?>
                                                 <button
                                                     type="button"
@@ -197,7 +204,16 @@
                                 </div>
                             <?php } ?>
                         </td>
-                        <td><?php echo e($person['nome_responsavel'] ?? '-'); ?></td>
+                        <td>
+                            <?php if (!empty($person['nome_responsavel'])) { ?>
+                                <span><?php echo e((string) $person['nome_responsavel']); ?></span>
+                                <?php if (!empty($person['cpf_responsavel'])) { ?>
+                                    <br><small class="muted"><?php echo e(!empty($professorView) ? format_cpf_professor((string) $person['cpf_responsavel']) : format_cpf((string) $person['cpf_responsavel'])); ?></small>
+                                <?php } ?>
+                            <?php } else { ?>
+                                <span class="muted">-</span>
+                            <?php } ?>
+                        </td>
                     </tr>
                 <?php } ?>
             </tbody>
@@ -421,7 +437,10 @@
 </article>
 
 <article class="content-card top-gap" id="admin-users-panel">
-    <h2>Lista somente de usuários</h2>
+    <div class="people-panel-title-row">
+        <h2>Usuários</h2>
+        <span class="people-panel-count" aria-label="Total de usuários cadastrados"><?php echo e((string) ($peopleUsersTotals['users'] ?? 0)); ?></span>
+    </div>
     <p class="muted">Esta lista mostra apenas quem já possui conta criada. Use os links para verificar os dados do usuário ou abrir a relação de dependentes em pop-up.</p>
     <form method="GET" action="<?php echo e(url(!empty($professorView) ? '/professor/pessoas/lista' : '/admin/pessoas/lista')); ?>" class="stack-form admin-people-filter-form" id="admin-users-filter-form" data-manual-submit="1" data-admin-people-filter="1">
         <div class="admin-people-filter-grid admin-people-filter-row">

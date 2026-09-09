@@ -7,6 +7,12 @@
     const form = document.getElementById('recovery-action-form');
     const error = document.getElementById('recovery-form-error');
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[char]));
+    const formatDateTime = (value) => {
+        const raw = String(value || '').trim();
+        const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/);
+        if (!match) return raw || '-';
+        return `${match[3]}/${match[2]}/${match[1]}${match[4] ? ` ${match[4]}:${match[5]}` : ''}`;
+    };
     const close = (element) => { element.classList.add('hidden'); element.setAttribute('aria-hidden', 'true'); };
     const open = (element) => { element.classList.remove('hidden'); element.setAttribute('aria-hidden', 'false'); };
     document.querySelectorAll('[data-scroll-reverted], [data-scroll-top]').forEach((link) => link.addEventListener('click', (event) => {
@@ -28,8 +34,8 @@
             const documentNotice = documents ? `<div class="notice notice-warning"><strong>Documentos associados</strong><p>Ao confirmar, estes arquivos serão retirados do repositório público e enviados para a quarentena:</p><ul>${documents}</ul></div>` : '';
             const cascades = (item.cascade_deletions || []).filter((entry) => Number(entry.count) > 0).map((entry) => `<li><strong>${entry.count}</strong> registro(s) de <code>${escapeHtml(entry.table)}</code></li>`).join('');
             const cascadeNotice = cascades ? `<div class="notice notice-warning"><strong>Registros vinculados também serão excluídos</strong><p>A exclusão desta inserção removerá, na mesma operação:</p><ul>${cascades}</ul><p>Esses dados serão preservados somente no histórico técnico da exclusão.</p></div>` : '';
-            const reversedNotice = item.reversed ? `<div class="notice notice-warning"><strong>Esta operação já foi revertida</strong><p>Reversão realizada em ${escapeHtml(item.revertido_em || 'data não informada')}. Motivo: ${escapeHtml(item.reversao_motivo || 'não informado')}.</p><p>Uma mesma operação não pode ser revertida duas vezes.</p></div>` : '';
-            body.innerHTML = `<dl class="recovery-details"><dt>Evento</dt><dd>${escapeHtml(item.tipo_evento)}</dd><dt>Entidade</dt><dd>${escapeHtml(item.tipo_entidade)} #${escapeHtml(item.entidade_id)}</dd><dt>Data</dt><dd>${escapeHtml(item.created_at)}</dd><dt>Responsável</dt><dd>${escapeHtml(item.autor_nome || 'Sistema')}</dd></dl>${reversedNotice}${documentNotice}${cascadeNotice}<h4>Dependências diretas</h4><ul>${deps}</ul><h4>Orientação</h4><p>${escapeHtml(item.manual_guidance)}</p><details><summary>Dados registrados na auditoria</summary><pre>${escapeHtml(JSON.stringify(item.payload || {}, null, 2))}</pre></details>`;
+            const reversedNotice = item.reversed ? `<div class="notice notice-warning"><strong>Esta operação já foi revertida</strong><p>Reversão realizada em ${escapeHtml(formatDateTime(item.revertido_em) || 'data não informada')}. Motivo: ${escapeHtml(item.reversao_motivo || 'não informado')}.</p><p>Uma mesma operação não pode ser revertida duas vezes.</p></div>` : '';
+            body.innerHTML = `<dl class="recovery-details"><dt>Evento</dt><dd>${escapeHtml(item.tipo_evento)}</dd><dt>Entidade</dt><dd>${escapeHtml(item.tipo_entidade)} #${escapeHtml(item.entidade_id)}</dd><dt>Data</dt><dd>${escapeHtml(formatDateTime(item.created_at))}</dd><dt>Responsável</dt><dd>${escapeHtml(item.autor_nome || 'Sistema')}</dd></dl>${reversedNotice}${documentNotice}${cascadeNotice}<h4>Dependências diretas</h4><ul>${deps}</ul><h4>Orientação</h4><p>${escapeHtml(item.manual_guidance)}</p><details><summary>Dados registrados na auditoria</summary><pre>${escapeHtml(JSON.stringify(item.payload || {}, null, 2))}</pre></details>`;
             if (item.automatic && !item.reversed) { form.reset(); document.getElementById('recovery-log-id').value = item.id; document.getElementById('recovery-submit-button').textContent = deletesDocumentBundle ? 'Excluir dados e colocar documentos em quarentena' : 'Excluir registro inserido'; form.classList.remove('hidden'); }
         } catch (requestError) { body.innerHTML = `<p class="form-error">${escapeHtml(requestError.message || 'Não foi possível carregar os detalhes.')}</p>`; }
     }));
