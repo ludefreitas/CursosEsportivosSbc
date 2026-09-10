@@ -18,15 +18,18 @@
                 <span>CPF</span>
                 <input type="text" name="cpf" value="<?php echo old('cpf'); ?>" placeholder="000.000.000-00" data-cpf-cadastro="1" required>
             </label>
-            <small class="cpf-cadastro-helper muted">Ao informar o CPF, o sistema avisará imediatamente se a conta já existe, se o CPF pertence a um dependente ou se a criação da conta está liberada.</small>
+            <label>
+                <span>Data de nascimento</span>
+                <input type="date" name="birth_date" value="<?php echo old('birth_date'); ?>" autocomplete="bday" required>
+            </label>
 
             <div class="grid-two">
                 <label>
-                    <span>Senha</span>
+                    <span>Criar Senha</span>
                     <input type="password" name="password" minlength="6" required>
                 </label>
                 <label>
-                    <span>Confirmação de senha</span>
+                    <span>Repetir Senha Criada</span>
                     <input type="password" name="password_confirmation" minlength="6" required>
                 </label>
             </div>
@@ -38,7 +41,7 @@
 
             <label class="checkbox-line">
                 <input type="checkbox" name="accept_terms" value="1" <?php echo old('accept_terms') === '1' ? 'checked' : ''; ?>>
-                <span>Li e aceito as politicas de privacidade e os termos de uso do site. O documento será implementado em detalhes depois.</span>
+                <span>Li e aceito as políticas de privacidade e os termos de uso do site.</span>
             </label>
 
             <div class="human-verification" data-human-verification="1">

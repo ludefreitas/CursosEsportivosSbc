@@ -86,11 +86,14 @@ class AuthService
     {
         $cpf = normalize_cpf((string) ($data['cpf'] ?? ''));
         $name = normalize_nome_completo((string) ($data['full_name'] ?? ''));
+        $birthDate = trim((string) ($data['birth_date'] ?? ''));
         $password = (string) ($data['password'] ?? '');
 
         if (!validar_nome_cadastro($name) || !validar_cpf($cpf) || strlen($password) < 6) {
             throw new RuntimeException('Informe um nome completo com no mínimo 14 caracteres, usando apenas letras, espaços, hífen ou apóstrofo, além de CPF válido e senha com ao menos 6 caracteres.');
         }
+
+        $birthDate = $this->validateAdultBirthDate($birthDate);
 
         $statusCpf = $this->consultarSituacaoCpfParaCadastro($cpf);
 
@@ -107,14 +110,31 @@ class AuthService
 
             if ($personId <= 0) {
                 $stmtPerson = $pdo->prepare('
-                    INSERT INTO pessoas (nome_completo, cpf, cadastro_completo)
-                    VALUES (:nome_completo, :cpf, 0)
+                    INSERT INTO pessoas (nome_completo, cpf, data_nascimento, cadastro_completo)
+                    VALUES (:nome_completo, :cpf, :data_nascimento, 0)
                 ');
                 $stmtPerson->execute([
                     ':nome_completo' => $name,
                     ':cpf' => $cpf,
+                    ':data_nascimento' => $birthDate,
                 ]);
                 $personId = (int) $pdo->lastInsertId();
+            } else {
+                $stmtPerson = $pdo->prepare('SELECT data_nascimento FROM pessoas WHERE id = :id LIMIT 1 FOR UPDATE');
+                $stmtPerson->execute([':id' => $personId]);
+                $registeredBirthDate = trim((string) ($stmtPerson->fetchColumn() ?: ''));
+
+                if ($registeredBirthDate !== '' && $registeredBirthDate !== $birthDate) {
+                    throw new RuntimeException('A data de nascimento informada não corresponde ao cadastro existente para este CPF.');
+                }
+
+                if ($registeredBirthDate === '') {
+                    $stmtBirthDate = $pdo->prepare('UPDATE pessoas SET data_nascimento = :data_nascimento, updated_at = NOW() WHERE id = :id');
+                    $stmtBirthDate->execute([
+                        ':data_nascimento' => $birthDate,
+                        ':id' => $personId,
+                    ]);
+                }
             }
 
             $stmtAccount = $pdo->prepare('
@@ -146,6 +166,26 @@ class AuthService
             $pdo->rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * Valida e normaliza a data de nascimento do responsável que cria a conta.
+     */
+    private function validateAdultBirthDate(string $birthDate): string
+    {
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $birthDate);
+        $errors = \DateTimeImmutable::getLastErrors();
+
+        if (!$date || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0)) || $date->format('Y-m-d') !== $birthDate) {
+            throw new RuntimeException('Informe uma data de nascimento válida.');
+        }
+
+        $today = new \DateTimeImmutable('today');
+        if ($date > $today || $date->diff($today)->y < 18) {
+            throw new RuntimeException('Somente pessoas maiores de 18 anos podem criar uma conta de responsável.');
+        }
+
+        return $date->format('Y-m-d');
     }
 
     /**

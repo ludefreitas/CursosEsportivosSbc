@@ -141,6 +141,8 @@ class CourseEnrollmentService
                 : ($row['status'] === 'lista_espera'
                     ? 'Esta inscrição está em uma lista de espera. Quando surgir uma vaga, o professor ou responsável pela turma entrará em contato. Mantenha seu número de telefone/WhatsApp atualizado.'
                     : '');
+            $row['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($row['dias_semana'] ?? ''));
+            $row['proximas_acoes'] = $this->userEnrollmentNextActions($row);
         }
         return $rows;
     }
@@ -1262,6 +1264,53 @@ class CourseEnrollmentService
             . ', em ' . (string) ($class['local_nome'] ?? 'local informado')
             . (!empty($class['espaco_nome']) ? ' — ' . (string) $class['espaco_nome'] : '')
             . ', para efetuar a matrícula.';
+    }
+
+    /**
+     * Informa ao usuário o que deve fazer a partir do status atual da inscrição.
+     */
+    private function userEnrollmentNextActions(array $enrollment): array
+    {
+        if (!empty($enrollment['temporada_encerrada'])) {
+            return ['Esta temporada foi encerrada. Nenhuma ação adicional é necessária para esta inscrição.'];
+        }
+
+        $status = (string) ($enrollment['status'] ?? '');
+        if ($status === 'aguardando_matricula') {
+            $actions = [];
+            if (!empty($enrollment['orientacao'])) {
+                $actions[] = (string) $enrollment['orientacao'];
+            } else {
+                $actions[] = 'Aguarde a confirmação da matrícula pelo professor ou responsável pela turma.';
+            }
+            $actions[] = 'Acompanhe esta inscrição pelo painel para verificar mudanças de status.';
+            return $actions;
+        }
+
+        if ($status === 'lista_espera') {
+            return [
+                'Aguarde o contato do professor ou responsável pela turma quando houver uma vaga.',
+                'Mantenha o telefone e o WhatsApp atualizados no cadastro.',
+                'Acompanhe sua posição e as mudanças de status pelo painel.',
+            ];
+        }
+
+        if ($status === 'matriculada') {
+            return [
+                'Sua matrícula está confirmada. Compareça às aulas nos dias e horários informados.',
+                'Leve os documentos eventualmente solicitados pela equipe do centro esportivo.',
+            ];
+        }
+
+        if ($status === 'suspensa') {
+            return ['Entre em contato com o centro esportivo para consultar o motivo da suspensão e receber orientações.'];
+        }
+
+        if (in_array($status, ['cancelada', 'desistente', 'excluida', 'excluida_por_falta'], true)) {
+            return ['Esta inscrição não está mais ativa. Consulte novas turmas disponíveis caso queira realizar outra inscrição.'];
+        }
+
+        return ['Acompanhe esta inscrição pelo painel e aguarde novas orientações.'];
     }
 
     private function ensureCourseAgeCriterionSchema(PDO $pdo): void

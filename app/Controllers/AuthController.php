@@ -146,6 +146,7 @@ class AuthController extends Controller
         $data = [
             'full_name' => normalize_nome_completo((string) ($_POST['full_name'] ?? '')),
             'cpf' => trim((string) ($_POST['cpf'] ?? '')),
+            'birth_date' => trim((string) ($_POST['birth_date'] ?? '')),
             'password' => (string) ($_POST['password'] ?? ''),
             'password_confirmation' => (string) ($_POST['password_confirmation'] ?? ''),
             'adult_ack' => (string) ($_POST['adult_ack'] ?? ''),

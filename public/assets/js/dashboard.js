@@ -35,6 +35,60 @@
                 return $('#dashboard-health-certificates-modal-content');
             }
 
+            function closeCourseEnrollmentDetailsModal() {
+                $('#dashboard-course-enrollment-details-modal').addClass('hidden').attr('aria-hidden', 'true');
+                $('#dashboard-course-enrollment-details-body').empty();
+            }
+
+            function enrollmentDetailLine(label, value) {
+                return $('<p>').append($('<strong>', { text: label + ': ' })).append(document.createTextNode(String(value || '-')));
+            }
+
+            $(document).on('click', '.dashboard-course-enrollment-details-open', function () {
+                let details = {};
+                try {
+                    details = JSON.parse(String($(this).attr('data-details') || '{}'));
+                } catch (error) {
+                    App.core.abrirPopup('erro', 'Não foi possível carregar os detalhes desta inscrição.');
+                    return;
+                }
+
+                const $body = $('#dashboard-course-enrollment-details-body').empty();
+                const $details = $('<div>', { class: 'course-enrollment-details' });
+                $details.append($('<h4>', { text: 'Inscrição Nº ' + String(details.id || '') }));
+                $details.append(enrollmentDetailLine('Pessoa', details.pessoa));
+                $details.append(enrollmentDetailLine('Turma', details.turma));
+                $details.append(enrollmentDetailLine('Modalidade', details.modalidade));
+                $details.append(enrollmentDetailLine('Temporada', details.temporada));
+                $details.append(enrollmentDetailLine('Status atual', details.status));
+                $details.append(enrollmentDetailLine('Ordem da inscrição', details.ordem));
+                if (details.posicao_lista) $details.append(enrollmentDetailLine('Posição na lista de espera', details.posicao_lista));
+                $details.append(enrollmentDetailLine('Centro esportivo', details.local));
+                $details.append(enrollmentDetailLine('Espaço', details.espaco));
+                $details.append(enrollmentDetailLine('Dias', details.dias));
+                $details.append(enrollmentDetailLine('Horário', details.horario));
+                $details.append(enrollmentDetailLine('Inscrição realizada em', details.inscrita_em));
+                if (details.motivo) $details.append(enrollmentDetailLine('Observação do status', details.motivo));
+                if (details.temporada_encerrada) $details.append($('<p>', { class: 'alert-inline', text: 'Esta temporada está encerrada.' }));
+
+                const $nextActions = $('<div>', { class: 'dashboard-course-enrollment-next-steps' });
+                $nextActions.append($('<h4>', { text: 'Próximas ações' }));
+                const $list = $('<ol>');
+                const actions = Array.isArray(details.proximas_acoes) ? details.proximas_acoes : [];
+                (actions.length ? actions : ['Acompanhe esta inscrição pelo painel.']).forEach(function (action) {
+                    $list.append($('<li>', { text: String(action || '') }));
+                });
+                $nextActions.append($list);
+                $body.append($details, $nextActions);
+                $('#dashboard-course-enrollment-details-modal').removeClass('hidden').attr('aria-hidden', 'false');
+            });
+
+            $(document).on('click', '[data-dashboard-course-enrollment-close="1"], #dashboard-course-enrollment-details-modal', function (event) {
+                if ($(event.target).is('#dashboard-course-enrollment-details-modal') || $(event.target).is('[data-dashboard-course-enrollment-close="1"]')) {
+                    closeCourseEnrollmentDetailsModal();
+                }
+            });
+
             function openModal(html) {
                 const $modal = getModal();
                 const $content = getContent();

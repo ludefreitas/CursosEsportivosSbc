@@ -1080,7 +1080,7 @@
                 if (rawValue.length === 0) {
                     $input.data('cpfCadastroPermitido', false);
                     $input.data('cpfCadastroStatus', '');
-                    $message.text('Ao informar o CPF, o sistema avisará imediatamente se a conta já existe, se o CPF pertence a um dependente ou se a criação da conta está liberada.');
+                    $message.text('');
                     return;
                 }
 

@@ -67,12 +67,14 @@ class ProfileService
             throw new RuntimeException($bloqueio['mensagem']);
         }
 
-        $birthDate = trim((string) ($data['birth_date'] ?? ''));
+        $birthDate = trim((string) ($person['data_nascimento'] ?? ''));
         $age = calculate_age($birthDate);
 
-        if ($age === null || $age < 18) {
-            throw new RuntimeException('O cadastro inicial deve ser de uma pessoa maior de idade.');
+        if ($age === null || $birthDate > date('Y-m-d') || $age < 18) {
+            throw new RuntimeException('A conta não possui uma data de nascimento válida de pessoa maior de idade. Procure o suporte para corrigir o cadastro.');
         }
+
+        $data['birth_date'] = $birthDate;
 
         if (!validar_nome_cadastro((string) ($data['full_name'] ?? ''))) {
             throw new RuntimeException('Informe um nome completo com no mínimo 14 caracteres, usando apenas letras, espaços, hífen ou apóstrofo.');

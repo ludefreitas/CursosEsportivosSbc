@@ -48,7 +48,8 @@
         <div class="grid-three">
             <label>
                 <span>Data de nascimento</span>
-                <input type="date" name="birth_date" value="<?php echo old('birth_date', $person['data_nascimento'] ?? ''); ?>" required>
+                <input type="date" value="<?php echo e((string) ($person['data_nascimento'] ?? '')); ?>" disabled>
+                <small class="muted">A data de nascimento foi confirmada na criação da conta e não pode ser alterada nesta etapa.</small>
             </label>
             <label>
                 <span>Sexo</span>
