@@ -115,6 +115,7 @@ class CourseEnrollmentService
                    te.nome AS temporada_nome, m.nome AS modalidade_nome,
                    cm.matriculas_inicio AS cronograma_matriculas_inicio,
                    cm.matriculas_fim AS cronograma_matriculas_fim,
+                   te.matriculas_inicio, te.matriculas_fim,
                    COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome
             FROM inscricoes_turma i
             INNER JOIN pessoas p ON p.id=i.pessoa_id
