@@ -87,6 +87,10 @@ class CertificateService
             throw new RuntimeException('Essa condição não está marcada no cadastro da pessoa e não pode receber documentação.');
         }
 
+        if ((string) ($data['ciente_prazo_validacao'] ?? '') !== '1') {
+            throw new RuntimeException('Confirme que está ciente das regras e do prazo de análise da documentação.');
+        }
+
         $normalizedFiles = $this->normalizeUploadedFiles($files);
 
         if ($normalizedFiles === []) {

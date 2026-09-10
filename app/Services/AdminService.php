@@ -942,8 +942,8 @@ class AdminService
             throw new RuntimeException('Informe uma data de validade válida para o certificado.');
         }
 
-        if ($status === 'validado_parcial' && $validationNote === '') {
-            throw new RuntimeException('Ao marcar como validado parcial, informe a observação explicando o motivo.');
+        if (in_array($status, ['reprovado', 'validado_parcial'], true) && $validationNote === '') {
+            throw new RuntimeException('Ao reprovar ou validar parcialmente o certificado, informe a observação explicando a decisão.');
         }
 
         if (in_array($conditionSlug, ['pcd', 'plm'], true) && in_array($status, ['validado', 'validado_parcial'], true) && $validatedCidCode === '') {

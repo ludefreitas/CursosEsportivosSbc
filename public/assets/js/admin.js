@@ -2459,7 +2459,7 @@
                     return;
                 }
 
-                $note.prop('required', status === 'validado_parcial');
+                $note.prop('required', status === 'reprovado' || status === 'validado_parcial');
             }
 
             $(document).on('click', '[data-open-condition-validation="1"]', function () {

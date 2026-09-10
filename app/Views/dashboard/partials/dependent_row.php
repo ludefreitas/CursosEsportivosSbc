@@ -7,10 +7,10 @@
     <td>
         <button
             type="button"
-            class="btn btn-secondary btn-compact"
+            class="btn btn-compact dashboard-dependent-data-button"
             data-open-dependent-modal="1"
             data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
-        >Visualizar dados</button>
+        >Clique para visualizar ou editar dados</button>
     </td>
     <td>
         <?php $status = $healthSummary['clinico'] ?? ['class' => 'is-nao-enviado', 'icon' => '--', 'label' => 'Não enviado']; ?>

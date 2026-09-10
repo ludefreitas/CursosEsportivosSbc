@@ -110,9 +110,9 @@ foreach ($selectedDisabilityTypes as $selectedType) {
         <?php } ?>
 
         <label>
-            <span>Observação da validação</span>
+            <span>Observação da validação / reprovação</span>
             <textarea name="observacao_validacao" id="admin-condition-validation-note" rows="4" placeholder="Explique a decisão tomada nesta validação." <?php echo $documents === [] ? 'disabled' : ''; ?>><?php echo e($currentValidationNote); ?></textarea>
-            <small class="muted">Ao marcar como validado parcial, esta observação passa a ser obrigatória.</small>
+            <small class="muted">Ao marcar como reprovado ou validado parcial, esta observação passa a ser obrigatória.</small>
         </label>
 
         <?php if ($documents === []) { ?>

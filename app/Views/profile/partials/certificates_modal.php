@@ -172,6 +172,11 @@ $conditions = $conditions ?? [];
                             <small>Todos os arquivos atuais desta condição serão substituidos pelos PDFs selecionados agora.</small>
                         </label>
 
+                        <label class="checkbox-line dashboard-certificate-awareness">
+                            <input type="checkbox" name="ciente_prazo_validacao" value="1" required>
+                            <span>Declaro estar ciente de que, ao informar uma condição especial, a pessoa somente poderá realizar inscrições em cursos ou agendamentos após o envio e a validação da documentação comprobatória. Estou ciente, ainda, de que a documentação e os atestados aplicáveis poderão ser analisados no prazo de até 3 (três) dias úteis.</span>
+                        </label>
+
                         <div class="popup-actions">
                             <button type="button" class="btn btn-secondary" id="dashboard-certificates-modal-close-footer">Fechar/Cancelar</button>
                             <button type="submit" class="btn btn-primary">

@@ -111,7 +111,7 @@ class CourseEnrollmentService
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
         $stmt = $pdo->prepare("SELECT i.id, i.numero_ordem, i.posicao_lista_espera, i.status, i.created_at, i.updated_at, i.motivo_status,
-                   p.nome_completo, p.cpf, t.nome AS turma_nome, t.dias_semana, t.hora_inicio, t.hora_fim,
+                   p.nome_completo, p.cpf, p.data_nascimento, t.nome AS turma_nome, t.dias_semana, t.hora_inicio, t.hora_fim,
                    te.nome AS temporada_nome, m.nome AS modalidade_nome,
                    cm.matriculas_inicio AS cronograma_matriculas_inicio,
                    cm.matriculas_fim AS cronograma_matriculas_fim,
@@ -621,7 +621,7 @@ class CourseEnrollmentService
         }
 
         $pdo = Database::connection();
-        $stmt = $pdo->prepare("\n            SELECT DISTINCT p.id, p.nome_completo, p.cpf, p.data_nascimento, p.sexo, p.cadastro_completo\n            FROM contas c\n            INNER JOIN pessoas titular ON titular.cpf = c.cpf\n            INNER JOIN pessoas p ON p.id = titular.id\n                OR EXISTS (SELECT 1 FROM vinculos_responsaveis vr WHERE vr.responsavel_pessoa_id = titular.id AND vr.dependente_pessoa_id = p.id)\n            WHERE c.id = :conta_id\n            ORDER BY p.nome_completo ASC\n        ");
+        $stmt = $pdo->prepare("\n            SELECT DISTINCT p.id, p.nome_completo, p.cpf, p.data_nascimento, p.sexo, p.cadastro_completo,\n                p.eh_pcd, p.eh_plm, p.eh_pvs\n            FROM contas c\n            INNER JOIN pessoas titular ON titular.cpf = c.cpf\n            INNER JOIN pessoas p ON p.id = titular.id\n                OR EXISTS (SELECT 1 FROM vinculos_responsaveis vr WHERE vr.responsavel_pessoa_id = titular.id AND vr.dependente_pessoa_id = p.id)\n            WHERE c.id = :conta_id\n            ORDER BY p.nome_completo ASC\n        ");
         $stmt->execute([':conta_id' => Auth::id()]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -686,6 +686,7 @@ class CourseEnrollmentService
                 if (!$this->personMatchesClassAgeRule($person, $class)) $reasons[] = $this->classAgeBlockReason($person, $class);
                 $requiredSex = trim((string) ($class['sexo'] ?? ''));
                 if ($requiredSex !== '' && $requiredSex !== (string) ($person['sexo'] ?? '')) $reasons[] = 'Sexo não permitido para esta turma';
+                $reasons = array_merge($reasons, $this->courseConditionCertificateBlockReasons($pdo, $person));
                 $duplicate = $pdo->prepare("SELECT COUNT(*) FROM inscricoes_turma WHERE turma_id = :turma AND pessoa_id = :pessoa AND status IN ('aguardando_matricula', 'matriculada', 'lista_espera')");
                 $duplicate->execute([':turma' => $classId, ':pessoa' => (int) $person['id']]);
                 if ((int) $duplicate->fetchColumn() > 0) $reasons[] = 'Pessoa já inscrita nesta turma';
@@ -795,17 +796,22 @@ class CourseEnrollmentService
             $this->validateSeasonLimit($pdo, $season, (int) $person['id'], $now, $token !== null);
             $this->validateModalityLimit($pdo, $class, (int) $person['id'], $now, $token !== null);
 
-        $publico = $this->resolvePublic($pdo, (int) $person['id']);
-        if ($token !== null) { $publico = (string) $token['publico_alvo']; }
-        $this->validatePublic($pdo, (int) $person['id'], $publico, $token !== null);
-        $forceWaitlist = (string) $class['status'] !== 'processo_inicial';
-        $status = $forceWaitlist || $this->availableSeats($pdo, $class, $publico) <= 0
-            ? 'lista_espera'
-            : 'aguardando_matricula';
-        $waitPosition = $status === 'lista_espera' ? $this->nextWaitlistPosition($pdo, $classId, $publico) : null;
-        if ($status === 'lista_espera' && $this->availableWaitlistSeats($pdo, $class, $publico) <= 0 && $token === null) {
-            throw new RuntimeException('A lista de espera desta cota já atingiu o limite de vagas.');
-        }
+            $conditionBlocks = $this->courseConditionCertificateBlockReasons($pdo, $person);
+            if ($conditionBlocks !== []) {
+                throw new RuntimeException((string) $conditionBlocks[0]);
+            }
+
+            $publico = $this->resolvePublic($pdo, (int) $person['id']);
+            if ($token !== null) { $publico = (string) $token['publico_alvo']; }
+            $this->validatePublic($pdo, (int) $person['id'], $publico);
+            $forceWaitlist = (string) $class['status'] !== 'processo_inicial';
+            $status = $forceWaitlist || $this->availableSeats($pdo, $class, $publico) <= 0
+                ? 'lista_espera'
+                : 'aguardando_matricula';
+            $waitPosition = $status === 'lista_espera' ? $this->nextWaitlistPosition($pdo, $classId, $publico) : null;
+            if ($status === 'lista_espera' && $this->availableWaitlistSeats($pdo, $class, $publico) <= 0 && $token === null) {
+                throw new RuntimeException('A lista de espera desta cota já atingiu o limite de vagas.');
+            }
 
         $orderStmt = $pdo->prepare('SELECT COALESCE(MAX(numero_ordem), 0) + 1 FROM inscricoes_turma WHERE turma_id=:turma');
         $orderStmt->execute([':turma' => $classId]);
@@ -891,10 +897,10 @@ class CourseEnrollmentService
         return (int) $stmt->fetchColumn() + 1;
     }
 
-    private function validatePublic(PDO $pdo, int $personId, string $public, bool $hasToken): void
+    private function validatePublic(PDO $pdo, int $personId, string $public): void
     {
-        if ($hasToken || $public === 'geral') { return; }
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM certificados_pessoa cp INNER JOIN tipos_certificados tc ON tc.id = cp.tipo_certificado_id WHERE cp.pessoa_id = :pessoa AND cp.status = 'validado' AND tc.slug = :slug");
+        if ($public === 'geral') { return; }
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM certificados_pessoa cp INNER JOIN tipos_certificados tc ON tc.id = cp.tipo_certificado_id WHERE cp.pessoa_id = :pessoa AND cp.status IN ('validado', 'validado_parcial') AND tc.slug = :slug AND (cp.validade_certificado IS NULL OR cp.validade_certificado >= CURDATE()) AND EXISTS (SELECT 1 FROM documentos_certificados dc WHERE dc.certificado_pessoa_id = cp.id)");
         $slug = ['pcd' => 'pcd', 'plm' => 'plm', 'pvs' => 'pvs'][$public];
         $stmt->execute([':pessoa' => $personId, ':slug' => $slug]);
         if ((int) $stmt->fetchColumn() === 0) { throw new RuntimeException('A condição escolhida não corresponde a uma condição validada para esta pessoa.'); }
@@ -1156,12 +1162,61 @@ class CourseEnrollmentService
     private function resolvePublic(PDO $pdo, int $personId): string
     {
         $stmt = $pdo->prepare("SELECT CASE
-            WHEN EXISTS (SELECT 1 FROM certificados_pessoa cp INNER JOIN tipos_certificados tc ON tc.id = cp.tipo_certificado_id WHERE cp.pessoa_id = p.id AND cp.status = 'validado' AND tc.slug = 'pcd') THEN 'pcd'
-            WHEN EXISTS (SELECT 1 FROM certificados_pessoa cp INNER JOIN tipos_certificados tc ON tc.id = cp.tipo_certificado_id WHERE cp.pessoa_id = p.id AND cp.status = 'validado' AND tc.slug = 'plm') THEN 'plm'
-            WHEN EXISTS (SELECT 1 FROM certificados_pessoa cp INNER JOIN tipos_certificados tc ON tc.id = cp.tipo_certificado_id WHERE cp.pessoa_id = p.id AND cp.status = 'validado' AND tc.slug = 'pvs') THEN 'pvs'
+            WHEN EXISTS (SELECT 1 FROM certificados_pessoa cp INNER JOIN tipos_certificados tc ON tc.id = cp.tipo_certificado_id WHERE cp.pessoa_id = p.id AND cp.status IN ('validado', 'validado_parcial') AND tc.slug = 'pcd' AND (cp.validade_certificado IS NULL OR cp.validade_certificado >= CURDATE()) AND EXISTS (SELECT 1 FROM documentos_certificados dc WHERE dc.certificado_pessoa_id = cp.id)) THEN 'pcd'
+            WHEN EXISTS (SELECT 1 FROM certificados_pessoa cp INNER JOIN tipos_certificados tc ON tc.id = cp.tipo_certificado_id WHERE cp.pessoa_id = p.id AND cp.status IN ('validado', 'validado_parcial') AND tc.slug = 'plm' AND (cp.validade_certificado IS NULL OR cp.validade_certificado >= CURDATE()) AND EXISTS (SELECT 1 FROM documentos_certificados dc WHERE dc.certificado_pessoa_id = cp.id)) THEN 'plm'
+            WHEN EXISTS (SELECT 1 FROM certificados_pessoa cp INNER JOIN tipos_certificados tc ON tc.id = cp.tipo_certificado_id WHERE cp.pessoa_id = p.id AND cp.status IN ('validado', 'validado_parcial') AND tc.slug = 'pvs' AND (cp.validade_certificado IS NULL OR cp.validade_certificado >= CURDATE()) AND EXISTS (SELECT 1 FROM documentos_certificados dc WHERE dc.certificado_pessoa_id = cp.id)) THEN 'pvs'
             ELSE 'geral' END FROM pessoas p WHERE p.id = :id");
         $stmt->execute([':id' => $personId]);
         return (string) ($stmt->fetchColumn() ?: 'geral');
+    }
+
+    /**
+     * Bloqueia inscrições quando uma condição declarada ainda não possui documentação apta.
+     */
+    private function courseConditionCertificateBlockReasons(PDO $pdo, array $person): array
+    {
+        $personName = trim((string) ($person['nome_completo'] ?? 'A pessoa selecionada'));
+        $conditions = [
+            'eh_pcd' => ['slug' => 'pcd', 'label' => 'PCD'],
+            'eh_plm' => ['slug' => 'plm', 'label' => 'PLM'],
+            'eh_pvs' => ['slug' => 'pvs', 'label' => 'PVS'],
+        ];
+        $reasons = [];
+
+        foreach ($conditions as $field => $condition) {
+            if ((int) ($person[$field] ?? 0) !== 1) { continue; }
+
+            $stmt = $pdo->prepare('SELECT cp.status, cp.validade_certificado,
+                (SELECT COUNT(*) FROM documentos_certificados dc WHERE dc.certificado_pessoa_id = cp.id) AS documentos_enviados
+                FROM certificados_pessoa cp
+                INNER JOIN tipos_certificados tc ON tc.id = cp.tipo_certificado_id
+                WHERE cp.pessoa_id = :pessoa AND tc.slug = :slug
+                ORDER BY cp.updated_at DESC, cp.created_at DESC, cp.id DESC LIMIT 1');
+            $stmt->execute([':pessoa' => (int) $person['id'], ':slug' => $condition['slug']]);
+            $certificate = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+
+            if ($certificate === null || (int) ($certificate['documentos_enviados'] ?? 0) <= 0) {
+                $reasons[] = $personName . ' declarou a condição ' . $condition['label'] . ', mas ainda não enviou a documentação comprobatória. Após o envio, a análise poderá ocorrer no prazo de até 3 (três) dias úteis. A inscrição e o agendamento serão liberados somente depois da validação.';
+                continue;
+            }
+
+            $status = (string) ($certificate['status'] ?? '');
+            if ($status === 'pendente') {
+                $reasons[] = 'A documentação de ' . $condition['label'] . ' de ' . $personName . ' aguarda validação, que poderá ocorrer no prazo de até 3 (três) dias úteis. A inscrição e o agendamento serão liberados após a conclusão da análise.';
+                continue;
+            }
+            if ($status === 'reprovado') {
+                $reasons[] = 'A documentação de ' . $condition['label'] . ' de ' . $personName . ' foi reprovada. Envie novos documentos e aguarde a validação antes de realizar inscrições ou agendamentos.';
+                continue;
+            }
+
+            $expiry = trim((string) ($certificate['validade_certificado'] ?? ''));
+            if (!in_array($status, ['validado', 'validado_parcial'], true) || ($expiry !== '' && $expiry < date('Y-m-d'))) {
+                $reasons[] = 'A condição ' . $condition['label'] . ' de ' . $personName . ' ainda não possui documentação validada e vigente. Regularize a documentação antes de realizar inscrições ou agendamentos.';
+            }
+        }
+
+        return $reasons;
     }
 
     private function availableSeats(PDO $pdo, array $class, string $public = 'geral'): int
@@ -1245,25 +1300,46 @@ class CourseEnrollmentService
 
     private function registrationGuidance(array $class): string
     {
+        $attendance = $this->registrationAttendanceData($class);
+        if ($attendance === null) { return ''; }
+        return (count($attendance['dates']) > 1 ? 'Compareça nos dias ' : 'Compareça no dia ') . $attendance['dates_text']
+            . ', das ' . $attendance['start_time'] . ' às ' . $attendance['end_time']
+            . ', em ' . $attendance['location']
+            . ', para efetuar a matrícula.';
+    }
+
+    /**
+     * Calcula todas as datas de aula que coincidem com o período de matrícula.
+     */
+    private function registrationAttendanceData(array $class): ?array
+    {
         $startValue = trim((string) ($class['cronograma_matriculas_inicio'] ?? $class['matriculas_inicio'] ?? ''));
         $endValue = trim((string) ($class['cronograma_matriculas_fim'] ?? $class['matriculas_fim'] ?? ''));
         $weekdays = array_map('intval', array_filter(explode(',', $this->normalizeClassWeekdays((string) ($class['dias_semana'] ?? '')))));
-        if ($startValue === '' || $endValue === '' || $weekdays === [] || empty($class['hora_inicio']) || empty($class['hora_fim'])) { return ''; }
-        $start = new DateTimeImmutable($startValue);
-        $end = new DateTimeImmutable($endValue);
+        if ($startValue === '' || $endValue === '' || $weekdays === [] || empty($class['hora_inicio']) || empty($class['hora_fim'])) { return null; }
+        try {
+            $start = new DateTimeImmutable($startValue);
+            $end = new DateTimeImmutable($endValue);
+        } catch (\Throwable $e) {
+            return null;
+        }
         $dates = [];
         for ($day = $start->setTime(0, 0); $day <= $end; $day = $day->modify('+1 day')) {
             $weekday = (int) $day->format('N');
             if (in_array($weekday, $weekdays, true)) { $dates[] = $day->format('d/m/Y'); }
         }
-        if ($dates === []) { return ''; }
-        $last = array_pop($dates);
-        $dateText = $dates === [] ? $last : implode(', ', $dates) . ' e ' . $last;
-        return (count($dates) > 0 ? 'Compareça nos dias ' : 'Compareça no dia ') . $dateText
-            . ', das ' . substr((string) $class['hora_inicio'], 0, 5) . ' às ' . substr((string) $class['hora_fim'], 0, 5)
-            . ', em ' . (string) ($class['local_nome'] ?? 'local informado')
-            . (!empty($class['espaco_nome']) ? ' — ' . (string) $class['espaco_nome'] : '')
-            . ', para efetuar a matrícula.';
+        if ($dates === []) { return null; }
+        $datesForText = $dates;
+        $last = array_pop($datesForText);
+        $dateText = $datesForText === [] ? $last : implode(', ', $datesForText) . ' ou ' . $last;
+        return [
+            'dates' => $dates,
+            'dates_text' => $dateText,
+            'start_time' => substr((string) $class['hora_inicio'], 0, 5),
+            'end_time' => substr((string) $class['hora_fim'], 0, 5),
+            'location' => (string) ($class['local_nome'] ?? 'local informado')
+                . (!empty($class['espaco_nome']) ? ' — ' . (string) $class['espaco_nome'] : ''),
+        ];
     }
 
     /**
@@ -1277,22 +1353,46 @@ class CourseEnrollmentService
 
         $status = (string) ($enrollment['status'] ?? '');
         if ($status === 'aguardando_matricula') {
-            $actions = [];
-            if (!empty($enrollment['orientacao'])) {
-                $actions[] = (string) $enrollment['orientacao'];
-            } else {
-                $actions[] = 'Aguarde a confirmação da matrícula pelo professor ou responsável pela turma.';
+            $attendance = $this->registrationAttendanceData($enrollment);
+            if ($attendance === null) {
+                return [
+                    'Aguarde a divulgação das datas de matrícula e acompanhe esta inscrição pelo painel.',
+                    'O não comparecimento no período que for informado poderá resultar na perda da vaga, conforme as regras e a disponibilidade da turma.',
+                ];
             }
-            $actions[] = 'Acompanhe esta inscrição pelo painel para verificar mudanças de status.';
-            return $actions;
+
+            $isMinor = is_minor_by_birth_date((string) ($enrollment['data_nascimento'] ?? '')) === true;
+            $personName = (string) ($enrollment['nome_completo'] ?? 'A pessoa inscrita');
+            $attendanceInstruction = count($attendance['dates']) > 1 ? ' em uma destas datas: ' : ' na data: ';
+            return [[
+                ['text' => 'Lembre-se: enquanto o status desta inscrição for '],
+                ['text' => '“Aguardando matrícula”', 'highlight' => true],
+                ['text' => ', '],
+                ['text' => $personName, 'highlight' => true],
+                ['text' => $isMinor ? ', por ser menor de idade, deverá comparecer acompanhado de um responsável maior de idade' : ', deverá comparecer'],
+                ['text' => $attendanceInstruction],
+                ['text' => $attendance['dates_text'], 'highlight' => true],
+                ['text' => ', das '],
+                ['text' => $attendance['start_time'] . ' às ' . $attendance['end_time'], 'highlight' => true],
+                ['text' => ', no '],
+                ['text' => $attendance['location'], 'highlight' => true],
+                ['text' => $isMinor ? ', levando os documentos pessoais do aluno e do responsável, sem falta, para efetuar a matrícula.' : ', levando seus documentos pessoais, sem falta, para efetuar a matrícula.'],
+                ['text' => ' Confira também as observações da turma antes de comparecer. '],
+                ['text' => 'O não comparecimento em uma das datas e horários indicados poderá resultar na perda da vaga, conforme as regras e a disponibilidade da turma.', 'highlight' => true],
+            ]];
         }
 
         if ($status === 'lista_espera') {
-            return [
-                'Aguarde o contato do professor ou responsável pela turma quando houver uma vaga.',
-                'Mantenha o telefone e o WhatsApp atualizados no cadastro.',
-                'Acompanhe sua posição e as mudanças de status pelo painel.',
-            ];
+            $position = trim((string) ($enrollment['posicao_lista_espera'] ?? ''));
+            return [[
+                ['text' => 'O status desta inscrição é '],
+                ['text' => '“Lista de espera”', 'highlight' => true],
+                ['text' => '. No momento, não há vagas disponíveis para esta turma. A inscrição está na '],
+                ['text' => $position !== '' ? 'posição ' . $position : 'lista de espera', 'highlight' => true],
+                ['text' => ', aguardando o comunicado sobre uma eventual vaga. Mantenha atualizado, neste site, seu '],
+                ['text' => 'número de telefone celular com WhatsApp', 'highlight' => true],
+                ['text' => ', para receber o comunicado do professor ou responsável pela turma.'],
+            ]];
         }
 
         if ($status === 'matriculada') {

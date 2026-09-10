@@ -889,6 +889,21 @@ body.pagina-error .site-nav > .inline-form .link-button,
     border: 1px solid #e0b15c;
     color: #7b4d00;
 }
+.dashboard-dependent-data-button {
+    background: linear-gradient(135deg, #5b3fa3 0%, #7559bd 100%);
+    border: 1px solid #493285;
+    color: #fff;
+    box-shadow: 0 10px 20px rgba(73, 50, 133, 0.24);
+}
+.dashboard-dependent-data-button:hover {
+    background: linear-gradient(135deg, #493285 0%, #6547ad 100%);
+    border-color: #39266b;
+    color: #fff;
+    box-shadow: 0 12px 24px rgba(73, 50, 133, 0.32);
+}
+.dashboard-dependent-data-button:focus-visible {
+    outline-color: #8d78cf;
+}
 .dashboard-condition-helper {
     display: block;
     margin-top: -6px;

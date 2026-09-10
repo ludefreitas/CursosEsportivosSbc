@@ -76,7 +76,16 @@
                 const $list = $('<ol>');
                 const actions = Array.isArray(details.proximas_acoes) ? details.proximas_acoes : [];
                 (actions.length ? actions : ['Acompanhe esta inscrição pelo painel.']).forEach(function (action) {
-                    $list.append($('<li>', { text: String(action || '') }));
+                    const $item = $('<li>');
+                    if (Array.isArray(action)) {
+                        action.forEach(function (part) {
+                            const text = String((part && part.text) || '');
+                            $item.append(part && part.highlight ? $('<strong>', { text: text }) : document.createTextNode(text));
+                        });
+                    } else {
+                        $item.text(String(action || ''));
+                    }
+                    $list.append($item);
                 });
                 $nextActions.append($list);
                 $body.append($details, $nextActions);
