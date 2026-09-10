@@ -2505,6 +2505,29 @@ class AdminController extends Controller
         }
     }
 
+    public function changeCourseSeasonStatus(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $action = trim((string) ($_POST['acao'] ?? ''));
+            if (!in_array($action, ['suspender', 'reativar'], true)) {
+                throw new \RuntimeException('A ação informada para a temporada é inválida.');
+            }
+            (new CourseEnrollmentService())->setSeasonSuspended(
+                (int) $user['conta_id'],
+                (int) ($_POST['temporada_id'] ?? 0),
+                $action === 'suspender'
+            );
+            $this->jsonResponse([
+                'success' => true,
+                'message' => $action === 'suspender' ? 'Temporada suspensa com sucesso.' : 'Temporada reativada com sucesso.',
+                'html' => $this->renderCourseManagementPanelHtml('temporadas'),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
     public function storeSeasonOrigin(): void
     {
         $user = $this->assertAdminAccess();

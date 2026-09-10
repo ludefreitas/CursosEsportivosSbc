@@ -5854,6 +5854,31 @@
                     $('#course-season-summary-modal').addClass('hidden').attr('aria-hidden', 'true');
                 }
             });
+            $(document).on('click', '[data-course-season-status]', function () {
+                const $button = $(this);
+                const action = String($button.attr('data-course-season-status') || '');
+                const id = Number($button.attr('data-course-season-id') || 0);
+                const name = String($button.attr('data-course-season-name') || 'esta temporada');
+                const confirmation = action === 'suspender'
+                    ? 'Deseja suspender a temporada "' + name + '"? Enquanto estiver suspensa, suas turmas não serão publicadas e não aceitarão inscrições.'
+                    : 'Deseja reativar a temporada "' + name + '"? O status voltará a ser definido automaticamente pelos cronogramas.';
+                if (id <= 0 || !window.confirm(confirmation)) return;
+                $button.prop('disabled', true);
+                $.ajax({
+                    url: App.core.buildUrl('/admin/temporadas/status'),
+                    method: 'POST', dataType: 'json', data: { temporada_id: id, acao: action },
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível alterar o status da temporada.'));
+                        return;
+                    }
+                    replacePanel(response);
+                    App.core.abrirPopup('sucesso', String(response.message || 'Status da temporada alterado com sucesso.'));
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () { $button.prop('disabled', false); });
+            });
             $(document).on('click', '[data-course-season-delete]', function () {
                 const $button = $(this);
                 const id = Number($button.attr('data-course-season-delete') || 0);

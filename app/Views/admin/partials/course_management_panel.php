@@ -15,7 +15,24 @@
         <article class="content-card">
             <div class="course-table-heading"><h2>Temporadas</h2><button type="button" class="btn btn-primary" data-course-create="season">Criar temporada</button></div>
             <div class="table-wrap"><table class="data-table"><thead><tr><th>Temporada</th><th>Status</th><th>Ações</th></tr></thead><tbody>
-                <?php foreach (($courseSeasons ?? []) as $season) { $seasonJson = e((string) json_encode($season, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?><tr><td><button type="button" class="course-season-summary-link" data-course-season-summary="<?php echo $seasonJson; ?>"><?php echo e($season['nome']); ?></button></td><td><?php echo e(ucfirst((string) ($season['status'] ?? 'planejada'))); ?></td><td><div class="course-row-actions"><button type="button" class="btn btn-primary" data-course-edit="season" data-course-record="<?php echo $seasonJson; ?>">Editar</button><?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="btn btn-danger" data-course-season-delete="<?php echo e((string) $season['id']); ?>" data-course-season-name="<?php echo e((string) $season['nome']); ?>">Excluir</button><?php } ?></div></td></tr><?php } ?>
+                <?php foreach (($courseSeasons ?? []) as $season) {
+                    $seasonJson = e((string) json_encode($season, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                    $seasonStatus = (string) ($season['status'] ?? 'planejada');
+                ?>
+                    <tr>
+                        <td><button type="button" class="course-season-summary-link" data-course-season-summary="<?php echo $seasonJson; ?>"><?php echo e($season['nome']); ?></button></td>
+                        <td><?php echo e(ucfirst($seasonStatus)); ?></td>
+                        <td><div class="course-row-actions">
+                            <button type="button" class="btn btn-primary" data-course-edit="season" data-course-record="<?php echo $seasonJson; ?>">Editar</button>
+                            <?php if ($seasonStatus === 'suspensa') { ?>
+                                <button type="button" class="btn btn-secondary" data-course-season-status="reativar" data-course-season-id="<?php echo e((string) $season['id']); ?>" data-course-season-name="<?php echo e((string) $season['nome']); ?>">Reativar</button>
+                            <?php } elseif (!in_array($seasonStatus, ['encerrada', 'cancelada'], true)) { ?>
+                                <button type="button" class="btn btn-secondary" data-course-season-status="suspender" data-course-season-id="<?php echo e((string) $season['id']); ?>" data-course-season-name="<?php echo e((string) $season['nome']); ?>">Suspender</button>
+                            <?php } ?>
+                            <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="btn btn-danger" data-course-season-delete="<?php echo e((string) $season['id']); ?>" data-course-season-name="<?php echo e((string) $season['nome']); ?>">Excluir</button><?php } ?>
+                        </div></td>
+                    </tr>
+                <?php } ?>
             </tbody></table></div>
         </article>
         <?php } else { ?>

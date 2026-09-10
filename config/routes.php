@@ -109,6 +109,7 @@ return [
     ['POST', '/admin/locais/popups', [AdminController::class, 'storeLocationPopup']],
     ['POST', '/admin/locais/popups/excluir', [AdminController::class, 'deleteLocationPopup']],
     ['POST', '/admin/temporadas', [AdminController::class, 'storeCourseSeason']],
+    ['POST', '/admin/temporadas/status', [AdminController::class, 'changeCourseSeasonStatus']],
     ['POST', '/admin/temporadas/excluir', [AdminController::class, 'deleteCourseSeason']],
     ['POST', '/admin/origens-temporada', [AdminController::class, 'storeSeasonOrigin']],
     ['POST', '/admin/origens-temporada/atualizar', [AdminController::class, 'updateSeasonOrigin']],

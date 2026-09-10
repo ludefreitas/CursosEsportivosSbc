@@ -39,6 +39,7 @@ class CourseEnrollmentService
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
         $this->ensureCourseAgeCriterionSchema($pdo);
+        $this->synchronizeCalculatedSeasonStatuses($pdo);
         $this->synchronizeCalculatedClassStatuses($pdo);
         $sql = "SELECT t.*, te.id AS temporada_id, te.nome AS temporada_nome,
                        cm.data_inicio, cm.data_fim, cm.inscricoes_inicio, cm.inscricoes_fim,
@@ -111,6 +112,7 @@ class CourseEnrollmentService
         if (!Auth::check()) { return []; }
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
+        $this->synchronizeCalculatedSeasonStatuses($pdo);
         $stmt = $pdo->prepare("SELECT i.id, i.numero_ordem, i.posicao_lista_espera, i.status, i.created_at, i.updated_at, i.motivo_status,
                    p.nome_completo, p.cpf, p.data_nascimento, t.nome AS turma_nome, t.dias_semana, t.hora_inicio, t.hora_fim,
                    te.nome AS temporada_nome, m.nome AS modalidade_nome,
@@ -153,6 +155,7 @@ class CourseEnrollmentService
     {
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
+        $this->synchronizeCalculatedSeasonStatuses($pdo);
         $sortExpressions = [
             'alfabetica' => 'p.nome_completo',
             'data_inscricao' => 'i.created_at',
@@ -276,6 +279,7 @@ class CourseEnrollmentService
     {
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
+        $this->synchronizeCalculatedSeasonStatuses($pdo);
         $stmt = $pdo->query('SELECT * FROM temporadas ORDER BY data_inicio DESC, id DESC');
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -508,7 +512,11 @@ class CourseEnrollmentService
         $modalityRelease = $allowMultipleByModality && $modalityReleaseInput !== '' ? date('Y-m-d H:i:s', strtotime($modalityReleaseInput)) : null;
         if ($allowMultipleByModality && $modalityRelease === null) throw new RuntimeException('Informe a data e o horário a partir dos quais serão aceitas inscrições adicionais na mesma modalidade.');
         if ($secondRelease && $additionalRelease && $secondRelease > $additionalRelease) { throw new RuntimeException('A liberação da terceira inscrição deve ocorrer depois da liberação da segunda.'); }
-        $params = [':nome' => $name, ':origem_id' => $originId, ':origem' => (string) $origin['nome'], ':abrangencia_semanal' => $weeklyCoverage, ':possui_edital' => $hasNotice ? 1 : 0, ':numero_edital' => $noticeNumber, ':link_edital' => $noticeLink, ':tipo' => $type, ':inicio' => $start, ':fim' => $end, ':status' => in_array(($data['status'] ?? 'planejada'), ['planejada', 'ativa', 'suspensa', 'encerrada', 'cancelada'], true) ? $data['status'] : 'planejada', ':inscricoes_inicio' => trim((string) ($data['inscricoes_inicio'] ?? '')) ?: null, ':inscricoes_fim' => trim((string) ($data['inscricoes_fim'] ?? '')) ?: null, ':matriculas_inicio' => $enrollmentStart, ':matriculas_fim' => $enrollmentEnd, ':inscricao_matricula' => !empty($data['permitir_inscricao_periodo_matricula']) ? 1 : 0, ':abertas_inicio' => trim((string) ($data['inscricoes_abertas_inicio'] ?? '')) ?: null, ':abertas_fim' => trim((string) ($data['inscricoes_abertas_fim'] ?? '')) ?: null, ':aulas_inicio' => trim((string) ($data['aulas_inicio'] ?? '')) ?: null, ':aulas_fim' => trim((string) ($data['aulas_fim'] ?? '')) ?: null, ':cpf' => !empty($data['permitir_inscricao_por_cpf']) ? 1 : 0, ':logada' => !empty($data['permitir_inscricao_logada']) ? 1 : 0, ':limite' => max(1, (int) ($data['limite_inscricoes_periodo'] ?? 1)), ':segunda_liberacao' => $secondRelease, ':adicionais_liberacao' => $additionalRelease, ':limite_adicionais' => max(3, (int) ($data['limite_inscricoes_adicionais'] ?? 3))];
+        $requestedStatus = (string) ($data['status'] ?? 'planejada');
+        $seasonStatus = in_array($requestedStatus, ['suspensa', 'cancelada'], true)
+            ? $requestedStatus
+            : $this->calculatedSeasonStatus(['status' => $requestedStatus, 'data_inicio' => $start, 'data_fim' => $end]);
+        $params = [':nome' => $name, ':origem_id' => $originId, ':origem' => (string) $origin['nome'], ':abrangencia_semanal' => $weeklyCoverage, ':possui_edital' => $hasNotice ? 1 : 0, ':numero_edital' => $noticeNumber, ':link_edital' => $noticeLink, ':tipo' => $type, ':inicio' => $start, ':fim' => $end, ':status' => $seasonStatus, ':inscricoes_inicio' => trim((string) ($data['inscricoes_inicio'] ?? '')) ?: null, ':inscricoes_fim' => trim((string) ($data['inscricoes_fim'] ?? '')) ?: null, ':matriculas_inicio' => $enrollmentStart, ':matriculas_fim' => $enrollmentEnd, ':inscricao_matricula' => !empty($data['permitir_inscricao_periodo_matricula']) ? 1 : 0, ':abertas_inicio' => trim((string) ($data['inscricoes_abertas_inicio'] ?? '')) ?: null, ':abertas_fim' => trim((string) ($data['inscricoes_abertas_fim'] ?? '')) ?: null, ':aulas_inicio' => trim((string) ($data['aulas_inicio'] ?? '')) ?: null, ':aulas_fim' => trim((string) ($data['aulas_fim'] ?? '')) ?: null, ':cpf' => !empty($data['permitir_inscricao_por_cpf']) ? 1 : 0, ':logada' => !empty($data['permitir_inscricao_logada']) ? 1 : 0, ':limite' => max(1, (int) ($data['limite_inscricoes_periodo'] ?? 1)), ':segunda_liberacao' => $secondRelease, ':adicionais_liberacao' => $additionalRelease, ':limite_adicionais' => max(3, (int) ($data['limite_inscricoes_adicionais'] ?? 3))];
         if ($id > 0) {
             $params[':id'] = $id;
             $stmt = $pdo->prepare('UPDATE temporadas SET nome=:nome, origem_temporada_id=:origem_id, origem_temporada=:origem, abrangencia_semanal=:abrangencia_semanal, possui_edital=:possui_edital, numero_edital=:numero_edital, link_edital=:link_edital, tipo_periodicidade=:tipo, data_inicio=:inicio, data_fim=:fim, status=:status, inscricoes_inicio=:inscricoes_inicio, inscricoes_fim=:inscricoes_fim, matriculas_inicio=:matriculas_inicio, matriculas_fim=:matriculas_fim, permitir_inscricao_periodo_matricula=:inscricao_matricula, inscricoes_abertas_inicio=:abertas_inicio, inscricoes_abertas_fim=:abertas_fim, aulas_inicio=:aulas_inicio, aulas_fim=:aulas_fim, permitir_inscricao_por_cpf=:cpf, permitir_inscricao_logada=:logada, limite_inscricoes_periodo=:limite, data_liberacao_segunda_inscricao=:segunda_liberacao, data_liberacao_inscricoes_adicionais=:adicionais_liberacao, limite_inscricoes_adicionais=:limite_adicionais, permitir_multiplas_inscricoes_modalidade=:multiplas_modalidade, limite_inscricoes_modalidade=:limite_modalidade, data_liberacao_multiplas_inscricoes_modalidade=:liberacao_modalidade WHERE id=:id LIMIT 1');
@@ -560,6 +568,32 @@ class CourseEnrollmentService
         $delete = $pdo->prepare('DELETE FROM temporadas WHERE id=:id LIMIT 1');
         $delete->execute([':id' => $id]);
         AuditLogService::record('temporada.excluida', 'temporadas', $id, ['conta_id' => $accountId, 'nome' => (string) $seasonName]);
+    }
+
+    public function setSeasonSuspended(int $accountId, int $id, bool $suspended): void
+    {
+        if ($id <= 0) { throw new RuntimeException('Temporada inválida.'); }
+        $pdo = Database::connection();
+        $this->ensureCourseSeasonSchema($pdo);
+        $season = $this->findSeason($pdo, $id);
+        if (!$season) { throw new RuntimeException('Temporada não encontrada.'); }
+        if ((string) ($season['status'] ?? '') === 'cancelada') {
+            throw new RuntimeException('Uma temporada cancelada não pode ser reativada ou suspensa.');
+        }
+
+        $status = $suspended ? 'suspensa' : $this->calculatedSeasonStatus([
+            'status' => 'planejada',
+            'data_inicio' => $season['data_inicio'] ?? null,
+            'data_fim' => $season['data_fim'] ?? null,
+        ]);
+        $stmt = $pdo->prepare('UPDATE temporadas SET status=:status WHERE id=:id LIMIT 1');
+        $stmt->execute([':status' => $status, ':id' => $id]);
+        AuditLogService::record(
+            $suspended ? 'temporada.suspensa' : 'temporada.reativada',
+            'temporadas',
+            $id,
+            ['conta_id' => $accountId]
+        );
     }
 
     public function createClass(int $accountId, array $data): array
@@ -1013,6 +1047,7 @@ class CourseEnrollmentService
 
     private function findSeason(PDO $pdo, int $id): array
     {
+        $this->synchronizeCalculatedSeasonStatuses($pdo, $id);
         $stmt = $pdo->prepare('SELECT * FROM temporadas WHERE id = :id LIMIT 1');
         $stmt->execute([':id' => $id]);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
@@ -1345,6 +1380,40 @@ class CourseEnrollmentService
         }
         if ($openStart && $openEnd && $now >= $openStart && $now <= $openEnd) { return 'inscricoes_abertas'; }
         return 'planejada';
+    }
+
+    private function calculatedSeasonStatus(array $season, ?DateTimeImmutable $now = null): string
+    {
+        $stored = (string) ($season['status'] ?? 'planejada');
+        if (in_array($stored, ['suspensa', 'cancelada'], true)) { return $stored; }
+
+        $today = ($now ?? new DateTimeImmutable())->format('Y-m-d');
+        $start = (string) ($season['cronograma_inicio'] ?? $season['data_inicio'] ?? '');
+        $end = (string) ($season['cronograma_fim'] ?? $season['data_fim'] ?? '');
+        if ($start !== '' && $today < $start) { return 'planejada'; }
+        if ($end !== '' && $today > $end) { return 'encerrada'; }
+        return 'ativa';
+    }
+
+    private function synchronizeCalculatedSeasonStatuses(PDO $pdo, ?int $seasonId = null): void
+    {
+        $sql = 'SELECT te.id, te.status, te.data_inicio, te.data_fim,
+                       MIN(cm.data_inicio) AS cronograma_inicio,
+                       MAX(cm.data_fim) AS cronograma_fim
+                FROM temporadas te
+                LEFT JOIN cronogramas_modalidade cm ON cm.temporada_id=te.id';
+        $params = [];
+        if (($seasonId ?? 0) > 0) { $sql .= ' WHERE te.id=:id'; $params[':id'] = $seasonId; }
+        $sql .= ' GROUP BY te.id, te.status, te.data_inicio, te.data_fim';
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $update = $pdo->prepare('UPDATE temporadas SET status=:status WHERE id=:id LIMIT 1');
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $season) {
+            $status = $this->calculatedSeasonStatus($season);
+            if ($status !== (string) $season['status']) {
+                $update->execute([':status' => $status, ':id' => (int) $season['id']]);
+            }
+        }
     }
 
     private function synchronizeCalculatedClassStatuses(PDO $pdo, ?int $classId = null): void
