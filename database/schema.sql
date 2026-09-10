@@ -380,12 +380,14 @@ CREATE TABLE IF NOT EXISTS temporadas (
     nome VARCHAR(150) NOT NULL,
     origem_temporada VARCHAR(180) NOT NULL,
     origem_temporada_id BIGINT UNSIGNED NULL,
+    abrangencia_semanal VARCHAR(30) NOT NULL DEFAULT 'segunda_sexta',
     possui_edital TINYINT(1) NOT NULL DEFAULT 0,
     numero_edital VARCHAR(100) NULL,
     link_edital VARCHAR(2048) NULL,
     tipo_periodicidade ENUM('anual', 'semestral', 'quadrimestral', 'bimestral', 'mensal') NOT NULL,
     data_inicio DATE NOT NULL,
     data_fim DATE NOT NULL,
+    status ENUM('planejada', 'ativa', 'suspensa', 'encerrada', 'cancelada') NOT NULL DEFAULT 'planejada',
     inscricoes_inicio DATETIME NULL,
     inscricoes_fim DATETIME NULL,
     matriculas_inicio DATETIME NULL,
@@ -404,7 +406,6 @@ CREATE TABLE IF NOT EXISTS temporadas (
     permitir_multiplas_inscricoes_modalidade TINYINT(1) NOT NULL DEFAULT 0,
     limite_inscricoes_modalidade INT UNSIGNED NOT NULL DEFAULT 1,
     data_liberacao_multiplas_inscricoes_modalidade DATETIME NULL,
-    ativo TINYINT(1) NOT NULL DEFAULT 1,
     CONSTRAINT fk_temporada_origem FOREIGN KEY (origem_temporada_id) REFERENCES origens_temporada(id)
 ) ENGINE=InnoDB;
 
@@ -413,6 +414,7 @@ CREATE TABLE IF NOT EXISTS cronogramas_modalidade (
     temporada_id BIGINT UNSIGNED NOT NULL,
     modalidade_id BIGINT UNSIGNED NOT NULL,
     nome VARCHAR(180) NOT NULL,
+    abrangencia_semanal VARCHAR(30) NOT NULL DEFAULT 'segunda_sexta',
     data_inicio DATE NOT NULL,
     data_fim DATE NOT NULL,
     inscricoes_inicio DATETIME NULL,

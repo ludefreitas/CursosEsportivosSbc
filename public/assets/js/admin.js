@@ -4696,7 +4696,19 @@
                 valid = before('inscricoes_inicio', 'inscricoes_fim', 'O fim da inscrição inicial deve ser posterior ao seu início.') && valid;
                 valid = before('inscricoes_fim', 'matriculas_inicio', 'As matrículas devem começar somente depois do encerramento da inscrição inicial.') && valid;
                 valid = before('matriculas_inicio', 'matriculas_fim', 'O fim das matrículas deve ser posterior ao seu início.') && valid;
-
+                const weeklyCoverage = String($form.find('[name="abrangencia_semanal"]').val() || 'segunda_sexta');
+                if (values.matriculas_inicio && values.matriculas_fim) {
+                    if (values.matriculas_inicio.getDay() !== 1) {
+                        setPeriodError(fields.matriculas_inicio, 'O período de matrícula deve começar em uma segunda-feira.');
+                        valid = false;
+                    }
+                    const minimumDays = weeklyCoverage === 'segunda_domingo' ? 7 : 5;
+                    const minimumEnd = new Date(values.matriculas_inicio.getFullYear(), values.matriculas_inicio.getMonth(), values.matriculas_inicio.getDate() + minimumDays - 1);
+                    if (values.matriculas_fim.getTime() < minimumEnd.getTime()) {
+                        setPeriodError(fields.matriculas_fim, 'O período deve abranger pelo menos ' + minimumDays + ' dias, começando em uma segunda-feira.');
+                        valid = false;
+                    }
+                }
                 const enrollmentDuringRegistration = $form.find('[name="permitir_inscricao_periodo_matricula"]').is(':checked');
                 if (enrollmentDuringRegistration && values.inscricoes_abertas_inicio && values.matriculas_inicio && values.matriculas_fim) {
                     if (values.inscricoes_abertas_inicio < values.matriculas_inicio || values.inscricoes_abertas_inicio > values.matriculas_fim) {
@@ -4815,6 +4827,7 @@
                     return;
                 }
                 ['inscricoes_inicio', 'inscricoes_fim', 'matriculas_inicio', 'matriculas_fim', 'inscricoes_abertas_inicio', 'inscricoes_abertas_fim'].forEach(function (field) { $form.find('[name="' + field + '"]').val(toLocalDateTime(season[field])); });
+                $form.find('[name="abrangencia_semanal"]').val(String(season.abrangencia_semanal || 'segunda_sexta'));
                 ['data_inicio', 'data_fim', 'aulas_inicio', 'aulas_fim'].forEach(function (field) { $form.find('[name="' + field + '"]').val(String(season[field] || '')); });
                 $form.find('[name="permitir_inscricao_periodo_matricula"]').prop('checked', Number(season.permitir_inscricao_periodo_matricula || 0) === 1);
                 const hasNotice = Number(season.possui_edital || 0) === 1;
@@ -4847,7 +4860,7 @@
             $(document).on('change', '#admin-modality-schedule-form [name="temporada_id"], #admin-modality-schedule-form [name="modalidade_id"]', function () { updateModalityMultipleScheduleWarning($(this).closest('form')); });
             $(document).on('input change', '#admin-modality-schedule-form [name="limite_inscricoes_modalidade"], #admin-modality-schedule-form [name="data_liberacao_multiplas_inscricoes_modalidade"]', function () { updateModalityMultipleScheduleWarning($(this).closest('form')); });
             $(document).on('change', '[data-modality-registration-enrollment-toggle="1"], #admin-modality-schedule-form [name="matriculas_inicio"], #admin-modality-schedule-form [name="matriculas_fim"]', updateModalityRegistrationEnrollmentField);
-            $(document).on('input change', '#admin-modality-schedule-form [name="data_inicio"], #admin-modality-schedule-form [name="data_fim"], #admin-modality-schedule-form [name="inscricoes_inicio"], #admin-modality-schedule-form [name="inscricoes_fim"], #admin-modality-schedule-form [name="matriculas_inicio"], #admin-modality-schedule-form [name="matriculas_fim"], #admin-modality-schedule-form [name="inscricoes_abertas_inicio"], #admin-modality-schedule-form [name="inscricoes_abertas_fim"], #admin-modality-schedule-form [name="aulas_inicio"], #admin-modality-schedule-form [name="aulas_fim"]', function () { validateCoursePeriodChronology($(this).closest('form')); });
+            $(document).on('input change', '#admin-modality-schedule-form [name="data_inicio"], #admin-modality-schedule-form [name="data_fim"], #admin-modality-schedule-form [name="inscricoes_inicio"], #admin-modality-schedule-form [name="inscricoes_fim"], #admin-modality-schedule-form [name="matriculas_inicio"], #admin-modality-schedule-form [name="matriculas_fim"], #admin-modality-schedule-form [name="abrangencia_semanal"], #admin-modality-schedule-form [name="inscricoes_abertas_inicio"], #admin-modality-schedule-form [name="inscricoes_abertas_fim"], #admin-modality-schedule-form [name="aulas_inicio"], #admin-modality-schedule-form [name="aulas_fim"]', function () { validateCoursePeriodChronology($(this).closest('form')); });
             $(document).on('submit', '#admin-modality-schedule-form', function (event) {
                 event.preventDefault(); const $form = $(this);
                 const chronologyValid = validateCoursePeriodChronology($form);
@@ -5264,6 +5277,19 @@
                 valid = before('inscricoes_inicio', 'inscricoes_fim', 'O fim da inscrição inicial deve ser posterior ao seu início.') && valid;
                 valid = before('inscricoes_fim', 'matriculas_inicio', 'As matrículas devem começar somente depois do encerramento da inscrição inicial.') && valid;
                 valid = before('matriculas_inicio', 'matriculas_fim', 'O fim das matrículas deve ser posterior ao seu início.') && valid;
+                const weeklyCoverage = String($form.find('[name="abrangencia_semanal"]').val() || 'segunda_sexta');
+                if (values.matriculas_inicio && values.matriculas_fim) {
+                    if (values.matriculas_inicio.getDay() !== 1) {
+                        setPeriodError(fields.matriculas_inicio, 'O período de matrícula deve começar em uma segunda-feira.');
+                        valid = false;
+                    }
+                    const minimumDays = weeklyCoverage === 'segunda_domingo' ? 7 : 5;
+                    const minimumEnd = new Date(values.matriculas_inicio.getFullYear(), values.matriculas_inicio.getMonth(), values.matriculas_inicio.getDate() + minimumDays - 1);
+                    if (values.matriculas_fim.getTime() < minimumEnd.getTime()) {
+                        setPeriodError(fields.matriculas_fim, 'O período deve abranger pelo menos ' + minimumDays + ' dias, começando em uma segunda-feira.');
+                        valid = false;
+                    }
+                }
                 if ($form.find('[name="permitir_inscricao_periodo_matricula"]').is(':checked') && values.inscricoes_abertas_inicio && values.matriculas_inicio && values.matriculas_fim) {
                     if (values.inscricoes_abertas_inicio < values.matriculas_inicio || values.inscricoes_abertas_inicio > values.matriculas_fim) {
                         setPeriodError(fields.inscricoes_abertas_inicio, 'Inscrições abertas: início deve estar entre ' + formatBrazilianDate(fields.matriculas_inicio.value) + ' e ' + formatBrazilianDate(fields.matriculas_fim.value) + '.');
@@ -5538,6 +5564,18 @@
                 $form.find('[name="nome"], [name="tipo_periodicidade"], [name="data_inicio"], [name="data_fim"], [name="inscricoes_inicio"], [name="inscricoes_fim"], [name="matriculas_inicio"], [name="matriculas_fim"], [name="inscricoes_abertas_inicio"], [name="inscricoes_abertas_fim"], [name="aulas_inicio"], [name="aulas_fim"], [name="status"], [name="limite_inscricoes_periodo"], [name="data_liberacao_segunda_inscricao"], [name="data_liberacao_inscricoes_adicionais"], [name="limite_inscricoes_adicionais"]').prop('required', true);
             }
 
+            function ensureSeasonWeeklyCoverageField($form) {
+                if ($form.find('[name="abrangencia_semanal"]').length) return;
+                const $field = $('<label>')
+                    .append($('<span>', { text: 'Abrangência semanal das aulas' }))
+                    .append($('<select>', { name: 'abrangencia_semanal', required: true })
+                        .append($('<option>', { value: 'segunda_sexta', text: 'Segunda a sexta-feira' }))
+                        .append($('<option>', { value: 'segunda_domingo', text: 'Segunda-feira a domingo' })))
+                    .append($('<small>', { class: 'muted', text: 'O período de matrícula deve começar em uma segunda-feira e abranger integralmente os dias selecionados.' }));
+                $form.find('[name="matriculas_inicio"]').closest('.grid-two').before($field);
+                $form.find('[name="matriculas_inicio"], [name="matriculas_fim"]').prop('required', true);
+            }
+
             const seasonFieldHelp = {
                 nome: 'Identifica a temporada nas telas administrativas e públicas, por exemplo: Temporada de Verão 2027.',
                 origem_temporada_id: 'Indica a instituição responsável pela gestão da temporada.',
@@ -5623,7 +5661,7 @@
                     $form.append($('<input>', { type: 'hidden', name: 'operacao' }));
                 }
                 if (type === 'class') { ensureClassAgeCriterionField($form); ensureClassScheduleField($form); ensureClassOpenEnrollmentField($form); ensureClassFieldHelp($form); }
-                if (type === 'season') { ensureSeasonNoticeFields($form); ensureSeasonFieldHelp($form); }
+                if (type === 'season') { ensureSeasonNoticeFields($form); ensureSeasonWeeklyCoverageField($form); ensureSeasonFieldHelp($form); }
                 fillForm($form, record || {});
                 if (type === 'class') filterClassSchedules($form, record && record.cronograma_modalidade_id);
                 $form.find('[name="operacao"]').val(record ? 'editar' : 'criar');
@@ -5873,7 +5911,7 @@
             });
             $(document).on('change', '[data-season-notice-toggle="1"]', function () { updateSeasonNoticeFields($(this).closest('form')); });
             $(document).on('change', '[data-season-registration-enrollment-toggle="1"], [data-course-form="season"] [name="matriculas_inicio"], [data-course-form="season"] [name="matriculas_fim"]', function () { updateSeasonRegistrationEnrollmentField($(this).closest('form')); });
-            $(document).on('input change', '[data-course-form="season"] [name="data_inicio"], [data-course-form="season"] [name="data_fim"], [data-course-form="season"] [name="inscricoes_inicio"], [data-course-form="season"] [name="inscricoes_fim"], [data-course-form="season"] [name="matriculas_inicio"], [data-course-form="season"] [name="matriculas_fim"], [data-course-form="season"] [name="inscricoes_abertas_inicio"], [data-course-form="season"] [name="inscricoes_abertas_fim"], [data-course-form="season"] [name="aulas_inicio"], [data-course-form="season"] [name="aulas_fim"]', function () { validateCoursePeriodChronology($(this).closest('form')); });
+            $(document).on('input change', '[data-course-form="season"] [name="data_inicio"], [data-course-form="season"] [name="data_fim"], [data-course-form="season"] [name="inscricoes_inicio"], [data-course-form="season"] [name="inscricoes_fim"], [data-course-form="season"] [name="matriculas_inicio"], [data-course-form="season"] [name="matriculas_fim"], [data-course-form="season"] [name="abrangencia_semanal"], [data-course-form="season"] [name="inscricoes_abertas_inicio"], [data-course-form="season"] [name="inscricoes_abertas_fim"], [data-course-form="season"] [name="aulas_inicio"], [data-course-form="season"] [name="aulas_fim"]', function () { validateCoursePeriodChronology($(this).closest('form')); });
             $(document).on('click', '[data-season-field-help]', function (event) {
                 event.preventDefault(); event.stopPropagation();
                 const name = String($(this).attr('data-season-field-help') || '');
