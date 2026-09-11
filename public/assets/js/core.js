@@ -272,7 +272,22 @@
                 method: 'GET',
                 data: { modal: '1' },
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            }).done(function (html) {
+            }).done(function (html, textStatus, xhr) {
+                if (html && typeof html === 'object' && html.already_authenticated && html.redirect) {
+                    App.core.fecharPopupCustomizado('#popup-route-modal');
+                    App.core.hideLoading(true);
+                    window.location.href = String(html.redirect);
+                    return;
+                }
+
+                const responseUrl = String(xhr && xhr.responseURL || '');
+                if (responseUrl !== '' && !App.core.isModalRouteUrl(responseUrl)) {
+                    App.core.fecharPopupCustomizado('#popup-route-modal');
+                    App.core.hideLoading(true);
+                    window.location.href = responseUrl;
+                    return;
+                }
+
                 $content.html(
                     '<button type="button" class="popup-close-icon popup-route-inline-close" data-close-popup="#popup-route-modal" aria-label="Fechar formulario">&times;</button>' +
                     String(html || '')

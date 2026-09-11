@@ -48,6 +48,8 @@ $suggestedCourseModalities = array_slice($suggestedCourseModalities, 0, 3);
     <button type="button" class="btn home-navigation-centers" data-home-scroll-target="home-locations-card">Cursos por Centro Esportivo</button>
     <button type="button" class="btn home-navigation-modalities" data-home-scroll-target="home-course-modalities-card">Cursos por Modalidade</button>
     <button type="button" class="btn home-navigation-blog" data-home-scroll-target="home-blog">Blog</button>
+    <a href="<?php echo e(url('/dashboard')); ?>" class="btn home-navigation-enrollments">Minhas inscrições</a>
+    <a href="<?php echo e(url('/dashboard')); ?>" class="btn home-navigation-profile">Meus dados</a>
 </nav>
 
 <div id="home-course-modalities-modal" class="popup-overlay hidden" aria-hidden="true">

@@ -432,6 +432,18 @@ body.pagina-home .site-header {
     background: linear-gradient(135deg, #d62b45 0%, #b21d37 100%);
 }
 
+.pagina-home .home-section-navigation .home-navigation-enrollments {
+    color: #173b4a;
+    border-color: #a7adb2;
+    background: linear-gradient(135deg, #f5f6f7 0%, #d9dde0 100%);
+}
+
+.pagina-home .home-section-navigation .home-navigation-profile {
+    color: #fff;
+    border-color: #1ca746;
+    background: linear-gradient(135deg, #1ca746 0%, #108739 100%);
+}
+
 .pagina-home .home-course-modalities-list {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -27,6 +27,14 @@ class AuthController extends Controller
     public function showLogin(): void
     {
         if (Auth::check()) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => true,
+                    'already_authenticated' => true,
+                    'redirect' => url('/dashboard'),
+                ]);
+                return;
+            }
             redirect('/dashboard');
         }
 
@@ -48,6 +56,19 @@ class AuthController extends Controller
      */
     public function login(): void
     {
+        if (Auth::check()) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse([
+                    'success' => true,
+                    'already_authenticated' => true,
+                    'message' => 'Sua sessão já está ativa.',
+                    'redirect' => url('/dashboard'),
+                ]);
+                return;
+            }
+            redirect('/dashboard');
+        }
+
         $cpf = (string) ($_POST['cpf'] ?? '');
         $returnTo = safe_internal_path((string) ($_POST['return_to'] ?? '/dashboard'), '/dashboard');
         remember_old_input(['cpf' => $cpf]);

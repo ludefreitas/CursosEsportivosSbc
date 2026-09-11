@@ -916,7 +916,6 @@ class AdminService
                 p.cpf,
                 p.data_nascimento,
                 p.telefone_whatsapp,
-                p.numero_nis,
                 p.eh_pcd,
                 p.eh_pvs,
                 p.eh_plm,
@@ -944,6 +943,9 @@ class AdminService
         }
 
         $certificate = $this->findLatestConditionCertificate($pdo, $personId, $conditionSlug);
+        $person['numero_nis'] = $conditionSlug === 'pvs'
+            ? (string) ($certificate['numero_nis'] ?? '')
+            : '';
         if ($certificate) {
             $certificate['tipos_deficiencia_pcd_lista'] = $this->decodeDisabilityTypes((string) ($certificate['tipos_deficiencia_pcd'] ?? ''));
         }

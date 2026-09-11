@@ -367,6 +367,10 @@
                             !!response.admin_access_allowed,
                             !!response.professor_access_allowed
                         );
+                        try {
+                            window.localStorage.setItem('cursos_sbc_auth_event', JSON.stringify({ action: 'login', time: Date.now() }));
+                        } catch (error) {
+                        }
                         $('main.page-content > .flash').remove();
                         $personOptions.data('agendaAuthenticated', '1');
                         $calendar.attr('data-agenda-authenticated', '1');
@@ -488,9 +492,27 @@
             });
         },
 
+        iniciarSincronizacaoEntreAbas: function () {
+            window.addEventListener('storage', function (event) {
+                if (event.key !== 'cursos_sbc_auth_event' || !event.newValue || App.core.pageIsAuthenticated()) {
+                    return;
+                }
+
+                try {
+                    const authEvent = JSON.parse(event.newValue);
+                    if (authEvent && authEvent.action === 'login') {
+                        App.core.hideLoading(true);
+                        window.location.reload();
+                    }
+                } catch (error) {
+                }
+            });
+        },
+
         init: function () {
             App.auth.iniciarFormulariosAjax();
             App.auth.iniciarModalPelaUrl();
+            App.auth.iniciarSincronizacaoEntreAbas();
         }
     });
 
