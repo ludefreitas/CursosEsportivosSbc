@@ -10,6 +10,7 @@
                 <p><strong>Local:</strong> <?php echo e((string) ($class['local_nome'] ?? '')); ?>, <?php echo e((string) ($class['espaco_nome'] ?? '')); ?></p>
                 <p><strong>Dias:</strong> <?php echo e((string) ($class['dias_semana_descricao'] ?? 'Não informado')); ?></p>
                 <p><strong>Horário:</strong> <?php if (!empty($class['hora_inicio']) && !empty($class['hora_fim'])) { echo e(substr((string) $class['hora_inicio'], 0, 5) . ' às ' . substr((string) $class['hora_fim'], 0, 5)); } else { echo 'Não informado'; } ?></p>
+                <p><strong><?php echo ($class['criterio_faixa_etaria'] ?? '') === 'ano_nascimento' ? 'Ano de nascimento' : 'Faixa etária'; ?>:</strong> <?php echo e((string) ($class['faixa_etaria_descricao'] ?? 'Não informada')); ?></p>
                 <p><strong>Professor:</strong> <?php echo e((string) ($class['professor_nome'] ?? 'Sem professor')); ?></p>
                 <p><strong>Status:</strong> <?php echo e((string) ($class['status_label'] ?? (!empty($class['ativo']) ? 'Planejada' : 'Inscrições suspensas'))); ?></p>
             </div>

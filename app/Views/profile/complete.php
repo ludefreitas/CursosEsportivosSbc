@@ -79,21 +79,21 @@
         <div class="grid-three">
             <label class="checkbox-chip">
                 <input type="checkbox" name="eh_pcd" value="1" data-condition-exclusive="1" <?php echo (string) old('eh_pcd', $person['eh_pcd'] ?? '0') === '1' ? 'checked' : ''; ?>>
-                <span>É pessoa com deficiência (PCD)</span>
+                <span><?php echo e(condition_public_label('pcd')); ?></span>
             </label>
             <label class="checkbox-chip">
                 <input type="checkbox" name="eh_pvs" value="1" data-condition-exclusive="1" <?php echo (string) old('eh_pvs', $person['eh_pvs'] ?? '0') === '1' ? 'checked' : ''; ?>>
-                <span>E pessoa em vulnerabilidade social (PVS)</span>
+                <span><?php echo e(condition_public_label('pvs')); ?></span>
             </label>
             <label class="checkbox-chip">
                 <input type="checkbox" name="eh_plm" value="1" data-condition-exclusive="1" <?php echo (string) old('eh_plm', $person['eh_plm'] ?? '0') === '1' ? 'checked' : ''; ?>>
-                <span>É pessoa com laudo médico de doença (PLM)</span>
+                <span><?php echo e(condition_public_label('plm')); ?></span>
             </label>
         </div>
-        <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condição pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>
+        <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condição pode ser selecionada por pessoa: <?php echo e(condition_public_labels()); ?>.</small>
 
         <div class="alert-inline">
-            Se uma das condições sociais ou de saúde acima for declarada (PCD, PVS ou PLM), a pessoa precisará manter a documentação correspondente e o certificado validado para realizar agendamentos e inscrições em qualquer tipo de vaga.
+            Se uma das condições sociais ou de saúde acima for declarada — <?php echo e(condition_public_labels()); ?> —, a pessoa precisará manter a documentação correspondente e o certificado validado para realizar agendamentos e inscrições em qualquer tipo de vaga.
         </div>
 
         <div class="grid-five">

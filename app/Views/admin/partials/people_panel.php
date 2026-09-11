@@ -336,18 +336,18 @@
                     <div class="grid-three">
                         <label class="checkbox-chip">
                             <input type="checkbox" name="eh_pcd" value="1" id="admin-person-eh-pcd" data-condition-exclusive="1">
-                            <span>É pessoa com deficiência (PCD)</span>
+                            <span><?php echo e(condition_public_label('pcd')); ?></span>
                         </label>
                         <label class="checkbox-chip">
                             <input type="checkbox" name="eh_pvs" value="1" id="admin-person-eh-pvs" data-condition-exclusive="1">
-                            <span>E pessoa em vulnerabilidade social (PVS)</span>
+                            <span><?php echo e(condition_public_label('pvs')); ?></span>
                         </label>
                         <label class="checkbox-chip">
                             <input type="checkbox" name="eh_plm" value="1" id="admin-person-eh-plm" data-condition-exclusive="1">
-                            <span>É pessoa com laudo médico de doença (PLM)</span>
+                            <span><?php echo e(condition_public_label('plm')); ?></span>
                         </label>
                     </div>
-                    <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condição pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>
+                    <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condição pode ser selecionada por pessoa: <?php echo e(condition_public_labels()); ?>.</small>
 
                     <div class="grid-five">
                         <label class="cep-autocomplete-field">

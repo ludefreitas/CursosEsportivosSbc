@@ -30,9 +30,9 @@
             <div><strong>Responsável 2:</strong><span><?php echo e((string) (($dependent['responsavel2_nome'] ?? '') !== '' ? $dependent['responsavel2_nome'] : '-')); ?><?php echo !empty($dependent['responsavel2_cpf']) ? ' (' . e(format_cpf((string) $dependent['responsavel2_cpf'])) . ')' : ''; ?></span></div>
             <div><strong>Condição declarada:</strong><span><?php
                 $conditions = [];
-                if ((int) ($dependent['eh_pcd'] ?? 0) === 1) { $conditions[] = 'PCD'; }
-                if ((int) ($dependent['eh_pvs'] ?? 0) === 1) { $conditions[] = 'PVS'; }
-                if ((int) ($dependent['eh_plm'] ?? 0) === 1) { $conditions[] = 'PLM'; }
+                if ((int) ($dependent['eh_pcd'] ?? 0) === 1) { $conditions[] = condition_public_label('pcd'); }
+                if ((int) ($dependent['eh_pvs'] ?? 0) === 1) { $conditions[] = condition_public_label('pvs'); }
+                if ((int) ($dependent['eh_plm'] ?? 0) === 1) { $conditions[] = condition_public_label('plm'); }
                 echo e($conditions !== [] ? implode(', ', $conditions) : 'Nenhuma');
             ?></span></div>
         </div>
@@ -117,18 +117,18 @@
                 <div class="dashboard-dependent-edit-grid dashboard-dependent-edit-grid-3">
                     <label class="checkbox-chip">
                         <input type="checkbox" name="eh_pcd" value="1" data-condition-exclusive="1" <?php echo (int) ($dependent['eh_pcd'] ?? 0) === 1 ? 'checked' : ''; ?>>
-                        <span>É pessoa com deficiência (PCD)</span>
+                        <span><?php echo e(condition_public_label('pcd')); ?></span>
                     </label>
                     <label class="checkbox-chip">
                         <input type="checkbox" name="eh_pvs" value="1" data-condition-exclusive="1" <?php echo (int) ($dependent['eh_pvs'] ?? 0) === 1 ? 'checked' : ''; ?>>
-                        <span>E pessoa em vulnerabilidade social (PVS)</span>
+                        <span><?php echo e(condition_public_label('pvs')); ?></span>
                     </label>
                     <label class="checkbox-chip">
                         <input type="checkbox" name="eh_plm" value="1" data-condition-exclusive="1" <?php echo (int) ($dependent['eh_plm'] ?? 0) === 1 ? 'checked' : ''; ?>>
-                        <span>É pessoa com laudo médico de doença (PLM)</span>
+                        <span><?php echo e(condition_public_label('plm')); ?></span>
                     </label>
                 </div>
-                <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condição pode ser selecionada por pessoa: PCD, PVS ou PLM.</small>
+                <small class="muted dashboard-condition-helper" data-condition-helper="1">Somente uma condição pode ser selecionada por pessoa: <?php echo e(condition_public_labels()); ?>.</small>
             </section>
 
             <section class="dashboard-dependent-edit-section">

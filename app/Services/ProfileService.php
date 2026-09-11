@@ -825,7 +825,7 @@ class ProfileService
         }
 
         if ($selected > 1) {
-            throw new RuntimeException('Selecione somente uma condição entre PCD, PVS e PLM para este cadastro.');
+            throw new RuntimeException('Selecione somente uma condição entre ' . condition_public_labels() . ' para este cadastro.');
         }
     }
 

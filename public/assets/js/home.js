@@ -395,7 +395,7 @@
                     });
                     $form.append($personOptions);
                     const $public = $('<select>', { id: 'home-course-person-public', disabled: true })
-                        .append($('<option>', { value: 'geral', text: 'Público geral' })).append($('<option>', { value: 'pcd', text: 'PCD' })).append($('<option>', { value: 'plm', text: 'PLM' })).append($('<option>', { value: 'pvs', text: 'PVS' }));
+                        .append($('<option>', { value: 'geral', text: 'Público geral' })).append($('<option>', { value: 'pcd', text: 'PCD (Pessoa Com Deficiência)' })).append($('<option>', { value: 'plm', text: 'PLM (Pessoa com Laudo Médico de Doença)' })).append($('<option>', { value: 'pvs', text: 'PVS (Pessoa em situação de Vulnerabilidade Social)' }));
                     $form.append($('<input>', { type: 'hidden', name: 'publico_alvo', id: 'home-course-person-public-value', value: 'geral' }));
                     $form.append($('<label>').append($('<span>', { text: 'Público-alvo da vaga' })).append($public));
                     $form.append($('<label>', { class: 'checkbox-chip' }).append($('<input>', { type: 'checkbox', name: 'aceite_termos', value: '1', required: true })).append($('<span>', { text: 'Aceito os termos da inscrição' })));
@@ -408,7 +408,7 @@
             function renderVacanciesModal(details) {
                 const record = details.class;
                 const $grid = $('<div>', { class: 'home-course-vacancies-grid' });
-                [['Público geral', 'vagas_geral_disponiveis', 'espera_geral_disponivel'], ['PCD', 'vagas_pcd_disponiveis', 'espera_pcd_disponivel'], ['PLM', 'vagas_plm_disponiveis', 'espera_plm_disponivel'], ['PVS', 'vagas_pvs_disponiveis', 'espera_pvs_disponivel']].forEach(function (item) {
+                [['Público geral', 'vagas_geral_disponiveis', 'espera_geral_disponivel'], ['PCD (Pessoa Com Deficiência)', 'vagas_pcd_disponiveis', 'espera_pcd_disponivel'], ['PLM (Pessoa com Laudo Médico de Doença)', 'vagas_plm_disponiveis', 'espera_plm_disponivel'], ['PVS (Pessoa em situação de Vulnerabilidade Social)', 'vagas_pvs_disponiveis', 'espera_pvs_disponivel']].forEach(function (item) {
                     $grid.append($('<article>').append($('<strong>', { text: item[0] })).append($('<span>', { text: String(record[item[1]] || 0) + ' vagas' })).append($('<small>', { text: String(record[item[2]] || 0) + ' lugares na espera' })));
                 });
                 $('#home-course-vacancies-subtitle').text(String((classesById[String(record.id)] || record).nome || ''));

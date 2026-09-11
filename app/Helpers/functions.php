@@ -745,6 +745,24 @@ function has_role(array $roles, string $slug): bool
 }
 
 /**
+ * Retorna a nomenclatura pública completa das condições especiais.
+ */
+function condition_public_label(string $slug): string
+{
+    return match (strtolower(trim($slug))) {
+        'pcd' => 'PCD (Pessoa Com Deficiência)',
+        'pvs' => 'PVS (Pessoa em situação de Vulnerabilidade Social)',
+        'plm' => 'PLM (Pessoa com Laudo Médico de Doença)',
+        default => strtoupper(trim($slug)),
+    };
+}
+
+function condition_public_labels(): string
+{
+    return condition_public_label('pcd') . ', ' . condition_public_label('pvs') . ' e ' . condition_public_label('plm');
+}
+
+/**
  * Converte um texto livre para slug simples.
  */
 function slugify(string $text): string

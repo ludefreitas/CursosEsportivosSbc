@@ -890,6 +890,14 @@ body.pagina-error .site-nav > .inline-form .link-button,
     color: #7b4d00;
 }
 .dashboard-dependent-data-button {
+    width: 168px;
+    min-width: 168px;
+    max-width: 168px;
+    padding: 8px 12px;
+    line-height: 1.2;
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
     background: linear-gradient(135deg, #5b3fa3 0%, #7559bd 100%);
     border: 1px solid #493285;
     color: #fff;
@@ -2004,6 +2012,12 @@ body.pagina-error label span {
     .header-login-form {
         width: 100%;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    }
+
+    .dashboard-dependent-data-button {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
     }
 
     .header-login-form label {

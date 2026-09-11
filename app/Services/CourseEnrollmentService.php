@@ -236,9 +236,9 @@ class CourseEnrollmentService
             $row['status_label'] = self::STATUS_LABELS[(string) $row['status']] ?? (string) $row['status'];
             $row['temporada_encerrada'] = (string) ($row['temporada_status'] ?? '') === 'encerrada';
             $conditions = [];
-            if ((int) ($row['eh_pcd'] ?? 0) === 1) { $conditions[] = 'PCD'; }
-            if ((int) ($row['eh_pvs'] ?? 0) === 1) { $conditions[] = 'PVS'; }
-            if ((int) ($row['eh_plm'] ?? 0) === 1) { $conditions[] = 'PLM'; }
+            if ((int) ($row['eh_pcd'] ?? 0) === 1) { $conditions[] = condition_public_label('pcd'); }
+            if ((int) ($row['eh_pvs'] ?? 0) === 1) { $conditions[] = condition_public_label('pvs'); }
+            if ((int) ($row['eh_plm'] ?? 0) === 1) { $conditions[] = condition_public_label('plm'); }
             $row['condicoes'] = implode(', ', $conditions);
             $row['idade'] = calculate_age((string) ($row['data_nascimento'] ?? ''));
             $row['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($row['dias_semana'] ?? ''));
@@ -370,7 +370,9 @@ class CourseEnrollmentService
         $stmt = $pdo->query("SELECT t.*, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio, te.data_fim AS temporada_fim, m.nome AS modalidade_nome, cm.nome AS cronograma_nome, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome, nm.nome AS nivel_nome, professor.nome_completo AS professor_nome FROM turmas t INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id LEFT JOIN cronogramas_modalidade cm ON cm.id = t.cronograma_modalidade_id INNER JOIN locais_treino l ON l.id = t.local_treino_id INNER JOIN espacos_treino e ON e.id = t.espaco_treino_id LEFT JOIN niveis_modalidade nm ON nm.id = t.nivel_modalidade_id LEFT JOIN contas pc ON pc.id = t.professor_conta_id LEFT JOIN pessoas professor ON professor.cpf = pc.cpf ORDER BY te.data_inicio DESC, t.nome ASC");
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         foreach ($classes as &$class) {
+            $class['criterio_faixa_etaria'] = normalize_age_rule_mode((string) ($class['criterio_faixa_etaria'] ?? 'idade_exata'));
             $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? ''));
+            $class['faixa_etaria_descricao'] = $this->describeClassAgeRule($class);
             $class['status_label'] = self::CLASS_STATUS_LABELS[(string) ($class['status'] ?? '')] ?? (string) ($class['status'] ?? '');
         }
         unset($class);
@@ -1304,9 +1306,9 @@ class CourseEnrollmentService
     {
         $personName = trim((string) ($person['nome_completo'] ?? 'A pessoa selecionada'));
         $conditions = [
-            'eh_pcd' => ['slug' => 'pcd', 'label' => 'PCD'],
-            'eh_plm' => ['slug' => 'plm', 'label' => 'PLM'],
-            'eh_pvs' => ['slug' => 'pvs', 'label' => 'PVS'],
+            'eh_pcd' => ['slug' => 'pcd', 'label' => condition_public_label('pcd')],
+            'eh_plm' => ['slug' => 'plm', 'label' => condition_public_label('plm')],
+            'eh_pvs' => ['slug' => 'pvs', 'label' => condition_public_label('pvs')],
         ];
         $reasons = [];
 

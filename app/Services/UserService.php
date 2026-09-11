@@ -143,9 +143,9 @@ class UserService
 
         $alerts = [];
         $conditionMap = [
-            'eh_pcd' => ['slug' => 'pcd', 'label' => 'PCD'],
-            'eh_pvs' => ['slug' => 'pvs', 'label' => 'Pessoa em Vulnerabilidade Social'],
-            'eh_plm' => ['slug' => 'plm', 'label' => 'Pessoa com Laudo Médico de Doença'],
+            'eh_pcd' => ['slug' => 'pcd', 'label' => condition_public_label('pcd')],
+            'eh_pvs' => ['slug' => 'pvs', 'label' => condition_public_label('pvs')],
+            'eh_plm' => ['slug' => 'plm', 'label' => condition_public_label('plm')],
         ];
 
         $stmtCertificate = $pdo->prepare('

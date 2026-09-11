@@ -460,7 +460,7 @@
                     + (String(props.criterio_faixa_etaria || '') === 'ano_nascimento' && String(props.ano_nascimento_intervalo || '').trim() !== ''
                         ? '<p><strong>Faixa permitida:</strong> ( para ' + String(props.ano_nascimento_intervalo).replace('Nascidos entre ', 'nascidos entre ') + ' )</p>'
                         : '<p><strong>Faixa etária:</strong> ( para ' + String(props.special_age_min || 0) + ' a ' + String(props.special_age_max || 120) + ' anos de idade )</p>')
-                    + '<p><strong>Vagas:</strong> Geral ' + String(props.vagas_geral || 0) + ' | PCD ' + String(props.vagas_pcd || 0) + ' | PVS ' + String(props.vagas_pvs || 0) + ' | PLM ' + String(props.vagas_plm || 0) + '</p>'
+                    + '<p><strong>Vagas:</strong> Geral ' + String(props.vagas_geral || 0) + ' | PCD (Pessoa Com Deficiência) ' + String(props.vagas_pcd || 0) + ' | PVS (Pessoa em situação de Vulnerabilidade Social) ' + String(props.vagas_pvs || 0) + ' | PLM (Pessoa com Laudo Médico de Doença) ' + String(props.vagas_plm || 0) + '</p>'
                     + '<p><strong>Inscrições:</strong> ' + String(props.vagas_ocupadas || 0) + ' de ' + String(props.vagas_total || 0) + '</p>'
                     + '<p><strong>Abertura da agenda para inscrições:</strong> ' + App.agenda.formatarDataHoraCompletaAgenda(props.special_registration_open_at) + '</p>'
                     + '<p><strong>Fechamento da agenda para inscrições:</strong> ' + App.agenda.formatarDataHoraCompletaAgenda(props.special_registration_close_at) + '</p>'

@@ -93,9 +93,9 @@ class AdminService
     private function certificateConditionMap(): array
     {
         return [
-            'pcd' => ['field' => 'eh_pcd', 'label' => 'PCD'],
-            'pvs' => ['field' => 'eh_pvs', 'label' => 'PVS'],
-            'plm' => ['field' => 'eh_plm', 'label' => 'PLM'],
+            'pcd' => ['field' => 'eh_pcd', 'label' => condition_public_label('pcd')],
+            'pvs' => ['field' => 'eh_pvs', 'label' => condition_public_label('pvs')],
+            'plm' => ['field' => 'eh_plm', 'label' => condition_public_label('plm')],
         ];
     }
 
@@ -1001,7 +1001,7 @@ class AdminService
         }
 
         if (in_array($conditionSlug, ['pcd', 'plm'], true) && in_array($status, ['validado', 'validado_parcial'], true) && $validatedCidCode === '') {
-            throw new RuntimeException('Informe o código CID validado para concluir a validação de PCD ou PLM.');
+            throw new RuntimeException('Informe o código CID validado para concluir a validação de ' . condition_public_label('pcd') . ' ou ' . condition_public_label('plm') . '.');
         }
 
         if (in_array($conditionSlug, ['pcd', 'plm'], true) && in_array($status, ['validado', 'validado_parcial'], true) && !$this->isValidCidCode($validatedCidCode)) {
@@ -1009,7 +1009,7 @@ class AdminService
         }
 
         if (in_array($conditionSlug, ['pcd', 'plm'], true) && in_array($status, ['validado', 'validado_parcial'], true) && $validatedDisease === '') {
-            throw new RuntimeException('Informe a doença validada para concluir a validação de PCD ou PLM.');
+            throw new RuntimeException('Informe a doença validada para concluir a validação de ' . condition_public_label('pcd') . ' ou ' . condition_public_label('plm') . '.');
         }
 
         $pdo = Database::connection();
@@ -5000,15 +5000,15 @@ class AdminService
         $conditions = [];
 
         if ((int) ($person['eh_pcd'] ?? 0) === 1) {
-            $conditions[] = 'PCD';
+            $conditions[] = condition_public_label('pcd');
         }
 
         if ((int) ($person['eh_pvs'] ?? 0) === 1) {
-            $conditions[] = 'PVS';
+            $conditions[] = condition_public_label('pvs');
         }
 
         if ((int) ($person['eh_plm'] ?? 0) === 1) {
-            $conditions[] = 'PLM';
+            $conditions[] = condition_public_label('plm');
         }
 
         return $conditions !== [] ? implode(', ', $conditions) : '';
@@ -5020,9 +5020,9 @@ class AdminService
     private function formatBookingTargetLabel(string $target): string
     {
         return match ($target) {
-            'pcd' => 'PCD',
-            'plm' => 'PLM',
-            'pvs' => 'PVS',
+            'pcd' => condition_public_label('pcd'),
+            'plm' => condition_public_label('plm'),
+            'pvs' => condition_public_label('pvs'),
             default => 'Geral',
         };
     }

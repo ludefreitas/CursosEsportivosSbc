@@ -1230,7 +1230,7 @@
                 }
 
                 if ($helper.length > 0) {
-                    $helper.text('Somente uma condição pode ser selecionada por pessoa: PCD, PVS ou PLM.');
+                    $helper.text('Somente uma condição pode ser selecionada por pessoa: PCD (Pessoa Com Deficiência), PVS (Pessoa em situação de Vulnerabilidade Social) e PLM (Pessoa com Laudo Médico de Doença).');
                 }
             }
 

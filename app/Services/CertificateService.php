@@ -30,9 +30,9 @@ class CertificateService
     private function conditionMap(): array
     {
         return [
-            'pcd' => ['field' => 'eh_pcd', 'label' => 'Pessoa com Deficiencia (PCD)'],
-            'pvs' => ['field' => 'eh_pvs', 'label' => 'Pessoa em Vulnerabilidade Social (PVS)'],
-            'plm' => ['field' => 'eh_plm', 'label' => 'Pessoa com Laudo Médico de Doença (PLM)'],
+            'pcd' => ['field' => 'eh_pcd', 'label' => condition_public_label('pcd')],
+            'pvs' => ['field' => 'eh_pvs', 'label' => condition_public_label('pvs')],
+            'plm' => ['field' => 'eh_plm', 'label' => condition_public_label('plm')],
         ];
     }
 
@@ -128,11 +128,11 @@ class CertificateService
         }
 
         if ($conditionSlug === 'pcd' && $selectedDisabilityTypes === []) {
-            throw new RuntimeException('Para PCD, marque obrigatoriamente ao menos um tipo de deficiência.');
+            throw new RuntimeException('Para ' . condition_public_label('pcd') . ', marque obrigatoriamente ao menos um tipo de deficiência.');
         }
 
         if ($conditionSlug === 'pvs' && $nisNumber === '') {
-            throw new RuntimeException('Informe obrigatoriamente o número do CadÚnico (NIS) para PVS.');
+            throw new RuntimeException('Informe obrigatoriamente o número do CadÚnico (NIS) para ' . condition_public_label('pvs') . '.');
         }
 
         if ($conditionSlug === 'pvs' && !$this->isValidNisNumber($nisNumber)) {

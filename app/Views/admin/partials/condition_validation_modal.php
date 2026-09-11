@@ -101,7 +101,7 @@ foreach ($selectedDisabilityTypes as $selectedType) {
             <label>
                 <span>CID validado</span>
                 <input type="text" name="codigo_cid_validado" id="admin-condition-validation-cid" data-cid-code="1" maxlength="5" placeholder="A00.0" value="<?php echo e($currentValidatedCid); ?>" <?php echo $documents === [] ? 'disabled' : ''; ?>>
-                <small class="muted">Para PCD e PLM, informe o CID validado no formato A00.0 quando o status for validado ou validado parcial.</small>
+                <small class="muted">Para <?php echo e(condition_public_label('pcd')); ?> e <?php echo e(condition_public_label('plm')); ?>, informe o CID validado no formato A00.0 quando o status for validado ou validado parcial.</small>
             </label>
             <label>
                 <span>Doença validada</span>

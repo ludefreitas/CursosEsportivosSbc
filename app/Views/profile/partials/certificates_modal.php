@@ -131,7 +131,7 @@ $conditions = $conditions ?? [];
                             $typeOptions = $condition['disability_type_options'] ?? [];
                             ?>
                             <fieldset class="dashboard-certificate-fieldset">
-                                <legend>Tipos de deficiência (PCD) <button type="button" class="field-help-button" aria-label="Ajuda sobre tipos de deficiência" data-field-help-message="Marque uma ou mais opções que correspondam às deficiências declaradas no laudo ou documento enviado. É obrigatório selecionar pelo menos uma opção.">?</button></legend>
+                                <legend>Tipos de deficiência — <?php echo e(condition_public_label('pcd')); ?> <button type="button" class="field-help-button" aria-label="Ajuda sobre tipos de deficiência" data-field-help-message="Marque uma ou mais opções que correspondam às deficiências declaradas no laudo ou documento enviado. É obrigatório selecionar pelo menos uma opção.">?</button></legend>
                                 <div class="dashboard-certificate-checkbox-grid">
                                     <?php foreach ($typeOptions as $typeValue => $typeLabel) { ?>
                                         <label class="checkbox-chip">
@@ -145,7 +145,7 @@ $conditions = $conditions ?? [];
                                         </label>
                                     <?php } ?>
                                 </div>
-                                <small class="muted">Para PCD, marque obrigatoriamente ao menos uma deficiência.</small>
+                                <small class="muted">Para <?php echo e(condition_public_label('pcd')); ?>, marque obrigatoriamente ao menos uma deficiência.</small>
                             </fieldset>
                         <?php } ?>
 

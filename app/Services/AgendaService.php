@@ -1265,9 +1265,9 @@ class AgendaService
         $reasons = [];
         $personName = trim((string) ($person['nome_completo'] ?? 'Pessoa'));
         $conditions = [
-            'eh_pcd' => ['slug' => 'pcd', 'label' => 'PCD'],
-            'eh_plm' => ['slug' => 'plm', 'label' => 'PLM'],
-            'eh_pvs' => ['slug' => 'pvs', 'label' => 'PVS'],
+            'eh_pcd' => ['slug' => 'pcd', 'label' => condition_public_label('pcd')],
+            'eh_plm' => ['slug' => 'plm', 'label' => condition_public_label('plm')],
+            'eh_pvs' => ['slug' => 'pvs', 'label' => condition_public_label('pvs')],
         ];
 
         foreach ($conditions as $field => $meta) {

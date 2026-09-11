@@ -58,7 +58,7 @@
                     data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
                     data-condition-slug="pcd"
                     id="documentacao-condicao-<?php echo e((string) ($dependent['id'] ?? '0')); ?>-pcd"
-                >PCD enviar/atualizar documentação</button>
+                ><?php echo e(condition_public_label('pcd')); ?> — enviar/atualizar documentação</button>
             <?php } ?>
             <?php if ((int) ($dependent['eh_pvs'] ?? 0) === 1) { ?>
                 <?php $hasConditionAction = true; ?>
@@ -69,7 +69,7 @@
                     data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
                     data-condition-slug="pvs"
                     id="documentacao-condicao-<?php echo e((string) ($dependent['id'] ?? '0')); ?>-pvs"
-                >Pessoa em Vulnerabilidade Social enviar/atualizar documentação</button>
+                ><?php echo e(condition_public_label('pvs')); ?> — enviar/atualizar documentação</button>
             <?php } ?>
             <?php if ((int) ($dependent['eh_plm'] ?? 0) === 1) { ?>
                 <?php $hasConditionAction = true; ?>
@@ -80,7 +80,7 @@
                     data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
                     data-condition-slug="plm"
                     id="documentacao-condicao-<?php echo e((string) ($dependent['id'] ?? '0')); ?>-plm"
-                >Pessoa com Laudo Médico de Doença enviar/atualizar documentação</button>
+                ><?php echo e(condition_public_label('plm')); ?> — enviar/atualizar documentação</button>
             <?php } ?>
         </div>
         <?php if (!$hasConditionAction) { ?>

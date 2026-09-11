@@ -51,7 +51,7 @@ $needsProfileCompletion = $needsProfileCompletion ?? false;
                     <label>
                         <span>Público da vaga</span>
                         <select name="publico_alvo" id="agenda-special-schedule-publico">
-                            <option value="geral">Geral</option><option value="pcd">PCD</option><option value="pvs">PVS</option><option value="plm">PLM</option>
+                            <option value="geral">Geral</option><option value="pcd"><?php echo e(condition_public_label('pcd')); ?></option><option value="pvs"><?php echo e(condition_public_label('pvs')); ?></option><option value="plm"><?php echo e(condition_public_label('plm')); ?></option>
                         </select>
                     </label>
                 </div>
@@ -80,7 +80,7 @@ $needsProfileCompletion = $needsProfileCompletion ?? false;
                 <label>
                     <span>Público-alvo da vaga</span>
                     <select name="publico_alvo" id="publico_alvo" required>
-                        <option value="geral">Público geral</option><option value="pcd">PCD</option><option value="plm">PLM</option><option value="pvs">PVS</option>
+                        <option value="geral">Público geral</option><option value="pcd"><?php echo e(condition_public_label('pcd')); ?></option><option value="plm"><?php echo e(condition_public_label('plm')); ?></option><option value="pvs"><?php echo e(condition_public_label('pvs')); ?></option>
                     </select>
                 </label>
                 <button type="submit" class="btn btn-primary">Agendar horário</button>
