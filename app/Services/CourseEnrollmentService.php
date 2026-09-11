@@ -746,7 +746,9 @@ class CourseEnrollmentService
                 }
                 if (in_array((string) $class['status'], ['periodo_matricula', 'inscricoes_abertas'], true)
                     && $this->availableWaitlistSeats($pdo, $class, (string) $person['publico_alvo']) <= 0) {
-                    $reasons[] = 'Não há lugares disponíveis na lista de espera para o público-alvo desta pessoa';
+                    $reasons[] = (string) $class['status'] === 'periodo_matricula'
+                        ? 'Não há vagas regulares remanescentes nem lugares na lista de espera para o público-alvo desta pessoa'
+                        : 'Não há lugares disponíveis na lista de espera para o público-alvo desta pessoa';
                 }
                 $person['elegivel'] = $reasons === [];
                 $person['motivo_bloqueio'] = implode('; ', $reasons);
@@ -857,7 +859,9 @@ class CourseEnrollmentService
                 : 'aguardando_matricula';
             $waitPosition = $status === 'lista_espera' ? $this->nextWaitlistPosition($pdo, $classId, $publico) : null;
             if ($status === 'lista_espera' && $this->availableWaitlistSeats($pdo, $class, $publico) <= 0 && $token === null) {
-                throw new RuntimeException('A lista de espera desta cota já atingiu o limite de vagas.');
+                throw new RuntimeException((string) $class['status'] === 'periodo_matricula'
+                    ? 'A capacidade total desta cota, incluindo as vagas regulares e as vagas da lista de espera, já foi atingida.'
+                    : 'A lista de espera desta cota já atingiu o limite de vagas.');
             }
 
         $orderStmt = $pdo->prepare('SELECT COALESCE(MAX(numero_ordem), 0) + 1 FROM inscricoes_turma WHERE turma_id=:turma');
@@ -1360,9 +1364,20 @@ class CourseEnrollmentService
 
     private function availableWaitlistSeats(PDO $pdo, array $class, string $public): int
     {
-        $seatKey = in_array($public, ['pcd', 'plm', 'pvs'], true) ? 'vagas_espera_' . $public : 'vagas_espera_geral';
-        $capacity = (int) ($class[$seatKey] ?? 0);
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM inscricoes_turma WHERE turma_id = :turma_id AND publico_alvo = :publico AND status = 'lista_espera'");
+        $isReservedPublic = in_array($public, ['pcd', 'plm', 'pvs'], true);
+        $waitlistSeatKey = $isReservedPublic ? 'vagas_espera_' . $public : 'vagas_espera_geral';
+        $capacity = (int) ($class[$waitlistSeatKey] ?? 0);
+        $statuses = "status = 'lista_espera'";
+
+        // Durante a matrícula, as inscrições novas permanecem na lista de espera,
+        // mas podem ocupar toda a capacidade ainda livre da cota, além da espera.
+        if ((string) ($class['status'] ?? '') === 'periodo_matricula') {
+            $regularSeatKey = $isReservedPublic ? 'vagas_' . $public : 'vagas_geral';
+            $capacity += (int) ($class[$regularSeatKey] ?? 0);
+            $statuses = "status IN ('aguardando_matricula', 'matriculada', 'lista_espera', 'suspensa')";
+        }
+
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM inscricoes_turma WHERE turma_id = :turma_id AND publico_alvo = :publico AND {$statuses}");
         $stmt->execute([':turma_id' => (int) $class['id'], ':publico' => $public]);
         return max(0, $capacity - (int) $stmt->fetchColumn());
     }
