@@ -328,6 +328,12 @@ class AuthController extends Controller
         $this->jsonResponse(['success' => true, 'challenge' => (new HumanVerificationService())->createChallenge()]);
     }
 
+    public function sessionActivity(): void
+    {
+        (new AccountAccessService())->touchSessionPresence((string) ($_POST['caminho'] ?? ''));
+        $this->jsonResponse(['success' => true]);
+    }
+
     private function loginRequiresHumanVerification(): bool
     {
         $threshold = max(1, (int) app_config('human_verification_login_failure_threshold', 3));

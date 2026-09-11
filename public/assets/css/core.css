@@ -1661,6 +1661,99 @@ body.pagina-error label span {
     align-items: end;
 }
 
+.professor-page-action-row {
+    display: grid;
+    grid-template-columns: minmax(180px, .8fr) minmax(240px, 1.3fr) minmax(130px, .45fr) auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.professor-page-secondary-text {
+    margin-top: 8px;
+    white-space: normal;
+}
+
+.professor-page-image {
+    width: min(100%, 760px);
+    margin-top: 18px;
+    overflow: hidden;
+    border-radius: 16px;
+}
+
+.professor-page-image img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 440px;
+    object-fit: contain;
+}
+
+.tutorial-page {
+    max-width: 980px;
+    margin-inline: auto;
+}
+
+.tutorial-page-heading {
+    margin-bottom: 24px;
+}
+
+.tutorial-video-list {
+    display: grid;
+    gap: 28px;
+}
+
+.tutorial-video-card {
+    border-top: 4px solid var(--blue, #1267b2);
+    border-radius: 18px;
+    background: var(--surface, #fffaf4);
+    box-shadow: 0 10px 28px rgba(14, 57, 70, .08);
+    padding: 18px;
+}
+
+.tutorial-video-title {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.tutorial-video-title span {
+    color: var(--blue, #1267b2);
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.tutorial-video-title h2 {
+    font-size: 1.15rem;
+    margin: 0;
+}
+
+.tutorial-video-frame {
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 14px;
+    background: #0e2028;
+}
+
+.tutorial-video-frame iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+.tutorial-admin-video-row {
+    display: grid;
+    grid-template-columns: minmax(220px, .9fr) minmax(280px, 1.25fr) auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.tutorial-admin-video-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
 .site-popup-actions {
     flex-wrap: wrap;
 }
@@ -1668,6 +1761,19 @@ body.pagina-error label span {
 @media (max-width: 720px) {
     .site-popup-action-row {
         grid-template-columns: 1fr;
+    }
+
+    .professor-page-action-row {
+        grid-template-columns: 1fr;
+    }
+
+    .tutorial-admin-video-row {
+        grid-template-columns: 1fr;
+    }
+
+    .tutorial-video-title {
+        align-items: flex-start;
+        flex-direction: column;
     }
 
     .site-popup-action-row .site-popup-action-remove {

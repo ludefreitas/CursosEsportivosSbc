@@ -130,6 +130,10 @@
             </label>
         </div>
 
+        <div class="alert-inline">
+            Nos campos abaixo, em relação aos responsáveis 1 e 2, preencha com o <strong>NOME</strong> e o <strong>CPF</strong> de pelo menos um responsável. Que inclusive, pode ser o seu nome.
+        </div>
+
         <div class="grid-two">
             <label>
                 <span>Nome do responsável 1</span>

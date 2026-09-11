@@ -296,6 +296,16 @@
                 });
             }
 
+            function currentOnlineUsersFilters() {
+                const $form = $('[data-online-users-filter="1"]');
+                return {
+                    online_limit: String($form.find('[name="online_limit"]').val() || '25'),
+                    online_type: String($form.find('[name="online_type"]').val() || 'todos'),
+                    online_device: String($form.find('[name="online_device"]').val() || 'todos'),
+                    online_sort: String($form.find('[name="online_sort"]').val() || 'atividade')
+                };
+            }
+
             function adminAgendaCalendarAvailableHeight() {
                 const modal = document.getElementById('admin-agenda-calendar-modal');
                 const card = modal ? modal.querySelector('.admin-agenda-calendar-modal-card') : null;
@@ -616,6 +626,21 @@
             $(document).on('click', '[data-admin-nav-target]', function () {
                 activateSection($(this).data('adminNavTarget'));
             });
+
+            $(document).on('submit', '[data-online-users-filter="1"]', function (event) {
+                event.preventDefault();
+                activateSection('usuarios-online', currentOnlineUsersFilters(), { suppressGlobalLoading: true });
+            });
+
+            $(document).on('change', '[data-online-users-filter="1"] select', function () {
+                activateSection('usuarios-online', currentOnlineUsersFilters(), { suppressGlobalLoading: true });
+            });
+
+            window.setInterval(function () {
+                if ($('[data-admin-section="usuarios-online"]').length) {
+                    activateSection('usuarios-online', currentOnlineUsersFilters(), { suppressGlobalLoading: true });
+                }
+            }, 20000);
 
             $(document).on('change', '[data-course-enrollment-sort]', function () {
                 const $panel = $(this).closest('[data-admin-section="inscricoes"]');
@@ -6307,6 +6332,69 @@
             });
         },
 
+        iniciarEditorPaginaProfessor: function () {
+            function actionRow() {
+                return $('<div>', { class: 'professor-page-action-row', 'data-professor-action-row': '1' })
+                    .append($('<label>').append($('<span>').text('Texto do botão ou link'), $('<input>', { type: 'text', name: 'acao_rotulo[]', maxlength: 90, placeholder: 'Ex.: Consultar orientação' })))
+                    .append($('<label>').append($('<span>').text('URL de destino'), $('<input>', { type: 'text', name: 'acao_url[]', maxlength: 2048, placeholder: '/agenda ou https://...' })))
+                    .append($('<label>').append($('<span>').text('Apresentação'), $('<select>', { name: 'acao_tipo[]' }).append($('<option>', { value: 'botao', text: 'Botão' }), $('<option>', { value: 'link', text: 'Link' }))))
+                    .append($('<button>', { type: 'button', class: 'btn btn-secondary', 'data-professor-action-remove': '1', 'aria-label': 'Remover esta ação', text: 'Remover' }));
+            }
+
+            $(document).on('click', '[data-professor-action-add]', function () {
+                const $list = $(this).siblings('[data-professor-actions-list]');
+                if ($list.find('[data-professor-action-row]').length >= 8) {
+                    App.core.abrirPopup('informacao', 'É possível cadastrar no máximo oito botões ou links.');
+                    return;
+                }
+                $list.append(actionRow());
+                $list.find('[data-professor-action-row]').last().find('input').first().trigger('focus');
+            });
+
+            $(document).on('click', '[data-professor-action-remove]', function () {
+                const $list = $(this).closest('[data-professor-actions-list]');
+                $(this).closest('[data-professor-action-row]').remove();
+                if (!$list.find('[data-professor-action-row]').length) $list.append(actionRow());
+            });
+        },
+
+        iniciarEditorPaginaAjuda: function () {
+            function videoRow() {
+                return $('<div>', { class: 'tutorial-admin-video-row', 'data-tutorial-video-row': '1' })
+                    .append($('<label>').append($('<span>').text('Título do vídeo'), $('<input>', { type: 'text', name: 'video_titulo[]', maxlength: 180, placeholder: 'Ex.: Como realizar meu cadastro' })))
+                    .append($('<label>').append($('<span>').text('URL do YouTube'), $('<input>', { type: 'url', name: 'video_url[]', maxlength: 2048, placeholder: 'https://youtu.be/...' })))
+                    .append($('<div>', { class: 'tutorial-admin-video-actions' })
+                        .append($('<button>', { type: 'button', class: 'btn btn-secondary', 'data-tutorial-video-up': '1', 'aria-label': 'Mover vídeo para cima', text: 'Subir' }))
+                        .append($('<button>', { type: 'button', class: 'btn btn-secondary', 'data-tutorial-video-down': '1', 'aria-label': 'Mover vídeo para baixo', text: 'Descer' }))
+                        .append($('<button>', { type: 'button', class: 'btn btn-danger', 'data-tutorial-video-remove': '1', text: 'Remover' })));
+            }
+
+            $(document).on('click', '[data-tutorial-video-add]', function () {
+                const $list = $(this).siblings('[data-tutorial-videos-list]');
+                if ($list.find('[data-tutorial-video-row]').length >= 30) {
+                    App.core.abrirPopup('informacao', 'É possível cadastrar no máximo 30 vídeos de ajuda.');
+                    return;
+                }
+                $list.append(videoRow());
+                $list.find('[data-tutorial-video-row]').last().find('input').first().trigger('focus');
+            });
+            $(document).on('click', '[data-tutorial-video-remove]', function () {
+                const $list = $(this).closest('[data-tutorial-videos-list]');
+                $(this).closest('[data-tutorial-video-row]').remove();
+                if (!$list.find('[data-tutorial-video-row]').length) $list.append(videoRow());
+            });
+            $(document).on('click', '[data-tutorial-video-up], [data-tutorial-video-down]', function () {
+                const $row = $(this).closest('[data-tutorial-video-row]');
+                if ($(this).is('[data-tutorial-video-up]')) {
+                    const $previous = $row.prev('[data-tutorial-video-row]');
+                    if ($previous.length) $row.insertBefore($previous);
+                } else {
+                    const $next = $row.next('[data-tutorial-video-row]');
+                    if ($next.length) $row.insertAfter($next);
+                }
+            });
+        },
+
         init: function () {
             const initializers = [
                 'iniciarSecoesAdmin',
@@ -6333,7 +6421,9 @@
                 'iniciarEditorConteudoHome',
                 'iniciarMigracaoCadastrosExternos',
                 'iniciarGerenciamentoOrigensTemporada',
-                'iniciarDetalhesInscricoesCursos'
+                'iniciarDetalhesInscricoesCursos',
+                'iniciarEditorPaginaProfessor',
+                'iniciarEditorPaginaAjuda'
             ];
 
             initializers.forEach(function (initializer) {

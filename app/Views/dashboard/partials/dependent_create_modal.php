@@ -15,17 +15,13 @@
     </div>
 
     <form method="POST" action="<?php echo e(url('/dependentes/salvar')); ?>" class="stack-form dashboard-dependent-create-form" id="dashboard-dependent-create-form" data-manual-submit="1" data-external-person-form="1" data-confirm-modal-exit="1">
-        <label><span>Nome completo</span><input type="text" name="full_name" required></label>
         <div class="grid-two">
+            <label><span>Nome completo</span><input type="text" name="full_name" required></label>
             <label><span>CPF</span><input type="text" name="cpf" placeholder="000.000.000-00" required></label>
-            <label><span>Data de nascimento</span><input type="date" name="birth_date" required></label>
         </div>
-        <div class="grid-two">
-            <label>
-                <span>Número do cartão SUS</span>
-                <input type="text" name="numero_cartao_sus" data-sus-card="1" inputmode="numeric" maxlength="18">
-                <small class="muted">Este dado deve conter exatamente 15 dígitos.</small>
-            </label>
+
+        <div class="grid-three">
+            <label><span>Data de nascimento</span><input type="date" name="birth_date" required></label>
             <label>
                 <span>Sexo</span>
                 <select name="sexo" data-sexo-select="1" required>
@@ -36,10 +32,13 @@
                 </select>
                 <small class="sexo-helper muted hidden" data-sexo-warning="1">Ao não declarar o sexo, a pessoa não poderá se inscrever em turmas ou agendar treinos de modalidades específicas para determinado gênero</small>
             </label>
-        </div>
-        <div class="grid-two">
             <label><span>WhatsApp</span><input type="text" name="phone_whatsapp" required></label>
             <label><span>E-mail</span><input type="email" name="email" required></label>
+            <label>
+                <span>Número do cartão SUS</span>
+                <input type="text" name="numero_cartao_sus" data-sus-card="1" inputmode="numeric" maxlength="18">
+                <small class="muted">Este dado deve conter exatamente 15 dígitos.</small>
+            </label>
         </div>
         
         <div class="grid-three">
@@ -60,29 +59,32 @@
         <div class="alert-inline">
             Se uma das condições sociais ou de saúde acima for declarada (PCD, PVS ou PLM), a pessoa precisará manter a documentação correspondente e o certificado validado para realizar agendamentos e inscrições em qualquer tipo de vaga.
         </div>
-        <div class="grid-two">
-            <label><span>Responsável 1</span><input type="text" name="responsavel1_nome" required></label>
-            <label><span>CPF do responsável 1</span><input type="text" name="responsavel1_cpf" required></label>
-        </div>
-        <div class="grid-two">
-            <label><span>Responsável 2</span><input type="text" name="responsavel2_nome"></label>
-            <label><span>CPF do responsável 2</span><input type="text" name="responsavel2_cpf"></label>
-        </div>
-        <div class="grid-three">
+        <div class="grid-five">
             <label class="cep-autocomplete-field"><span>CEP</span><input type="text" name="zip_code" data-cep-sbc="1" data-person-cep-address="1" autocomplete="postal-code" aria-autocomplete="list" aria-expanded="false" required></label>
-            <label><span>Endereço</span><input type="text" name="street" required></label>
+            <label class="span-2"><span>Endereço</span><input type="text" name="street" required></label>
             <label><span>Número</span><input type="text" name="address_number" required></label>
+            <label><span>Complemento</span><input type="text" name="address_complement"></label>
         </div>
         <div class="grid-three">
-            
             <label><span>Bairro</span><input type="text" name="neighborhood" required></label>
             <label><span>Cidade</span><input type="text" name="city" required></label>
             <label><span>UF</span><input type="text" name="state" maxlength="2" required></label>
         </div>
+
+        <div class="alert-inline">
+            Nos campos abaixo, em relação aos responsáveis 1 e 2, preencha com o <strong>NOME</strong> e o <strong>CPF</strong> de pelo menos um responsável. Que inclusive, pode ser o seu nome.
+        </div>
         <div class="grid-two">
-            
+            <label><span>Nome do responsável 1</span><input type="text" name="responsavel1_nome"></label>
+            <label><span>CPF do responsável 1</span><input type="text" name="responsavel1_cpf"></label>
+        </div>
+        <div class="grid-two">
+            <label><span>Nome do responsável 2</span><input type="text" name="responsavel2_nome"></label>
+            <label><span>CPF do responsável 2</span><input type="text" name="responsavel2_cpf"></label>
+        </div>
+        <div class="grid-two">
             <label><span>Contato de emergência</span><input type="text" name="emergency_contact_name" required></label>
-            <label><span>Telefone de emergência</span><input type="text" name="emergency_contact_phone" required></label>
+            <label><span>Telefone do contato de emergência</span><input type="text" name="emergency_contact_phone" required></label>
         </div>
     </form>
 </div>      

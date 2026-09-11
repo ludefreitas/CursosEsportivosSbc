@@ -2,8 +2,11 @@
     <div class="section-head">
         <div>
             <span class="eyebrow">Acompanhamento esportivo</span>
-            <h1>Área do professor</h1>
-            <p class="muted">Consulte usuários, pessoas e dependentes, acompanhe a agenda e valide documentos de saúde.</p>
+            <h1><?php echo e((string) ($professorPageConfig['titulo'] ?? 'Área do professor')); ?></h1>
+            <?php if (!empty($professorPageConfig['comunicado'])) { ?><p class="muted"><?php echo nl2br(e((string) $professorPageConfig['comunicado'])); ?></p><?php } ?>
+            <?php if (!empty($professorPageConfig['texto_secundario'])) { ?><p class="professor-page-secondary-text"><?php echo nl2br(e((string) $professorPageConfig['texto_secundario'])); ?></p><?php } ?>
+            <?php if (!empty($professorPageConfig['imagem_url'])) { ?><div class="professor-page-image"><img src="<?php echo e((string) $professorPageConfig['imagem_url']); ?>" alt="Imagem do quadro Acompanhamento esportivo" loading="lazy"></div><?php } ?>
+            <?php if (!empty($professorPageConfig['acoes'])) { ?><div class="hero-actions top-gap"><?php foreach ($professorPageConfig['acoes'] as $action) { ?><a href="<?php echo e((string) $action['url']); ?>" class="<?php echo ($action['tipo'] ?? '') === 'link' ? 'course-season-summary-link' : 'btn btn-secondary'; ?>"<?php echo str_starts_with((string) $action['url'], '/') ? '' : ' target="_blank" rel="noopener noreferrer"'; ?>><?php echo e((string) $action['rotulo']); ?></a><?php } ?></div><?php } ?>
         </div>
     </div>
 </section>

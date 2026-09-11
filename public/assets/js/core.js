@@ -465,6 +465,17 @@
 
                 if (invalidDateMessage !== '') {
                     message = invalidDateMessage;
+                } else if ($field.is('[data-responsible-birth-date="1"]')) {
+                    const parts = value.split('-').map(Number);
+                    const birthDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                    const today = new Date();
+                    let age = today.getFullYear() - birthDate.getFullYear();
+                    const birthdayHasNotOccurred = today.getMonth() < birthDate.getMonth()
+                        || (today.getMonth() === birthDate.getMonth() && today.getDate() < birthDate.getDate());
+                    if (birthdayHasNotOccurred) age -= 1;
+                    if (birthDate > today || age < 18) {
+                        message = 'Esta data de nascimento corresponde a uma pessoa menor de 18 anos. Somente maiores de idade podem criar um cadastro de responsável.';
+                    }
                 } else if (personNameFields.indexOf(name) >= 0) {
                     const normalizedName = value.replace(/\s+/g, ' ');
 
@@ -2106,6 +2117,14 @@
             observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'aria-hidden'] });
         },
 
+        iniciarPresencaDaSessao: function () {
+            function touch() {
+                $.ajax({ url: App.core.buildUrl('/api/sessao/atividade'), method: 'POST', data: { caminho: window.location.pathname }, global: false });
+            }
+            window.setTimeout(touch, 5000);
+            window.setInterval(touch, 45000);
+        },
+
         init: function () {
             App.core.iniciarValidacaoFormularios();
             App.core.iniciarBalaoCpfLoginHeader();
@@ -2128,6 +2147,7 @@
             App.core.iniciarImportacaoPessoaExterna();
             App.core.iniciarProtecaoFormulariosModal();
             App.core.iniciarAjudaContextualCampos();
+            App.core.iniciarPresencaDaSessao();
         }
     });
 

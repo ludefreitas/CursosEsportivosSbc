@@ -20,7 +20,8 @@
             </label>
             <label>
                 <span>Data de nascimento</span>
-                <input type="date" name="birth_date" value="<?php echo old('birth_date'); ?>" autocomplete="bday" required>
+                <input type="date" name="birth_date" value="<?php echo old('birth_date'); ?>" autocomplete="bday" data-responsible-birth-date="1" required>
+                <small class="muted">Confira a data de nascimento antes de criar o cadastro. Após o envio, qualquer correção somente poderá ser realizada pela equipe de suporte do site.</small>
             </label>
 
             <div class="grid-two">

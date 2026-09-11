@@ -9,6 +9,7 @@ use RuntimeException;
 
 class AdminService
 {
+    public const MAX_ONLINE_SESSIONS_LIMIT = 200;
     public const DEFAULT_PEOPLE_LIMIT = 10;
     public const MAX_PEOPLE_LIMIT = 40;
     public const DEFAULT_TRAINING_LOCATION_LIMIT = 10;
@@ -26,6 +27,56 @@ class AdminService
         'clinica_particular' => 'Clínica particular',
         'clinica_convenio' => 'Clínica de convênio médico',
     ];
+
+    public function listOnlineSessions(int $limit = 25, string $type = 'todos', string $device = 'todos', string $sort = 'atividade'): array
+    {
+        $pdo = Database::connection();
+        (new AccountAccessService())->ensurePresenceSchema($pdo);
+        $stmt = $pdo->query('
+            SELECT sa.session_hash, sa.conta_id, sa.caminho, sa.user_agent, sa.iniciada_em, sa.ultima_atividade_em,
+                   p.nome_completo, GROUP_CONCAT(DISTINCT papel.slug ORDER BY papel.slug SEPARATOR ",") AS papeis_slugs
+            FROM sessoes_ativas sa
+            LEFT JOIN contas c ON c.id=sa.conta_id
+            LEFT JOIN pessoas p ON p.cpf=c.cpf
+            LEFT JOIN conta_papeis cp ON cp.conta_id=c.id
+            LEFT JOIN papeis papel ON papel.id=cp.papel_id
+            WHERE sa.ultima_atividade_em >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+            GROUP BY sa.session_hash, sa.conta_id, sa.caminho, sa.user_agent, sa.iniciada_em, sa.ultima_atividade_em, p.nome_completo
+        ');
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $roleLabels = ['master_admin' => 'Administrador master', 'admin' => 'Administrador', 'supervisor' => 'Supervisor', 'coordinator' => 'Coordenador', 'teacher' => 'Professor', 'intern' => 'Estagiário'];
+        $priority = array_keys($roleLabels);
+        foreach ($rows as &$row) {
+            $roles = array_values(array_filter(explode(',', (string) ($row['papeis_slugs'] ?? ''))));
+            $row['tipo_chaves'] = $roles;
+            $row['tipo_chaves'][] = empty($row['conta_id']) ? 'visitante' : 'usuario';
+            $row['tipo'] = empty($row['conta_id']) ? 'Visitante não logado' : 'Usuário';
+            foreach ($priority as $role) { if (in_array($role, $roles, true)) { $row['tipo'] = $roleLabels[$role]; break; } }
+            $agent = strtolower((string) ($row['user_agent'] ?? ''));
+            $row['dispositivo'] = preg_match('/ipad|tablet/', $agent) ? 'Tablet' : (preg_match('/mobile|android|iphone|ipod/', $agent) ? 'Celular' : 'Computador');
+            $row['nome_exibicao'] = empty($row['conta_id']) ? 'Visitante' : ((string) ($row['nome_completo'] ?? '') ?: 'Usuário sem nome');
+        }
+        unset($row);
+        $authenticatedAccountIds = [];
+        $visitors = 0;
+        foreach ($rows as $row) {
+            if (!empty($row['conta_id'])) { $authenticatedAccountIds[(int) $row['conta_id']] = true; }
+            else { $visitors++; }
+        }
+        $authenticated = count($authenticatedAccountIds);
+        $filtered = array_values(array_filter($rows, static function (array $row) use ($type, $device): bool {
+            return ($type === 'todos' || in_array($type, $row['tipo_chaves'], true))
+                && ($device === 'todos' || strtolower($row['dispositivo']) === $device);
+        }));
+        usort($filtered, static function (array $a, array $b) use ($sort): int {
+            if ($sort === 'nome') return strcasecmp($a['nome_exibicao'], $b['nome_exibicao']);
+            if ($sort === 'tipo') return strcasecmp($a['tipo'], $b['tipo']) ?: strcasecmp($a['nome_exibicao'], $b['nome_exibicao']);
+            if ($sort === 'dispositivo') return strcasecmp($a['dispositivo'], $b['dispositivo']) ?: strcasecmp($a['nome_exibicao'], $b['nome_exibicao']);
+            return strcmp((string) $b['ultima_atividade_em'], (string) $a['ultima_atividade_em']);
+        });
+        $limit = max(1, min(self::MAX_ONLINE_SESSIONS_LIMIT, $limit));
+        return ['rows' => array_slice($filtered, 0, $limit), 'total' => count($rows), 'authenticated' => $authenticated, 'visitors' => $visitors, 'filtered' => count($filtered), 'shown' => min(count($filtered), $limit)];
+    }
 
     public function __construct()
     {
@@ -865,6 +916,7 @@ class AdminService
                 p.cpf,
                 p.data_nascimento,
                 p.telefone_whatsapp,
+                p.numero_nis,
                 p.eh_pcd,
                 p.eh_pvs,
                 p.eh_plm,

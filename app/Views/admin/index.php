@@ -12,7 +12,10 @@
     <nav class="content-card admin-nav-card" aria-label="Menu da área administrativa">
         <div class="admin-nav">
             <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Início</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-online">Usuários online</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-pessoas">Usuários e pessoas</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="inscricoes">Inscrições em cursos</button>
+            <?php if (!empty($canEditProfessorPage)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="pagina-professor">Página do professor</button><?php } ?>
             <?php if (!empty($canAccessMasterSections)) { ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="migracao-cadastros">Migração de cadastros</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="migracao-atestados">Migração de atestados</button>
@@ -20,6 +23,7 @@
             <button type="button" class="admin-nav-button" data-admin-nav-target="agenda">Agenda</button>
             <?php if (!empty($canAccessMasterSections)) { ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="pagina-home">Página home</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="pagina-ajuda">Página de ajuda</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="pop-ups">Pop-ups</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="blog">Blog</button>
             <?php } ?>

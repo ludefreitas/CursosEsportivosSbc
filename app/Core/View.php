@@ -13,6 +13,8 @@ class View
 {
     public static function render(string $view, array $data = []): void
     {
+        try { (new AccountAccessService())->touchSessionPresence(); }
+        catch (\Throwable $e) { /* A presença não deve impedir a página de abrir. */ }
         if (!array_key_exists('footerContent', $data)) {
             try { $data['footerContent'] = (new HomeInfoService())->getFooterContent(); }
             catch (\Throwable $e) { $data['footerContent'] = []; }

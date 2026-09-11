@@ -85,7 +85,7 @@
     </div>
 </div>
 
-<section class="grid-two dashboard-secondary-grid">
+<section class="dashboard-secondary-grid">
     <article class="content-card">
         <h2>Transferir dependente</h2>
         <p class="muted">A troca de responsável fica registrada no sistema, com motivo e trilha de auditoria.</p>
@@ -105,16 +105,4 @@
         </form>
     </article>
 
-    <article class="content-card">
-        <h2>Locais ativos</h2>
-        <div class="post-grid">
-            <?php foreach ($locations as $location) { ?>
-                <article class="post-card compact">
-                    <h3><?php echo e(format_training_location_name($location)); ?></h3>
-                    <p><?php echo e(format_training_location_address($location)); ?></p>
-                    <small><?php echo e($location['cidade'] . '/' . $location['uf']); ?></small>
-                </article>
-            <?php } ?>
-        </div>
-    </article>
 </section>

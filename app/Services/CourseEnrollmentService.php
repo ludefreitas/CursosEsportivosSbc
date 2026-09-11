@@ -1263,7 +1263,27 @@ class CourseEnrollmentService
         if ($limit <= 0) { return; }
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM inscricoes_turma i INNER JOIN turmas t ON t.id = i.turma_id WHERE t.temporada_id = :temporada_id AND i.pessoa_id = :pessoa_id AND i.status IN ('aguardando_matricula', 'matriculada', 'lista_espera')");
         $stmt->execute([':temporada_id' => (int) $season['id'], ':pessoa_id' => $personId]);
-        if ((int) $stmt->fetchColumn() >= $limit) { throw new RuntimeException('O limite de ' . $limit . ' inscrição(ões) por CPF nesta temporada já foi atingido.'); }
+        $enrollmentCount = (int) $stmt->fetchColumn();
+        if ($enrollmentCount < $limit) { return; }
+
+        $nextEnrollmentNumber = $enrollmentCount + 1;
+        $releaseDate = null;
+        if ($nextEnrollmentNumber === 2 && !empty($season['data_liberacao_segunda_inscricao'])) {
+            $releaseDate = new DateTimeImmutable((string) $season['data_liberacao_segunda_inscricao']);
+        } elseif ($nextEnrollmentNumber === 3 && !empty($season['data_liberacao_inscricoes_adicionais'])) {
+            $releaseDate = new DateTimeImmutable((string) $season['data_liberacao_inscricoes_adicionais']);
+        }
+
+        $message = 'O limite atual de ' . $limit . ($limit === 1 ? ' inscrição' : ' inscrições') . ' por CPF nesta temporada já foi atingido.';
+        if ($releaseDate !== null && $releaseDate > $now) {
+            $ordinal = $nextEnrollmentNumber === 2 ? 'segunda' : 'terceira';
+            $message .= ' A ' . $ordinal . ' inscrição poderá ser realizada a partir de '
+                . $releaseDate->format('d/m/Y') . ', às ' . $releaseDate->format('H:i') . '.';
+        } else {
+            $message .= ' No momento, não há nova liberação de inscrição disponível para este CPF.';
+        }
+        $message .= ' Essa medida busca ampliar o acesso aos cursos esportivos, garantindo que mais pessoas tenham a oportunidade de se inscrever e participar de pelo menos uma atividade física.';
+        throw new RuntimeException($message);
     }
 
     private function resolvePublic(PDO $pdo, int $personId): string

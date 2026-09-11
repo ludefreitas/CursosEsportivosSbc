@@ -15,6 +15,7 @@ use App\Controllers\ProfessorController;
 
 return [
     ['GET', '/', [HomeController::class, 'index']],
+    ['GET', '/tutorial', [HomeController::class, 'tutorial']],
     ['GET', '/teste-erros', [ErrorController::class, 'testCenter']],
     ['GET', '/teste_erros', [ErrorController::class, 'testCenter']],
     ['GET', '/blog', [BlogController::class, 'index']],
@@ -36,6 +37,7 @@ return [
     ['POST', '/cadastro', [AuthController::class, 'register']],
     ['GET', '/api/cpf/cadastro-status', [AuthController::class, 'checkRegisterCpf']],
     ['GET', '/api/verificacao-humana', [AuthController::class, 'humanVerificationChallenge']],
+    ['POST', '/api/sessao/atividade', [AuthController::class, 'sessionActivity']],
     ['POST', '/logout', [AuthController::class, 'logout']],
     ['GET', '/perfil/completar', [ProfileController::class, 'showComplete']],
     ['POST', '/perfil/completar', [ProfileController::class, 'complete']],
@@ -66,6 +68,8 @@ return [
     ['GET', '/admin/recuperacao-dados/detalhe', [DataRecoveryController::class, 'details']],
     ['POST', '/admin/recuperacao-dados/reverter', [DataRecoveryController::class, 'reverse']],
     ['GET', '/admin/secao', [AdminController::class, 'section']],
+    ['POST', '/admin/pagina-professor', [AdminController::class, 'saveProfessorPage']],
+    ['POST', '/admin/pagina-ajuda', [AdminController::class, 'saveTutorialPage']],
     ['GET', '/admin/pessoas/detalhe', [AdminController::class, 'personDetails']],
     ['GET', '/admin/pessoas/lista', [AdminController::class, 'peoplePanel']],
     ['GET', '/admin/migracao-cadastros/lista', [AdminController::class, 'externalMigrationPanel']],

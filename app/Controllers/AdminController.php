@@ -21,6 +21,7 @@ use App\Services\SpaceAccessibilityService;
 use App\Services\CourseEnrollmentService;
 use App\Services\ModalityPopupService;
 use App\Services\LocationPopupService;
+use App\Services\TutorialPageService;
 use DateTimeImmutable;
 
 class AdminController extends Controller
@@ -68,6 +69,7 @@ class AdminController extends Controller
             'title' => 'Área Administrativa',
             'user' => $user,
             'canAccessMasterSections' => $this->canAccessMasterSections($user),
+            'canEditProfessorPage' => $this->canEditProfessorPage($user),
         ]);
     }
 
@@ -82,7 +84,9 @@ class AdminController extends Controller
         try {
             $commonSections = [
                 'inicio',
+                'usuarios-online',
                 'usuarios-pessoas',
+                'inscricoes',
                 'agenda',
                 'locais-espacos',
                 'modalidades',
@@ -94,6 +98,7 @@ class AdminController extends Controller
                 'migracao-cadastros',
                 'migracao-atestados',
                 'pagina-home',
+                'pagina-ajuda',
                 'pop-ups',
                 'blog',
                 'configuracoes',
@@ -102,6 +107,7 @@ class AdminController extends Controller
             $allowedSections = $this->canAccessMasterSections($user)
                 ? array_merge($commonSections, $masterSections)
                 : $commonSections;
+            if ($this->canEditProfessorPage($user)) { $allowedSections[] = 'pagina-professor'; }
 
             if (!in_array($sectionName, $allowedSections, true)) {
                 throw new \RuntimeException('A seção administrativa solicitada não existe.');
@@ -850,6 +856,34 @@ class AdminController extends Controller
         }
 
         redirect('/admin');
+    }
+
+    public function saveProfessorPage(): void
+    {
+        $user = $this->assertAdminAccess();
+        if (!$this->canEditProfessorPage($user)) {
+            $this->jsonResponse(['success' => false, 'message' => 'Somente administrador ou administrador master pode editar a página do professor.'], 403);
+            return;
+        }
+        try {
+            (new \App\Services\ProfessorPageService())->save((int) $user['conta_id'], $_POST);
+            $this->jsonResponse(['success' => true, 'message' => 'Quadro da área do professor atualizado com sucesso.']);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function saveTutorialPage(): void
+    {
+        $user = $this->assertAdminAccess();
+        if (!$this->canAccessMasterSections($user)) {
+            $this->jsonResponse(['success' => false, 'message' => 'Você não possui permissão para editar a página pública de ajuda.'], 403);
+            return;
+        }
+        try {
+            (new TutorialPageService())->save((int) $user['conta_id'], $_POST);
+            $this->jsonResponse(['success' => true, 'message' => 'Página pública de ajuda atualizada com sucesso.']);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 
     /**
@@ -2058,6 +2092,11 @@ class AdminController extends Controller
         return has_role($user['roles'] ?? [], 'master_admin');
     }
 
+    private function canEditProfessorPage(array $user): bool
+    {
+        return has_role($user['roles'] ?? [], 'master_admin') || has_role($user['roles'] ?? [], 'admin');
+    }
+
     private function assertCurrentAdminRouteAccess(array $user): void
     {
         if ($this->canAccessMasterSections($user)) {
@@ -2098,6 +2137,30 @@ class AdminController extends Controller
         $data = [
             'sectionName' => $sectionName,
         ];
+
+        if ($sectionName === 'usuarios-online') {
+            $data['onlineLimit'] = max(1, min(AdminService::MAX_ONLINE_SESSIONS_LIMIT, (int) ($_GET['online_limit'] ?? 25)));
+            $data['onlineType'] = trim((string) ($_GET['online_type'] ?? 'todos'));
+            $data['onlineDevice'] = trim((string) ($_GET['online_device'] ?? 'todos'));
+            $data['onlineSort'] = trim((string) ($_GET['online_sort'] ?? 'atividade'));
+            $data['onlineSessions'] = $this->adminService->listOnlineSessions($data['onlineLimit'], $data['onlineType'], $data['onlineDevice'], $data['onlineSort']);
+        }
+
+        if ($sectionName === 'inscricoes') {
+            $courseEnrollmentService = new CourseEnrollmentService();
+            $data['courseEnrollmentSortBy'] = trim((string) ($_GET['ordenar_por'] ?? 'ordem_inscricao'));
+            $data['courseEnrollmentSortDirection'] = trim((string) ($_GET['direcao'] ?? 'asc'));
+            $data['courseEnrollmentsManagement'] = $courseEnrollmentService->listForManagement($data['courseEnrollmentSortBy'], $data['courseEnrollmentSortDirection']);
+            $data['courseEnrollmentStatusSummary'] = $courseEnrollmentService->enrollmentStatusSummaryForManagement();
+        }
+
+        if ($sectionName === 'pagina-professor') {
+            $data['professorPageConfig'] = (new \App\Services\ProfessorPageService())->get();
+        }
+
+        if ($sectionName === 'pagina-ajuda') {
+            $data['tutorialPage'] = (new TutorialPageService())->get();
+        }
 
         if ($sectionName === 'usuarios-pessoas') {
             (new AccountAccessService())->revokeExpiredRoles();

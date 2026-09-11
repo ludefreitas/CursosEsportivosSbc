@@ -372,6 +372,43 @@ CREATE TABLE IF NOT EXISTS origens_temporada (
     UNIQUE KEY uniq_origem_temporada_nome (nome)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS sessoes_ativas (
+    session_hash CHAR(64) PRIMARY KEY,
+    conta_id BIGINT UNSIGNED NULL,
+    ip_usuario VARCHAR(45) NULL,
+    user_agent VARCHAR(255) NULL,
+    caminho VARCHAR(255) NULL,
+    iniciada_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ultima_atividade_em DATETIME NOT NULL,
+    INDEX idx_sessoes_ativas_atividade (ultima_atividade_em),
+    INDEX idx_sessoes_ativas_conta (conta_id),
+    CONSTRAINT fk_sessoes_ativas_conta FOREIGN KEY (conta_id) REFERENCES contas(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS pagina_professor_config (
+    id TINYINT UNSIGNED PRIMARY KEY,
+    titulo VARCHAR(160) NOT NULL,
+    comunicado TEXT NULL,
+    texto_secundario TEXT NULL,
+    imagem_url VARCHAR(2048) NULL,
+    acoes_json LONGTEXT NULL,
+    atualizado_por_conta_id BIGINT UNSIGNED NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_pagina_professor_conta (atualizado_por_conta_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS pagina_tutorial_config (
+    id TINYINT UNSIGNED PRIMARY KEY,
+    titulo VARCHAR(180) NOT NULL,
+    texto_introdutorio TEXT NULL,
+    videos_json LONGTEXT NULL,
+    atualizado_por_conta_id BIGINT UNSIGNED NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_pagina_tutorial_conta (atualizado_por_conta_id)
+) ENGINE=InnoDB;
+
 INSERT IGNORE INTO origens_temporada (nome, ativo)
 VALUES ('Secretaria de Esportes e Lazer de São Bernardo do Campo', 1);
 

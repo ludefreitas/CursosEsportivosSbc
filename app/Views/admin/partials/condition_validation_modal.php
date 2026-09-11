@@ -32,7 +32,7 @@ foreach ($selectedDisabilityTypes as $selectedType) {
         <p><strong>Nome:</strong> <?php echo e((string) ($person['nome_completo'] ?? '-')); ?></p>
         <p><strong>CPF:</strong> <?php echo e(!empty($professorView) ? format_cpf_professor((string) ($person['cpf'] ?? '')) : format_cpf((string) ($person['cpf'] ?? ''))); ?></p>
         <p><strong>Responsável:</strong> <?php echo e((string) (($person['nome_responsavel'] ?? '') !== '' ? $person['nome_responsavel'] : '-')); ?></p>
-        <p><strong>Condição:</strong> <?php echo e((string) ($condition['label'] ?? '-')); ?></p>
+        <p><strong>Condição:</strong> <?php echo e((string) ($condition['label'] ?? '-')); ?><?php if ((string) ($condition['slug'] ?? '') === 'pvs') { ?> · <strong>NIS:</strong> <?php echo e(trim((string) ($person['numero_nis'] ?? '')) !== '' ? (string) $person['numero_nis'] : 'Não informado'); ?><?php } ?></p>
         <p><strong>Status atual:</strong> <?php echo e((string) ($certificate['status'] ?? 'Sem certificado enviado')); ?></p>
         <p><strong>Última atualização da condição:</strong>
             <?php if (!empty($certificate['ultima_atualizacao_pessoa_id'])) { ?>

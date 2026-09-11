@@ -9,9 +9,20 @@ use App\Services\AgendaService;
 use App\Services\BlogService;
 use App\Services\HomeInfoService;
 use App\Services\ProfileService;
+use App\Services\TutorialPageService;
 
 class HomeController extends Controller
 {
+    public function tutorial(): void
+    {
+        $tutorialPage = (new TutorialPageService())->get();
+        $this->view('home/tutorial', [
+            'title' => (string) ($tutorialPage['titulo'] ?? 'Ajuda ao usuário'),
+            'pageClass' => 'pagina-tutorial',
+            'tutorialPage' => $tutorialPage,
+        ]);
+    }
+
     /**
      * Exibe a home pública do sistema.
      */

@@ -24,7 +24,7 @@ class ProfessorController extends Controller
     public function index(): void
     {
         $user = $this->assertProfessorAccess();
-        $this->view('professor/index', ['title' => 'Área do professor', 'user' => $user, 'pageClass' => 'professor-page']);
+        $this->view('professor/index', ['title' => 'Área do professor', 'user' => $user, 'pageClass' => 'professor-page', 'professorPageConfig' => (new \App\Services\ProfessorPageService())->get()]);
     }
 
     public function section(): void

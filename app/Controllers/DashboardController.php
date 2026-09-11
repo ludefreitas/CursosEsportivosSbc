@@ -4,7 +4,6 @@ namespace App\Controllers;
 
 use App\Core\Auth;
 use App\Core\Controller;
-use App\Services\AgendaService;
 use App\Services\CourseEnrollmentService;
 use App\Services\ProfileService;
 use App\Services\UserService;
@@ -35,7 +34,6 @@ class DashboardController extends Controller
         }
 
         $userService = new UserService();
-        $agendaService = new AgendaService();
         $courseEnrollmentService = new CourseEnrollmentService();
         $user = $userService->currentAccountWithRoles();
 
@@ -45,7 +43,6 @@ class DashboardController extends Controller
             'person' => $person,
             'dependents' => $profileService->listDependents(),
             'metrics' => $userService->dashboardMetrics((int) $person['id']),
-            'locations' => $agendaService->listLocations(),
             'courseEnrollments' => $courseEnrollmentService->listForAuthenticatedAccount(),
         ]);
     }

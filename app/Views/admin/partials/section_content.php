@@ -89,29 +89,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 }
 ?>
 
-<?php if ($sectionName === 'inicio') { ?>
-    <section class="admin-section-panel" data-admin-section="inicio">
-        <article class="content-card admin-welcome-card">
-            <span class="eyebrow">Boas-vindas</span>
-            <h2>Painel administrativo</h2>
-            <p class="muted">Esta página inicial fica reservada para a futura mensagem institucional da administração. A partir dos botões acima, cada área do sistema abre abaixo sem carregar outra página.</p>
-            <div class="chips-wrap">
-                <span class="chip">Usuários e pessoas</span>
-                <span class="chip">Agenda</span>
-                <?php if (!empty($canAccessMasterSections)) { ?>
-                <span class="chip">Página home</span>
-                <span class="chip">Blog</span>
-                <?php } ?>
-                <span class="chip">Locais e espaços</span>
-                <span class="chip">Modalidades</span>
-                <span class="chip">Temporadas e turmas</span>
-                <?php if (!empty($canAccessMasterSections)) { ?>
-                <span class="chip">Configurações</span>
-                <?php } ?>
-            </div>
-        </article>
-    </section>
-<?php } ?>
+<?php if ($sectionName === 'inicio') { ?><section class="admin-section-panel" data-admin-section="inicio"></section><?php } ?>
 
 <?php if ($sectionName === 'usuarios-pessoas') { ?>
     <section class="admin-section-panel" data-admin-section="usuarios-pessoas">
@@ -2487,6 +2465,18 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
     <?php require ROOT_PATH . '/app/Views/admin/partials/course_management_panel.php'; ?>
 <?php } ?>
 
+<?php if ($sectionName === 'usuarios-online') { ?>
+    <?php require ROOT_PATH . '/app/Views/admin/partials/online_users_panel.php'; ?>
+<?php } ?>
+
+<?php if ($sectionName === 'pagina-professor') { ?>
+    <?php require ROOT_PATH . '/app/Views/admin/partials/professor_page_editor.php'; ?>
+<?php } ?>
+
+<?php if ($sectionName === 'pagina-ajuda') { ?>
+    <?php require ROOT_PATH . '/app/Views/admin/partials/tutorial_page_editor.php'; ?>
+<?php } ?>
+
 <?php if ($sectionName === 'modalidades') { ?>
     <section class="admin-section-panel" data-admin-section="modalidades" data-modality-seasons="<?php echo e((string) json_encode($courseSeasons ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>" data-modality-options="<?php echo e((string) json_encode($courseModalitiesManagement ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>" data-modality-schedules="<?php echo e((string) json_encode($modalitySchedules ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>">
         <div class="section-head admin-section-head">
@@ -2724,7 +2714,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
     </section>
 <?php } ?>
 
-<?php if ($sectionName === 'inscricoes' && !empty($professorView)) { require ROOT_PATH . '/app/Views/admin/partials/course_enrollment_panel.php'; } ?>
+<?php if ($sectionName === 'inscricoes') { require ROOT_PATH . '/app/Views/admin/partials/course_enrollment_panel.php'; } ?>
 
 <?php if ($sectionName === 'minhas-turmas' && !empty($professorView)) { require ROOT_PATH . '/app/Views/professor/partials/my_classes.php'; } ?>
 
