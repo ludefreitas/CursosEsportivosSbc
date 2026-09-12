@@ -177,6 +177,31 @@ class ProfessorController extends Controller
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
+    public function courseClassAttendance(): void
+    {
+        $user = $this->assertProfessorAccess();
+        try {
+            $service = new \App\Services\CourseEnrollmentService();
+            $classId = (int) ($_GET['turma_id'] ?? 0);
+            if (!$service->professorIsAssignedToClass((int) $user['conta_id'], $classId)) { throw new \RuntimeException('Você não está atribuído a esta turma.'); }
+            $attendance = $service->classAttendanceRoster($classId, trim((string) ($_GET['data'] ?? '')));
+            ob_start(); require ROOT_PATH . '/app/Views/admin/partials/course_class_attendance.php'; $html = (string) ob_get_clean();
+            $this->jsonResponse(['success' => true, 'html' => $html]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function saveCourseClassAttendance(): void
+    {
+        $user = $this->assertProfessorAccess();
+        try {
+            $service = new \App\Services\CourseEnrollmentService();
+            $classId = (int) ($_POST['turma_id'] ?? 0);
+            if (!$service->professorIsAssignedToClass((int) $user['conta_id'], $classId)) { throw new \RuntimeException('Você não está atribuído a esta turma.'); }
+            $service->saveClassAttendance($classId, (int) ($_POST['inscricao_id'] ?? 0), trim((string) ($_POST['data'] ?? '')), trim((string) ($_POST['status'] ?? '')), trim((string) ($_POST['justificativa'] ?? '')), (int) $user['conta_id']);
+            $this->jsonResponse(['success' => true, 'message' => 'Chamada atualizada.']);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
     /**
      * Cria um horário semanal pela área do professor.
      */

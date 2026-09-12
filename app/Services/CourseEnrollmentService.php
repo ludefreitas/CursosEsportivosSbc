@@ -881,6 +881,56 @@ class CourseEnrollmentService
         return (bool) $stmt->fetchColumn();
     }
 
+    public function classAttendanceRoster(int $classId, string $date): array
+    {
+        $pdo = Database::connection();
+        $this->ensureClassAttendanceSchema($pdo);
+        $class = $this->findClass($pdo, $classId);
+        $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? ''));
+        $this->validateClassAttendanceDate($class, $date);
+        $stmt = $pdo->prepare("SELECT i.id AS inscricao_id, p.id AS pessoa_id, p.nome_completo,
+                COALESCE(ch.status, '') AS chamada_status, COALESCE(ch.justificativa, '') AS justificativa,
+                (SELECT a.status_validacao FROM atestados_saude a WHERE a.pessoa_id=p.id AND a.tipo_atestado='clinico' ORDER BY a.id DESC LIMIT 1) AS atestado_clinico,
+                (SELECT a.status_validacao FROM atestados_saude a WHERE a.pessoa_id=p.id AND a.tipo_atestado='dermatologico' ORDER BY a.id DESC LIMIT 1) AS atestado_dermatologico
+            FROM inscricoes_turma i INNER JOIN pessoas p ON p.id=i.pessoa_id
+            LEFT JOIN turmas_chamadas ch ON ch.inscricao_turma_id=i.id AND ch.data_aula=:data
+            WHERE i.turma_id=:turma AND i.status='matriculada' ORDER BY p.nome_completo");
+        $stmt->execute([':data' => $date, ':turma' => $classId]);
+        return ['class' => $class, 'date' => $date, 'students' => $stmt->fetchAll(PDO::FETCH_ASSOC) ?: []];
+    }
+
+    public function saveClassAttendance(int $classId, int $enrollmentId, string $date, string $status, string $justification, int $accountId): void
+    {
+        if (!in_array($status, ['presente', 'ausente', 'justificado'], true)) { throw new RuntimeException('Selecione um status válido para a chamada.'); }
+        if ($status === 'justificado' && trim($justification) === '') { throw new RuntimeException('Informe a justificativa da ausência.'); }
+        $pdo = Database::connection();
+        $this->ensureClassAttendanceSchema($pdo);
+        $class = $this->findClass($pdo, $classId);
+        $this->validateClassAttendanceDate($class, $date);
+        $check = $pdo->prepare("SELECT 1 FROM inscricoes_turma WHERE id=:inscricao AND turma_id=:turma AND status='matriculada' LIMIT 1");
+        $check->execute([':inscricao' => $enrollmentId, ':turma' => $classId]);
+        if (!$check->fetchColumn()) { throw new RuntimeException('Matrícula não encontrada nesta turma.'); }
+        $stmt = $pdo->prepare('INSERT INTO turmas_chamadas (turma_id, inscricao_turma_id, pessoa_id, data_aula, status, justificativa, chamada_por_conta_id) SELECT :turma, i.id, i.pessoa_id, :data, :status, :justificativa, :conta FROM inscricoes_turma i WHERE i.id=:inscricao ON DUPLICATE KEY UPDATE status=VALUES(status), justificativa=VALUES(justificativa), chamada_por_conta_id=VALUES(chamada_por_conta_id), updated_at=CURRENT_TIMESTAMP');
+        $stmt->execute([':turma' => $classId, ':inscricao' => $enrollmentId, ':data' => $date, ':status' => $status, ':justificativa' => trim($justification) ?: null, ':conta' => $accountId]);
+        AuditLogService::record('turma.chamada_atualizada', 'turmas_chamadas', $enrollmentId, ['conta_id' => $accountId, 'turma_id' => $classId, 'data_aula' => $date, 'status' => $status]);
+    }
+
+    private function validateClassAttendanceDate(array $class, string $date): void
+    {
+        try { $day = new DateTimeImmutable($date); } catch (\Throwable $e) { throw new RuntimeException('Selecione uma data válida para a chamada.'); }
+        if ($day->format('Y-m-d') !== $date) { throw new RuntimeException('Selecione uma data válida para a chamada.'); }
+        $weekdays = array_map('intval', array_filter(explode(',', $this->normalizeClassWeekdays((string) ($class['dias_semana'] ?? '')))));
+        if (!in_array((int) $day->format('N'), $weekdays, true)) { throw new RuntimeException('A turma não possui aula neste dia da semana.'); }
+        $start = (string) ($class['aulas_inicio'] ?? $class['cronograma_data_inicio'] ?? '');
+        $end = (string) ($class['aulas_fim'] ?? $class['cronograma_data_fim'] ?? '');
+        if (($start && $date < substr($start, 0, 10)) || ($end && $date > substr($end, 0, 10))) { throw new RuntimeException('A data está fora do período de aulas desta turma.'); }
+    }
+
+    private function ensureClassAttendanceSchema(PDO $pdo): void
+    {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS turmas_chamadas (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, turma_id BIGINT UNSIGNED NOT NULL, inscricao_turma_id BIGINT UNSIGNED NOT NULL, pessoa_id BIGINT UNSIGNED NOT NULL, data_aula DATE NOT NULL, status ENUM('presente','ausente','justificado') NOT NULL, justificativa VARCHAR(500) NULL, chamada_por_conta_id BIGINT UNSIGNED NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NULL DEFAULT NULL, UNIQUE KEY uk_turma_chamada (inscricao_turma_id,data_aula), INDEX idx_turma_chamada_data (turma_id,data_aula)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    }
+
     public function assignProfessors(int $classId, array $professorAccountIds, int $accountId): void
     {
         $mainId = (int) ($professorAccountIds[0] ?? 0);

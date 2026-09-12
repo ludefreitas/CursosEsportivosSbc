@@ -2704,6 +2704,25 @@ class AdminController extends Controller
         }
     }
 
+    public function courseClassAttendance(): void
+    {
+        $this->assertAdminAccess();
+        try {
+            $attendance = (new CourseEnrollmentService())->classAttendanceRoster((int) ($_GET['turma_id'] ?? 0), trim((string) ($_GET['data'] ?? '')));
+            ob_start(); require ROOT_PATH . '/app/Views/admin/partials/course_class_attendance.php'; $html = (string) ob_get_clean();
+            $this->jsonResponse(['success' => true, 'html' => $html]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function saveCourseClassAttendance(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            (new CourseEnrollmentService())->saveClassAttendance((int) ($_POST['turma_id'] ?? 0), (int) ($_POST['inscricao_id'] ?? 0), trim((string) ($_POST['data'] ?? '')), trim((string) ($_POST['status'] ?? '')), trim((string) ($_POST['justificativa'] ?? '')), (int) $user['conta_id']);
+            $this->jsonResponse(['success' => true, 'message' => 'Chamada atualizada.']);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
     public function assignCourseProfessor(): void
     {
         $user = $this->assertAdminAccess();

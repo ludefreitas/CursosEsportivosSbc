@@ -16,8 +16,9 @@
             const $controlsSource = $('[data-professor-course-controls-source="1"]');
             if ($controlsSource.length) {
                 const schedules = String($controlsSource.find('[data-course-modality-schedules]').attr('data-course-modality-schedules') || '[]');
+                const $freshControls = $controlsSource.find('#course-class-modal, #course-professor-modal, #course-class-status-modal').detach();
                 $('#course-class-modal, #course-professor-modal, #course-class-status-modal').remove();
-                $controlsSource.find('#course-class-modal, #course-professor-modal, #course-class-status-modal').each(function () {
+                $freshControls.each(function () {
                     $(this).attr('data-course-modality-schedules', schedules).appendTo('body');
                 });
                 $('#course-class-modal [data-course-form="class"]').attr('action', '/professor/minhas-turmas/salvar');

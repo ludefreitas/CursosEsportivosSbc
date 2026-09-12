@@ -32,11 +32,11 @@
                 $('select[data-sexo-select="1"]').trigger('change');
                 syncDailyBookingSpaceOptions();
                 initAdminAgendaCalendar();
-                if (typeof App.admin.initializeAdminClassBrowsers === 'function') {
-                    App.admin.initializeAdminClassBrowsers($host);
-                }
                 if ($host.is('[data-professor-mode="1"]') && App.professor && typeof App.professor.init === 'function') {
                     App.professor.init();
+                }
+                if (typeof App.admin.initializeAdminClassBrowsers === 'function') {
+                    App.admin.initializeAdminClassBrowsers($host);
                 }
                 if (typeof App.admin.montarPreviaConteudoHome === 'function') {
                     App.admin.montarPreviaConteudoHome();
@@ -5958,7 +5958,7 @@
 
             function initializeAdminClassBrowsers($context) {
                 const $browsers = $context && $context.is && $context.is('[data-admin-class-browser]') ? $context : ($context || $(document)).find('[data-admin-class-browser]');
-                $browsers.each(function () {
+                $browsers.not('[data-professor-course-controls-source] [data-admin-class-browser]').each(function () {
                     const $browser = $(this);
                     layoutClassFilterLine($browser.find('[data-class-filter-line="season"]'));
                     const $activeSeason = $browser.find('[data-class-season].is-active').first();
@@ -6241,6 +6241,63 @@
             });
             $(document).on('click', '[data-course-details-close="1"]', function () { $('#course-class-details-modal').addClass('hidden').attr('aria-hidden', 'true'); });
             $(document).on('click', '#course-class-details-modal', function (event) { if (event.target === this) $(this).addClass('hidden').attr('aria-hidden', 'true'); });
+
+            function classAttendanceEndpoint() {
+                const base = String($('[data-admin-section-host]').data('adminBasePath') || '/admin');
+                return App.core.buildUrl(base === '/professor' ? '/professor/minhas-turmas/chamada' : '/admin/turmas/chamada');
+            }
+
+            function closeClassAttendance() {
+                if (App.state.courseClassAttendanceCalendar && typeof App.state.courseClassAttendanceCalendar.destroy === 'function') App.state.courseClassAttendanceCalendar.destroy();
+                App.state.courseClassAttendanceCalendar = null;
+                $('#course-class-attendance-modal').addClass('hidden').attr('aria-hidden', 'true').find('[data-class-attendance-roster]').addClass('hidden').empty();
+            }
+
+            function loadClassAttendanceRoster(classId, date) {
+                const $roster = $('#course-class-attendance-modal [data-class-attendance-roster]').removeClass('hidden').html('<p class="muted">Carregando lista de chamada...</p>');
+                $.ajax({ url: classAttendanceEndpoint(), method: 'GET', dataType: 'json', data: { turma_id: classId, data: date }, suppressGlobalLoading: true })
+                    .done(function (response) { if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar a chamada.')); return; } $roster.html(String(response.html || '')); })
+                    .fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); });
+            }
+
+            $(document).on('click', '[data-course-class-attendance]', function () {
+                let record = {};
+                try { record = JSON.parse(String($(this).attr('data-course-class-attendance') || '{}')); } catch (error) { record = {}; }
+                const weekdays = String(record.dias_semana || '').split(',').map(Number).filter(Boolean);
+                const $modal = $('#course-class-attendance-modal');
+                $modal.attr('data-class-id', String(record.id || '')).attr('data-class-weekdays', weekdays.join(','));
+                $modal.find('[data-class-attendance-subtitle]').text('[' + String(record.id || '') + '] ' + String(record.nome || 'Turma') + ' · ' + String(record.dias_semana_descricao || 'dias não informados'));
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+                const element = document.getElementById('course-class-attendance-calendar');
+                if (!element || typeof FullCalendar === 'undefined') { App.core.abrirPopup('erro', 'O calendário não pôde ser carregado.'); return; }
+                if (App.state.courseClassAttendanceCalendar) App.state.courseClassAttendanceCalendar.destroy();
+                App.state.courseClassAttendanceCalendar = new FullCalendar.Calendar(element, {
+                    locale: 'pt-br', initialView: 'dayGridMonth', height: 'auto',
+                    headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
+                    validRange: { start: String(record.aulas_inicio || record.cronograma_data_inicio || record.temporada_inicio || ''), end: String(record.aulas_fim || record.cronograma_data_fim || record.temporada_fim || '') || undefined },
+                    dayCellClassNames: function (info) { const iso = info.date.getDay() === 0 ? 7 : info.date.getDay(); return weekdays.indexOf(iso) === -1 ? ['class-attendance-day-disabled'] : []; },
+                    dateClick: function (info) {
+                        const iso = info.date.getDay() === 0 ? 7 : info.date.getDay();
+                        if (weekdays.indexOf(iso) === -1) { window.alert('Esta turma não possui aula neste dia da semana. Selecione um dos dias de aula informados no card.'); return; }
+                        loadClassAttendanceRoster(String(record.id || ''), String(info.dateStr || '').slice(0, 10));
+                    }
+                });
+                App.state.courseClassAttendanceCalendar.render();
+            });
+            $(document).on('click', '[data-class-attendance-close="1"]', closeClassAttendance);
+            $(document).on('click', '#course-class-attendance-modal', function (event) { if (event.target === this) closeClassAttendance(); });
+            $(document).on('change', '[data-class-attendance-status]', function () {
+                const $input = $(this); if (!$input.is(':checked')) { $input.prop('checked', true); return; }
+                const $row = $input.closest('[data-class-attendance-row]');
+                const status = String($input.attr('data-class-attendance-status') || '');
+                let justification = '';
+                if (status === 'justificado') { justification = window.prompt('Informe o motivo da justificativa:') || ''; if (!justification.trim()) { $input.prop('checked', false); return; } }
+                $row.find('[data-class-attendance-status]').not($input).prop('checked', false);
+                $row.find('[data-class-attendance-status]').prop('disabled', true);
+                $.ajax({ url: classAttendanceEndpoint(), method: 'POST', dataType: 'json', data: { turma_id: $('#course-class-attendance-modal').attr('data-class-id'), inscricao_id: $input.attr('data-enrollment-id'), data: $row.closest('[data-class-attendance-roster]').find('[data-class-attendance-date]').attr('data-class-attendance-date'), status: status, justificativa: justification }, suppressGlobalLoading: true })
+                    .fail(function (xhr) { $input.prop('checked', false); App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); })
+                    .always(function () { $row.find('[data-class-attendance-status]').prop('disabled', false); });
+            });
 
             $(document).on('submit', '[data-course-class-status-form="1"]', function (event) {
                 event.preventDefault();
