@@ -354,6 +354,37 @@
                     + String(courseClass.idade_maxima || 0);
             }
 
+            function appendClassAgeExceptions($container, courseClass) {
+                const descriptions = Array.isArray(courseClass.excecoes_idade_descricao) ? courseClass.excecoes_idade_descricao : [];
+                if (descriptions.length === 0) return;
+                const $notice = $('<div>', { class: 'home-course-age-exception-notice' })
+                    .append($('<strong>', { text: 'Exceções de idade com documentação válida:' }));
+                const $list = $('<ul>');
+                descriptions.forEach(function (description) { $list.append($('<li>', { text: String(description) })); });
+                $container.append($notice.append($list));
+            }
+
+            function appendClassPublicNotices($container, courseClass) {
+                const guidance = String(courseClass.orientacao_matricula || '').trim();
+                const classesStart = String(courseClass.previsao_inicio_aulas || '').trim();
+                const observation = String(courseClass.observacao || '').trim();
+                if (guidance !== '' || classesStart !== '') {
+                    const $scheduleNotice = $('<div>', { class: 'home-course-class-calendar-notice' });
+                    if (guidance !== '') {
+                        $scheduleNotice.append($('<p>').append($('<strong>', { text: 'Após concluir a inscrição: ' })).append(document.createTextNode('se houver vaga disponível, confirme a matrícula presencialmente. ' + guidance)));
+                    }
+                    if (classesStart !== '') {
+                        $scheduleNotice.append($('<p>').append($('<strong>', { text: 'Previsão de início das aulas, após a confirmação da matrícula: ' })).append(document.createTextNode(classesStart + '.')));
+                    }
+                    $container.append($scheduleNotice);
+                }
+                if (observation !== '') {
+                    $container.append($('<div>', { class: 'home-course-class-observation' })
+                        .append($('<strong>', { text: 'Observação importante: ' }))
+                        .append($('<span>', { text: observation })));
+                }
+            }
+
             function isMinorByBirthDate(value) {
                 const parts = String(value || '').slice(0, 10).split('-');
                 if (parts.length !== 3) return false;
@@ -420,7 +451,7 @@
                 const courseClass = Object.assign({}, details.class || {}, classesById[String(details.class.id)] || {});
                 const people = Array.isArray(details.people) ? details.people : [];
                 const $content = $('#home-course-enrollment-content').empty();
-                $('#home-course-enrollment-subtitle').text('Confira os dados e selecione a pessoa que será inscrita.');
+                $('#home-course-enrollment-subtitle').text('Confira os dados, selecione a pessoa que deseja inscrever, aceite os termos e clique no botão “Confirmar inscrição”.');
                 const $summary = $('<div>', { class: 'home-course-detail-summary' });
                 const seasonYear = String(courseClass.data_inicio || courseClass.temporada_inicio || '').slice(0, 4) || String(new Date().getFullYear());
                 const modalityName = String(courseClass.modalidade_nome || selectedModality.nome || 'Modalidade');
@@ -434,10 +465,12 @@
                     }
                 }
                 $summary.append($('<p>').append($('<strong>', { text: classAgeCriterionText(courseClass) })));
+                appendClassAgeExceptions($summary, courseClass);
                 $summary.append($('<p>').append($('<strong>', { text: 'Níveis aceitos: ' })).append(document.createTextNode(String(courseClass.niveis_aceitos_descricao || 'Sem limitação de nível'))));
                 if (courseClass.sexo) {
                     $summary.append($('<p>').append($('<strong>', { text: 'Sexo permitido: ' })).append(document.createTextNode(String(courseClass.sexo) === 'feminino' ? 'Feminino' : 'Masculino')));
                 }
+                appendClassPublicNotices($summary, courseClass);
                 $content.append($summary);
                 if (people.length === 0) {
                     $content.append($('<div>', { class: 'home-course-flow-state' }).append($('<p>', { text: 'Faça login para selecionar você ou uma pessoa vinculada à sua conta.' })));
@@ -453,6 +486,10 @@
                         $line.append($('<input>', { type: 'radio', name: 'pessoa_id', value: String(person.id || ''), required: true, disabled: blocked, 'data-home-course-person-choice': '1', 'data-public': String(person.publico_alvo || 'geral'), 'data-person-name': String(person.nome_completo || ''), 'data-birth-date': String(person.data_nascimento || '') }));
                         $line.append($('<span>', { class: 'home-course-person-main', text: String(person.nome_completo || '') }));
                         $card.append($line);
+                        if (person.condicao_excecao_idade) {
+                            const conditionLabels = { pcd: 'PCD (Pessoa Com Deficiência)', plm: 'PLM (Pessoa com Laudo Médico de Doença)', pvs: 'PVS (Pessoa em situação de Vulnerabilidade Social)' };
+                            $card.append($('<small>', { class: 'home-course-person-exception', text: 'Esta inscrição será classificada como público geral e utilizará a exceção etária autorizada pela condição ' + String(conditionLabels[String(person.condicao_excecao_idade)] || String(person.condicao_excecao_idade).toUpperCase()) + '.' }));
+                        }
                         if (blocked) $card.append($('<small>', { class: 'home-course-person-reason', text: String(person.motivo_bloqueio || 'Pessoa não elegível para esta turma.') }));
                         $personOptions.append($card);
                     });
@@ -493,13 +530,14 @@
                     const seasonYear = String(courseClass.data_inicio || courseClass.temporada_inicio || '').slice(0, 4) || String(new Date().getFullYear());
                     $card.append($('<h4>', { text: String(courseClass.modalidade_nome || selectedModality.nome || 'Modalidade') + ' - ' + seasonYear }));
                     $card.append($('<p>', { class: 'home-course-class-name' }).append($('<strong>', { text: '[' + String(courseClass.id || '') + '] - ' + String(courseClass.nome || '') })));
-                    if (courseClass.status_label) $card.append($('<p>').append($('<strong>', { text: 'Status: ' })).append(document.createTextNode(String(courseClass.status_label))));
                     $card.append($('<p>').append($('<strong>', { text: 'Local da aula: ' })).append(document.createTextNode(String(courseClass.local_nome || ''))));
                     if (courseClass.dias_semana && courseClass.hora_inicio && courseClass.hora_fim) {
                         $card.append($('<p>').append($('<strong>', { text: 'Dias e horário: ' })).append(document.createTextNode(String(courseClass.dias_semana_descricao || courseClass.dias_semana) + ', das ' + String(courseClass.hora_inicio).slice(0, 5) + ' às ' + String(courseClass.hora_fim).slice(0, 5))));
                     }
                     if (courseClass.periodo_dia) $card.append($('<p>').append($('<strong>', { text: 'Período: ' })).append(document.createTextNode(String(courseClass.periodo_dia))));
                     $card.append($('<p>').append($('<strong>', { text: classAgeCriterionText(courseClass) })));
+                    appendClassAgeExceptions($card, courseClass);
+                    appendClassPublicNotices($card, courseClass);
                     const $actions = $('<div>', { class: 'home-course-class-actions' });
                     if (courseClass.permite_inscricao) $actions.append($('<button>', { type: 'button', class: 'btn btn-primary', text: 'Inscrever-se', 'data-home-course-enroll': String(courseClass.id || '') }));
                     $actions.append($('<button>', { type: 'button', class: 'btn btn-secondary', text: 'Vagas', 'data-home-course-vacancies': String(courseClass.id || '') }));

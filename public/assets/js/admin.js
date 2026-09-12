@@ -35,6 +35,9 @@
                 if (typeof App.admin.initializeAdminClassBrowsers === 'function') {
                     App.admin.initializeAdminClassBrowsers($host);
                 }
+                if ($host.is('[data-professor-mode="1"]') && App.professor && typeof App.professor.init === 'function') {
+                    App.professor.init();
+                }
                 if (typeof App.admin.montarPreviaConteudoHome === 'function') {
                     App.admin.montarPreviaConteudoHome();
                 }
@@ -570,7 +573,8 @@
             function activateSection(target, extraParams, options) {
                 const normalizedTarget = String(target || '').trim();
                 const requestData = Object.assign({ nome: normalizedTarget }, extraParams || {});
-                const requestOptions = Object.assign({ suppressGlobalLoading: false }, options || {});
+                const requestOptions = Object.assign({ suppressGlobalLoading: normalizedTarget === 'minhas-turmas' }, options || {});
+                const previousContent = $host.html();
 
                 if (normalizedTarget === '') {
                     return;
@@ -619,6 +623,18 @@
                         }
                     })
                     .fail(function (xhr) {
+                        if (Number(xhr.status || 0) === 401) {
+                            $host.html(previousContent);
+                            App.auth.solicitarAutenticacaoNaPaginaAtual(
+                                String($host.data('adminBasePath') || '/admin'),
+                                function () { activateSection(normalizedTarget, extraParams, options); }
+                            );
+                            return;
+                        }
+                        if (Number(xhr.status || 0) === 403) {
+                            window.location.href = App.core.buildUrl('/');
+                            return;
+                        }
                         const erro = App.core.extrairMensagemErroAjax(xhr);
                         App.core.abrirPopup('erro', erro.mensagem);
                     })
@@ -5353,7 +5369,7 @@
             }
 
             function closeModals() {
-                $('#course-season-modal, #course-class-modal, #course-professor-modal').addClass('hidden').attr('aria-hidden', 'true');
+                $('#course-season-modal, #course-class-modal, #course-professor-modal, #course-class-status-modal').addClass('hidden').attr('aria-hidden', 'true');
             }
 
             function validateCoursePeriodChronology($form) {
@@ -5457,6 +5473,43 @@
                     const $criterionField = $form.find('[name="criterio_faixa_etaria"]').closest('label');
                     ($criterionField.length ? $criterionField : $anchor).after($sexField);
                 }
+            }
+
+            function ensureClassAgeExceptionFields($form) {
+                if ($form.find('[data-class-age-exceptions="1"]').length) return;
+                const labels = {
+                    pcd: 'PCD (Pessoa Com Deficiência)',
+                    plm: 'PLM (Pessoa com Laudo Médico de Doença)',
+                    pvs: 'PVS (Pessoa em situação de Vulnerabilidade Social)'
+                };
+                const $field = $('<fieldset>', { 'data-class-age-exceptions': '1', class: 'course-age-exceptions-field' });
+                $field.append($('<legend>', { text: 'Exceções de faixa etária por público-alvo ' }).append($('<button>', {
+                    type: 'button', class: 'field-help-button', text: '?',
+                    'aria-label': 'Ajuda sobre exceções de faixa etária',
+                    'data-field-help-message': 'Permite a inscrição fora da faixa etária geral exclusivamente para a condição selecionada. A pessoa deverá estar dentro da faixa excepcional e possuir documentação correspondente previamente enviada, validada e vigente. Os demais requisitos e a disponibilidade de vagas continuam sendo exigidos.'
+                })));
+                Object.keys(labels).forEach(function (condition) {
+                    const prefix = 'excecoes_idade[' + condition + ']';
+                    const $toggle = $('<label>', { class: 'checkbox-chip' })
+                        .append($('<input>', { type: 'checkbox', name: prefix + '[enabled]', value: '1', 'data-class-age-exception-toggle': condition }))
+                        .append($('<span>', { text: 'Permitir exceção para ' + labels[condition] }));
+                    const $range = $('<div>', { class: 'grid-two hidden', 'data-class-age-exception-range': condition })
+                        .append($('<label>').append($('<span>', { text: 'Idade mínima excepcional' })).append($('<input>', { type: 'number', name: prefix + '[min]', min: 0, value: 0 })))
+                        .append($('<label>').append($('<span>', { text: 'Idade máxima excepcional' })).append($('<input>', { type: 'number', name: prefix + '[max]', min: 0, value: 120 })));
+                    $field.append($toggle, $range);
+                });
+                $field.append($('<small>', { class: 'muted', text: 'As exceções ficam desativadas por padrão.' }));
+                $form.find('[name="criterio_faixa_etaria"]').closest('label').after($field);
+            }
+
+            function updateClassAgeExceptionFields($form) {
+                $form.find('[data-class-age-exception-toggle]').each(function () {
+                    const condition = String($(this).attr('data-class-age-exception-toggle') || '');
+                    const enabled = $(this).is(':checked');
+                    $form.find('[data-class-age-exception-range="' + condition + '"]')
+                        .toggleClass('hidden', !enabled)
+                        .find('input').prop('required', enabled);
+                });
             }
 
             function ensureClassScheduleField($form) {
@@ -5786,12 +5839,22 @@
                 if ($form.find('[name="operacao"]').length === 0) {
                     $form.append($('<input>', { type: 'hidden', name: 'operacao' }));
                 }
-                if (type === 'class') { ensureClassAgeCriterionField($form); ensureClassScheduleField($form); ensureClassLevelFields($form); ensureClassOpenEnrollmentField($form); ensureClassFieldHelp($form); }
+                if (type === 'class') { ensureClassAgeCriterionField($form); ensureClassAgeExceptionFields($form); ensureClassScheduleField($form); ensureClassLevelFields($form); ensureClassOpenEnrollmentField($form); ensureClassFieldHelp($form); }
                 if (type === 'season') { ensureSeasonNoticeFields($form); ensureSeasonWeeklyCoverageField($form); ensureSeasonFieldHelp($form); }
                 fillForm($form, record || {});
                 if (type === 'class') {
                     const acceptedLevels = Array.isArray((record || {}).niveis_aceitos) ? record.niveis_aceitos : [];
                     $form.find('[name="niveis_aceitos[]"]').each(function () { $(this).prop('checked', acceptedLevels.indexOf(String($(this).val())) !== -1); });
+                    const ageExceptions = record && record.excecoes_idade && typeof record.excecoes_idade === 'object' ? record.excecoes_idade : {};
+                    ['pcd', 'plm', 'pvs'].forEach(function (condition) {
+                        const range = ageExceptions[condition] || null;
+                        $form.find('[name="excecoes_idade[' + condition + '][enabled]"]').prop('checked', !!range);
+                        if (range) {
+                            $form.find('[name="excecoes_idade[' + condition + '][min]"]').val(String(range.min));
+                            $form.find('[name="excecoes_idade[' + condition + '][max]"]').val(String(range.max));
+                        }
+                    });
+                    updateClassAgeExceptionFields($form);
                 }
                 if (type === 'class') filterClassSchedules($form, record && record.cronograma_modalidade_id);
                 $form.find('[name="operacao"]').val(record ? 'editar' : 'criar');
@@ -5812,6 +5875,10 @@
             }
 
             function replacePanel(response, classFilterState) {
+                if (response && response.professor_class_refresh) {
+                    $(document).trigger('professor:classes-refresh', [response]);
+                    return true;
+                }
                 if (!response || !response.html) return false;
                 const $updatedPanel = $(String(response.html)).first();
                 const sectionName = String($updatedPanel.attr('data-admin-section') || '');
@@ -6088,6 +6155,7 @@
                 });
             });
             $(document).on('change', '[data-season-notice-toggle="1"]', function () { updateSeasonNoticeFields($(this).closest('form')); });
+            $(document).on('change', '[data-class-age-exception-toggle]', function () { updateClassAgeExceptionFields($(this).closest('form')); });
             $(document).on('change', '[data-season-registration-enrollment-toggle="1"], [data-course-form="season"] [name="matriculas_inicio"], [data-course-form="season"] [name="matriculas_fim"]', function () { updateSeasonRegistrationEnrollmentField($(this).closest('form')); });
             $(document).on('input change', '[data-course-form="season"] [name="data_inicio"], [data-course-form="season"] [name="data_fim"], [data-course-form="season"] [name="inscricoes_inicio"], [data-course-form="season"] [name="inscricoes_fim"], [data-course-form="season"] [name="matriculas_inicio"], [data-course-form="season"] [name="matriculas_fim"], [data-course-form="season"] [name="abrangencia_semanal"], [data-course-form="season"] [name="inscricoes_abertas_inicio"], [data-course-form="season"] [name="inscricoes_abertas_fim"], [data-course-form="season"] [name="aulas_inicio"], [data-course-form="season"] [name="aulas_fim"]', function () { validateCoursePeriodChronology($(this).closest('form')); });
             $(document).on('click', '[data-season-field-help]', function (event) {
@@ -6096,7 +6164,111 @@
                 App.core.abrirPopup('sucesso', seasonFieldHelp[name] || 'Informação não disponível para este campo.');
                 $('#popup-titulo').text('Ajuda sobre o campo');
             });
-            $(document).on('click', '#course-season-modal, #course-class-modal', function (event) { if (event.target === this) closeModals(); });
+            $(document).on('click', '#course-season-modal, #course-class-modal, #course-class-status-modal', function (event) { if (event.target === this) closeModals(); });
+
+            $(document).on('click', '[data-course-class-status-open="1"]', function () {
+                const $button = $(this);
+                const $modal = $('#course-class-status-modal');
+                const $form = $modal.find('[data-course-class-status-form="1"]');
+                const currentStatus = String($button.attr('data-course-class-status') || 'planejada');
+                const scheduleStatus = String($button.attr('data-course-class-schedule-status') || 'planejada');
+                const suspended = currentStatus === 'inscricoes_suspensas';
+                const $notice = $form.find('[data-course-class-status-notice="1"]');
+                $form.find('[name="turma_id"]').val(String($button.attr('data-course-class-id') || ''));
+                $form.find('[name="course_management_view"]').val(String($button.attr('data-course-management-view') || 'turmas'));
+                $form.find('[name="status"]').prop({ checked: false, disabled: true });
+                $form.find('[name="status"][value="' + currentStatus + '"]').prop('checked', true);
+                if (suspended) {
+                    $form.find('[name="status"][value="' + scheduleStatus + '"]').prop('disabled', false);
+                } else {
+                    $form.find('[name="status"][value="inscricoes_suspensas"]').prop('disabled', false);
+                }
+                $form.find('[data-course-status-option]').each(function () {
+                    $(this).toggleClass('is-disabled', $(this).find('input').prop('disabled'));
+                });
+                if (scheduleStatus === 'periodo_matricula') {
+                    $notice.removeClass('hidden').text(suspended
+                        ? 'A turma está suspensa durante o período de matrícula. Neste momento, somente é possível retomá-la no status “Em período de matrícula”.'
+                        : 'A turma está no período de matrícula. O status definido pelo cronograma não pode ser alterado; somente a suspensão das inscrições está disponível.');
+                } else {
+                    $notice.removeClass('hidden').text(suspended
+                        ? 'A turma está suspensa. Para retomá-la, somente o status atualmente definido pelo cronograma pode ser selecionado.'
+                        : 'Os status da turma são definidos automaticamente pelo cronograma. A única alteração manual disponível é suspender as inscrições.');
+                }
+                $form.find('button[type="submit"]').prop('disabled', true);
+                $('#course-class-status-subtitle').text(String($button.attr('data-course-class-name') || 'Turma selecionada'));
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+            });
+
+            $(document).on('change', '[data-course-class-status-form="1"] [name="status"]', function () {
+                const $form = $(this).closest('form');
+                $form.find('button[type="submit"]').prop('disabled', $(this).prop('disabled'));
+            });
+
+            $(document).on('click', '[data-course-class-status-close="1"]', closeModals);
+
+            function classDetailDate(value) {
+                const raw = String(value || '').trim();
+                if (!raw) return 'Não informado';
+                const parts = raw.slice(0, 10).split('-');
+                const date = parts.length === 3 ? parts[2] + '/' + parts[1] + '/' + parts[0] : raw;
+                return raw.length >= 16 ? date + ' às ' + raw.slice(11, 16) : date;
+            }
+
+            $(document).on('click', '[data-course-class-details]', function () {
+                let record = {};
+                try { record = JSON.parse(String($(this).attr('data-course-class-details') || '{}')); } catch (error) { record = {}; }
+                const escape = function (value) { return $('<div>').text(String(value == null || value === '' ? 'Não informado' : value)).html(); };
+                const range = function (start, end) { return classDetailDate(start) + ' — ' + classDetailDate(end); };
+                const $modal = $('#course-class-details-modal');
+                $modal.find('[data-course-details-subtitle]').text('[' + String(record.id || '') + '] ' + String(record.nome || 'Turma'));
+                $modal.find('[data-course-details-content]').html(
+                    '<section><strong>Nível e equipe</strong>' +
+                    '<p><b>Níveis aceitos:</b> ' + escape(record.niveis_aceitos_descricao || 'Sem limitação de nível') + '</p>' +
+                    '<p><b>Professor principal:</b> ' + escape(record.professor_principal_nome || 'Sem professor principal') + '</p>' +
+                    '<p><b>Professores auxiliares:</b> ' + escape(record.professores_auxiliares_nomes || 'Sem professor auxiliar') + '</p>' +
+                    '<p><b>Estagiários:</b> ' + escape(record.estagiarios_nomes || 'Sem estagiário') + '</p></section>' +
+                    '<section><strong>Cronograma resumido</strong>' +
+                    '<p><b>Inscrição inicial:</b> ' + escape(range(record.cronograma_inscricoes_inicio, record.cronograma_inscricoes_fim)) + '</p>' +
+                    '<p><b>Matrícula:</b> ' + escape(range(record.cronograma_matriculas_inicio, record.cronograma_matriculas_fim)) + '</p>' +
+                    '<p><b>Inscrições abertas:</b> ' + escape(range(record.cronograma_inscricoes_abertas_inicio, record.cronograma_inscricoes_abertas_fim)) + '</p>' +
+                    '<p><b>Aulas:</b> ' + escape(range(record.aulas_inicio || record.cronograma_data_inicio, record.aulas_fim || record.cronograma_data_fim)) + '</p></section>' +
+                    '<section><strong>Quantidades de vagas</strong>' +
+                    '<p><b>Total:</b> ' + escape(record.vagas_totais || 0) + ' · <b>Geral:</b> ' + escape(record.vagas_geral || 0) + ' · <b>PCD:</b> ' + escape(record.vagas_pcd || 0) + ' · <b>PLM:</b> ' + escape(record.vagas_plm || 0) + ' · <b>PVS:</b> ' + escape(record.vagas_pvs || 0) + '</p>' +
+                    '<p><b>Lista de espera:</b> Geral ' + escape(record.vagas_espera_geral || 0) + ' · PCD ' + escape(record.vagas_espera_pcd || 0) + ' · PLM ' + escape(record.vagas_espera_plm || 0) + ' · PVS ' + escape(record.vagas_espera_pvs || 0) + '</p></section>'
+                );
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+            });
+            $(document).on('click', '[data-course-details-close="1"]', function () { $('#course-class-details-modal').addClass('hidden').attr('aria-hidden', 'true'); });
+            $(document).on('click', '#course-class-details-modal', function (event) { if (event.target === this) $(this).addClass('hidden').attr('aria-hidden', 'true'); });
+
+            $(document).on('submit', '[data-course-class-status-form="1"]', function (event) {
+                event.preventDefault();
+                const $form = $(this);
+                const classId = String($form.find('[name="turma_id"]').val() || '');
+                const $submit = $form.find('button[type="submit"]').prop('disabled', true);
+                $.ajax({
+                    url: $form.attr('action'), method: 'POST', dataType: 'json', data: $form.serialize(),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível alterar o status da turma.'));
+                        return;
+                    }
+                    const $card = $('[data-course-class-card="' + classId + '"]').first();
+                    $card.find('[data-course-class-status-label="1"]')
+                        .attr('class', 'class-status-badge class-status-' + String(response.status || 'planejada'))
+                        .text(String(response.status_label || 'Status atualizado'));
+                    $card.find('[data-course-class-status-open="1"]')
+                        .attr('data-course-class-status', String(response.status || ''))
+                        .attr('data-course-class-schedule-status', String(response.status_cronograma || response.status || ''));
+                    closeModals();
+                    App.core.abrirPopup('sucesso', String(response.message || 'Status da turma alterado com sucesso.'));
+                }).fail(function (xhr) {
+                    if (App.auth && App.auth.tratarFalhaDeAcesso(xhr, function () { $form.trigger('submit'); }, '/admin')) return;
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () { $submit.prop('disabled', false); });
+            });
 
             function saveCourseForm($form) {
                 if (!$form.length || $form.attr('data-course-saving') === '1') return;
@@ -6205,21 +6377,6 @@
                 }
             });
 
-            $(document).on('submit', 'form[data-course-deactivate="1"]', function (event) {
-                event.preventDefault();
-                if (!window.confirm('Deseja realmente inativar este registro?')) return;
-                const $form = $(this);
-                const $button = $form.find('button[type="submit"]').prop('disabled', true);
-                $.ajax({
-                    url: $form.attr('action'), method: 'POST', dataType: 'json', data: $form.serialize(),
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-                }).done(function (response) {
-                    if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível inativar o registro.')); return; }
-                    replacePanel(response);
-                    App.core.abrirPopup('sucesso', String(response.message || 'Registro inativado com sucesso.'));
-                }).fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); })
-                    .always(function () { $button.prop('disabled', false); });
-            });
 
             // A montagem inicial dos filtros pode consultar conteúdo carregado por
             // AJAX. Ela fica por último para nunca impedir o registro dos eventos
@@ -6374,6 +6531,8 @@
                 $content.append(detailLine('Horário', details.horario));
                 $content.append(detailLine('Local da aula', details.local));
                 $content.append(detailLine('Data da inscrição', details.data_inscricao));
+                $content.append(detailLine('Público da inscrição', details.publico_alvo));
+                if (String(details.excecao_condicao || '').trim()) $content.append(detailLine('Exceção etária autorizada por', details.excecao_condicao));
                 $content.append(detailLine('Com laudo?', details.com_laudo));
                 $content.append(detailLine('Pessoa PCD?', details.pcd));
                 $content.append(detailLine('Responsável pela inscrição', [details.responsavel, details.responsavel_email].filter(Boolean).join(' — ')));

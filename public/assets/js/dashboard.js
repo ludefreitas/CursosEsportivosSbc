@@ -69,6 +69,8 @@
                 $details.append(enrollmentDetailLine('Dias', details.dias));
                 $details.append(enrollmentDetailLine('Horário', details.horario));
                 $details.append(enrollmentDetailLine('Inscrição realizada em', details.inscrita_em));
+                $details.append(enrollmentDetailLine('Público da inscrição', details.publico_alvo));
+                if (details.excecao_condicao) $details.append(enrollmentDetailLine('Exceção etária autorizada por', details.excecao_condicao));
                 if (details.motivo) $details.append(enrollmentDetailLine('Observação do status', details.motivo));
                 if (details.temporada_encerrada) $details.append($('<p>', { class: 'alert-inline', text: 'Esta temporada está encerrada.' }));
 

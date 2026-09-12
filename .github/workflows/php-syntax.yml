@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Baixar o código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configurar PHP
         uses: shivammathur/setup-php@v2
@@ -35,7 +35,15 @@ jobs:
       - name: Verificar codificação corrompida
         shell: bash
         run: |
-          if grep -RInE 'Ã|Â|â€|ðŸ' app config database public --include='*.php' --include='*.js' --include='*.sql' --include='*.md'; then
+          set -euo pipefail
+          find app config database public -type f \( -name '*.php' -o -name '*.js' -o -name '*.sql' -o -name '*.md' \) -print0 |
+            while IFS= read -r -d '' arquivo; do
+              iconv -f UTF-8 -t UTF-8 "$arquivo" >/dev/null
+            done
+
+          # Procura sequências típicas de UTF-8 interpretado como Windows-1252,
+          # sem rejeitar letras portuguesas legítimas, como Ã em INSCRIÇÃO.
+          if grep -RInE 'Ã¡|Ã |Ã¢|Ã£|Ã¤|Ã§|Ã©|Ãª|Ã­|Ã³|Ã´|Ãµ|Ã¶|Ãº|Ã¼|Âº|Âª|Â |â€|ðŸ|�' app config database public --include='*.php' --include='*.js' --include='*.sql' --include='*.md'; then
             echo 'Foram encontrados possíveis textos com codificação corrompida.'
             exit 1
           fi
@@ -43,4 +51,3 @@ jobs:
       - name: Confirmar UTF-8 no HTML
         shell: bash
         run: grep -Fq '<meta charset="utf-8">' app/Views/partials/header.php
-

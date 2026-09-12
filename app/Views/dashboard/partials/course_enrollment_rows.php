@@ -20,6 +20,8 @@
                     'dias' => (string) ($enrollment['dias_semana_descricao'] ?? ''),
                     'horario' => substr((string) ($enrollment['hora_inicio'] ?? ''), 0, 5) . ' às ' . substr((string) ($enrollment['hora_fim'] ?? ''), 0, 5),
                     'inscrita_em' => !empty($enrollment['created_at']) ? date('d/m/Y H:i', strtotime((string) $enrollment['created_at'])) : '-',
+                    'publico_alvo' => strtoupper((string) ($enrollment['publico_alvo'] ?? 'geral')),
+                    'excecao_condicao' => !empty($enrollment['excecao_condicao']) ? condition_public_label((string) $enrollment['excecao_condicao']) : '',
                     'posicao_lista' => (string) ($enrollment['posicao_lista_espera'] ?? ''),
                     'motivo' => (string) ($enrollment['motivo_status'] ?? ''),
                     'temporada_encerrada' => !empty($enrollment['temporada_encerrada']),

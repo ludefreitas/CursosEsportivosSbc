@@ -81,6 +81,101 @@
     width: auto;
     margin: 0;
 }
+.professor-class-filter-step {
+    display: grid;
+    gap: 2px;
+    margin: 1px 0;
+}
+.professor-class-filter-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.professor-class-filter-buttons .btn.is-active {
+    color: #fff;
+    border-color: #16768a;
+    background: #16768a;
+}
+.admin-section-panel[data-admin-section="minhas-turmas"] {
+    gap: 0 !important;
+    row-gap: 0 !important;
+}
+.admin-section-panel[data-admin-section="minhas-turmas"] .admin-section-head,
+.admin-section-panel[data-admin-section="minhas-turmas"] .admin-section-head h2 {
+    margin: 0 0 2px;
+}
+.admin-section-panel[data-admin-section="minhas-turmas"] [data-professor-class-result-count] {
+    margin: 3px 0;
+}
+.admin-section-panel[data-admin-section="minhas-turmas"] .professor-class-loading {
+    margin: 3px 0;
+}
+.admin-section-panel[data-admin-section="minhas-turmas"] .professor-classes-grid {
+    margin-top: 3px;
+}
+.course-class-id {
+    color: #dc6a00;
+}
+.course-class-details-link {
+    appearance: none;
+    padding: 0;
+    border: 0;
+    color: var(--brand-700, #075d70);
+    background: transparent;
+    font: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.class-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: .9em;
+    font-weight: 700;
+    line-height: 1.25;
+}
+.class-status-planejada { color: #16548f; border-color: #8db9df; background: #e7f2fc; }
+.class-status-processo_inicial { color: #075d70; border-color: #65b6c5; background: #e1f5f7; }
+.class-status-periodo_matricula { color: #9a4b00; border-color: #f2ad58; background: #fff0d9; }
+.class-status-inscricoes_abertas { color: #176b39; border-color: #79c895; background: #e4f7e9; }
+.class-status-inscricoes_suspensas { color: #a32626; border-color: #e18b8b; background: #fde8e8; }
+.class-status-inscricoes_encerradas { color: #4d5961; border-color: #aeb8bd; background: #edf0f2; }
+.course-class-details-modal-content {
+    display: grid;
+    gap: 12px;
+}
+.course-class-details-modal-content section {
+    display: grid;
+    gap: 5px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+}
+.course-class-details-modal-content p { margin: 0; }
+#course-class-status-modal fieldset {
+    display: grid;
+    gap: 8px;
+}
+#course-class-status-modal .checkbox-chip {
+    align-items: flex-start;
+    border-radius: 18px;
+}
+#course-class-status-modal .checkbox-chip.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+    background: #f3f4f4;
+}
+#course-class-status-modal [data-course-class-status-notice] {
+    padding: 12px 14px;
+    border: 1px solid #e2a84d;
+    border-radius: 14px;
+    background: #fff7e8;
+    color: #6b4510;
+    font-weight: 700;
+}
 .chip-status-ativo {
     background: var(--mint-100);
     color: var(--brand-900);

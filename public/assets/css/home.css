@@ -747,6 +747,47 @@ body.pagina-home .site-header {
 .pagina-home .home-course-class-card p {
     margin: 4px 0;
 }
+.pagina-home .home-course-class-calendar-notice,
+.pagina-home .home-course-class-observation,
+.pagina-home .home-course-age-exception-notice,
+.course-card .home-course-class-calendar-notice,
+.course-card .home-course-class-observation,
+.course-card .home-course-age-exception-notice {
+    margin-top: 10px;
+    padding: 9px 11px;
+    border-radius: 12px;
+    font-size: 0.86rem;
+    line-height: 1.35;
+}
+.pagina-home .home-course-age-exception-notice,
+.course-card .home-course-age-exception-notice {
+    border-left: 4px solid #176b87;
+    background: #eef8fb;
+    color: #17495a;
+}
+.pagina-home .home-course-age-exception-notice ul,
+.course-card .home-course-age-exception-notice ul {
+    margin: 5px 0 0;
+    padding-left: 18px;
+}
+.pagina-home .home-course-class-calendar-notice,
+.course-card .home-course-class-calendar-notice {
+    border-left: 4px solid #1f9d55;
+    background: #eef9f1;
+    color: #174f2d;
+}
+.pagina-home .home-course-class-calendar-notice p,
+.course-card .home-course-class-calendar-notice p {
+    margin: 2px 0;
+}
+.pagina-home .home-course-class-observation,
+.course-card .home-course-class-observation {
+    border: 1px solid #efb45c;
+    border-left: 4px solid #df7200;
+    background: #fff7e8;
+    color: #68430d;
+    white-space: pre-line;
+}
 
 .pagina-home .home-course-class-name {
     color: #087b24;
@@ -864,6 +905,13 @@ body.pagina-home .site-header {
 .pagina-home .home-course-person-card.is-disabled:hover {
     transform: none;
     box-shadow: none;
+}
+.pagina-home .home-course-person-exception {
+    display: block;
+    margin-top: 6px;
+    color: #174f2d;
+    font-weight: 700;
+    line-height: 1.35;
 }
 
 .pagina-home .home-course-person-line {

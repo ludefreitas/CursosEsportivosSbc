@@ -2,6 +2,43 @@
     const App = window.App || {};
 
     App.auth = Object.assign(App.auth || {}, {
+        identificarAreaProtegida: function (returnTo) {
+            try {
+                const path = new URL(String(returnTo || '/'), window.location.origin).pathname.replace(/\/+$/, '') || '/';
+                const adminPath = App.core.buildUrl('/admin').replace(/\/+$/, '');
+                const professorPath = App.core.buildUrl('/professor').replace(/\/+$/, '');
+                if (path === adminPath || path.indexOf(adminPath + '/') === 0) return 'admin';
+                if (path === professorPath || path.indexOf(professorPath + '/') === 0) return 'professor';
+            } catch (error) {
+            }
+            return 'autenticada';
+        },
+
+        solicitarAutenticacaoNaPaginaAtual: function (returnTo, retry) {
+            const destination = App.core.getAppRelativePath(returnTo || window.location.pathname + window.location.search);
+            App.state.pendingProtectedAccess = {
+                area: App.auth.identificarAreaProtegida(destination),
+                returnTo: destination,
+                retry: typeof retry === 'function' ? retry : null
+            };
+            App.core.hideLoading(true);
+            App.core.fecharPopup();
+            App.core.abrirModalDeRota(App.core.buildUrl('/login?return_to=' + encodeURIComponent(destination)));
+        },
+
+        tratarFalhaDeAcesso: function (xhr, retry, returnTo) {
+            if (!xhr || Number(xhr.status || 0) !== 401) return false;
+            const erro = App.core.extrairMensagemErroAjax(xhr);
+            let destination = String(returnTo || erro.redirectUrl || window.location.pathname + window.location.search);
+            try {
+                const parsed = new URL(destination, window.location.origin);
+                destination = parsed.searchParams.get('return_to') || destination;
+            } catch (error) {
+            }
+            App.auth.solicitarAutenticacaoNaPaginaAtual(destination, retry);
+            return true;
+        },
+
         sincronizarCabecalhoAutenticado: function (adminAccessAllowed, professorAccessAllowed) {
             const $nav = $('.site-nav').first();
             const profileCompletionRequired = App.core.pageRequiresProfileCompletion() ? '1' : '0';
@@ -79,6 +116,12 @@
             window.history.replaceState({}, document.title, parsed.pathname + (parsed.search ? '?' + parsed.searchParams.toString() : '') + parsed.hash);
 
             if (action === 'login') {
+                const returnTo = parsed.searchParams.get('return_to') || window.location.pathname + window.location.search;
+                App.state.pendingProtectedAccess = App.state.pendingProtectedAccess || {
+                    area: App.auth.identificarAreaProtegida(returnTo),
+                    returnTo: returnTo,
+                    retry: null
+                };
                 App.core.abrirModalDeRota(App.core.buildUrl('/login') + parsed.search.replace(/^\?/, '?'));
                 return;
             }
@@ -394,6 +437,22 @@
                         App.core.fecharPopupCustomizado('#agenda-login-reminder');
                         App.core.fecharPopupCustomizado('#agenda-profile-reminder');
                         App.core.fecharPopupCustomizado('#popup-profile-completion-confirm');
+
+                        const pendingAccess = App.state.pendingProtectedAccess || null;
+                        if (pendingAccess) {
+                            const isAllowed = pendingAccess.area === 'admin'
+                                ? !!response.admin_access_allowed
+                                : (pendingAccess.area === 'professor' ? !!response.professor_access_allowed : true);
+                            App.state.pendingProtectedAccess = null;
+                            if (!isAllowed) {
+                                window.location.href = App.core.buildUrl('/');
+                                return;
+                            }
+                            if (!authenticationNeedsProfileCompletion && typeof pendingAccess.retry === 'function') {
+                                window.setTimeout(pendingAccess.retry, 0);
+                            }
+                            response._protected_access_handled = true;
+                        }
                     }
 
                     if (isInsideRouteModal) {
@@ -429,7 +488,7 @@
                             }
                         }
 
-                        if (shouldFollowRedirect && response && response.redirect) {
+                        if (shouldFollowRedirect && response && response.redirect && !response._protected_access_handled) {
                             if (normalizedAction === App.core.buildUrl('/perfil/completar').replace(/\/+$/, '')) {
                                 $('body').attr('data-profile-completion-required', '0');
                                 $('a[data-profile-completion-link]').attr('data-profile-completion-link', '0');
@@ -480,6 +539,14 @@
                     });
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
+
+                    if (App.auth.tratarFalhaDeAcesso(xhr, function () { $form.trigger('submit'); }, action)) {
+                        return;
+                    }
+                    if (xhr.status === 403) {
+                        window.location.href = App.core.buildUrl('/');
+                        return;
+                    }
 
                     App.core.abrirPopup('erro', erro.mensagem, function () {
                         if (erro.redirectUrl !== '' && (xhr.status === 401 || xhr.status === 403)) {

@@ -2023,12 +2023,12 @@ class AdminController extends Controller
             $this->jsonResponse([
                 'success' => false,
                 'message' => 'Seu nível de acesso não permite abrir a área administrativa.',
-                'redirect' => url('/dashboard'),
+                'redirect' => url('/'),
             ], 403);
         }
 
         flash('error', 'Seu nível de acesso não permite abrir a área administrativa.');
-        redirect('/dashboard');
+        redirect('/');
     }
 
     /**
@@ -2680,6 +2680,28 @@ class AdminController extends Controller
             $view = trim((string) ($_POST['entidade'] ?? '')) === 'temporada' ? 'temporadas' : (($_POST['course_management_view'] ?? '') === 'turmas-locais' ? 'turmas-locais' : 'turmas');
             $this->jsonResponse(['success' => true, 'message' => 'Registro inativado com sucesso.', 'html' => $this->renderCourseManagementPanelHtml($view)]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function changeCourseClassStatus(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $result = (new CourseEnrollmentService())->setClassOperationalStatus(
+                (int) ($_POST['turma_id'] ?? 0),
+                trim((string) ($_POST['status'] ?? '')),
+                (int) $user['conta_id']
+            );
+            $this->jsonResponse([
+                'success' => true,
+                'message' => 'Status da turma alterado para “' . $result['status_label'] . '”.',
+                'status' => $result['status'],
+                'status_label' => $result['status_label'],
+                'status_cronograma' => $result['status_cronograma'],
+                'ativo' => $result['ativo'],
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 
     public function assignCourseProfessor(): void

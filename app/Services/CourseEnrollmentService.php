@@ -44,7 +44,7 @@ class CourseEnrollmentService
         $sql = "SELECT t.*, te.id AS temporada_id, te.nome AS temporada_nome,
                        cm.data_inicio, cm.data_fim, cm.inscricoes_inicio, cm.inscricoes_fim,
                        cm.matriculas_inicio, cm.matriculas_fim, cm.inscricoes_abertas_inicio,
-                       cm.inscricoes_abertas_fim, cm.permitir_inscricao_periodo_matricula,
+                       cm.inscricoes_abertas_fim, cm.aulas_inicio, cm.permitir_inscricao_periodo_matricula,
                        cm.possui_edital AS modalidade_possui_edital, cm.numero_edital AS modalidade_numero_edital,
                        cm.link_edital AS modalidade_link_edital, te.possui_edital AS temporada_possui_edital,
                        te.numero_edital AS temporada_numero_edital, te.link_edital AS temporada_link_edital,
@@ -79,6 +79,8 @@ class CourseEnrollmentService
             $class['niveis_aceitos'] = normalize_modality_levels($class['niveis_aceitos_json'] ?? null);
             $class['niveis_aceitos_descricao'] = describe_modality_levels($class['niveis_aceitos']);
             $class['criterio_faixa_etaria'] = normalize_age_rule_mode((string) ($class['criterio_faixa_etaria'] ?? 'idade_exata'));
+            $class['excecoes_idade'] = $this->normalizeClassAgeExceptions($class['excecoes_idade_json'] ?? null);
+            $class['excecoes_idade_descricao'] = $this->describeClassAgeExceptions($class);
             $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? ''));
             $class['periodo_dia'] = $this->describeClassDayPeriod((string) ($class['hora_inicio'] ?? ''));
             $class['vagas_disponiveis'] = $this->availableSeats($pdo, $class);
@@ -87,6 +89,12 @@ class CourseEnrollmentService
             $class['permite_inscricao'] = (string) $class['status'] === 'processo_inicial'
                 || (string) $class['status'] === 'inscricoes_abertas'
                 || ((string) $class['status'] === 'periodo_matricula' && !empty($class['permitir_inscricao_periodo_matricula']));
+            if (in_array((string) $class['status'], ['processo_inicial', 'periodo_matricula'], true)) {
+                $class['orientacao_matricula'] = $this->registrationGuidance($class);
+                $class['previsao_inicio_aulas'] = !empty($class['aulas_inicio'])
+                    ? date('d/m/Y', strtotime((string) $class['aulas_inicio']))
+                    : '';
+            }
         }
         unset($class);
         return $classes;
@@ -123,7 +131,7 @@ class CourseEnrollmentService
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
         $this->synchronizeCalculatedSeasonStatuses($pdo);
-        $stmt = $pdo->prepare("SELECT i.id, i.numero_ordem, i.posicao_lista_espera, i.status, i.created_at, i.updated_at, i.motivo_status,
+        $stmt = $pdo->prepare("SELECT i.id, i.numero_ordem, i.posicao_lista_espera, i.publico_alvo, i.excecao_condicao, i.status, i.created_at, i.updated_at, i.motivo_status,
                    p.nome_completo, p.cpf, p.data_nascimento, t.nome AS turma_nome, t.dias_semana, t.hora_inicio, t.hora_fim,
                    te.nome AS temporada_nome, m.nome AS modalidade_nome,
                    cm.matriculas_inicio AS cronograma_matriculas_inicio,
@@ -185,7 +193,7 @@ class CourseEnrollmentService
         $sortDirection = strtolower($sortDirection) === 'desc' ? 'DESC' : 'ASC';
         $orderSql = $sortExpressions[$sortBy] . ' ' . $sortDirection . ', i.id ' . $sortDirection;
         $statusFilter = array_key_exists($statusFilter, self::STATUS_LABELS) ? $statusFilter : 'todos';
-        $conditionFilter = in_array($conditionFilter, ['pcd', 'plm', 'pvs'], true) ? $conditionFilter : 'todas';
+        $conditionFilter = in_array($conditionFilter, ['geral', 'pcd', 'plm', 'pvs'], true) ? $conditionFilter : 'todas';
         $where = [];
         $params = [];
         if ($statusFilter !== 'todos') {
@@ -198,7 +206,7 @@ class CourseEnrollmentService
         }
         $whereSql = $where === [] ? '' : ' WHERE ' . implode(' AND ', $where);
         $stmt = $pdo->prepare("SELECT
-                i.id, i.turma_id, i.pessoa_id, i.numero_ordem, i.status, i.created_at, i.updated_at, i.motivo_status,
+                i.id, i.turma_id, i.pessoa_id, i.numero_ordem, i.publico_alvo, i.excecao_condicao, i.status, i.created_at, i.updated_at, i.motivo_status,
                 p.nome_completo, p.cpf, p.data_nascimento, p.email, p.telefone_whatsapp,
                 p.cep, p.logradouro, p.numero_endereco, p.complemento, p.bairro, p.cidade, p.uf,
                 p.contato_emergencia_nome, p.contato_emergencia_telefone,
@@ -297,10 +305,10 @@ class CourseEnrollmentService
             ];
         }
 
-        $conditionCounts = ['pcd' => 0, 'plm' => 0, 'pvs' => 0];
+        $conditionCounts = ['geral' => 0, 'pcd' => 0, 'plm' => 0, 'pvs' => 0];
         $conditionStmt = $pdo->query("SELECT LOWER(publico_alvo) AS condicao, COUNT(*) AS quantidade
             FROM inscricoes_turma
-            WHERE LOWER(publico_alvo) IN ('pcd', 'plm', 'pvs')
+            WHERE LOWER(publico_alvo) IN ('geral', 'pcd', 'plm', 'pvs')
             GROUP BY LOWER(publico_alvo)");
         foreach ($conditionStmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
             $condition = (string) ($row['condicao'] ?? '');
@@ -312,7 +320,7 @@ class CourseEnrollmentService
         foreach ($conditionCounts as $condition => $quantity) {
             $conditions[] = [
                 'condicao' => $condition,
-                'label' => strtoupper($condition),
+                'label' => $condition === 'geral' ? 'Geral' : strtoupper($condition),
                 'quantidade' => $quantity,
             ];
         }
@@ -412,17 +420,24 @@ class CourseEnrollmentService
         $this->ensureCourseSeasonSchema($pdo);
         $this->ensureCourseAgeCriterionSchema($pdo);
         $this->synchronizeCalculatedClassStatuses($pdo);
-        $stmt = $pdo->query("SELECT t.*, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio, te.data_fim AS temporada_fim, m.nome AS modalidade_nome, cm.nome AS cronograma_nome, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome, nm.nome AS nivel_nome, (SELECT p.nome_completo FROM contas c INNER JOIN pessoas p ON p.cpf = c.cpf WHERE c.id = t.professor_conta_id LIMIT 1) AS professor_principal_nome, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_professores tp INNER JOIN contas c ON c.id = tp.professor_conta_id INNER JOIN pessoas p ON p.cpf = c.cpf WHERE tp.turma_id = t.id AND tp.professor_conta_id <> t.professor_conta_id) AS professores_auxiliares_nomes, (SELECT CONCAT('[', GROUP_CONCAT(tp.professor_conta_id ORDER BY tp.professor_conta_id SEPARATOR ','), ']') FROM turmas_professores tp WHERE tp.turma_id = t.id) AS professores_ids_json, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_estagiarios teq INNER JOIN contas c ON c.id = teq.estagiario_conta_id INNER JOIN pessoas p ON p.cpf = c.cpf WHERE teq.turma_id = t.id) AS estagiarios_nomes, (SELECT CONCAT('[', GROUP_CONCAT(teq.estagiario_conta_id ORDER BY teq.estagiario_conta_id SEPARATOR ','), ']') FROM turmas_estagiarios teq WHERE teq.turma_id = t.id) AS estagiarios_ids_json FROM turmas t INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id LEFT JOIN cronogramas_modalidade cm ON cm.id = t.cronograma_modalidade_id INNER JOIN locais_treino l ON l.id = t.local_treino_id INNER JOIN espacos_treino e ON e.id = t.espaco_treino_id LEFT JOIN niveis_modalidade nm ON nm.id = t.nivel_modalidade_id ORDER BY te.data_inicio DESC, t.nome ASC");
+        $stmt = $pdo->query("SELECT t.*, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio, te.data_fim AS temporada_fim, m.nome AS modalidade_nome, cm.nome AS cronograma_nome, cm.inscricoes_inicio AS cronograma_inscricoes_inicio, cm.inscricoes_fim AS cronograma_inscricoes_fim, cm.matriculas_inicio AS cronograma_matriculas_inicio, cm.matriculas_fim AS cronograma_matriculas_fim, cm.inscricoes_abertas_inicio AS cronograma_inscricoes_abertas_inicio, cm.inscricoes_abertas_fim AS cronograma_inscricoes_abertas_fim, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome, nm.nome AS nivel_nome, (SELECT p.nome_completo FROM contas c INNER JOIN pessoas p ON p.cpf = c.cpf WHERE c.id = t.professor_conta_id LIMIT 1) AS professor_principal_nome, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_professores tp INNER JOIN contas c ON c.id = tp.professor_conta_id INNER JOIN pessoas p ON p.cpf = c.cpf WHERE tp.turma_id = t.id AND tp.professor_conta_id <> t.professor_conta_id) AS professores_auxiliares_nomes, (SELECT CONCAT('[', GROUP_CONCAT(tp.professor_conta_id ORDER BY tp.professor_conta_id SEPARATOR ','), ']') FROM turmas_professores tp WHERE tp.turma_id = t.id) AS professores_ids_json, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_estagiarios teq INNER JOIN contas c ON c.id = teq.estagiario_conta_id INNER JOIN pessoas p ON p.cpf = c.cpf WHERE teq.turma_id = t.id) AS estagiarios_nomes, (SELECT CONCAT('[', GROUP_CONCAT(teq.estagiario_conta_id ORDER BY teq.estagiario_conta_id SEPARATOR ','), ']') FROM turmas_estagiarios teq WHERE teq.turma_id = t.id) AS estagiarios_ids_json FROM turmas t INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id LEFT JOIN cronogramas_modalidade cm ON cm.id = t.cronograma_modalidade_id INNER JOIN locais_treino l ON l.id = t.local_treino_id INNER JOIN espacos_treino e ON e.id = t.espaco_treino_id LEFT JOIN niveis_modalidade nm ON nm.id = t.nivel_modalidade_id ORDER BY te.data_inicio DESC, t.nome ASC");
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         foreach ($classes as &$class) {
+            $class = array_merge($this->findClass($pdo, (int) $class['id']), $class);
             $class['professores_ids'] = json_decode((string) ($class['professores_ids_json'] ?? '[]'), true) ?: [];
             $class['estagiarios_ids'] = json_decode((string) ($class['estagiarios_ids_json'] ?? '[]'), true) ?: [];
             $class['niveis_aceitos'] = normalize_modality_levels($class['niveis_aceitos_json'] ?? null);
             $class['niveis_aceitos_descricao'] = describe_modality_levels($class['niveis_aceitos']);
             $class['criterio_faixa_etaria'] = normalize_age_rule_mode((string) ($class['criterio_faixa_etaria'] ?? 'idade_exata'));
+            $class['excecoes_idade'] = $this->normalizeClassAgeExceptions($class['excecoes_idade_json'] ?? null);
+            $class['excecoes_idade_descricao'] = $this->describeClassAgeExceptions($class);
             $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? ''));
             $class['faixa_etaria_descricao'] = $this->describeClassAgeRule($class);
             $class['status_label'] = self::CLASS_STATUS_LABELS[(string) ($class['status'] ?? '')] ?? (string) ($class['status'] ?? '');
+            $classForSchedule = $class;
+            $classForSchedule['status'] = 'planejada';
+            $class['status_cronograma'] = $this->calculatedClassStatus($classForSchedule);
+            $class['status_cronograma_label'] = self::CLASS_STATUS_LABELS[$class['status_cronograma']] ?? $class['status_cronograma'];
         }
         unset($class);
         return $classes;
@@ -668,7 +683,11 @@ class CourseEnrollmentService
         $schedule->execute([':id' => $scheduleId, ':temporada' => (int) $data['temporada_id'], ':modalidade' => (int) $data['modalidade_id']]);
         $scheduleData = $schedule->fetch(PDO::FETCH_ASSOC) ?: null;
         if (!$scheduleData) throw new RuntimeException('Selecione um cronograma correspondente à temporada e à modalidade da turma.');
-        $params = [':temporada' => (int) $data['temporada_id'], ':modalidade' => (int) $data['modalidade_id'], ':local' => (int) $data['local_treino_id'], ':espaco' => (int) $data['espaco_treino_id'], ':nivel' => (int) ($data['nivel_modalidade_id'] ?? 0) ?: null, ':nome' => trim((string) $data['nome']), ':idade_minima' => max(0, (int) ($data['idade_minima'] ?? 0)), ':idade_maxima' => max(0, (int) ($data['idade_maxima'] ?? 120)), ':criterio_faixa_etaria' => normalize_age_rule_mode((string) ($data['criterio_faixa_etaria'] ?? 'idade_exata')), ':vagas_totais' => max(0, (int) ($data['vagas_totais'] ?? 0)), ':vagas_geral' => max(0, (int) ($data['vagas_geral'] ?? 0)), ':vagas_pcd' => max(0, (int) ($data['vagas_pcd'] ?? 0)), ':vagas_plm' => max(0, (int) ($data['vagas_plm'] ?? 0)), ':vagas_pvs' => max(0, (int) ($data['vagas_pvs'] ?? 0)), ':espera_geral' => max(0, (int) ($data['vagas_espera_geral'] ?? 0)), ':espera_pcd' => max(0, (int) ($data['vagas_espera_pcd'] ?? 0)), ':espera_plm' => max(0, (int) ($data['vagas_espera_plm'] ?? 0)), ':espera_pvs' => max(0, (int) ($data['vagas_espera_pvs'] ?? 0))];
+        $ageExceptions = $this->normalizeClassAgeExceptions($data['excecoes_idade'] ?? []);
+        foreach ($ageExceptions as $condition => $range) {
+            if ($range['min'] > $range['max']) { throw new RuntimeException('Na exceção de idade para ' . strtoupper($condition) . ', a idade máxima deve ser igual ou superior à idade mínima.'); }
+        }
+        $params = [':temporada' => (int) $data['temporada_id'], ':modalidade' => (int) $data['modalidade_id'], ':local' => (int) $data['local_treino_id'], ':espaco' => (int) $data['espaco_treino_id'], ':nivel' => (int) ($data['nivel_modalidade_id'] ?? 0) ?: null, ':nome' => trim((string) $data['nome']), ':observacao' => trim((string) ($data['observacao'] ?? '')) ?: null, ':excecoes_idade' => json_encode($ageExceptions, JSON_UNESCAPED_UNICODE), ':idade_minima' => max(0, (int) ($data['idade_minima'] ?? 0)), ':idade_maxima' => max(0, (int) ($data['idade_maxima'] ?? 120)), ':criterio_faixa_etaria' => normalize_age_rule_mode((string) ($data['criterio_faixa_etaria'] ?? 'idade_exata')), ':vagas_totais' => max(0, (int) ($data['vagas_totais'] ?? 0)), ':vagas_geral' => max(0, (int) ($data['vagas_geral'] ?? 0)), ':vagas_pcd' => max(0, (int) ($data['vagas_pcd'] ?? 0)), ':vagas_plm' => max(0, (int) ($data['vagas_plm'] ?? 0)), ':vagas_pvs' => max(0, (int) ($data['vagas_pvs'] ?? 0)), ':espera_geral' => max(0, (int) ($data['vagas_espera_geral'] ?? 0)), ':espera_pcd' => max(0, (int) ($data['vagas_espera_pcd'] ?? 0)), ':espera_plm' => max(0, (int) ($data['vagas_espera_plm'] ?? 0)), ':espera_pvs' => max(0, (int) ($data['vagas_espera_pvs'] ?? 0))];
         $params[':cronograma'] = $scheduleId;
         $weekdays = $this->normalizeClassWeekdays($data['dias_semana'] ?? []);
         $params[':dias_semana'] = $weekdays ?: null;
@@ -686,11 +705,11 @@ class CourseEnrollmentService
         $params[':professor'] = $id > 0 ? ($currentProfessorId ?: null) : ($this->accountIsProfessor($pdo, $accountId) ? $accountId : null);
         if ($id > 0) {
             $params[':id'] = $id;
-            $stmt = $pdo->prepare('UPDATE turmas SET temporada_id=:temporada, modalidade_id=:modalidade, cronograma_modalidade_id=:cronograma, local_treino_id=:local, espaco_treino_id=:espaco, nivel_modalidade_id=:nivel, niveis_aceitos_json=:niveis_aceitos, professor_conta_id=:professor, nome=:nome, dias_semana=:dias_semana, hora_inicio=:hora_inicio, hora_fim=:hora_fim, idade_minima=:idade_minima, idade_maxima=:idade_maxima, criterio_faixa_etaria=:criterio_faixa_etaria, sexo=:sexo, vagas_totais=:vagas_totais, vagas_geral=:vagas_geral, vagas_pcd=:vagas_pcd, vagas_plm=:vagas_plm, vagas_pvs=:vagas_pvs, vagas_espera_geral=:espera_geral, vagas_espera_pcd=:espera_pcd, vagas_espera_plm=:espera_plm, vagas_espera_pvs=:espera_pvs, inscricoes_abertas=:inscricoes_abertas WHERE id=:id LIMIT 1');
+            $stmt = $pdo->prepare('UPDATE turmas SET temporada_id=:temporada, modalidade_id=:modalidade, cronograma_modalidade_id=:cronograma, local_treino_id=:local, espaco_treino_id=:espaco, nivel_modalidade_id=:nivel, niveis_aceitos_json=:niveis_aceitos, professor_conta_id=:professor, nome=:nome, observacao=:observacao, excecoes_idade_json=:excecoes_idade, dias_semana=:dias_semana, hora_inicio=:hora_inicio, hora_fim=:hora_fim, idade_minima=:idade_minima, idade_maxima=:idade_maxima, criterio_faixa_etaria=:criterio_faixa_etaria, sexo=:sexo, vagas_totais=:vagas_totais, vagas_geral=:vagas_geral, vagas_pcd=:vagas_pcd, vagas_plm=:vagas_plm, vagas_pvs=:vagas_pvs, vagas_espera_geral=:espera_geral, vagas_espera_pcd=:espera_pcd, vagas_espera_plm=:espera_plm, vagas_espera_pvs=:espera_pvs, inscricoes_abertas=:inscricoes_abertas WHERE id=:id LIMIT 1');
             $stmt->execute($params);
             AuditLogService::record('turma.atualizada', 'turmas', $id, ['conta_id' => $accountId]);
         } else {
-            $stmt = $pdo->prepare('INSERT INTO turmas (temporada_id, modalidade_id, cronograma_modalidade_id, local_treino_id, espaco_treino_id, nivel_modalidade_id, niveis_aceitos_json, professor_conta_id, nome, dias_semana, hora_inicio, hora_fim, idade_minima, idade_maxima, criterio_faixa_etaria, sexo, vagas_totais, vagas_geral, vagas_pcd, vagas_plm, vagas_pvs, vagas_espera_geral, vagas_espera_pcd, vagas_espera_plm, vagas_espera_pvs, ativo, inscricoes_abertas) VALUES (:temporada, :modalidade, :cronograma, :local, :espaco, :nivel, :niveis_aceitos, :professor, :nome, :dias_semana, :hora_inicio, :hora_fim, :idade_minima, :idade_maxima, :criterio_faixa_etaria, :sexo, :vagas_totais, :vagas_geral, :vagas_pcd, :vagas_plm, :vagas_pvs, :espera_geral, :espera_pcd, :espera_plm, :espera_pvs, 1, :inscricoes_abertas)');
+            $stmt = $pdo->prepare('INSERT INTO turmas (temporada_id, modalidade_id, cronograma_modalidade_id, local_treino_id, espaco_treino_id, nivel_modalidade_id, niveis_aceitos_json, professor_conta_id, nome, observacao, excecoes_idade_json, dias_semana, hora_inicio, hora_fim, idade_minima, idade_maxima, criterio_faixa_etaria, sexo, vagas_totais, vagas_geral, vagas_pcd, vagas_plm, vagas_pvs, vagas_espera_geral, vagas_espera_pcd, vagas_espera_plm, vagas_espera_pvs, ativo, inscricoes_abertas) VALUES (:temporada, :modalidade, :cronograma, :local, :espaco, :nivel, :niveis_aceitos, :professor, :nome, :observacao, :excecoes_idade, :dias_semana, :hora_inicio, :hora_fim, :idade_minima, :idade_maxima, :criterio_faixa_etaria, :sexo, :vagas_totais, :vagas_geral, :vagas_pcd, :vagas_plm, :vagas_pvs, :espera_geral, :espera_pcd, :espera_plm, :espera_pvs, 1, :inscricoes_abertas)');
             $stmt->execute($params);
             $id = (int) $pdo->lastInsertId();
             AuditLogService::record('turma.criada', 'turmas', $id, ['conta_id' => $accountId]);
@@ -709,6 +728,59 @@ class CourseEnrollmentService
         $stmt->execute([':id' => $id]);
         if ($stmt->rowCount() === 0) { throw new RuntimeException('Registro não encontrado ou já inativo.'); }
         AuditLogService::record($entity . '.inativada', $table, $id, ['conta_id' => $accountId]);
+    }
+
+    public function setClassOperationalStatus(int $classId, string $status, int $accountId): array
+    {
+        if ($classId <= 0 || !array_key_exists($status, self::CLASS_STATUS_LABELS)) {
+            throw new RuntimeException('Selecione um status válido para a turma.');
+        }
+
+        $pdo = Database::connection();
+        $class = $this->findClass($pdo, $classId);
+        $currentStatus = (string) ($class['status'] ?? 'planejada');
+        $classForSchedule = $class;
+        $classForSchedule['status'] = 'planejada';
+        $scheduledStatus = $this->calculatedClassStatus($classForSchedule);
+
+        if ($status === 'inscricoes_suspensas') {
+            if ($currentStatus === 'inscricoes_suspensas') {
+                throw new RuntimeException('As inscrições desta turma já estão suspensas. Para retomá-las, selecione o status definido pelo cronograma.');
+            }
+            $newStatus = 'inscricoes_suspensas';
+            $active = 0;
+        } else {
+            if ($currentStatus !== 'inscricoes_suspensas' || $status !== $scheduledStatus) {
+                if ($scheduledStatus === 'periodo_matricula') {
+                    throw new RuntimeException('A turma está no período de matrícula. Neste período, somente é permitido suspender as inscrições ou, se já estiverem suspensas, retomá-las no mesmo período.');
+                }
+                throw new RuntimeException('O status da turma é definido pelas datas do cronograma. Somente o status vigente “' . (self::CLASS_STATUS_LABELS[$scheduledStatus] ?? $scheduledStatus) . '” pode ser retomado.');
+            }
+            $active = 1;
+            $newStatus = $scheduledStatus;
+        }
+
+        $stmt = $pdo->prepare('UPDATE turmas SET ativo=:ativo, status=:status, inscricoes_abertas=:abertas WHERE id=:id LIMIT 1');
+        $acceptsEnrollments = $newStatus === 'processo_inicial' || $newStatus === 'inscricoes_abertas'
+            || ($newStatus === 'periodo_matricula' && !empty($class['cronograma_permitir_inscricao_matricula']));
+        $stmt->execute([
+            ':ativo' => $active,
+            ':status' => $newStatus,
+            ':abertas' => $active === 1 && $acceptsEnrollments ? 1 : 0,
+            ':id' => $classId,
+        ]);
+        AuditLogService::record('turma.status_alterado', 'turmas', $classId, [
+            'conta_id' => $accountId,
+            'status' => $newStatus,
+            'status_anterior' => $currentStatus,
+        ]);
+
+        return [
+            'status' => $newStatus,
+            'status_label' => self::CLASS_STATUS_LABELS[$newStatus] ?? $newStatus,
+            'status_cronograma' => $scheduledStatus,
+            'ativo' => $active === 1,
+        ];
     }
 
     public function listPeopleForAuthenticatedAccount(): array
@@ -741,15 +813,72 @@ class CourseEnrollmentService
         $this->ensureCourseSeasonSchema($pdo);
         $this->ensureCourseAgeCriterionSchema($pdo);
         $this->synchronizeCalculatedClassStatuses($pdo);
-        $stmt = $pdo->prepare("SELECT t.*, te.nome AS temporada_nome, m.nome AS modalidade_nome, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome FROM turmas t INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id INNER JOIN locais_treino l ON l.id = t.local_treino_id INNER JOIN espacos_treino e ON e.id = t.espaco_treino_id WHERE EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id = t.id AND tp.professor_conta_id = :professor_id) AND t.ativo = 1 ORDER BY te.data_inicio DESC, t.nome ASC");
+        $stmt = $pdo->prepare("SELECT t.*, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio, m.nome AS modalidade_nome, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome, (SELECT p.nome_completo FROM contas c INNER JOIN pessoas p ON p.cpf=c.cpf WHERE c.id=t.professor_conta_id LIMIT 1) AS professor_principal_nome, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_professores tp2 INNER JOIN contas c ON c.id=tp2.professor_conta_id INNER JOIN pessoas p ON p.cpf=c.cpf WHERE tp2.turma_id=t.id AND tp2.professor_conta_id<>t.professor_conta_id) AS professores_auxiliares_nomes, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_estagiarios teq INNER JOIN contas c ON c.id=teq.estagiario_conta_id INNER JOIN pessoas p ON p.cpf=c.cpf WHERE teq.turma_id=t.id) AS estagiarios_nomes FROM turmas t INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id INNER JOIN locais_treino l ON l.id = t.local_treino_id INNER JOIN espacos_treino e ON e.id = t.espaco_treino_id WHERE EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id = t.id AND tp.professor_conta_id = :professor_id) ORDER BY te.data_inicio DESC, t.nome ASC");
         $stmt->execute([':professor_id' => $accountId]);
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         foreach ($classes as &$class) {
+            $classDetails = $this->findClass($pdo, (int) $class['id']);
+            $class = array_merge($classDetails, $class);
+            $professorIdsStmt = $pdo->prepare('SELECT professor_conta_id FROM turmas_professores WHERE turma_id=:id ORDER BY professor_conta_id');
+            $professorIdsStmt->execute([':id' => (int) $class['id']]);
+            $class['professores_ids'] = array_map('intval', $professorIdsStmt->fetchAll(PDO::FETCH_COLUMN) ?: []);
+            $internIdsStmt = $pdo->prepare('SELECT estagiario_conta_id FROM turmas_estagiarios WHERE turma_id=:id ORDER BY estagiario_conta_id');
+            $internIdsStmt->execute([':id' => (int) $class['id']]);
+            $class['estagiarios_ids'] = array_map('intval', $internIdsStmt->fetchAll(PDO::FETCH_COLUMN) ?: []);
             $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? ''));
+            $class['criterio_faixa_etaria'] = normalize_age_rule_mode((string) ($class['criterio_faixa_etaria'] ?? 'idade_exata'));
+            $class['faixa_etaria_descricao'] = $this->describeClassAgeRule($class);
+            $class['niveis_aceitos'] = normalize_modality_levels($class['niveis_aceitos_json'] ?? null);
+            $class['niveis_aceitos_descricao'] = describe_modality_levels($class['niveis_aceitos']);
+            $class['excecoes_idade'] = $this->normalizeClassAgeExceptions($class['excecoes_idade_json'] ?? null);
+            $class['excecoes_idade_descricao'] = $this->describeClassAgeExceptions($class);
             $class['status_label'] = self::CLASS_STATUS_LABELS[(string) ($class['status'] ?? '')] ?? (string) ($class['status'] ?? '');
+            $classForSchedule = $classDetails;
+            $classForSchedule['status'] = 'planejada';
+            $class['status_cronograma'] = $this->calculatedClassStatus($classForSchedule);
         }
         unset($class);
         return $classes;
+    }
+
+    public function professorClassBrowser(int $accountId, int $seasonId = 0, int $locationId = 0, int $modalityId = 0): array
+    {
+        $classes = $this->listClassesForProfessor($accountId);
+        $unique = static function (array $rows, string $idKey, string $nameKey): array {
+            $items = [];
+            foreach ($rows as $row) {
+                $id = (int) ($row[$idKey] ?? 0);
+                if ($id > 0) { $items[$id] = ['id' => $id, 'nome' => (string) ($row[$nameKey] ?? $id)]; }
+            }
+            $items = array_values($items);
+            usort($items, static fn(array $a, array $b): int => strnatcasecmp($a['nome'], $b['nome']));
+            return $items;
+        };
+
+        if ($seasonId <= 0) {
+            return ['stage' => 'seasons', 'items' => $unique($classes, 'temporada_id', 'temporada_nome')];
+        }
+        $classes = array_values(array_filter($classes, static fn(array $class): bool => (int) ($class['temporada_id'] ?? 0) === $seasonId));
+        if ($classes === []) { throw new RuntimeException('A temporada selecionada não possui turmas atribuídas a você.'); }
+        if ($locationId <= 0) {
+            return ['stage' => 'locations', 'items' => $unique($classes, 'local_treino_id', 'local_nome')];
+        }
+        $classes = array_values(array_filter($classes, static fn(array $class): bool => (int) ($class['local_treino_id'] ?? 0) === $locationId));
+        if ($classes === []) { throw new RuntimeException('O local selecionado não possui turmas atribuídas a você nesta temporada.'); }
+        if ($modalityId <= 0) {
+            return ['stage' => 'modalities', 'items' => $unique($classes, 'modalidade_id', 'modalidade_nome')];
+        }
+        $classes = array_values(array_filter($classes, static fn(array $class): bool => (int) ($class['modalidade_id'] ?? 0) === $modalityId));
+        if ($classes === []) { throw new RuntimeException('A modalidade selecionada não possui turmas atribuídas a você neste local e temporada.'); }
+        return ['stage' => 'classes', 'classes' => $classes];
+    }
+
+    public function professorIsAssignedToClass(int $accountId, int $classId): bool
+    {
+        if ($accountId <= 0 || $classId <= 0) { return false; }
+        $stmt = Database::connection()->prepare('SELECT 1 FROM turmas_professores WHERE turma_id=:turma AND professor_conta_id=:professor LIMIT 1');
+        $stmt->execute([':turma' => $classId, ':professor' => $accountId]);
+        return (bool) $stmt->fetchColumn();
     }
 
     public function assignProfessors(int $classId, array $professorAccountIds, int $accountId): void
@@ -801,6 +930,8 @@ class CourseEnrollmentService
         $class['periodo_dia'] = $this->describeClassDayPeriod((string) ($class['hora_inicio'] ?? ''));
         $class['criterio_faixa_etaria'] = normalize_age_rule_mode((string) ($class['criterio_faixa_etaria'] ?? 'idade_exata'));
         $class['faixa_etaria_descricao'] = $this->describeClassAgeRule($class);
+        $class['excecoes_idade'] = $this->normalizeClassAgeExceptions($class['excecoes_idade_json'] ?? null);
+        $class['excecoes_idade_descricao'] = $this->describeClassAgeExceptions($class);
         $class['niveis_aceitos'] = normalize_modality_levels($class['niveis_aceitos_json'] ?? null);
         $class['niveis_aceitos_descricao'] = describe_modality_levels($class['niveis_aceitos']);
         $class['vagas_geral_disponiveis'] = $this->availableSeats($pdo, $class, 'geral');
@@ -816,10 +947,14 @@ class CourseEnrollmentService
         if (Auth::check()) {
             foreach ($this->listPeopleForAuthenticatedAccount() as $person) {
                 $age = calculate_age((string) ($person['data_nascimento'] ?? ''));
+                $validatedPublic = $this->resolvePublic($pdo, (int) $person['id']);
+                $ageException = $this->classAgeExceptionUsed($person, $class, $validatedPublic);
+                $person['condicao_excecao_idade'] = $ageException;
+                $person['publico_alvo'] = $ageException !== null ? 'geral' : $validatedPublic;
                 $reasons = [];
                 if ((int) ($person['cadastro_completo'] ?? 0) !== 1) $reasons[] = 'Cadastro incompleto';
                 if (empty($class['permite_inscricao'])) $reasons[] = 'Esta turma está com o status ' . mb_strtolower((string) $class['status_label'], 'UTF-8') . ' e não recebe inscrições neste momento';
-                if (!$this->personMatchesClassAgeRule($person, $class)) $reasons[] = $this->classAgeBlockReason($person, $class);
+                if (!$this->personMatchesClassAgeRule($person, $class, $validatedPublic)) $reasons[] = $this->classAgeBlockReason($person, $class);
                 $requiredSex = trim((string) ($class['sexo'] ?? ''));
                 if ($requiredSex !== '' && $requiredSex !== (string) ($person['sexo'] ?? '')) $reasons[] = 'Sexo não permitido para esta turma';
                 $reasons = array_merge($reasons, $this->courseConditionCertificateBlockReasons($pdo, $person));
@@ -827,7 +962,6 @@ class CourseEnrollmentService
                 $duplicate->execute([':turma' => $classId, ':pessoa' => (int) $person['id']]);
                 if ((int) $duplicate->fetchColumn() > 0) $reasons[] = 'Pessoa já inscrita nesta turma';
                 $person['idade'] = $age;
-                $person['publico_alvo'] = $this->resolvePublic($pdo, (int) $person['id']);
                 $levelBlock = $this->classLevelBlockReason($pdo, $class, (int) $person['id']);
                 if ($levelBlock !== '') { $reasons[] = $levelBlock; }
                 if ($class['status'] === 'processo_inicial'
@@ -932,7 +1066,6 @@ class CourseEnrollmentService
         try {
             $lock = $pdo->prepare('SELECT id FROM turmas WHERE id=:id FOR UPDATE');
             $lock->execute([':id' => $classId]);
-            $this->validateAge($person, $class, $token !== null);
             $this->validateDuplicate($pdo, $classId, (int) $person['id']);
             $this->validateSeasonLimit($pdo, $season, (int) $person['id'], $now, $token !== null);
             $this->validateModalityLimit($pdo, $class, (int) $person['id'], $now, $token !== null);
@@ -942,9 +1075,12 @@ class CourseEnrollmentService
                 throw new RuntimeException((string) $conditionBlocks[0]);
             }
 
-            $publico = $this->resolvePublic($pdo, (int) $person['id']);
+            $validatedPublic = $this->resolvePublic($pdo, (int) $person['id']);
+            $ageException = $token === null ? $this->classAgeExceptionUsed($person, $class, $validatedPublic) : null;
+            $publico = $ageException !== null ? 'geral' : $validatedPublic;
             if ($token !== null) { $publico = (string) $token['publico_alvo']; }
-            $this->validatePublic($pdo, (int) $person['id'], $publico);
+            $this->validateAge($person, $class, $validatedPublic, $token !== null);
+            $this->validatePublic($pdo, (int) $person['id'], $token !== null ? $publico : $validatedPublic);
             $levelBlock = $this->classLevelBlockReason($pdo, $class, (int) $person['id']);
             if ($levelBlock !== '' && $token === null) { throw new RuntimeException($levelBlock); }
             $forceWaitlist = (string) $class['status'] !== 'processo_inicial';
@@ -961,12 +1097,13 @@ class CourseEnrollmentService
         $orderStmt = $pdo->prepare('SELECT COALESCE(MAX(numero_ordem), 0) + 1 FROM inscricoes_turma WHERE turma_id=:turma');
         $orderStmt->execute([':turma' => $classId]);
         $orderNumber = (int) $orderStmt->fetchColumn();
-        $stmt = $pdo->prepare("\n            INSERT INTO inscricoes_turma (turma_id, numero_ordem, pessoa_id, publico_alvo, status, posicao_lista_espera, inscrito_por_conta_id, created_at)\n            VALUES (:turma_id, :numero_ordem, :pessoa_id, :publico, :status, :posicao, :conta_id, NOW())\n        ");
+        $stmt = $pdo->prepare("\n            INSERT INTO inscricoes_turma (turma_id, numero_ordem, pessoa_id, publico_alvo, excecao_condicao, status, posicao_lista_espera, inscrito_por_conta_id, created_at)\n            VALUES (:turma_id, :numero_ordem, :pessoa_id, :publico, :excecao_condicao, :status, :posicao, :conta_id, NOW())\n        ");
         $stmt->execute([
             ':turma_id' => $classId,
             ':numero_ordem' => $orderNumber,
             ':pessoa_id' => (int) $person['id'],
             ':publico' => $publico,
+            ':excecao_condicao' => $ageException,
             ':status' => $status,
             ':posicao' => $waitPosition,
             ':conta_id' => Auth::check() ? Auth::id() : null,
@@ -980,6 +1117,8 @@ class CourseEnrollmentService
             'turma_id' => $classId,
             'pessoa_id' => (int) $person['id'],
             'status' => $status,
+            'publico_alvo' => $publico,
+            'excecao_condicao' => $ageException,
             'conta_id' => Auth::check() ? Auth::id() : null,
         ]);
 
@@ -1184,10 +1323,10 @@ class CourseEnrollmentService
         return $person;
     }
 
-    private function validateAge(array $person, array $class, bool $hasException = false): void
+    private function validateAge(array $person, array $class, string $public, bool $hasException = false): void
     {
         if ($hasException) { return; }
-        if (!$this->personMatchesClassAgeRule($person, $class)) {
+        if (!$this->personMatchesClassAgeRule($person, $class, $public)) {
             throw new RuntimeException('A pessoa não atende ao critério etário desta turma: ' . $this->describeClassAgeRule($class) . '.');
         }
     }
@@ -1199,15 +1338,65 @@ class CourseEnrollmentService
         catch (\Throwable $e) { return new DateTimeImmutable('today'); }
     }
 
-    private function personMatchesClassAgeRule(array $person, array $class): bool
+    private function personMatchesClassAgeRule(array $person, array $class, string $public = 'geral'): bool
     {
-        return person_matches_age_rule(
+        if (person_matches_age_rule(
             (string) ($person['data_nascimento'] ?? ''),
             (int) ($class['idade_minima'] ?? 0),
             (int) ($class['idade_maxima'] ?? 120),
             (string) ($class['criterio_faixa_etaria'] ?? 'idade_exata'),
             $this->classAgeReferenceDate($class)
+        )) { return true; }
+        $exceptions = $this->normalizeClassAgeExceptions($class['excecoes_idade_json'] ?? $class['excecoes_idade'] ?? null);
+        if (!isset($exceptions[$public])) { return false; }
+        return person_matches_age_rule(
+            (string) ($person['data_nascimento'] ?? ''),
+            $exceptions[$public]['min'],
+            $exceptions[$public]['max'],
+            (string) ($class['criterio_faixa_etaria'] ?? 'idade_exata'),
+            $this->classAgeReferenceDate($class)
         );
+    }
+
+    private function classAgeExceptionUsed(array $person, array $class, string $validatedPublic): ?string
+    {
+        if ($validatedPublic === 'geral' || $this->personMatchesClassAgeRule($person, $class, 'geral')) { return null; }
+        $exceptions = $this->normalizeClassAgeExceptions($class['excecoes_idade_json'] ?? $class['excecoes_idade'] ?? null);
+        if (!isset($exceptions[$validatedPublic])) { return null; }
+        return person_matches_age_rule(
+            (string) ($person['data_nascimento'] ?? ''),
+            $exceptions[$validatedPublic]['min'],
+            $exceptions[$validatedPublic]['max'],
+            (string) ($class['criterio_faixa_etaria'] ?? 'idade_exata'),
+            $this->classAgeReferenceDate($class)
+        ) ? $validatedPublic : null;
+    }
+
+    private function normalizeClassAgeExceptions($value): array
+    {
+        if (is_string($value)) { $value = json_decode($value, true); }
+        if (!is_array($value)) { return []; }
+        $normalized = [];
+        foreach (['pcd', 'plm', 'pvs'] as $condition) {
+            $range = $value[$condition] ?? null;
+            if (!is_array($range) || empty($range['enabled'])) { continue; }
+            $normalized[$condition] = [
+                'enabled' => true,
+                'min' => max(0, (int) ($range['min'] ?? 0)),
+                'max' => max(0, (int) ($range['max'] ?? 120)),
+            ];
+        }
+        return $normalized;
+    }
+
+    private function describeClassAgeExceptions(array $class): array
+    {
+        $descriptions = [];
+        foreach ($this->normalizeClassAgeExceptions($class['excecoes_idade_json'] ?? $class['excecoes_idade'] ?? null) as $condition => $range) {
+            $description = describe_age_rule($range['min'], $range['max'], (string) ($class['criterio_faixa_etaria'] ?? 'idade_exata'), $this->classAgeReferenceDate($class));
+            $descriptions[] = condition_public_label($condition) . ': ' . mb_strtolower((string) ($description['detailed'] ?? ''), 'UTF-8') . ', mediante documentação validada e vigente';
+        }
+        return $descriptions;
     }
 
     private function describeClassAgeRule(array $class): string
@@ -1224,12 +1413,16 @@ class CourseEnrollmentService
     private function classAgeBlockReason(array $person, array $class): string
     {
         $personName = trim((string) ($person['nome_completo'] ?? 'A pessoa'));
+        $exceptionDescriptions = $this->describeClassAgeExceptions($class);
+        $exceptionNotice = $exceptionDescriptions !== []
+            ? ' Exceções disponíveis exclusivamente mediante condição comprovada: ' . implode('; ', $exceptionDescriptions) . '.'
+            : '';
         $mode = normalize_age_rule_mode((string) ($class['criterio_faixa_etaria'] ?? 'idade_exata'));
         $referenceDate = $this->classAgeReferenceDate($class);
         if ($mode === 'ano_nascimento') {
             $range = birth_year_range_from_age_range((int) $class['idade_minima'], (int) $class['idade_maxima'], $referenceDate);
             $birthYear = birth_year_from_date((string) ($person['data_nascimento'] ?? ''));
-            return 'Esta turma aceita inscrições de pessoas nascidas entre ' . (int) $range['from'] . ' e ' . (int) $range['to'] . ', ' . $personName . ' nasceu em ' . ($birthYear === null ? 'ano não informado' : (string) $birthYear) . '.';
+            return 'Esta turma aceita inscrições de pessoas nascidas entre ' . (int) $range['from'] . ' e ' . (int) $range['to'] . ', ' . $personName . ' nasceu em ' . ($birthYear === null ? 'ano não informado' : (string) $birthYear) . '.' . $exceptionNotice;
         }
 
         $age = null;
@@ -1239,7 +1432,7 @@ class CourseEnrollmentService
         } catch (\Throwable $e) {
             $age = null;
         }
-        return 'Esta turma aceita inscrições de pessoas com idade entre ' . (int) $class['idade_minima'] . ' e ' . (int) $class['idade_maxima'] . ' anos, ' . $personName . ' tem ' . ($age === null ? 'idade não informada' : $age . ' anos') . '.';
+        return 'Esta turma aceita inscrições de pessoas com idade entre ' . (int) $class['idade_minima'] . ' e ' . (int) $class['idade_maxima'] . ' anos, ' . $personName . ' tem ' . ($age === null ? 'idade não informada' : $age . ' anos') . '.' . $exceptionNotice;
     }
 
     private function normalizeClassWeekdays($value): string
@@ -1720,6 +1913,7 @@ class CourseEnrollmentService
         }
         $scheduleColumns = [
             'niveis_aceitos_json' => 'JSON NULL AFTER nivel_modalidade_id',
+            'excecoes_idade_json' => 'JSON NULL AFTER criterio_faixa_etaria',
             'professor_conta_id' => 'BIGINT UNSIGNED NULL AFTER nivel_modalidade_id',
             'dias_semana' => 'VARCHAR(120) NULL AFTER nome',
             'hora_inicio' => 'TIME NULL AFTER dias_semana',
@@ -1841,9 +2035,17 @@ class CourseEnrollmentService
             $pdo->exec("ALTER TABLE turmas ADD COLUMN status VARCHAR(40) NOT NULL DEFAULT 'planejada' AFTER inscricoes_abertas");
             $pdo->exec("UPDATE turmas SET status=IF(ativo=1, 'planejada', 'inscricoes_suspensas')");
         }
+        $classObservationColumn = $pdo->query("SHOW COLUMNS FROM turmas LIKE 'observacao'");
+        if (!$classObservationColumn || !$classObservationColumn->fetch(PDO::FETCH_ASSOC)) {
+            $pdo->exec('ALTER TABLE turmas ADD COLUMN observacao TEXT NULL AFTER nome');
+        }
         $enrollmentOrderColumn = $pdo->query("SHOW COLUMNS FROM inscricoes_turma LIKE 'numero_ordem'");
         if (!$enrollmentOrderColumn || !$enrollmentOrderColumn->fetch(PDO::FETCH_ASSOC)) {
             $pdo->exec('ALTER TABLE inscricoes_turma ADD COLUMN numero_ordem INT UNSIGNED NULL AFTER turma_id');
+        }
+        $enrollmentExceptionColumn = $pdo->query("SHOW COLUMNS FROM inscricoes_turma LIKE 'excecao_condicao'");
+        if (!$enrollmentExceptionColumn || !$enrollmentExceptionColumn->fetch(PDO::FETCH_ASSOC)) {
+            $pdo->exec('ALTER TABLE inscricoes_turma ADD COLUMN excecao_condicao VARCHAR(10) NULL AFTER publico_alvo');
         }
         $vacancyNoticeColumn = $pdo->query("SHOW COLUMNS FROM inscricoes_turma LIKE 'vaga_informada_em'");
         if (!$vacancyNoticeColumn || !$vacancyNoticeColumn->fetch(PDO::FETCH_ASSOC)) {

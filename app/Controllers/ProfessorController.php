@@ -109,6 +109,74 @@ class ProfessorController extends Controller
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
+    public function classBrowser(): void
+    {
+        $user = $this->assertProfessorAccess();
+        try {
+            $result = (new \App\Services\CourseEnrollmentService())->professorClassBrowser(
+                (int) ($user['conta_id'] ?? 0),
+                (int) ($_GET['temporada_id'] ?? 0),
+                (int) ($_GET['local_treino_id'] ?? 0),
+                (int) ($_GET['modalidade_id'] ?? 0)
+            );
+            if (($result['stage'] ?? '') === 'classes') {
+                $courseClasses = (array) ($result['classes'] ?? []);
+                $courseManagementView = 'professor-turmas';
+                ob_start();
+                require ROOT_PATH . '/app/Views/admin/partials/course_class_card_list.php';
+                $result['html'] = (string) ob_get_clean();
+                unset($result['classes']);
+            }
+            $this->jsonResponse(array_merge(['success' => true], $result));
+        } catch (\Throwable $e) {
+            while (ob_get_level() > 0) { ob_end_clean(); }
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function saveAssignedClass(): void
+    {
+        $user = $this->assertProfessorAccess();
+        try {
+            $service = new \App\Services\CourseEnrollmentService();
+            $classId = (int) ($_POST['id'] ?? 0);
+            if (($_POST['operacao'] ?? '') !== 'editar' || !$service->professorIsAssignedToClass((int) $user['conta_id'], $classId)) {
+                throw new \RuntimeException('Você não possui acesso a esta turma ou não está mais atribuído a ela.');
+            }
+            $service->createClass((int) $user['conta_id'], $_POST);
+            $this->jsonResponse(['success' => true, 'message' => 'Turma atualizada com sucesso.', 'professor_class_refresh' => true]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function saveAssignedClassTeam(): void
+    {
+        $user = $this->assertProfessorAccess();
+        try {
+            $service = new \App\Services\CourseEnrollmentService();
+            $classId = (int) ($_POST['turma_id'] ?? 0);
+            if (!$service->professorIsAssignedToClass((int) $user['conta_id'], $classId)) {
+                throw new \RuntimeException('Você não possui acesso a esta turma ou não está mais atribuído a ela.');
+            }
+            $service->assignClassTeam($classId, (int) ($_POST['professor_principal_conta_id'] ?? 0), (array) ($_POST['professor_auxiliar_conta_ids'] ?? []), (array) ($_POST['estagiario_conta_ids'] ?? []), (int) $user['conta_id']);
+            $stillAssigned = $service->professorIsAssignedToClass((int) $user['conta_id'], $classId);
+            $this->jsonResponse(['success' => true, 'message' => 'Equipe da turma atualizada com sucesso.', 'professor_class_refresh' => true, 'remove_class_id' => $stillAssigned ? 0 : $classId]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function changeAssignedClassStatus(): void
+    {
+        $user = $this->assertProfessorAccess();
+        try {
+            $service = new \App\Services\CourseEnrollmentService();
+            $classId = (int) ($_POST['turma_id'] ?? 0);
+            if (!$service->professorIsAssignedToClass((int) $user['conta_id'], $classId)) {
+                throw new \RuntimeException('Você não possui acesso a esta turma ou não está mais atribuído a ela.');
+            }
+            $result = $service->setClassOperationalStatus($classId, trim((string) ($_POST['status'] ?? '')), (int) $user['conta_id']);
+            $this->jsonResponse(array_merge(['success' => true, 'message' => 'Status da turma alterado para “' . $result['status_label'] . '”.'], $result));
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
     /**
      * Cria um horário semanal pela área do professor.
      */
@@ -402,7 +470,15 @@ class ProfessorController extends Controller
                 'courseEnrollmentStatusSummary' => $courseEnrollmentService->enrollmentStatusSummaryForManagement(),
             ];
         }
-        if ($sectionName === 'minhas-turmas') { return ['sectionName' => $sectionName, 'professorView' => true, 'professorClasses' => (new \App\Services\CourseEnrollmentService())->listClassesForProfessor((int) ($user['conta_id'] ?? 0))]; }
+        if ($sectionName === 'minhas-turmas') {
+            $courseService = new \App\Services\CourseEnrollmentService();
+            $browser = $courseService->professorClassBrowser((int) ($user['conta_id'] ?? 0));
+            return ['sectionName' => $sectionName, 'professorView' => true, 'professorClassSeasons' => (array) ($browser['items'] ?? []),
+                'courseSeasons' => $courseService->listSeasonsForManagement(), 'courseSeasonOrigins' => [],
+                'modalitySchedules' => $courseService->listModalitySchedulesForManagement(), 'courseProfessors' => $courseService->listProfessors(),
+                'courseInterns' => $courseService->listInterns(), 'courseModalitiesManagement' => $this->adminService->listModalitiesForManagement(),
+                'courseLocationsManagement' => $this->adminService->listTrainingLocationsForSpaceForm(), 'courseSpacesManagement' => $this->adminService->listTrainingSpacesForManagement()];
+        }
 
         $locationId = (int) ($_GET['local_treino_id'] ?? 0);
         $modalityId = (int) ($_GET['modalidade_id'] ?? 0);
@@ -470,7 +546,7 @@ class ProfessorController extends Controller
         }
         $user = $this->userService->currentAccountWithRoles();
         if ($user && has_role($user['roles'] ?? [], 'teacher')) { return $user; }
-        if ($this->isAjaxRequest()) { $this->jsonResponse(['success' => false, 'message' => 'Seu nível de acesso não permite abrir a área do professor.'], 403); }
-        redirect('/dashboard');
+        if ($this->isAjaxRequest()) { $this->jsonResponse(['success' => false, 'message' => 'Seu nível de acesso não permite abrir a área do professor.', 'redirect' => url('/')], 403); }
+        redirect('/');
     }
 }
