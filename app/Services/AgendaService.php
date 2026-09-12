@@ -278,6 +278,7 @@ class AgendaService
         $bookingsByOccurrence = $this->loadCalendarBookingsForAuthenticatedAccount($calendarStart, $calendarEnd);
         $occupancyByOccurrence = $this->loadCalendarOccupancyByOccurrence($calendarStart, $calendarEnd);
         $spaceSuspensions = $this->loadActiveSpaceSuspensions($calendarStart, $calendarEnd);
+        $noticeCache = [];
 
         foreach ($rows as $row) {
             foreach ($this->buildPublicCalendarOccurrencesForRange($row, $calendarStart, $calendarEnd) as $date) {
@@ -317,6 +318,11 @@ class AgendaService
                     (string) ($row['criterio_faixa_etaria'] ?? 'idade_exata'),
                     $date
                 );
+                $noticeCacheKey = (int) $row['modalidade_id'] . '|' . $occurrenceDate;
+                if (!array_key_exists($noticeCacheKey, $noticeCache)) {
+                    $noticeCache[$noticeCacheKey] = $this->resolveApplicableEnrollmentNotice($pdo, (int) $row['modalidade_id'], $occurrenceDate);
+                }
+                $notice = $noticeCache[$noticeCacheKey];
 
                 if ($isInactiveSchedule) {
                     $classNames[] = 'agenda-schedule-inactive';
@@ -338,6 +344,10 @@ class AgendaService
                         'espaco' => $row['espaco_nome'],
                         'modalidade' => $row['modalidade_nome'],
                         'modalidade_id' => (int) $row['modalidade_id'],
+                        'temporada_nome' => (string) ($notice['temporada_nome'] ?? ''),
+                        'edital_especifico_modalidade' => !empty($notice['edital_especifico_modalidade']),
+                        'edital_rotulo' => (string) ($notice['edital_rotulo'] ?? 'edital da temporada'),
+                        'edital_link' => (string) ($notice['edital_link'] ?? ''),
                         'tipo_ambiente' => $row['tipo_ambiente'],
                         'tipo_horario' => $row['tipo_horario'],
                         'niveis_aceitos_descricao' => describe_modality_levels($row['niveis_aceitos_json'] ?? null),
@@ -491,12 +501,16 @@ class AgendaService
         $publico = (string) ($data['publico_alvo'] ?? 'geral');
         $start = trim((string) ($data['data_hora_inicio'] ?? ''));
         $acceptedTerms = (int) ($data['aceite_termos'] ?? 0) === 1;
+        $noticeAccepted = (int) ($data['aceite_edital'] ?? 0) === 1;
 
         if ($scheduleId <= 0 || $personId <= 0 || $start === '') {
             throw new RuntimeException('Selecione horário, pessoa e público-alvo.');
         }
         if (!$acceptedTerms) {
             throw new RuntimeException('Leia e aceite os termos do agendamento para continuar.');
+        }
+        if (!$noticeAccepted) {
+            throw new RuntimeException('Leia e aceite o edital aplicável para continuar.');
         }
 
         $startDate = $this->parseScheduleStart($start);
@@ -1261,6 +1275,42 @@ class AgendaService
         $stmt = Database::connection()->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** @return array{temporada_nome:string, edital_especifico_modalidade:bool, edital_rotulo:string, edital_link:string} */
+    private function resolveApplicableEnrollmentNotice(PDO $pdo, int $modalityId, string $occurrenceDate): array
+    {
+        $stmt = $pdo->prepare('
+            SELECT te.nome AS temporada_nome,
+                   te.possui_edital AS temporada_possui_edital,
+                   te.numero_edital AS temporada_numero_edital,
+                   te.link_edital AS temporada_link_edital,
+                   cm.possui_edital AS modalidade_possui_edital,
+                   cm.numero_edital AS modalidade_numero_edital,
+                   cm.link_edital AS modalidade_link_edital
+              FROM cronogramas_modalidade cm
+              INNER JOIN temporadas te ON te.id = cm.temporada_id
+             WHERE cm.modalidade_id = :modalidade_id
+               AND te.status = "ativa"
+               AND :data_ocorrencia BETWEEN cm.data_inicio AND cm.data_fim
+             ORDER BY cm.id DESC
+             LIMIT 1
+        ');
+        $stmt->execute([
+            ':modalidade_id' => $modalityId,
+            ':data_ocorrencia' => $occurrenceDate,
+        ]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+        $specific = !empty($row['modalidade_possui_edital'])
+            && trim((string) ($row['modalidade_link_edital'] ?? '')) !== '';
+        $number = trim((string) ($specific ? ($row['modalidade_numero_edital'] ?? '') : ($row['temporada_numero_edital'] ?? '')));
+
+        return [
+            'temporada_nome' => (string) ($row['temporada_nome'] ?? ''),
+            'edital_especifico_modalidade' => $specific,
+            'edital_rotulo' => $number !== '' ? 'Edital nº ' . $number : 'edital da temporada',
+            'edital_link' => trim((string) ($specific ? ($row['modalidade_link_edital'] ?? '') : ($row['temporada_link_edital'] ?? ''))),
+        ];
     }
 
     /** @return array{start: DateTimeImmutable, end: DateTimeImmutable, duration: int} */

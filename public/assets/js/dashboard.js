@@ -3,6 +3,7 @@
 
     App.dashboard = Object.assign(App.dashboard || {}, {
         init: function () {
+            let pendingEnrollmentCancellationForm = null;
             function getModal() {
                 return $('#dashboard-certificates-modal');
             }
@@ -96,6 +97,44 @@
                 if ($(event.target).is('#dashboard-course-enrollment-details-modal') || $(event.target).is('[data-dashboard-course-enrollment-close="1"]')) {
                     closeCourseEnrollmentDetailsModal();
                 }
+            });
+
+            function closeEnrollmentCancellationModal() {
+                $('#dashboard-course-enrollment-cancel-modal').addClass('hidden').attr('aria-hidden', 'true');
+                pendingEnrollmentCancellationForm = null;
+            }
+
+            $(document).on('submit', '[data-dashboard-enrollment-cancel="1"]', function (event) {
+                event.preventDefault();
+                pendingEnrollmentCancellationForm = this;
+                const $form = $(this);
+                $('#dashboard-course-enrollment-cancel-question').text('Deseja realmente cancelar definitivamente a inscrição de ' + String($form.attr('data-person-name') || 'esta pessoa') + ' na turma ' + String($form.attr('data-class-name') || '') + '?');
+                $('#dashboard-course-enrollment-cancel-modal').removeClass('hidden').attr('aria-hidden', 'false');
+            });
+
+            $(document).on('click', '[data-dashboard-enrollment-cancel-close="1"], #dashboard-course-enrollment-cancel-modal', function (event) {
+                if ($(event.target).is('#dashboard-course-enrollment-cancel-modal') || $(event.target).is('[data-dashboard-enrollment-cancel-close="1"]')) closeEnrollmentCancellationModal();
+            });
+
+            $(document).on('click', '[data-dashboard-enrollment-cancel-confirm="1"]', function () {
+                if (!pendingEnrollmentCancellationForm) return;
+                const $button = $(this).prop('disabled', true);
+                const form = pendingEnrollmentCancellationForm;
+                $.ajax({
+                    url: String($(form).attr('action') || ''), method: 'POST', data: new FormData(form),
+                    processData: false, contentType: false, dataType: 'json',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível cancelar a inscrição.'));
+                        return;
+                    }
+                    closeEnrollmentCancellationModal();
+                    if (response.panel_html) $('#dashboard-course-enrollments-panel').replaceWith(String(response.panel_html));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Inscrição cancelada definitivamente.'));
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () { $button.prop('disabled', false); });
             });
 
             function openModal(html) {

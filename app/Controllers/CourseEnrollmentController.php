@@ -149,7 +149,10 @@ class CourseEnrollmentController extends Controller
         try {
             $this->service->cancel((int) ($_POST['inscricao_id'] ?? 0));
             if ($this->isAjaxRequest()) {
-                $this->jsonResponse(['success' => true, 'message' => 'Inscrição cancelada com sucesso.', 'redirect' => url('/cursos')]);
+                $courseEnrollments = $this->service->listForAuthenticatedAccount();
+                ob_start();
+                require ROOT_PATH . '/app/Views/dashboard/partials/course_enrollment_rows.php';
+                $this->jsonResponse(['success' => true, 'message' => 'Inscrição cancelada definitivamente.', 'panel_html' => (string) ob_get_clean()]);
             }
             flash('success', 'Inscrição cancelada com sucesso.');
         } catch (\Throwable $e) {

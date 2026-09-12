@@ -45,6 +45,9 @@ class CourseEnrollmentService
                        cm.data_inicio, cm.data_fim, cm.inscricoes_inicio, cm.inscricoes_fim,
                        cm.matriculas_inicio, cm.matriculas_fim, cm.inscricoes_abertas_inicio,
                        cm.inscricoes_abertas_fim, cm.permitir_inscricao_periodo_matricula,
+                       cm.possui_edital AS modalidade_possui_edital, cm.numero_edital AS modalidade_numero_edital,
+                       cm.link_edital AS modalidade_link_edital, te.possui_edital AS temporada_possui_edital,
+                       te.numero_edital AS temporada_numero_edital, te.link_edital AS temporada_link_edital,
                        te.permitir_inscricao_por_cpf, te.permitir_inscricao_logada,
                        m.nome AS modalidade_nome, l.nome_local,
                        COALESCE(l.apelido_local, l.nome_local) AS local_nome,
@@ -68,6 +71,11 @@ class CourseEnrollmentService
         $stmt->execute($params);
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         foreach ($classes as &$class) {
+            $usesModalityNotice = !empty($class['modalidade_possui_edital']) && trim((string) ($class['modalidade_link_edital'] ?? '')) !== '';
+            $class['edital_especifico_modalidade'] = $usesModalityNotice;
+            $class['edital_numero'] = $usesModalityNotice ? (string) ($class['modalidade_numero_edital'] ?? '') : (string) ($class['temporada_numero_edital'] ?? '');
+            $class['edital_link'] = $usesModalityNotice ? (string) ($class['modalidade_link_edital'] ?? '') : (string) ($class['temporada_link_edital'] ?? '');
+            $class['edital_rotulo'] = trim((string) $class['edital_numero']) !== '' ? 'Edital nº ' . trim((string) $class['edital_numero']) : 'edital da temporada';
             $class['niveis_aceitos'] = normalize_modality_levels($class['niveis_aceitos_json'] ?? null);
             $class['niveis_aceitos_descricao'] = describe_modality_levels($class['niveis_aceitos']);
             $class['criterio_faixa_etaria'] = normalize_age_rule_mode((string) ($class['criterio_faixa_etaria'] ?? 'idade_exata'));
@@ -848,9 +856,10 @@ class CourseEnrollmentService
         $cpf = normalize_cpf((string) ($data['cpf'] ?? ''));
         $tokenValue = trim((string) ($data['token'] ?? ''));
         $termsAccepted = (int) ($data['aceite_termos'] ?? 0) === 1;
+        $noticeAccepted = (int) ($data['aceite_edital'] ?? 0) === 1;
 
-        if ($classId <= 0 || !$termsAccepted) {
-            throw new RuntimeException('Selecione uma turma e aceite os termos para continuar.');
+        if ($classId <= 0 || !$termsAccepted || !$noticeAccepted) {
+            throw new RuntimeException('Selecione uma turma e aceite os termos e o edital aplicável para continuar.');
         }
 
         $pdo = Database::connection();

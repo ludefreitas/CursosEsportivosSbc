@@ -269,6 +269,7 @@
             $('#agenda-special-schedule-publico').val('geral').find('option').prop('disabled', false);
             $('#form-agenda-horario-especial').find('input[name="aceite_termos"]').prop('checked', false);
             $('#form-agendamento').find('input[name="aceite_termos"]').prop('checked', false);
+            $('#form-agendamento').find('input[name="aceite_edital"]').prop('checked', false);
             $('#agenda-cancel-bookings').addClass('hidden').html('');
             $('#agenda-person-options').addClass('hidden').html('');
             const $accessWarning = $('#agenda-access-warning');
@@ -279,6 +280,27 @@
             }
 
             App.state.agendaPendingEventData = null;
+        },
+
+        atualizarAceiteEditalAgenda: function (props) {
+            const $form = $('#form-agendamento');
+            const $text = $form.find('[data-agenda-notice-text="1"]').empty();
+            const season = String(props.temporada_nome || 'temporada vigente').trim();
+            const modality = String(props.modalidade || 'modalidade selecionada').trim();
+            const specific = props.edital_especifico_modalidade === true || String(props.edital_especifico_modalidade) === '1';
+            const label = String(props.edital_rotulo || 'edital da temporada').trim();
+            const url = String(props.edital_link || '').trim();
+
+            $form.find('input[name="aceite_edital"]').prop('checked', false);
+            $text.append(document.createTextNode('Li e concordo com os termos do processo de inscrições para os cursos esportivos '));
+            $text.append($('<strong>', { text: season + (specific ? ' para a modalidade ' + modality : '') }));
+            $text.append(document.createTextNode(', conforme '));
+            if (url !== '') {
+                $text.append($('<a>', { href: url, target: '_blank', rel: 'noopener noreferrer', text: label }));
+            } else {
+                $text.append($('<strong>', { text: label }));
+            }
+            $text.append(document.createTextNode('.'));
         },
 
         atualizarPessoasAgendamento: function (forceLoad) {
@@ -465,6 +487,7 @@
             $('#form-agenda-horario-especial').addClass('hidden');
             $('input[data-person-choice="1"]').prop('checked', false);
             $('#publico_alvo').val('geral').find('option').prop('disabled', false);
+            App.agenda.atualizarAceiteEditalAgenda(props);
 
             if (meusAgendamentos.length > 0) {
                 let itemsHtml = '';

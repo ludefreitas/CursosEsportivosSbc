@@ -396,6 +396,26 @@
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
             }
 
+            function appendEnrollmentNoticeAcceptance($form, courseClass) {
+                const season = String(courseClass.temporada_nome || String(courseClass.data_inicio || '').slice(0, 4) || new Date().getFullYear()).trim();
+                const modality = String(courseClass.modalidade_nome || selectedModality.nome || 'modalidade selecionada').trim();
+                const specific = courseClass.edital_especifico_modalidade === true || String(courseClass.edital_especifico_modalidade) === '1';
+                const noticeLabel = String(courseClass.edital_rotulo || 'edital da temporada').trim();
+                const noticeUrl = String(courseClass.edital_link || '').trim();
+                const $text = $('<span>').append(document.createTextNode('Li e concordo com os termos do processo de inscrições para os cursos esportivos '));
+                $text.append($('<strong>', { text: season + (specific ? ' para a modalidade ' + modality : '') }));
+                $text.append(document.createTextNode(', conforme '));
+                if (noticeUrl !== '') {
+                    $text.append($('<a>', { href: noticeUrl, target: '_blank', rel: 'noopener noreferrer', text: noticeLabel }));
+                } else {
+                    $text.append($('<strong>', { text: noticeLabel }));
+                }
+                $text.append(document.createTextNode('.'));
+                $form.append($('<label>', { class: 'checkbox-chip enrollment-notice-acceptance' })
+                    .append($('<input>', { type: 'checkbox', name: 'aceite_edital', value: '1', required: true }))
+                    .append($text));
+            }
+
             function renderEnrollmentModal(details) {
                 const courseClass = Object.assign({}, details.class || {}, classesById[String(details.class.id)] || {});
                 const people = Array.isArray(details.people) ? details.people : [];
@@ -442,6 +462,7 @@
                     $form.append($('<input>', { type: 'hidden', name: 'publico_alvo', id: 'home-course-person-public-value', value: 'geral' }));
                     $form.append($('<label>').append($('<span>', { text: 'Público-alvo da vaga' })).append($public));
                     $form.append($('<label>', { class: 'checkbox-chip' }).append($('<input>', { type: 'checkbox', name: 'aceite_termos', value: '1', required: true })).append($('<span>').append(document.createTextNode('Li e aceito os termos da inscrição, disponíveis ')).append($('<button>', { type: 'button', class: 'link-button course-terms-link', 'data-enrollment-terms-open': '1', text: 'neste link' })).append(document.createTextNode('.'))));
+                    appendEnrollmentNoticeAcceptance($form, courseClass);
                     $form.append($('<button>', { type: 'submit', class: 'btn btn-primary', text: 'Confirmar inscrição' }));
                     $content.append($form);
                 }
@@ -540,6 +561,7 @@
                 $form.append($('<input>', { type: 'hidden', name: 'turma_id', value: classId }));
                 $form.append($('<label>').append($('<span>', { text: 'CPF da pessoa' })).append($('<input>', { type: 'text', name: 'cpf', placeholder: '000.000.000-00', required: true })));
                 $form.append($('<label>', { class: 'checkbox-chip' }).append($('<input>', { type: 'checkbox', name: 'aceite_termos', value: '1', required: true })).append($('<span>', { text: 'Aceito os termos da inscrição' })));
+                appendEnrollmentNoticeAcceptance($form, courseClass);
                 const $verification = $('<div>', { class: 'human-verification', 'data-human-verification': '1' })
                     .append($('<input>', { type: 'hidden', name: 'human_verification_id' }))
                     .append($('<input>', { type: 'text', name: 'website', value: '', class: 'hidden', tabindex: '-1', autocomplete: 'off', 'aria-hidden': 'true' }))
