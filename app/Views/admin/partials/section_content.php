@@ -435,6 +435,8 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                                     data-status="justificado"
                                                                     data-current-justification="<?php echo e((string) ($booking['justificativa_motivo'] ?? '')); ?>"
                                                                     data-booking-person="<?php echo e((string) ($booking['nome_completo'] ?? '')); ?>"
+                                                                    data-booking-birth-date="<?php echo e((string) ($booking['data_nascimento'] ?? '')); ?>"
+                                                                    data-booking-reference-date="<?php echo e(!empty($booking['data_agendada']) ? date('Y-m-d', strtotime((string) $booking['data_agendada'])) : ''); ?>"
                                                                     data-booking-date="<?php echo e(!empty($booking['data_agendada']) ? date('d/m/Y \à\s H:i', strtotime((string) $booking['data_agendada'])) : '-'); ?>"
                                                                     <?php echo $bookingStatus === 'justificado' ? 'checked' : ''; ?>
                                                                     <?php echo !$canManageAttendance ? 'disabled' : ''; ?>
@@ -484,8 +486,10 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     </div>
                     <label>
                         <span>Motivo da justificativa</span>
-                        <input type="text" name="justificativa_motivo" maxlength="255" required placeholder="Ex.: atestado médico apresentado">
+                        <input type="hidden" name="justificativa_motivo" value="">
+                        <select data-justification-reason-select required></select>
                     </label>
+                    <label class="hidden" data-justification-other-wrap><span>Descreva o outro motivo</span><input type="text" data-justification-other maxlength="255"></label>
                     <div class="admin-weekly-schedule-actions">
                         <button type="button" class="btn btn-secondary" id="admin-booking-justification-cancel">Cancelar</button>
                         <button type="submit" class="btn btn-primary">Salvar justificativa</button>

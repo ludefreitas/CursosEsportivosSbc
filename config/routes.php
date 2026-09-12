@@ -84,6 +84,7 @@ return [
     ['GET', '/admin/certificados/arquivo', [AdminController::class, 'certificateDocument']],
     ['GET', '/admin/certificados/validacao/modal', [AdminController::class, 'conditionValidationModal']],
     ['GET', '/admin/atestados/validacao/modal', [AdminController::class, 'healthCertificateValidationModal']],
+    ['GET', '/admin/atestados/arquivo', [AdminController::class, 'healthCertificateDocument']],
     ['GET', '/api/admin/agenda/eventos', [AdminController::class, 'calendarEvents']],
     ['GET', '/admin/agendamentos/ocorrencia', [AdminController::class, 'bookingOccurrence']],
     ['GET', '/admin/horarios-semanais/detalhe', [AdminController::class, 'weeklyScheduleDetails']],

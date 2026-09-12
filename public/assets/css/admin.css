@@ -139,6 +139,9 @@
     cursor: pointer;
 }
 .class-attendance-modal-card { width: min(1050px, calc(100vw - 24px)); }
+.class-attendance-roster-modal { z-index: 10020; }
+.class-attendance-roster-modal-card { width: min(900px, calc(100vw - 24px)); max-height: min(84vh, 820px); overflow: auto; }
+.class-justification-modal-card { width: min(620px, calc(100vw - 24px)); }
 .class-attendance-modal-card .fc-day-disabled,
 .class-attendance-modal-card .class-attendance-day-disabled { background: #f2f2f2; color: #9aa2a7; }
 .class-attendance-roster { margin-top: 18px; }
@@ -146,6 +149,14 @@
 .class-attendance-heading h3, .class-attendance-heading p { margin: 0 0 5px; }
 .class-attendance-list { display: grid; border: 1px solid var(--line); }
 .class-attendance-student { display: grid; gap: 9px; padding: 14px; border-bottom: 1px solid var(--line); }
+.class-attendance-student-head { display:flex; align-items:center; gap:10px; }
+.class-attendance-student-head .class-enrollment-action { margin-left:auto; font-size:.86rem; }
+.class-attendance-mark { display:inline-grid; place-items:center; width:28px; height:28px; border-radius:50%; font-weight:900; border:2px solid currentColor; }
+.class-attendance-mark.is-presente { color:#16843d; }.class-attendance-mark.is-ausente { color:#c92828; }.class-attendance-mark.is-justificado { color:#1767c4; }.class-attendance-mark.is-pending { color:#56626a; border-color:transparent; }
+.class-attendance-pdf { display:inline-block;color:#e87800;border:1px solid currentColor;border-radius:3px;padding:1px 3px;font-size:.65rem;font-weight:900;text-decoration:none;margin-right:5px; }
+.class-attendance-certificate-name { font-weight:700; }.class-attendance-certificate-name.is-valid,.class-attendance-certificate-name.is-warning,.class-attendance-certificate-name.is-expired { color:#16843d; }.class-attendance-certificate-name.is-none { color:#e87800; }
+.class-certificate-state { display:inline-grid; place-items:center; margin-left:4px; font-weight:900; }.class-certificate-state.is-expired { width:18px;height:18px;border-radius:50%;background:#c92828;color:#fff; }.class-certificate-state.is-warning { color:#e87800; }.class-certificate-state.is-valid { color:#16843d; }
+.class-attendance-suspended { margin-top:18px;border:1px solid var(--line);border-radius:10px;overflow:hidden}.class-attendance-suspended h3{text-align:center;margin:0;padding:10px;background:#f5f6f6}.class-attendance-suspended>div{display:flex;justify-content:space-between;gap:12px;padding:12px;border-top:1px solid var(--line)}.class-enrollment-action.is-danger{color:#c92828}
 .class-attendance-student:last-child { border-bottom: 0; }
 .class-attendance-certificates, .class-attendance-options { display: flex; flex-wrap: wrap; gap: 10px 24px; }
 .class-attendance-options label { font-weight: 700; }

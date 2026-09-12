@@ -888,13 +888,17 @@ class CourseEnrollmentService
         $class = $this->findClass($pdo, $classId);
         $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? ''));
         $this->validateClassAttendanceDate($class, $date);
-        $stmt = $pdo->prepare("SELECT i.id AS inscricao_id, p.id AS pessoa_id, p.nome_completo,
+        $stmt = $pdo->prepare("SELECT i.id AS inscricao_id, i.status AS matricula_status, p.id AS pessoa_id, p.nome_completo, p.data_nascimento,
                 COALESCE(ch.status, '') AS chamada_status, COALESCE(ch.justificativa, '') AS justificativa,
-                (SELECT a.status_validacao FROM atestados_saude a WHERE a.pessoa_id=p.id AND a.tipo_atestado='clinico' ORDER BY a.id DESC LIMIT 1) AS atestado_clinico,
-                (SELECT a.status_validacao FROM atestados_saude a WHERE a.pessoa_id=p.id AND a.tipo_atestado='dermatologico' ORDER BY a.id DESC LIMIT 1) AS atestado_dermatologico
+                ac.id AS atestado_clinico_validado_id, ac.validade_certificado AS atestado_clinico_validade,
+                ad.id AS atestado_dermatologico_validado_id, ad.validade_certificado AS atestado_dermatologico_validade,
+                (SELECT a.id FROM atestados_saude a WHERE a.pessoa_id=p.id AND a.tipo_atestado='clinico' ORDER BY a.id DESC LIMIT 1) AS atestado_clinico_arquivo_id,
+                (SELECT a.id FROM atestados_saude a WHERE a.pessoa_id=p.id AND a.tipo_atestado='dermatologico' ORDER BY a.id DESC LIMIT 1) AS atestado_dermatologico_arquivo_id
             FROM inscricoes_turma i INNER JOIN pessoas p ON p.id=i.pessoa_id
             LEFT JOIN turmas_chamadas ch ON ch.inscricao_turma_id=i.id AND ch.data_aula=:data
-            WHERE i.turma_id=:turma AND i.status='matriculada' ORDER BY p.nome_completo");
+            LEFT JOIN atestados_saude ac ON ac.id=(SELECT a.id FROM atestados_saude a WHERE a.pessoa_id=p.id AND a.tipo_atestado='clinico' AND a.status_validacao='validado' ORDER BY a.id DESC LIMIT 1)
+            LEFT JOIN atestados_saude ad ON ad.id=(SELECT a.id FROM atestados_saude a WHERE a.pessoa_id=p.id AND a.tipo_atestado='dermatologico' AND a.status_validacao='validado' ORDER BY a.id DESC LIMIT 1)
+            WHERE i.turma_id=:turma AND i.status IN ('matriculada','suspensa') ORDER BY i.status='suspensa', p.nome_completo");
         $stmt->execute([':data' => $date, ':turma' => $classId]);
         return ['class' => $class, 'date' => $date, 'students' => $stmt->fetchAll(PDO::FETCH_ASSOC) ?: []];
     }
@@ -913,6 +917,18 @@ class CourseEnrollmentService
         $stmt = $pdo->prepare('INSERT INTO turmas_chamadas (turma_id, inscricao_turma_id, pessoa_id, data_aula, status, justificativa, chamada_por_conta_id) SELECT :turma, i.id, i.pessoa_id, :data, :status, :justificativa, :conta FROM inscricoes_turma i WHERE i.id=:inscricao ON DUPLICATE KEY UPDATE status=VALUES(status), justificativa=VALUES(justificativa), chamada_por_conta_id=VALUES(chamada_por_conta_id), updated_at=CURRENT_TIMESTAMP');
         $stmt->execute([':turma' => $classId, ':inscricao' => $enrollmentId, ':data' => $date, ':status' => $status, ':justificativa' => trim($justification) ?: null, ':conta' => $accountId]);
         AuditLogService::record('turma.chamada_atualizada', 'turmas_chamadas', $enrollmentId, ['conta_id' => $accountId, 'turma_id' => $classId, 'data_aula' => $date, 'status' => $status]);
+    }
+
+    public function changeAttendanceEnrollmentStatus(int $classId, int $enrollmentId, string $status, int $accountId): void
+    {
+        $allowed = ['matriculada' => ['suspensa'], 'suspensa' => ['matriculada', 'desistente']];
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('SELECT status FROM inscricoes_turma WHERE id=:id AND turma_id=:turma LIMIT 1');
+        $stmt->execute([':id'=>$enrollmentId, ':turma'=>$classId]); $current=(string)$stmt->fetchColumn();
+        if (!in_array($status, $allowed[$current] ?? [], true)) throw new RuntimeException('Esta alteração de matrícula não está disponível.');
+        $pdo->prepare('UPDATE inscricoes_turma SET status=:status, updated_at=NOW() WHERE id=:id')->execute([':status'=>$status, ':id'=>$enrollmentId]);
+        $pdo->prepare('INSERT INTO inscricoes_turma_historico (inscricao_turma_id,status_anterior,status_novo,motivo,alterado_por_conta_id) VALUES (:id,:anterior,:novo,:motivo,:conta)')->execute([':id'=>$enrollmentId,':anterior'=>$current,':novo'=>$status,':motivo'=>'Alteração realizada pela lista de chamada.',':conta'=>$accountId]);
+        AuditLogService::record('turma.matricula_status_alterado','inscricoes_turma',$enrollmentId,['conta_id'=>$accountId,'turma_id'=>$classId,'status'=>$status]);
     }
 
     private function validateClassAttendanceDate(array $class, string $date): void

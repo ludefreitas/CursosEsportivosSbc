@@ -74,6 +74,8 @@ $currentAdminName = (string) ($currentAdminName ?? '');
                                             data-status="justificado"
                                             data-current-justification="<?php echo e((string) ($booking['justificativa_motivo'] ?? '')); ?>"
                                             data-booking-person="<?php echo e((string) ($booking['nome_completo'] ?? '')); ?>"
+                                            data-booking-birth-date="<?php echo e((string) ($booking['data_nascimento'] ?? '')); ?>"
+                                            data-booking-reference-date="<?php echo e(!empty($booking['data_agendada']) ? date('Y-m-d', strtotime((string) $booking['data_agendada'])) : ''); ?>"
                                             data-booking-date="<?php echo e(!empty($booking['data_agendada']) ? date('d/m/Y \à\s H:i', strtotime((string) $booking['data_agendada'])) : '-'); ?>"
                                             <?php echo $bookingStatus === 'justificado' ? 'checked' : ''; ?>
                                             <?php echo !$canManageAttendance ? 'disabled' : ''; ?>

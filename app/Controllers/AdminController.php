@@ -2714,11 +2714,19 @@ class AdminController extends Controller
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
+    public function healthCertificateDocument(): void
+    {
+        $this->assertAdminAccess();
+        try { $document=$this->adminService->getHealthCertificateDocumentForAdmin((int)($_GET['certificate_id']??0)); $path=ROOT_PATH.'/public'.(string)($document['caminho_arquivo']??''); if (!is_file($path)) throw new \RuntimeException('Arquivo não encontrado.'); while(ob_get_level()>0) ob_end_clean(); header('Content-Type: application/pdf'); header('Content-Length: '.filesize($path)); header('Content-Disposition: inline; filename="'.rawurlencode(basename((string)($document['nome_arquivo']??'atestado.pdf'))).'"'); header('X-Content-Type-Options: nosniff'); readfile($path); exit; } catch (\Throwable $e) { http_response_code(404); echo 'Arquivo não encontrado.'; exit; }
+    }
+
     public function saveCourseClassAttendance(): void
     {
         $user = $this->assertAdminAccess();
         try {
-            (new CourseEnrollmentService())->saveClassAttendance((int) ($_POST['turma_id'] ?? 0), (int) ($_POST['inscricao_id'] ?? 0), trim((string) ($_POST['data'] ?? '')), trim((string) ($_POST['status'] ?? '')), trim((string) ($_POST['justificativa'] ?? '')), (int) $user['conta_id']);
+            $service = new CourseEnrollmentService();
+            if (!empty($_POST['acao_matricula'])) { $service->changeAttendanceEnrollmentStatus((int)($_POST['turma_id']??0),(int)($_POST['inscricao_id']??0),trim((string)$_POST['acao_matricula']),(int)$user['conta_id']); $this->jsonResponse(['success'=>true,'message'=>'Matrícula atualizada.']); return; }
+            $service->saveClassAttendance((int) ($_POST['turma_id'] ?? 0), (int) ($_POST['inscricao_id'] ?? 0), trim((string) ($_POST['data'] ?? '')), trim((string) ($_POST['status'] ?? '')), trim((string) ($_POST['justificativa'] ?? '')), (int) $user['conta_id']);
             $this->jsonResponse(['success' => true, 'message' => 'Chamada atualizada.']);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
