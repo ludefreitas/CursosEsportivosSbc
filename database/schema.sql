@@ -291,6 +291,9 @@ CREATE TABLE IF NOT EXISTS certificados_nivel_modalidade (
     status ENUM('ativo', 'inativo') NOT NULL DEFAULT 'ativo',
     validado_por_conta_id BIGINT UNSIGNED NULL,
     observacoes TEXT NULL,
+    tipo_movimentacao ENUM('concessao','evolucao','rebaixamento') NOT NULL DEFAULT 'concessao',
+    nivel_anterior_id BIGINT UNSIGNED NULL,
+    avaliacao_fisica_id BIGINT UNSIGNED NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_cert_nivel_pessoa FOREIGN KEY (pessoa_id) REFERENCES pessoas(id),
     CONSTRAINT fk_cert_nivel_modalidade FOREIGN KEY (modalidade_id) REFERENCES modalidades(id),
@@ -483,6 +486,7 @@ CREATE TABLE IF NOT EXISTS turmas (
     local_treino_id BIGINT UNSIGNED NOT NULL,
     espaco_treino_id BIGINT UNSIGNED NOT NULL,
     nivel_modalidade_id BIGINT UNSIGNED NULL,
+    niveis_aceitos_json JSON NULL,
     professor_conta_id BIGINT UNSIGNED NULL,
     nome VARCHAR(160) NOT NULL,
     dias_semana VARCHAR(120) NULL,
@@ -513,6 +517,26 @@ CREATE TABLE IF NOT EXISTS turmas (
     CONSTRAINT fk_turmas_professor FOREIGN KEY (professor_conta_id) REFERENCES contas(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS turmas_professores (
+    turma_id BIGINT UNSIGNED NOT NULL,
+    professor_conta_id BIGINT UNSIGNED NOT NULL,
+    atribuido_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (turma_id, professor_conta_id),
+    INDEX idx_turmas_professores_professor (professor_conta_id),
+    CONSTRAINT fk_turmas_professores_turma FOREIGN KEY (turma_id) REFERENCES turmas(id) ON DELETE CASCADE,
+    CONSTRAINT fk_turmas_professores_conta FOREIGN KEY (professor_conta_id) REFERENCES contas(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS turmas_estagiarios (
+    turma_id BIGINT UNSIGNED NOT NULL,
+    estagiario_conta_id BIGINT UNSIGNED NOT NULL,
+    atribuido_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (turma_id, estagiario_conta_id),
+    INDEX idx_turmas_estagiarios_estagiario (estagiario_conta_id),
+    CONSTRAINT fk_turmas_estagiarios_turma FOREIGN KEY (turma_id) REFERENCES turmas(id) ON DELETE CASCADE,
+    CONSTRAINT fk_turmas_estagiarios_conta FOREIGN KEY (estagiario_conta_id) REFERENCES contas(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS avaliacoes_fisicas (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     pessoa_id BIGINT UNSIGNED NOT NULL,
@@ -535,6 +559,7 @@ CREATE TABLE IF NOT EXISTS horarios_semanais (
     modalidade_id BIGINT UNSIGNED NOT NULL,
     tipo_horario ENUM('avaliacao', 'treino', 'aula') NOT NULL,
     dispensar_avaliacao_previa TINYINT(1) NOT NULL DEFAULT 0,
+    niveis_aceitos_json JSON NULL,
     dia_semana TINYINT UNSIGNED NOT NULL,
     hora_inicio TIME NOT NULL,
     hora_fim TIME NOT NULL,

@@ -763,6 +763,46 @@ function condition_public_labels(): string
 }
 
 /**
+ * Catálogo fechado de níveis utilizados em turmas, agenda e certificados.
+ */
+function modality_level_labels(): array
+{
+    return [
+        'iniciante' => 'Iniciante',
+        'intermediario' => 'Intermediário',
+        'avancado' => 'Avançado',
+        'treinamento' => 'Treinamento',
+    ];
+}
+
+function normalize_modality_levels(mixed $levels): array
+{
+    if (is_string($levels)) {
+        $decoded = json_decode($levels, true);
+        $levels = is_array($decoded) ? $decoded : preg_split('/\s*,\s*/', $levels, -1, PREG_SPLIT_NO_EMPTY);
+    }
+    if (!is_array($levels)) { return []; }
+    $allowed = modality_level_labels();
+    return array_values(array_unique(array_filter(array_map(
+        static fn ($level): string => strtolower(trim((string) $level)),
+        $levels
+    ), static fn (string $level): bool => isset($allowed[$level]))));
+}
+
+function describe_modality_levels(mixed $levels): string
+{
+    $normalized = normalize_modality_levels($levels);
+    if ($normalized === []) { return 'Sem limitação de nível'; }
+    $labels = modality_level_labels();
+    return implode(', ', array_map(static fn (string $level): string => $labels[$level], $normalized));
+}
+
+function modality_level_rank(string $slug): int
+{
+    return ['iniciante' => 1, 'intermediario' => 2, 'avancado' => 3, 'treinamento' => 4][strtolower(trim($slug))] ?? 0;
+}
+
+/**
  * Converte um texto livre para slug simples.
  */
 function slugify(string $text): string

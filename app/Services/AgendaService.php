@@ -214,6 +214,7 @@ class AgendaService
             SELECT
                 hs.id,
                 hs.tipo_horario,
+                hs.niveis_aceitos_json,
                 hs.dia_semana,
                 hs.hora_inicio,
                 hs.hora_fim,
@@ -339,6 +340,7 @@ class AgendaService
                         'modalidade_id' => (int) $row['modalidade_id'],
                         'tipo_ambiente' => $row['tipo_ambiente'],
                         'tipo_horario' => $row['tipo_horario'],
+                        'niveis_aceitos_descricao' => describe_modality_levels($row['niveis_aceitos_json'] ?? null),
                         'horario_ativo' => !$isInactiveSchedule,
                         'vagas_geral' => (int) $row['vagas_geral'],
                         'vagas_pcd' => (int) $row['vagas_pcd'],
@@ -440,6 +442,7 @@ class AgendaService
             $items[] = [
                 'id' => (int) $person['id'],
                 'nome_completo' => (string) $person['nome_completo'],
+                'data_nascimento' => (string) ($person['data_nascimento'] ?? ''),
                 'elegivel' => count($reasons) === 0,
                 'motivos' => $reasons,
                 'avisos' => $accessibilityWarning !== null ? [$accessibilityWarning] : [],
@@ -487,9 +490,13 @@ class AgendaService
         $personId = (int) ($data['person_id'] ?? 0);
         $publico = (string) ($data['publico_alvo'] ?? 'geral');
         $start = trim((string) ($data['data_hora_inicio'] ?? ''));
+        $acceptedTerms = (int) ($data['aceite_termos'] ?? 0) === 1;
 
         if ($scheduleId <= 0 || $personId <= 0 || $start === '') {
             throw new RuntimeException('Selecione horário, pessoa e público-alvo.');
+        }
+        if (!$acceptedTerms) {
+            throw new RuntimeException('Leia e aceite os termos do agendamento para continuar.');
         }
 
         $startDate = $this->parseScheduleStart($start);
@@ -810,6 +817,8 @@ class AgendaService
      */
     private function validarAptidaoEAtestados(\PDO $pdo, int $personId, array $schedule): void
     {
+        $this->validarNivelModalidade($pdo, $personId, $schedule);
+
         if (($schedule['tipo_horario'] ?? '') === 'avaliacao') {
             return;
         }
@@ -883,6 +892,37 @@ class AgendaService
             if (!(bool) $stmtDermato->fetchColumn()) {
                 throw new RuntimeException($this->healthCertificateBlockMessage($pdo, $personId, 'dermatologico', 'dermatológico'));
             }
+        }
+    }
+
+    private function validarNivelModalidade(PDO $pdo, int $personId, array $schedule): void
+    {
+        $accepted = normalize_modality_levels($schedule['niveis_aceitos_json'] ?? null);
+        if ($accepted === []) { return; }
+
+        $stmt = $pdo->prepare("SELECT nm.slug, nm.nome
+            FROM certificados_nivel_modalidade cnm
+            INNER JOIN niveis_modalidade nm ON nm.id = cnm.nivel_modalidade_id
+            WHERE cnm.pessoa_id = :pessoa AND cnm.modalidade_id = :modalidade AND cnm.status = 'ativo'
+            ORDER BY cnm.id DESC LIMIT 1");
+        $stmt->execute([':pessoa' => $personId, ':modalidade' => (int) ($schedule['modalidade_id'] ?? 0)]);
+        $certificate = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        $acceptedDescription = describe_modality_levels($accepted);
+        if ($certificate === null) {
+            throw new RuntimeException('Este horário aceita somente os níveis ' . $acceptedDescription . '. A pessoa precisa possuir certificado de nível ativo nesta modalidade.');
+        }
+
+        $currentSlug = (string) $certificate['slug'];
+        if (($schedule['tipo_horario'] ?? '') === 'avaliacao') {
+            $hasHigherTarget = array_filter($accepted, static fn (string $level): bool => modality_level_rank($level) > modality_level_rank($currentSlug)) !== [];
+            if (!$hasHigherTarget) {
+                throw new RuntimeException('A pessoa possui certificado de nível ' . (string) $certificate['nome'] . ' e só pode agendar uma avaliação destinada a um nível superior.');
+            }
+            return;
+        }
+
+        if (!in_array($currentSlug, $accepted, true)) {
+            throw new RuntimeException('O certificado atual da pessoa é de nível ' . (string) $certificate['nome'] . '. Este horário aceita somente: ' . $acceptedDescription . '.');
         }
     }
 
@@ -1403,6 +1443,10 @@ class AgendaService
         if (!isset($columns['dispensar_avaliacao_previa'])) {
             $pdo->exec('ALTER TABLE horarios_semanais ADD COLUMN dispensar_avaliacao_previa TINYINT(1) NOT NULL DEFAULT 0 AFTER tipo_horario');
             $pdo->exec('UPDATE horarios_semanais SET dispensar_avaliacao_previa=1 WHERE tipo_horario="avaliacao"');
+        }
+
+        if (!isset($columns['niveis_aceitos_json'])) {
+            $pdo->exec('ALTER TABLE horarios_semanais ADD COLUMN niveis_aceitos_json JSON NULL AFTER dispensar_avaliacao_previa');
         }
 
         $ensured = true;

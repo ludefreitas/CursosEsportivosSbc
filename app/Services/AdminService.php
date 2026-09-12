@@ -85,6 +85,7 @@ class AdminService
         $this->ensureWeeklyScheduleAgeRuleSchema();
         $this->ensureSpecialScheduleSchema();
         $this->ensureBookingSnapshotSchema();
+        $this->ensureModalityLevelSchema();
     }
 
     /**
@@ -2348,6 +2349,7 @@ class AdminService
                 hs.id,
                 hs.criado_por_conta_id,
                 hs.tipo_horario,
+                hs.niveis_aceitos_json,
                 hs.dia_semana,
                 hs.hora_inicio,
                 hs.hora_fim,
@@ -2546,6 +2548,7 @@ class AdminService
                 p.eh_pcd,
                 p.eh_pvs,
                 p.eh_plm,
+                hs.modalidade_id,
                 COALESCE(a.tipo_horario_snapshot, hs.tipo_horario) AS tipo_horario,
                 COALESCE(a.modalidade_nome_snapshot, m.nome) AS modalidade_nome,
                 COALESCE(a.local_treino_id_snapshot, lt.id) AS local_treino_id,
@@ -2631,6 +2634,7 @@ class AdminService
                 p.eh_pvs,
                 p.eh_plm,
                 hs.id AS horario_semanal_id,
+                hs.modalidade_id,
                 COALESCE(a.tipo_horario_snapshot, hs.tipo_horario) AS tipo_horario,
                 COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(a.horario_snapshot_json, "$.vagas_geral")) AS UNSIGNED), hs.vagas_geral) AS vagas_geral,
                 COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(a.horario_snapshot_json, "$.vagas_pcd")) AS UNSIGNED), hs.vagas_pcd) AS vagas_pcd,
@@ -2770,7 +2774,7 @@ class AdminService
     /**
      * Atualiza a chamada de um agendamento, respeitando horário e regras de justificativa.
      */
-    public function updateBookingAttendanceStatus(int $bookingId, string $status, int $accountId, string $justificationReason = ''): void
+    public function updateBookingAttendanceStatus(int $bookingId, string $status, int $accountId, string $justificationReason = '', array $evaluation = []): void
     {
         $booking = $this->findBookingForManagement($bookingId);
         $currentStatus = (string) ($booking['status'] ?? '');
@@ -2794,6 +2798,8 @@ class AdminService
         }
 
         $pdo = Database::connection();
+        $pdo->beginTransaction();
+        try {
         $stmt = $pdo->prepare('
             UPDATE agendamentos
             SET status = :status,
@@ -2810,6 +2816,10 @@ class AdminService
             ':justificativa_motivo' => $normalizedStatus === 'justificado' ? $justificationReason : null,
         ]);
 
+        if ($normalizedStatus === 'presente' && !empty($evaluation['avaliar_modalidade'])) {
+            $this->recordModalityEvaluation($pdo, $booking, $accountId, $evaluation);
+        }
+
         AuditLogService::record('agendamento.chamada_atualizada', 'agendamentos', $bookingId, [
             'pessoa_id' => (int) ($booking['pessoa_id'] ?? 0),
             'horario_semanal_id' => (int) ($booking['horario_semanal_id'] ?? 0),
@@ -2819,6 +2829,11 @@ class AdminService
             'justificativa_motivo' => $normalizedStatus === 'justificado' ? $justificationReason : null,
             'marcado_por_conta_id' => $accountId,
         ]);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+            throw $e;
+        }
     }
 
     /**
@@ -3027,6 +3042,7 @@ class AdminService
                 modalidade_id,
                 tipo_horario,
                 dispensar_avaliacao_previa,
+                niveis_aceitos_json,
                 dia_semana,
                 hora_inicio,
                 hora_fim,
@@ -3056,6 +3072,7 @@ class AdminService
                 :modalidade_id,
                 :tipo_horario,
                 :dispensar_avaliacao_previa,
+                :niveis_aceitos_json,
                 :dia_semana,
                 :hora_inicio,
                 :hora_fim,
@@ -3087,6 +3104,7 @@ class AdminService
             ':modalidade_id' => (int) $payload['modalidade_id'],
             ':tipo_horario' => $payload['tipo_horario'],
             ':dispensar_avaliacao_previa' => (int) $payload['dispensar_avaliacao_previa'],
+            ':niveis_aceitos_json' => $payload['niveis_aceitos_json'],
             ':dia_semana' => (int) $payload['dia_semana'],
             ':hora_inicio' => $payload['hora_inicio'],
             ':hora_fim' => $payload['hora_fim'],
@@ -3175,6 +3193,7 @@ class AdminService
                 modalidade_id = :modalidade_id,
                 tipo_horario = :tipo_horario,
                 dispensar_avaliacao_previa = :dispensar_avaliacao_previa,
+                niveis_aceitos_json = :niveis_aceitos_json,
                 dia_semana = :dia_semana,
                 hora_inicio = :hora_inicio,
                 hora_fim = :hora_fim,
@@ -3206,6 +3225,7 @@ class AdminService
             ':modalidade_id' => (int) $payload['modalidade_id'],
             ':tipo_horario' => $payload['tipo_horario'],
             ':dispensar_avaliacao_previa' => (int) $payload['dispensar_avaliacao_previa'],
+            ':niveis_aceitos_json' => $payload['niveis_aceitos_json'],
             ':dia_semana' => (int) $payload['dia_semana'],
             ':hora_inicio' => $payload['hora_inicio'],
             ':hora_fim' => $payload['hora_fim'],
@@ -3643,6 +3663,7 @@ class AdminService
             'modalidade_id' => (int) ($data['modalidade_id'] ?? 0),
             'tipo_horario' => trim((string) ($data['tipo_horario'] ?? '')),
             'dispensar_avaliacao_previa' => !empty($data['dispensar_avaliacao_previa']) ? 1 : 0,
+            'niveis_aceitos_json' => json_encode(normalize_modality_levels($data['niveis_aceitos'] ?? []), JSON_UNESCAPED_UNICODE),
             'dia_semana' => (int) ($data['dia_semana'] ?? 0),
             'hora_inicio' => $this->normalizeTimeValue((string) ($data['hora_inicio'] ?? '')),
             'hora_fim' => $this->normalizeTimeValue((string) ($data['hora_fim'] ?? '')),
@@ -4204,6 +4225,10 @@ class AdminService
             $pdo->exec('UPDATE horarios_semanais SET dispensar_avaliacao_previa=1 WHERE tipo_horario="avaliacao"');
         }
 
+        if (!isset($columns['niveis_aceitos_json'])) {
+            $pdo->exec('ALTER TABLE horarios_semanais ADD COLUMN niveis_aceitos_json JSON NULL AFTER dispensar_avaliacao_previa');
+        }
+
         if (!isset($columns['criado_por_conta_id'])) {
             $pdo->exec('ALTER TABLE horarios_semanais ADD COLUMN criado_por_conta_id BIGINT UNSIGNED NULL AFTER id, ADD INDEX idx_horarios_semanais_criador (criado_por_conta_id)');
             $pdo->exec("UPDATE horarios_semanais hs
@@ -4220,6 +4245,25 @@ class AdminService
                 WHERE hs.criado_por_conta_id IS NULL");
         }
 
+        $ensured = true;
+    }
+
+    private function ensureModalityLevelSchema(): void
+    {
+        static $ensured = false;
+        if ($ensured) { return; }
+        $pdo = Database::connection();
+        $columns = [];
+        foreach ($pdo->query('SHOW COLUMNS FROM certificados_nivel_modalidade')->fetchAll(PDO::FETCH_ASSOC) as $column) {
+            $columns[(string) ($column['Field'] ?? '')] = true;
+        }
+        $alterations = [];
+        if (!isset($columns['tipo_movimentacao'])) { $alterations[] = "ADD COLUMN tipo_movimentacao ENUM('concessao','evolucao','rebaixamento') NOT NULL DEFAULT 'concessao' AFTER observacoes"; }
+        if (!isset($columns['nivel_anterior_id'])) { $alterations[] = 'ADD COLUMN nivel_anterior_id BIGINT UNSIGNED NULL AFTER tipo_movimentacao'; }
+        if (!isset($columns['avaliacao_fisica_id'])) { $alterations[] = 'ADD COLUMN avaliacao_fisica_id BIGINT UNSIGNED NULL AFTER nivel_anterior_id'; }
+        if ($alterations !== []) { $pdo->exec('ALTER TABLE certificados_nivel_modalidade ' . implode(', ', $alterations)); }
+        $levelStmt = $pdo->prepare('INSERT IGNORE INTO niveis_modalidade (slug, nome) VALUES (:slug, :nome)');
+        foreach (modality_level_labels() as $slug => $name) { $levelStmt->execute([':slug' => $slug, ':nome' => $name]); }
         $ensured = true;
     }
 
@@ -4644,9 +4688,12 @@ class AdminService
                 a.data_agendada,
                 a.publico_alvo,
                 a.status,
-                p.nome_completo
+                p.nome_completo,
+                hs.modalidade_id,
+                hs.tipo_horario
             FROM agendamentos a
             INNER JOIN pessoas p ON p.id = a.pessoa_id
+            INNER JOIN horarios_semanais hs ON hs.id = a.horario_semanal_id
             WHERE a.id = :id
             LIMIT 1
         ');
@@ -4658,6 +4705,83 @@ class AdminService
         }
 
         return $booking;
+    }
+
+    private function recordModalityEvaluation(PDO $pdo, array $booking, int $accountId, array $data): void
+    {
+        if ((string) ($booking['tipo_horario'] ?? '') !== 'avaliacao') {
+            throw new RuntimeException('A avaliação de modalidade só pode ser registrada em um horário do tipo Avaliação.');
+        }
+        $personId = (int) ($booking['pessoa_id'] ?? 0);
+        $modalityId = (int) ($booking['modalidade_id'] ?? 0);
+        $levelSlug = strtolower(trim((string) ($data['nivel_slug'] ?? '')));
+        $notes = trim((string) ($data['observacoes_avaliacao'] ?? ''));
+
+        $level = null;
+        if ($levelSlug !== '') {
+            if (!isset(modality_level_labels()[$levelSlug])) {
+                throw new RuntimeException('Selecione um nível válido para o certificado.');
+            }
+            $levelStmt = $pdo->prepare('SELECT id, slug, nome FROM niveis_modalidade WHERE slug = :slug LIMIT 1');
+            $levelStmt->execute([':slug' => $levelSlug]);
+            $level = $levelStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+            if ($level === null) { throw new RuntimeException('O nível selecionado não está cadastrado no sistema.'); }
+        }
+
+        $currentStmt = $pdo->prepare("SELECT cnm.id, cnm.nivel_modalidade_id, nm.slug, nm.nome
+            FROM certificados_nivel_modalidade cnm
+            INNER JOIN niveis_modalidade nm ON nm.id = cnm.nivel_modalidade_id
+            WHERE cnm.pessoa_id = :pessoa AND cnm.modalidade_id = :modalidade AND cnm.status = 'ativo'
+            ORDER BY cnm.id DESC LIMIT 1 FOR UPDATE");
+        $currentStmt->execute([':pessoa' => $personId, ':modalidade' => $modalityId]);
+        $current = $currentStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        $movement = 'concessao';
+
+        if ($level !== null && $current !== null) {
+            $comparison = modality_level_rank((string) $level['slug']) <=> modality_level_rank((string) $current['slug']);
+            if ($comparison === 0) { throw new RuntimeException('A pessoa já possui certificado ativo neste nível.'); }
+            if ($comparison < 0) {
+                if (empty($data['confirmar_rebaixamento']) || $notes === '') {
+                    throw new RuntimeException('Para rebaixar o nível, confirme expressamente a decisão e informe uma justificativa técnica.');
+                }
+                $movement = 'rebaixamento';
+            } else {
+                $movement = 'evolucao';
+            }
+        }
+
+        $evaluationStmt = $pdo->prepare('INSERT INTO avaliacoes_fisicas
+            (pessoa_id, modalidade_id, data_avaliacao, situacao, nivel_modalidade_id, observacoes, validado_por_conta_id)
+            VALUES (:pessoa, :modalidade, :data, "apto", :nivel, :observacoes, :conta)');
+        $evaluationStmt->execute([
+            ':pessoa' => $personId, ':modalidade' => $modalityId,
+            ':data' => (string) ($booking['data_agendada'] ?? date('Y-m-d H:i:s')),
+            ':nivel' => $level !== null ? (int) $level['id'] : null,
+            ':observacoes' => $notes !== '' ? $notes : null, ':conta' => $accountId,
+        ]);
+        $evaluationId = (int) $pdo->lastInsertId();
+
+        if ($level !== null) {
+            if ($current !== null) {
+                $pdo->prepare("UPDATE certificados_nivel_modalidade SET status = 'inativo' WHERE id = :id LIMIT 1")
+                    ->execute([':id' => (int) $current['id']]);
+            }
+            $certificateStmt = $pdo->prepare('INSERT INTO certificados_nivel_modalidade
+                (pessoa_id, modalidade_id, nivel_modalidade_id, status, validado_por_conta_id, observacoes, tipo_movimentacao, nivel_anterior_id, avaliacao_fisica_id)
+                VALUES (:pessoa, :modalidade, :nivel, "ativo", :conta, :observacoes, :movimento, :nivel_anterior, :avaliacao)');
+            $certificateStmt->execute([
+                ':pessoa' => $personId, ':modalidade' => $modalityId, ':nivel' => (int) $level['id'],
+                ':conta' => $accountId, ':observacoes' => $notes !== '' ? $notes : null,
+                ':movimento' => $movement, ':nivel_anterior' => $current !== null ? (int) $current['nivel_modalidade_id'] : null,
+                ':avaliacao' => $evaluationId,
+            ]);
+        }
+
+        AuditLogService::record('avaliacao_modalidade.registrada', 'avaliacoes_fisicas', $evaluationId, [
+            'pessoa_id' => $personId, 'modalidade_id' => $modalityId,
+            'nivel_anterior' => $current['slug'] ?? null, 'nivel_novo' => $level['slug'] ?? null,
+            'movimentacao' => $level !== null ? $movement : 'apto_sem_certificado', 'conta_id' => $accountId,
+        ]);
     }
 
     /**
@@ -4694,6 +4818,8 @@ class AdminService
     private function hydrateManagementBookingsRows(array $rows): array
     {
         $now = new DateTimeImmutable();
+        $pdo = Database::connection();
+        $levelStmt = $pdo->prepare("SELECT nm.slug, nm.nome FROM certificados_nivel_modalidade cnm INNER JOIN niveis_modalidade nm ON nm.id=cnm.nivel_modalidade_id WHERE cnm.pessoa_id=:pessoa AND cnm.modalidade_id=:modalidade AND cnm.status='ativo' ORDER BY cnm.id DESC LIMIT 1");
 
         foreach ($rows as &$row) {
             $row['idade'] = calculate_age($row['data_nascimento'] ?? null);
@@ -4702,6 +4828,10 @@ class AdminService
             $row['status_label'] = $this->formatBookingStatusLabel((string) ($row['status'] ?? ''));
             $row['chamada_liberada'] = $this->canManageBookingAttendance($row, $now);
             $row['status_sigla'] = $this->formatBookingStatusShortLabel((string) ($row['status'] ?? ''));
+            $levelStmt->execute([':pessoa' => (int) ($row['pessoa_id'] ?? 0), ':modalidade' => (int) ($row['modalidade_id'] ?? 0)]);
+            $currentLevel = $levelStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+            $row['nivel_atual_slug'] = (string) ($currentLevel['slug'] ?? '');
+            $row['nivel_atual_nome'] = (string) ($currentLevel['nome'] ?? 'Sem certificado de nível');
             $phoneDigits = preg_replace('/\D+/', '', (string) ($row['telefone_whatsapp'] ?? '')) ?: '';
             if ($phoneDigits !== '' && !str_starts_with($phoneDigits, '55')) {
                 $phoneDigits = '55' . $phoneDigits;

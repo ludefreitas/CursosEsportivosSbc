@@ -800,7 +800,13 @@ class AdminController extends Controller
                 (int) ($_POST['agendamento_id'] ?? 0),
                 $status,
                 (int) $user['conta_id'],
-                $justificationReason
+                $justificationReason,
+                [
+                    'avaliar_modalidade' => !empty($_POST['avaliar_modalidade']),
+                    'nivel_slug' => trim((string) ($_POST['nivel_slug'] ?? '')),
+                    'observacoes_avaliacao' => trim((string) ($_POST['observacoes_avaliacao'] ?? '')),
+                    'confirmar_rebaixamento' => !empty($_POST['confirmar_rebaixamento']),
+                ]
             );
 
             if ($this->isAjaxRequest()) {
@@ -2150,7 +2156,9 @@ class AdminController extends Controller
             $courseEnrollmentService = new CourseEnrollmentService();
             $data['courseEnrollmentSortBy'] = trim((string) ($_GET['ordenar_por'] ?? 'ordem_inscricao'));
             $data['courseEnrollmentSortDirection'] = trim((string) ($_GET['direcao'] ?? 'asc'));
-            $data['courseEnrollmentsManagement'] = $courseEnrollmentService->listForManagement($data['courseEnrollmentSortBy'], $data['courseEnrollmentSortDirection']);
+            $data['courseEnrollmentStatusFilter'] = trim((string) ($_GET['status'] ?? 'todos'));
+            $data['courseEnrollmentConditionFilter'] = trim((string) ($_GET['condicao'] ?? 'todas'));
+            $data['courseEnrollmentsManagement'] = $courseEnrollmentService->listForManagement($data['courseEnrollmentSortBy'], $data['courseEnrollmentSortDirection'], $data['courseEnrollmentStatusFilter'], $data['courseEnrollmentConditionFilter']);
             $data['courseEnrollmentStatusSummary'] = $courseEnrollmentService->enrollmentStatusSummaryForManagement();
         }
 
@@ -2355,6 +2363,7 @@ class AdminController extends Controller
             $data['courseClasses'] = $courseService->listClassesForManagement();
             $data['modalitySchedules'] = $courseService->listModalitySchedulesForManagement();
             $data['courseProfessors'] = $courseService->listProfessors();
+            $data['courseInterns'] = $courseService->listInterns();
             $data['courseModalitiesManagement'] = $this->adminService->listModalitiesForManagement();
             $data['courseLocationsManagement'] = $this->adminService->listTrainingLocationsForSpaceForm();
             $data['courseSpacesManagement'] = $this->adminService->listTrainingSpacesForManagement();
@@ -2677,9 +2686,15 @@ class AdminController extends Controller
     {
         $user = $this->assertAdminAccess();
         try {
-            (new CourseEnrollmentService())->assignProfessor((int) ($_POST['turma_id'] ?? 0), (int) ($_POST['professor_conta_id'] ?? 0), (int) $user['conta_id']);
+            (new CourseEnrollmentService())->assignClassTeam(
+                (int) ($_POST['turma_id'] ?? 0),
+                (int) ($_POST['professor_principal_conta_id'] ?? 0),
+                (array) ($_POST['professor_auxiliar_conta_ids'] ?? []),
+                (array) ($_POST['estagiario_conta_ids'] ?? []),
+                (int) $user['conta_id']
+            );
             $view = ($_POST['course_management_view'] ?? '') === 'turmas-locais' ? 'turmas-locais' : 'turmas';
-            $this->jsonResponse(['success' => true, 'message' => 'Professor atribuído à turma com sucesso.', 'html' => $this->renderCourseManagementPanelHtml($view)]);
+            $this->jsonResponse(['success' => true, 'message' => 'Equipe da turma atualizada com sucesso.', 'html' => $this->renderCourseManagementPanelHtml($view)]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
@@ -2786,6 +2801,7 @@ class AdminController extends Controller
         $courseClasses = $courseService->listClassesForManagement();
         $modalitySchedules = $courseService->listModalitySchedulesForManagement();
         $courseProfessors = $courseService->listProfessors();
+        $courseInterns = $courseService->listInterns();
         $courseModalitiesManagement = $this->adminService->listModalitiesForManagement();
         $courseLocationsManagement = $this->adminService->listTrainingLocationsForSpaceForm();
         $courseSpacesManagement = $this->adminService->listTrainingSpacesForManagement();

@@ -398,6 +398,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                 <td>
                                                     <strong><?php echo e(date('H:i', strtotime((string) $booking['data_agendada']))); ?></strong><br>
                                                     <small><?php echo e($booking['modalidade_nome'] . ' - ' . ucfirst((string) $booking['tipo_horario'])); ?></small>
+                                                    <small>Nível na modalidade: <?php echo e((string) ($booking['nivel_atual_nome'] ?? 'Sem certificado de nível')); ?></small>
                                                 </td>
                                                 <td class="admin-booking-person-inline">
                                                     <strong><?php echo e((string) ($booking['nome_completo'] ?? '')); ?></strong>
@@ -419,7 +420,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                     <?php if ($bookingStatus !== 'cancelado') { ?>
                                                         <div class="admin-booking-status-actions<?php echo !$canManageAttendance ? ' is-disabled' : ''; ?>" data-booking-status-group="<?php echo e((string) $booking['id']); ?>" data-current-status="<?php echo e($bookingStatus); ?>">
                                                             <label class="admin-booking-status-option admin-booking-status-option-presente">
-                                                                <input type="checkbox" class="admin-booking-status-checkbox" data-booking-id="<?php echo e((string) $booking['id']); ?>" data-status="presente" <?php echo $bookingStatus === 'presente' ? 'checked' : ''; ?> <?php echo !$canManageAttendance ? 'disabled' : ''; ?>>
+                                                                <input type="checkbox" class="admin-booking-status-checkbox" data-booking-id="<?php echo e((string) $booking['id']); ?>" data-status="presente" data-booking-type="<?php echo e((string) ($booking['tipo_horario'] ?? '')); ?>" data-booking-person="<?php echo e((string) ($booking['nome_completo'] ?? '')); ?>" data-current-level="<?php echo e((string) ($booking['nivel_atual_nome'] ?? 'Sem certificado de nível')); ?>" <?php echo $bookingStatus === 'presente' ? 'checked' : ''; ?> <?php echo !$canManageAttendance ? 'disabled' : ''; ?>>
                                                                 <span>Presente</span>
                                                             </label>
                                                             <label class="admin-booking-status-option admin-booking-status-option-falta">
@@ -489,6 +490,22 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <button type="button" class="btn btn-secondary" id="admin-booking-justification-cancel">Cancelar</button>
                         <button type="submit" class="btn btn-primary">Salvar justificativa</button>
                     </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="admin-booking-evaluation-modal" class="popup-overlay hidden" aria-hidden="true">
+            <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-booking-evaluation-title">
+                <div class="admin-popup-head"><div><h2 id="admin-booking-evaluation-title">Registrar presença e avaliação</h2><p class="muted">Deseja avaliar a pessoa e, opcionalmente, gerar um certificado de nível?</p></div><button type="button" class="popup-close-icon" data-evaluation-close="1" aria-label="Fechar">&times;</button></div>
+                <form class="stack-form" id="admin-booking-evaluation-form" data-manual-submit="1">
+                    <input type="hidden" name="agendamento_id">
+                    <p><strong>Pessoa:</strong> <span data-evaluation-person="1">-</span><br><strong>Nível atual:</strong> <span data-evaluation-current-level="1">-</span></p>
+                    <label><span>Resultado da chamada</span><select name="evaluation_action"><option value="presenca">Somente registrar presença</option><option value="apto">Registrar avaliação como apto, sem certificado</option><option value="certificado">Registrar como apto e gerar certificado de nível</option></select></label>
+                    <label data-evaluation-level-field="1" class="hidden"><span>Nível certificado</span><select name="nivel_slug"><option value="">Selecione</option><?php foreach (modality_level_labels() as $levelSlug => $levelLabel) { ?><option value="<?php echo e($levelSlug); ?>"><?php echo e($levelLabel); ?></option><?php } ?></select></label>
+                    <label><span>Observações da avaliação</span><textarea name="observacoes_avaliacao" rows="4" placeholder="Registre os fundamentos técnicos da avaliação."></textarea></label>
+                    <label class="checkbox-chip hidden" data-evaluation-demotion-field="1"><input type="checkbox" name="confirmar_rebaixamento" value="1"><span>Confirmo tecnicamente o rebaixamento de nível e seu registro no histórico.</span></label>
+                    <small class="muted">Evoluções e rebaixamentos preservam o certificado anterior como inativo no histórico da pessoa.</small>
+                    <div class="popup-actions"><button type="button" class="btn btn-secondary" data-evaluation-close="1">Cancelar</button><button type="submit" class="btn btn-primary">Confirmar</button></div>
                 </form>
             </div>
         </div>
@@ -571,6 +588,11 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         </select>
                         <small class="muted" data-evaluation-requirement-help="1"></small>
                     </label>
+                    <fieldset class="course-levels-field">
+                        <legend>Níveis aceitos <button type="button" class="field-help-button" data-weekly-schedule-field-help="niveis_aceitos" aria-label="Ajuda sobre níveis aceitos">?</button></legend>
+                        <div class="course-weekdays-options"><?php foreach (modality_level_labels() as $levelSlug => $levelLabel) { ?><label class="checkbox-chip"><input type="checkbox" name="niveis_aceitos[]" value="<?php echo e($levelSlug); ?>"><span><?php echo e($levelLabel); ?></span></label><?php } ?></div>
+                        <small class="muted">Sem marcação: sem limitação de nível.</small>
+                    </fieldset>
 
                     <div class="grid-two">
                         <label><span>Hora inicial</span><input type="time" name="hora_inicio" required></label>
@@ -759,7 +781,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                     </td>
                                                     <td>
                                                         <strong><?php echo e($schedule['local_nome']); ?></strong><br>
-                                                        <small><?php echo e($schedule['espaco_nome'] . ' - ' . $schedule['modalidade_nome'] . ' (' . ucfirst((string) $schedule['tipo_horario']) . ')'); ?></small>
+                                                        <small><?php echo e($schedule['espaco_nome'] . ' - ' . $schedule['modalidade_nome'] . ' (' . ucfirst((string) $schedule['tipo_horario']) . ')'); ?></small><br><small>Níveis: <?php echo e(describe_modality_levels($schedule['niveis_aceitos_json'] ?? null)); ?></small>
                                                     </td>
                                                     <td>
                                                         <?php
@@ -896,6 +918,11 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             </select>
                             <small class="muted" data-evaluation-requirement-help="1"></small>
                         </label>
+                        <fieldset class="course-levels-field">
+                            <legend>Níveis aceitos <button type="button" class="field-help-button" data-weekly-schedule-field-help="niveis_aceitos" aria-label="Ajuda sobre níveis aceitos">?</button></legend>
+                            <div class="course-weekdays-options"><?php foreach (modality_level_labels() as $levelSlug => $levelLabel) { ?><label class="checkbox-chip"><input type="checkbox" name="niveis_aceitos[]" value="<?php echo e($levelSlug); ?>"><span><?php echo e($levelLabel); ?></span></label><?php } ?></div>
+                            <small class="muted">Sem marcação: sem limitação de nível.</small>
+                        </fieldset>
 
                         <div class="grid-two">
                             <label><span>Hora inicial</span><input type="time" name="hora_inicio" id="admin-weekly-schedule-start" required></label>

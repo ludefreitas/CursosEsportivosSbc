@@ -202,6 +202,7 @@
                         <option value="pvs"><?php echo e(condition_public_label('pvs')); ?></option>
                     </select>
                 </label>
+                <label class="checkbox-line agenda-terms-acceptance"><input type="checkbox" name="aceite_termos" value="1" required><span>Li e aceito os termos do agendamento, disponíveis <button type="button" class="link-button" data-booking-terms-open="1">neste link</button>.</span></label>
                 <button type="submit" class="btn btn-primary">Agendar horário</button>
             </form>
         </div>

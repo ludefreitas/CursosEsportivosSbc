@@ -75,6 +75,54 @@
             return String(availableValue).padStart(2, '0') + '/' + String(totalValue).padStart(2, '0');
         },
 
+        pessoaMenorDeIdade: function (birthDate) {
+            const parts = String(birthDate || '').slice(0, 10).split('-');
+            if (parts.length !== 3) return false;
+            const birth = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+            const today = new Date();
+            let age = today.getFullYear() - birth.getFullYear();
+            if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age -= 1;
+            return age < 18;
+        },
+
+        abrirTermosAgendamento: function () {
+            const $person = $('#form-agendamento [name="person_id"]:checked');
+            if (!$person.length) {
+                App.core.abrirPopup('erro', 'Selecione a pessoa que será agendada antes de consultar os termos.');
+                return;
+            }
+            const info = App.state.agendaPendingEventData;
+            if (!info || !info.event) return;
+            const props = info.event.extendedProps || {};
+            const personName = String($person.attr('data-person-name') || '').trim();
+            const minor = App.agenda.pessoaMenorDeIdade($person.attr('data-birth-date'));
+            const activity = String(props.modalidade || info.event.title || 'atividade').trim();
+            const location = String(props.local_apelido || props.local || 'local a definir').trim()
+                + (String(props.espaco || '').trim() !== '' ? ' — ' + String(props.espaco).trim() : '');
+            let $modal = $('#agenda-booking-terms-modal');
+            if (!$modal.length) {
+                $modal = $('<div>', { id: 'agenda-booking-terms-modal', class: 'popup-overlay hidden', 'aria-hidden': 'true' })
+                    .append($('<div>', { class: 'popup-card popup-agenda-details-card course-terms-modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'agenda-booking-terms-title' })
+                        .append($('<div>', { class: 'popup-head' })
+                            .append($('<h3>', { id: 'agenda-booking-terms-title', text: 'Termos do agendamento' }))
+                            .append($('<button>', { type: 'button', class: 'popup-close-icon', 'data-booking-terms-close': '1', 'aria-label': 'Fechar termos', text: '×' })))
+                        .append($('<div>', { class: 'popup-body course-terms-content' }))
+                        .append($('<div>', { class: 'popup-actions' }).append($('<button>', { type: 'button', class: 'btn btn-secondary', 'data-booking-terms-close': '1', text: 'Fechar' }))));
+                $('body').append($modal);
+            }
+            const $body = $modal.find('.course-terms-content').empty();
+            $body.append($('<p>').append(document.createTextNode('Ao clicar no botão ')).append($('<strong>', { text: 'AGENDAR HORÁRIO' })).append(document.createTextNode(minor ? ', você, na qualidade de responsável, declara estar ciente de que:' : ', você declara estar ciente de que:')));
+            const $list = $('<ul>');
+            $list.append($('<li>').append(document.createTextNode('será realizado o agendamento de ')).append($('<strong>', { text: personName })).append(document.createTextNode(' para ')).append($('<strong>', { text: activity })).append(document.createTextNode(', no dia ')).append($('<strong>', { text: App.agenda.formatarDataCompletaAgenda(info.event.start) })).append(document.createTextNode(', das ')).append($('<strong>', { text: App.agenda.formatarHoraAgenda(info.event.start) + ' às ' + App.agenda.formatarHoraAgenda(info.event.end) })).append(document.createTextNode(', em ')).append($('<strong>', { text: location })).append(document.createTextNode(';')));
+            if (minor) $list.append($('<li>', { text: 'o(a) menor deverá comparecer acompanhado(a) de um responsável maior de idade, quando essa presença for exigida, e apresentar os documentos necessários;' }));
+            else $list.append($('<li>', { text: 'deverá comparecer com antecedência e apresentar os documentos exigidos, quando aplicável;' }));
+            $list.append($('<li>', { text: 'a ausência sem cancelamento prévio poderá impedir o aproveitamento do horário por outra pessoa.' }));
+            $body.append($list);
+            $body.append($('<p>', { text: 'Declara que as informações prestadas neste site são verdadeiras e precisas e que ' + (minor ? 'o(a) menor se encontra' : 'se encontra') + ' APTO(A) À PRÁTICA DE ATIVIDADES FÍSICAS, isentando o professor e a Secretaria de Esportes e Lazer do Município de São Bernardo do Campo de responsabilidade por informações incorretas ou omitidas.' }));
+            $body.append($('<p>').append(document.createTextNode('Declara, ainda, estar ciente do art. 5º da Lei nº 10.848/2001, que trata da obrigatoriedade da apresentação de ')).append($('<strong>', { text: 'ATESTADO MÉDICO' })).append(document.createTextNode(', bem como autoriza a utilização de eventuais imagens registradas durante a atividade para arquivo e divulgação institucional.')));
+            $modal.removeClass('hidden').attr('aria-hidden', 'false');
+        },
+
         renderizarEventoCalendario: function (event) {
             const title = App.agenda.escapeHtml(String((event && event.title) || '').trim());
             const time = App.agenda.escapeHtml(App.agenda.formatarHoraAgenda(event && event.start ? event.start : null));
@@ -220,6 +268,7 @@
             $('#agenda-special-schedule-birth-date').val('').prop('readonly', false);
             $('#agenda-special-schedule-publico').val('geral').find('option').prop('disabled', false);
             $('#form-agenda-horario-especial').find('input[name="aceite_termos"]').prop('checked', false);
+            $('#form-agendamento').find('input[name="aceite_termos"]').prop('checked', false);
             $('#agenda-cancel-bookings').addClass('hidden').html('');
             $('#agenda-person-options').addClass('hidden').html('');
             const $accessWarning = $('#agenda-access-warning');
@@ -379,7 +428,7 @@
                         html += ''
                             + '<label class="' + cardClass + '" data-person-choice-card="1">'
                             + '<span class="agenda-person-line">'
-                            + '<input type="radio" name="person_id" data-person-choice="1" data-publicos-permitidos="' + App.agenda.escapeHtml(JSON.stringify(publicosPermitidos)) + '" value="' + String(item.id) + '"' + checkedAttr + '>'
+                            + '<input type="radio" name="person_id" data-person-choice="1" data-person-name="' + App.agenda.escapeHtml(String(item.nome_completo || '')) + '" data-birth-date="' + App.agenda.escapeHtml(String(item.data_nascimento || '')) + '" data-publicos-permitidos="' + App.agenda.escapeHtml(JSON.stringify(publicosPermitidos)) + '" value="' + String(item.id) + '"' + checkedAttr + '>'
                             + '<span class="agenda-person-main">' + String(item.nome_completo || '') + '</span>'
                             + '</span>'
                             + reasonsHtml
@@ -497,6 +546,7 @@
                     : '<p><strong>Faixa etária:</strong> ( para ' + props.idade_minima + ' a ' + props.idade_maxima + ' anos de idade )</p>')
                 + '<p><strong>Sexo permitido:</strong> ' + App.agenda.formatarSexoHorario(props.sexo) + '</p>'
                 + '<p><strong>Vagas:</strong> ' + App.agenda.formatarVagasAgenda(props.vagas_disponiveis, props.vagas_total) + ' disponíveis</p>'
+                + '<p><strong>Níveis aceitos:</strong> ' + App.agenda.escapeHtml(String(props.niveis_aceitos_descricao || 'Sem limitação de nível')) + '</p>'
                 + (isInactiveSchedule ? '<p><strong>Aviso:</strong> Este horário semanal está inativo e não aceita novos agendamentos.</p>' : '')
                 + (isPast ? '<p><strong>Aviso:</strong> Não é possível agendar para data passada.</p>' : '')
                 + bookingStatusHtml
@@ -716,6 +766,17 @@
                     $(this).prop('disabled', publicos.indexOf(String($(this).val())) === -1);
                 });
                 $select.val(String(publicos[0] || 'geral')).trigger('change');
+            });
+
+            $(document).on('click', '[data-booking-terms-open="1"]', function (event) {
+                event.preventDefault();
+                App.agenda.abrirTermosAgendamento();
+            });
+
+            $(document).on('click', '[data-booking-terms-close="1"], #agenda-booking-terms-modal', function (event) {
+                if ($(event.target).is('#agenda-booking-terms-modal') || $(event.target).is('[data-booking-terms-close="1"]')) {
+                    $('#agenda-booking-terms-modal').addClass('hidden').attr('aria-hidden', 'true');
+                }
             });
 
             $(document).on('click', '#agenda-details-modal-close', function () {

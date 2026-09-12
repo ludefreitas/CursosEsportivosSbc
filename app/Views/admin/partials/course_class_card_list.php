@@ -11,12 +11,15 @@
                 <p><strong>Dias:</strong> <?php echo e((string) ($class['dias_semana_descricao'] ?? 'Não informado')); ?></p>
                 <p><strong>Horário:</strong> <?php if (!empty($class['hora_inicio']) && !empty($class['hora_fim'])) { echo e(substr((string) $class['hora_inicio'], 0, 5) . ' às ' . substr((string) $class['hora_fim'], 0, 5)); } else { echo 'Não informado'; } ?></p>
                 <p><strong><?php echo ($class['criterio_faixa_etaria'] ?? '') === 'ano_nascimento' ? 'Ano de nascimento' : 'Faixa etária'; ?>:</strong> <?php echo e((string) ($class['faixa_etaria_descricao'] ?? 'Não informada')); ?></p>
-                <p><strong>Professor:</strong> <?php echo e((string) ($class['professor_nome'] ?? 'Sem professor')); ?></p>
+                <p><strong>Níveis aceitos:</strong> <?php echo e((string) ($class['niveis_aceitos_descricao'] ?? 'Sem limitação de nível')); ?></p>
+                <p><strong>Professor principal:</strong> <?php echo e((string) (($class['professor_principal_nome'] ?? '') ?: 'Sem professor principal')); ?></p>
+                <p><strong>Professores auxiliares:</strong> <?php echo e((string) (($class['professores_auxiliares_nomes'] ?? '') ?: 'Sem professor auxiliar')); ?></p>
+                <p><strong>Estagiários:</strong> <?php echo e((string) (($class['estagiarios_nomes'] ?? '') ?: 'Sem estagiário')); ?></p>
                 <p><strong>Status:</strong> <?php echo e((string) ($class['status_label'] ?? (!empty($class['ativo']) ? 'Planejada' : 'Inscrições suspensas'))); ?></p>
             </div>
             <div class="course-row-actions admin-class-card-actions">
                 <button type="button" class="btn btn-primary" data-course-edit="class" data-course-record="<?php echo e((string) json_encode($class, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>">Editar</button>
-                <button type="button" class="btn btn-secondary" data-course-assign-professor="<?php echo e((string) $class['id']); ?>" data-course-current-professor="<?php echo e((string) ($class['professor_conta_id'] ?? '')); ?>">Professor</button>
+                <button type="button" class="btn btn-secondary" data-course-assign-professor="<?php echo e((string) $class['id']); ?>" data-course-main-professor="<?php echo e((string) ($class['professor_conta_id'] ?? '')); ?>" data-course-current-professors="<?php echo e((string) json_encode($class['professores_ids'] ?? [], JSON_UNESCAPED_UNICODE)); ?>" data-course-current-interns="<?php echo e((string) json_encode($class['estagiarios_ids'] ?? [], JSON_UNESCAPED_UNICODE)); ?>">Equipe</button>
                 <?php if (!empty($class['ativo'])) { ?><form method="POST" action="<?php echo e(url('/admin/temporadas-turmas/inativar')); ?>" data-course-deactivate="1"><input type="hidden" name="entidade" value="turma"><input type="hidden" name="id" value="<?php echo e((string) $class['id']); ?>"><input type="hidden" name="course_management_view" value="<?php echo e((string) $courseManagementView); ?>"><button type="submit" class="btn btn-secondary">Inativar</button></form><?php } ?>
             </div>
         </article>

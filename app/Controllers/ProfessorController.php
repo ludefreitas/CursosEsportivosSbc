@@ -240,7 +240,13 @@ class ProfessorController extends Controller
                 (int) ($_POST['agendamento_id'] ?? 0),
                 trim((string) ($_POST['status'] ?? 'presente')),
                 (int) $user['conta_id'],
-                trim((string) ($_POST['justificativa_motivo'] ?? ''))
+                trim((string) ($_POST['justificativa_motivo'] ?? '')),
+                [
+                    'avaliar_modalidade' => !empty($_POST['avaliar_modalidade']),
+                    'nivel_slug' => trim((string) ($_POST['nivel_slug'] ?? '')),
+                    'observacoes_avaliacao' => trim((string) ($_POST['observacoes_avaliacao'] ?? '')),
+                    'confirmar_rebaixamento' => !empty($_POST['confirmar_rebaixamento']),
+                ]
             );
             $this->jsonResponse(['success' => true, 'message' => 'Chamada atualizada com sucesso.']);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
@@ -263,7 +269,9 @@ class ProfessorController extends Controller
             $courseEnrollmentService = new \App\Services\CourseEnrollmentService();
             $courseEnrollmentSortBy = trim((string) ($_POST['ordenar_por'] ?? 'ordem_inscricao'));
             $courseEnrollmentSortDirection = trim((string) ($_POST['direcao'] ?? 'asc'));
-            $courseEnrollmentsManagement = $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection);
+            $courseEnrollmentStatusFilter = trim((string) ($_POST['status_filtro'] ?? 'todos'));
+            $courseEnrollmentConditionFilter = trim((string) ($_POST['condicao_filtro'] ?? 'todas'));
+            $courseEnrollmentsManagement = $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter);
             $courseEnrollmentStatusSummary = $courseEnrollmentService->enrollmentStatusSummaryForManagement();
             $professorView = true;
             ob_start();
@@ -381,12 +389,16 @@ class ProfessorController extends Controller
             $courseEnrollmentService = new \App\Services\CourseEnrollmentService();
             $courseEnrollmentSortBy = trim((string) ($_GET['ordenar_por'] ?? 'ordem_inscricao'));
             $courseEnrollmentSortDirection = trim((string) ($_GET['direcao'] ?? 'asc'));
+            $courseEnrollmentStatusFilter = trim((string) ($_GET['status'] ?? 'todos'));
+            $courseEnrollmentConditionFilter = trim((string) ($_GET['condicao'] ?? 'todas'));
             return [
                 'sectionName' => $sectionName,
                 'professorView' => true,
                 'courseEnrollmentSortBy' => $courseEnrollmentSortBy,
                 'courseEnrollmentSortDirection' => $courseEnrollmentSortDirection,
-                'courseEnrollmentsManagement' => $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection),
+                'courseEnrollmentStatusFilter' => $courseEnrollmentStatusFilter,
+                'courseEnrollmentConditionFilter' => $courseEnrollmentConditionFilter,
+                'courseEnrollmentsManagement' => $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter),
                 'courseEnrollmentStatusSummary' => $courseEnrollmentService->enrollmentStatusSummaryForManagement(),
             ];
         }

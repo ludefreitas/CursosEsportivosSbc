@@ -43,6 +43,7 @@ $currentAdminName = (string) ($currentAdminName ?? '');
                             <span>CPF: <?php echo e(!empty($professorView) ? format_cpf_professor((string) ($booking['cpf'] ?? '')) : format_cpf((string) ($booking['cpf'] ?? ''))); ?></span>
                             <span><?php echo e($booking['idade'] === null ? 'Idade não informada' : (string) $booking['idade'] . ' anos'); ?></span>
                             <?php if (trim((string) ($booking['condicoes'] ?? '')) !== '') { ?><span><?php echo e((string) $booking['condicoes']); ?></span><?php } ?>
+                            <span>Nível na modalidade: <?php echo e((string) ($booking['nivel_atual_nome'] ?? 'Sem certificado de nível')); ?></span>
                             <?php if (trim((string) ($booking['telefone_whatsapp'] ?? '')) !== '') { ?><a href="<?php echo e((string) $booking['whatsapp_url']); ?>" target="_blank" rel="noopener noreferrer">WhatsApp: <?php echo e((string) $booking['telefone_whatsapp']); ?></a><?php } ?>
                             <?php if (trim((string) ($booking['email'] ?? '')) !== '') { ?><span><?php echo e((string) $booking['email']); ?></span><?php } ?>
                         </td>
@@ -58,7 +59,7 @@ $currentAdminName = (string) ($currentAdminName ?? '');
                             <?php if ($bookingStatus !== 'cancelado') { ?>
                                 <div class="admin-booking-status-actions<?php echo !$canManageAttendance ? ' is-disabled' : ''; ?>" data-booking-status-group="<?php echo e((string) $booking['id']); ?>" data-current-status="<?php echo e($bookingStatus); ?>">
                                     <label class="admin-booking-status-option admin-booking-status-option-presente">
-                                        <input type="checkbox" class="admin-booking-status-checkbox" data-booking-id="<?php echo e((string) $booking['id']); ?>" data-status="presente" <?php echo $bookingStatus === 'presente' ? 'checked' : ''; ?> <?php echo !$canManageAttendance ? 'disabled' : ''; ?>>
+                                        <input type="checkbox" class="admin-booking-status-checkbox" data-booking-id="<?php echo e((string) $booking['id']); ?>" data-status="presente" data-booking-type="<?php echo e((string) ($booking['tipo_horario'] ?? '')); ?>" data-booking-person="<?php echo e((string) ($booking['nome_completo'] ?? '')); ?>" data-current-level="<?php echo e((string) ($booking['nivel_atual_nome'] ?? 'Sem certificado de nível')); ?>" <?php echo $bookingStatus === 'presente' ? 'checked' : ''; ?> <?php echo !$canManageAttendance ? 'disabled' : ''; ?>>
                                         <span>Presente</span>
                                     </label>
                                     <label class="admin-booking-status-option admin-booking-status-option-falta">

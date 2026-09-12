@@ -529,6 +529,12 @@
                 if (payload.justificationReason) {
                     formData.append('justificativa_motivo', String(payload.justificationReason));
                 }
+                if (payload.evaluate) {
+                    formData.append('avaliar_modalidade', '1');
+                    formData.append('nivel_slug', String(payload.levelSlug || ''));
+                    formData.append('observacoes_avaliacao', String(payload.evaluationNotes || ''));
+                    if (payload.confirmDemotion) formData.append('confirmar_rebaixamento', '1');
+                }
 
                 syncBookingStatusGroup(bookingId, status);
                 disableBookingStatusGroup(bookingId, true);
@@ -642,11 +648,39 @@
                 }
             }, 20000);
 
+            function currentCourseEnrollmentFilters($panel) {
+                return {
+                    ordenar_por: String($panel.find('[data-course-enrollment-sort="criterion"]').val() || 'ordem_inscricao'),
+                    direcao: String($panel.find('[data-course-enrollment-sort="direction"]').val() || 'asc'),
+                    status: String($panel.find('[data-course-enrollment-filter="status"]').val() || 'todos'),
+                    condicao: String($panel.find('[data-course-enrollment-filter="condition"]').val() || 'todas')
+                };
+            }
+
             $(document).on('change', '[data-course-enrollment-sort]', function () {
                 const $panel = $(this).closest('[data-admin-section="inscricoes"]');
+                activateSection('inscricoes', currentCourseEnrollmentFilters($panel), { suppressGlobalLoading: true });
+            });
+
+            $(document).on('click', '[data-course-enrollment-filter-all], [data-course-enrollment-filter-status], [data-course-enrollment-filter-condition]', function () {
+                const $button = $(this);
+                const $panel = $button.closest('[data-admin-section="inscricoes"]');
+                const filters = currentCourseEnrollmentFilters($panel);
+                if ($button.is('[data-course-enrollment-filter-all]')) {
+                    filters.status = 'todos';
+                    filters.condicao = 'todas';
+                } else if ($button.is('[data-course-enrollment-filter-status]')) {
+                    const selected = String($button.attr('data-course-enrollment-filter-status') || 'todos');
+                    filters.status = filters.status === selected ? 'todos' : selected;
+                } else {
+                    const selected = String($button.attr('data-course-enrollment-filter-condition') || 'todas');
+                    filters.condicao = filters.condicao === selected ? 'todas' : selected;
+                }
                 activateSection('inscricoes', {
-                    ordenar_por: String($panel.find('[data-course-enrollment-sort="criterion"]').val() || 'ordem_inscricao'),
-                    direcao: String($panel.find('[data-course-enrollment-sort="direction"]').val() || 'asc')
+                    ordenar_por: filters.ordenar_por,
+                    direcao: filters.direcao,
+                    status: filters.status,
+                    condicao: filters.condicao
                 }, { suppressGlobalLoading: true });
             });
 
@@ -923,6 +957,20 @@
 
                 if (/^\*{3}\.\d{3}\.\d{3}-\*{2}$/.test(original)) {
                     return original;
+                }
+
+                if (status === 'presente' && String($checkbox.attr('data-booking-type') || '') === 'avaliacao') {
+                    syncBookingStatusGroup(bookingId, previousStatus);
+                    const $modal = $('#admin-booking-evaluation-modal');
+                    const $form = $('#admin-booking-evaluation-form');
+                    $form[0].reset();
+                    $form.find('[name="agendamento_id"]').val(bookingId);
+                    $form.attr('data-previous-status', previousStatus);
+                    $form.find('[data-evaluation-person="1"]').text(String($checkbox.attr('data-booking-person') || '-'));
+                    $form.find('[data-evaluation-current-level="1"]').text(String($checkbox.attr('data-current-level') || 'Sem certificado de nível'));
+                    $form.find('[data-evaluation-level-field="1"], [data-evaluation-demotion-field="1"]').addClass('hidden');
+                    $modal.removeClass('hidden').attr('aria-hidden', 'false');
+                    return;
                 }
                 if (digits.length === 11) {
                     return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
@@ -1774,6 +1822,7 @@
                 espaco_treino_id: 'Define o espaço físico em que o horário acontecerá. O local de treino é identificado automaticamente a partir do espaço selecionado.',
                 modalidade_id: 'Define a modalidade esportiva oferecida neste horário e utilizada nos filtros da agenda.',
                 tipo_horario: 'Indica a finalidade do horário semanal: avaliação, treino ou aula.',
+                niveis_aceitos: 'Sem nenhum nível marcado, o horário não possui limitação de nível. Ao marcar um ou mais níveis, somente pessoas com certificado de nível ativo e compatível poderão agendar. Em horários de avaliação, quem já possui certificado somente poderá agendar para um nível superior.',
                 dispensar_avaliacao_previa: 'Para treino ou aula, define se a pessoa precisa possuir uma avaliação física apta para a mesma modalidade. Em horários de avaliação, essa exigência não se aplica.',
                 dia_semana: 'Define o dia da semana em que este horário se repetirá.',
                 sexo: 'Restringe o horário por sexo. Selecione Livre para permitir o agendamento de qualquer pessoa que atenda aos demais critérios.',
@@ -1947,6 +1996,11 @@
                 setValue('#admin-weekly-schedule-modality', schedule.modalidade_id);
                 setValue('#admin-weekly-schedule-type', schedule.tipo_horario || 'avaliacao');
                 setValue('#admin-weekly-schedule-evaluation-requirement', Number(schedule.dispensar_avaliacao_previa || 0) === 1 ? '1' : '0');
+                let acceptedLevels = [];
+                try { acceptedLevels = JSON.parse(String(schedule.niveis_aceitos_json || '[]')); } catch (error) { acceptedLevels = []; }
+                $('#admin-weekly-schedule-form [name="niveis_aceitos[]"]').each(function () {
+                    $(this).prop('checked', acceptedLevels.indexOf(String($(this).val())) !== -1);
+                });
                 setValue('#admin-weekly-schedule-weekday', schedule.dia_semana);
                 setValue('#admin-weekly-schedule-sex', schedule.sexo || '');
                 setValue('#admin-weekly-schedule-start', String(schedule.hora_inicio || '').slice(0, 5));
@@ -2023,6 +2077,34 @@
 
             $(document).on('click', '#admin-weekly-schedule-create-close, #admin-weekly-schedule-create-cancel', function () {
                 closeCreateModal();
+            });
+
+            $(document).on('change', '#admin-booking-evaluation-form [name="evaluation_action"]', function () {
+                const generate = String($(this).val() || '') === 'certificado';
+                const $form = $('#admin-booking-evaluation-form');
+                $form.find('[data-evaluation-level-field="1"], [data-evaluation-demotion-field="1"]').toggleClass('hidden', !generate);
+                $form.find('[name="nivel_slug"]').prop('required', generate);
+            });
+
+            $(document).on('click', '[data-evaluation-close="1"]', function () {
+                $('#admin-booking-evaluation-modal').addClass('hidden').attr('aria-hidden', 'true');
+            });
+
+            $(document).on('submit', '#admin-booking-evaluation-form', function (event) {
+                event.preventDefault();
+                const $form = $(this);
+                const action = String($form.find('[name="evaluation_action"]').val() || 'presenca');
+                const bookingId = String($form.find('[name="agendamento_id"]').val() || '0');
+                if (action === 'certificado' && !$form.find('[name="nivel_slug"]').val()) {
+                    App.core.abrirPopup('erro', 'Selecione o nível que será certificado.'); return;
+                }
+                $('#admin-booking-evaluation-modal').addClass('hidden').attr('aria-hidden', 'true');
+                submitBookingAttendanceStatus({
+                    bookingId: bookingId, status: 'presente', evaluate: action !== 'presenca',
+                    levelSlug: action === 'certificado' ? $form.find('[name="nivel_slug"]').val() : '',
+                    evaluationNotes: $form.find('[name="observacoes_avaliacao"]').val(),
+                    confirmDemotion: $form.find('[name="confirmar_rebaixamento"]').is(':checked')
+                });
             });
 
             $(document).on('click', '[data-weekly-schedule-field-help]', function (event) {
@@ -5393,6 +5475,25 @@
                 $form.find('[name="modalidade_id"]').closest('label').after($label, $catalog);
             }
 
+            function ensureClassLevelFields($form) {
+                if ($form.find('[name="niveis_aceitos[]"]').length) return;
+                const levels = { iniciante: 'Iniciante', intermediario: 'Intermediário', avancado: 'Avançado', treinamento: 'Treinamento' };
+                const $field = $('<fieldset>', { class: 'course-levels-field' });
+                const $legend = $('<legend>', { text: 'Níveis aceitos ' }).append($('<button>', {
+                    type: 'button', class: 'field-help-button', text: '?',
+                    'aria-label': 'Ajuda sobre níveis aceitos',
+                    'data-field-help-message': 'Sem nível marcado, a turma aceita pessoas com ou sem certificado. Ao marcar um ou mais níveis, somente pessoas com certificado de nível ativo e correspondente nesta modalidade poderão se inscrever.'
+                }));
+                const $options = $('<div>', { class: 'course-weekdays-options' });
+                Object.keys(levels).forEach(function (slug) {
+                    $options.append($('<label>', { class: 'checkbox-chip' })
+                        .append($('<input>', { type: 'checkbox', name: 'niveis_aceitos[]', value: slug }))
+                        .append($('<span>', { text: levels[slug] })));
+                });
+                $field.append($legend, $options, $('<small>', { class: 'muted', text: 'Padrão: sem limitação de nível.' }));
+                $form.find('[name="nome"]').closest('label').after($field);
+            }
+
             function classScheduleData($form) {
                 try { return JSON.parse(String($form.closest('[data-course-modality-schedules]').attr('data-course-modality-schedules') || '[]')); } catch (error) { return []; }
             }
@@ -5685,9 +5786,13 @@
                 if ($form.find('[name="operacao"]').length === 0) {
                     $form.append($('<input>', { type: 'hidden', name: 'operacao' }));
                 }
-                if (type === 'class') { ensureClassAgeCriterionField($form); ensureClassScheduleField($form); ensureClassOpenEnrollmentField($form); ensureClassFieldHelp($form); }
+                if (type === 'class') { ensureClassAgeCriterionField($form); ensureClassScheduleField($form); ensureClassLevelFields($form); ensureClassOpenEnrollmentField($form); ensureClassFieldHelp($form); }
                 if (type === 'season') { ensureSeasonNoticeFields($form); ensureSeasonWeeklyCoverageField($form); ensureSeasonFieldHelp($form); }
                 fillForm($form, record || {});
+                if (type === 'class') {
+                    const acceptedLevels = Array.isArray((record || {}).niveis_aceitos) ? record.niveis_aceitos : [];
+                    $form.find('[name="niveis_aceitos[]"]').each(function () { $(this).prop('checked', acceptedLevels.indexOf(String($(this).val())) !== -1); });
+                }
                 if (type === 'class') filterClassSchedules($form, record && record.cronograma_modalidade_id);
                 $form.find('[name="operacao"]').val(record ? 'editar' : 'criar');
                 if (!record && type === 'season') {
@@ -5942,12 +6047,26 @@
             $(document).on('click', '[data-course-assign-professor]', function () {
                 const $modal = $('#course-professor-modal');
                 $modal.find('[name="turma_id"]').val(String($(this).attr('data-course-assign-professor') || ''));
-                $modal.find('[name="professor_conta_id"]').val(String($(this).attr('data-course-current-professor') || ''));
+                let professorIds = [];
+                let internIds = [];
+                const mainProfessorId = String($(this).attr('data-course-main-professor') || '');
+                try { professorIds = JSON.parse(String($(this).attr('data-course-current-professors') || '[]')).map(String); } catch (error) { professorIds = []; }
+                try { internIds = JSON.parse(String($(this).attr('data-course-current-interns') || '[]')).map(String); } catch (error) { internIds = []; }
+                $modal.find('[name="professor_principal_conta_id"]').prop('checked', false).filter('[value="' + mainProfessorId + '"]').prop('checked', true);
+                $modal.find('[name="professor_auxiliar_conta_ids[]"]').each(function () {
+                    const id = String($(this).val());
+                    $(this).prop('checked', id !== mainProfessorId && professorIds.indexOf(id) !== -1).prop('disabled', id === mainProfessorId);
+                });
+                $modal.find('[name="estagiario_conta_ids[]"]').each(function () { $(this).prop('checked', internIds.indexOf(String($(this).val())) !== -1); });
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
             });
             $(document).on('submit', '[data-course-professor-form="1"]', function (event) {
                 event.preventDefault();
                 const $form = $(this);
+                if ($form.find('[name="professor_principal_conta_id"]:checked').length === 0) {
+                    App.core.abrirPopup('erro', 'Eleja o professor principal da turma.');
+                    return;
+                }
                 const $button = $form.find('button[type="submit"]').prop('disabled', true);
                 $.ajax({ url: $form.attr('action'), method: 'POST', dataType: 'json', data: $form.serialize() })
                     .done(function (response) {
@@ -5958,6 +6077,15 @@
                     })
                     .fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); })
                     .always(function () { $button.prop('disabled', false); });
+            });
+            $(document).on('change', '[name="professor_principal_conta_id"]', function () {
+                const mainId = String($(this).val() || '');
+                const $form = $(this).closest('form');
+                $form.find('[name="professor_auxiliar_conta_ids[]"]').each(function () {
+                    const isMain = String($(this).val()) === mainId;
+                    if (isMain) $(this).prop('checked', false);
+                    $(this).prop('disabled', isMain);
+                });
             });
             $(document).on('change', '[data-season-notice-toggle="1"]', function () { updateSeasonNoticeFields($(this).closest('form')); });
             $(document).on('change', '[data-season-registration-enrollment-toggle="1"], [data-course-form="season"] [name="matriculas_inicio"], [data-course-form="season"] [name="matriculas_fim"]', function () { updateSeasonRegistrationEnrollmentField($(this).closest('form')); });

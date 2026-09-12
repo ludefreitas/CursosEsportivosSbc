@@ -354,6 +354,48 @@
                     + String(courseClass.idade_maxima || 0);
             }
 
+            function isMinorByBirthDate(value) {
+                const parts = String(value || '').slice(0, 10).split('-');
+                if (parts.length !== 3) return false;
+                const birth = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                const today = new Date();
+                let age = today.getFullYear() - birth.getFullYear();
+                if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age -= 1;
+                return age < 18;
+            }
+
+            function openEnrollmentTerms($form) {
+                const $person = $form.find('[name="pessoa_id"]:checked');
+                if (!$person.length) {
+                    App.core.abrirPopup('erro', 'Selecione a pessoa que será inscrita antes de consultar os termos.');
+                    return;
+                }
+                const personName = String($person.attr('data-person-name') || '').trim();
+                const className = String($form.attr('data-class-name') || '').trim();
+                const minor = isMinorByBirthDate($person.attr('data-birth-date'));
+                let $modal = $('#home-course-enrollment-terms-modal');
+                if (!$modal.length) {
+                    $modal = $('<div>', { id: 'home-course-enrollment-terms-modal', class: 'popup-overlay hidden', 'aria-hidden': 'true' })
+                        .append($('<div>', { class: 'popup-card home-course-flow-modal-card course-terms-modal-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'home-course-enrollment-terms-title' })
+                            .append($('<div>', { class: 'popup-head' })
+                                .append($('<h3>', { id: 'home-course-enrollment-terms-title', text: 'Termos da inscrição' }))
+                                .append($('<button>', { type: 'button', class: 'popup-close-icon', 'data-enrollment-terms-close': '1', 'aria-label': 'Fechar termos', text: '×' })))
+                            .append($('<div>', { class: 'popup-body course-terms-content' }))
+                            .append($('<div>', { class: 'popup-actions' }).append($('<button>', { type: 'button', class: 'btn btn-secondary', 'data-enrollment-terms-close': '1', text: 'Fechar' }))));
+                    $('body').append($modal);
+                }
+                const actionLabel = minor ? 'FINALIZAR' : 'CONFIRMAR INSCRIÇÃO';
+                const $body = $modal.find('.course-terms-content').empty();
+                $body.append($('<p>').append(document.createTextNode('Ao clicar no botão ')).append($('<strong>', { text: actionLabel })).append(document.createTextNode(', você está ciente de que:')));
+                $body.append($('<ul>')
+                    .append($('<li>').append(document.createTextNode('inscreve o(a) ')).append($('<strong>', { text: personName })).append(document.createTextNode(' na turma ')).append($('<strong>', { text: className })).append(document.createTextNode(';')))
+                    .append($('<li>').append(document.createTextNode('a inscrição ')).append($('<strong>', { text: 'NÃO GARANTE' })).append(document.createTextNode(' vaga na respectiva turma;')))
+                    .append($('<li>').append(document.createTextNode('deverá confirmar a matrícula ')).append($('<strong>', { text: 'PRESENCIALMENTE' })).append(document.createTextNode(', caso haja vaga disponível, no dia e horário da aula.'))));
+                $body.append($('<p>', { text: 'Declara a precisão das informações prestadas neste site, assim como que ' + (minor ? 'o(a) menor se encontra' : 'se encontra') + ' APTO(A) À PRÁTICA DE ATIVIDADES FÍSICAS, isentando o professor e a Secretaria de Esportes e Lazer do Município de São Bernardo do Campo de qualquer responsabilidade.' }));
+                $body.append($('<p>').append(document.createTextNode('Declara, ainda, estar ciente do art. 5º da Lei nº 10.848/2001, que trata da obrigatoriedade da apresentação de ')).append($('<strong>', { text: 'ATESTADO MÉDICO' })).append(document.createTextNode(', bem como autoriza a divulgação de eventuais imagens registradas em momentos de aula para arquivo e divulgação institucional.')));
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+            }
+
             function renderEnrollmentModal(details) {
                 const courseClass = Object.assign({}, details.class || {}, classesById[String(details.class.id)] || {});
                 const people = Array.isArray(details.people) ? details.people : [];
@@ -372,6 +414,7 @@
                     }
                 }
                 $summary.append($('<p>').append($('<strong>', { text: classAgeCriterionText(courseClass) })));
+                $summary.append($('<p>').append($('<strong>', { text: 'Níveis aceitos: ' })).append(document.createTextNode(String(courseClass.niveis_aceitos_descricao || 'Sem limitação de nível'))));
                 if (courseClass.sexo) {
                     $summary.append($('<p>').append($('<strong>', { text: 'Sexo permitido: ' })).append(document.createTextNode(String(courseClass.sexo) === 'feminino' ? 'Feminino' : 'Masculino')));
                 }
@@ -379,7 +422,7 @@
                 if (people.length === 0) {
                     $content.append($('<div>', { class: 'home-course-flow-state' }).append($('<p>', { text: 'Faça login para selecionar você ou uma pessoa vinculada à sua conta.' })));
                 } else {
-                    const $form = $('<form>', { class: 'stack-form home-course-enrollment-form', method: 'POST', action: App.core.buildUrl('/cursos/inscrever'), 'data-manual-submit': '1' });
+                    const $form = $('<form>', { class: 'stack-form home-course-enrollment-form', method: 'POST', action: App.core.buildUrl('/cursos/inscrever'), 'data-manual-submit': '1', 'data-class-name': String(courseClass.nome || '') });
                     $form.append($('<input>', { type: 'hidden', name: 'turma_id', value: String(courseClass.id || '') }));
                     $form.append($('<p>', { class: 'home-course-person-instruction', text: 'Selecione abaixo a pessoa para inscrever' }));
                     const $personOptions = $('<div>', { class: 'home-course-person-options' });
@@ -387,7 +430,7 @@
                         const blocked = !person.elegivel;
                         const $card = $('<label>', { class: 'home-course-person-card' + (blocked ? ' is-disabled' : '') });
                         const $line = $('<span>', { class: 'home-course-person-line' });
-                        $line.append($('<input>', { type: 'radio', name: 'pessoa_id', value: String(person.id || ''), required: true, disabled: blocked, 'data-home-course-person-choice': '1', 'data-public': String(person.publico_alvo || 'geral') }));
+                        $line.append($('<input>', { type: 'radio', name: 'pessoa_id', value: String(person.id || ''), required: true, disabled: blocked, 'data-home-course-person-choice': '1', 'data-public': String(person.publico_alvo || 'geral'), 'data-person-name': String(person.nome_completo || ''), 'data-birth-date': String(person.data_nascimento || '') }));
                         $line.append($('<span>', { class: 'home-course-person-main', text: String(person.nome_completo || '') }));
                         $card.append($line);
                         if (blocked) $card.append($('<small>', { class: 'home-course-person-reason', text: String(person.motivo_bloqueio || 'Pessoa não elegível para esta turma.') }));
@@ -398,7 +441,7 @@
                         .append($('<option>', { value: 'geral', text: 'Público geral' })).append($('<option>', { value: 'pcd', text: 'PCD (Pessoa Com Deficiência)' })).append($('<option>', { value: 'plm', text: 'PLM (Pessoa com Laudo Médico de Doença)' })).append($('<option>', { value: 'pvs', text: 'PVS (Pessoa em situação de Vulnerabilidade Social)' }));
                     $form.append($('<input>', { type: 'hidden', name: 'publico_alvo', id: 'home-course-person-public-value', value: 'geral' }));
                     $form.append($('<label>').append($('<span>', { text: 'Público-alvo da vaga' })).append($public));
-                    $form.append($('<label>', { class: 'checkbox-chip' }).append($('<input>', { type: 'checkbox', name: 'aceite_termos', value: '1', required: true })).append($('<span>', { text: 'Aceito os termos da inscrição' })));
+                    $form.append($('<label>', { class: 'checkbox-chip' }).append($('<input>', { type: 'checkbox', name: 'aceite_termos', value: '1', required: true })).append($('<span>').append(document.createTextNode('Li e aceito os termos da inscrição, disponíveis ')).append($('<button>', { type: 'button', class: 'link-button course-terms-link', 'data-enrollment-terms-open': '1', text: 'neste link' })).append(document.createTextNode('.'))));
                     $form.append($('<button>', { type: 'submit', class: 'btn btn-primary', text: 'Confirmar inscrição' }));
                     $content.append($form);
                 }
@@ -516,6 +559,11 @@
                 const publicValue = String($(this).attr('data-public') || 'geral');
                 $('#home-course-person-public').val(publicValue);
                 $('#home-course-person-public-value').val(publicValue);
+                $(this).closest('form').find('button[type="submit"]').text(isMinorByBirthDate($(this).attr('data-birth-date')) ? 'Finalizar' : 'Confirmar inscrição');
+            });
+            $(document).on('click', '[data-enrollment-terms-open="1"]', function (event) { event.preventDefault(); openEnrollmentTerms($(this).closest('form')); });
+            $(document).on('click', '[data-enrollment-terms-close="1"], #home-course-enrollment-terms-modal', function (event) {
+                if ($(event.target).is('#home-course-enrollment-terms-modal') || $(event.target).is('[data-enrollment-terms-close="1"]')) $('#home-course-enrollment-terms-modal').addClass('hidden').attr('aria-hidden', 'true');
             });
             $(document).on('submit', '.home-course-enrollment-form', function (event) {
                 event.preventDefault();
