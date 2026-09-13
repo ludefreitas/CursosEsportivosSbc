@@ -2781,7 +2781,8 @@
                     $modal.attr('data-return-to-attendance-roster', '1');
                 }
 
-                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+                $modal.removeClass('hidden').attr('aria-hidden', 'false').scrollTop(0);
+                $modal.find('.popup-card').scrollTop(0);
             }
 
             function syncValidationFields() {
@@ -6336,7 +6337,8 @@
             }
 
             function loadClassAttendanceRoster(classId, date) {
-                const $rosterModal = $('#course-class-attendance-roster-modal').attr('data-class-id', classId).removeClass('hidden').attr('aria-hidden', 'false');
+                const $rosterModal = $('#course-class-attendance-roster-modal').attr('data-class-id', classId).removeClass('hidden').attr('aria-hidden', 'false').scrollTop(0);
+                $rosterModal.find('.popup-card').scrollTop(0);
                 const $roster = $rosterModal.find('[data-class-attendance-roster]').html('<p class="muted">Carregando lista de chamada...</p>');
                 $.ajax({ url: classAttendanceEndpoint(), method: 'GET', dataType: 'json', data: { turma_id: classId, data: date }, suppressGlobalLoading: true })
                     .done(function (response) { if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar a chamada.')); return; } $roster.html(String(response.html || '')); })
@@ -6351,7 +6353,8 @@
                 $modal.attr('data-class-id', String(record.id || '')).attr('data-class-weekdays', weekdays.join(','));
                 const schedule = String(record.dias_semana_descricao || 'dias não informados') + (record.hora_inicio && record.hora_fim ? ', ' + String(record.hora_inicio).slice(0, 5) + ' às ' + String(record.hora_fim).slice(0, 5) : '');
                 $modal.find('[data-class-attendance-subtitle]').text('[' + String(record.id || '') + '] ' + String(record.nome || 'Turma') + ' · ' + schedule);
-                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+                $modal.removeClass('hidden').attr('aria-hidden', 'false').scrollTop(0);
+                $modal.find('.popup-card').scrollTop(0);
                 const element = document.getElementById('course-class-attendance-calendar');
                 if (!element || typeof FullCalendar === 'undefined') { App.core.abrirPopup('erro', 'O calendário não pôde ser carregado.'); return; }
                 if (App.state.courseClassAttendanceCalendar) App.state.courseClassAttendanceCalendar.destroy();
