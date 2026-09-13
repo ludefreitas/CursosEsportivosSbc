@@ -936,7 +936,7 @@ class CourseEnrollmentService
     {
         try { $day = new DateTimeImmutable($date); } catch (\Throwable $e) { throw new RuntimeException('Selecione uma data válida para a chamada.'); }
         if ($day->format('Y-m-d') !== $date) { throw new RuntimeException('Selecione uma data válida para a chamada.'); }
-        if ($day > new DateTimeImmutable('today')) { throw new RuntimeException('Não é possível fazer chamada para uma data futura.'); }
+        // Temporariamente, datas futuras permanecem liberadas para testes da chamada.
         $weekdays = array_map('intval', array_filter(explode(',', $this->normalizeClassWeekdays((string) ($class['dias_semana'] ?? '')))));
         if (!in_array((int) $day->format('N'), $weekdays, true)) { throw new RuntimeException('A turma não possui aula neste dia da semana.'); }
         $start = (string) ($class['aulas_inicio'] ?? $class['cronograma_data_inicio'] ?? '');

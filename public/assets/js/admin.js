@@ -6321,17 +6321,15 @@
                 const element = document.getElementById('course-class-attendance-calendar');
                 if (!element || typeof FullCalendar === 'undefined') { App.core.abrirPopup('erro', 'O calendário não pôde ser carregado.'); return; }
                 if (App.state.courseClassAttendanceCalendar) App.state.courseClassAttendanceCalendar.destroy();
-                const now = new Date();
-                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                 const classStart = String(record.aulas_inicio || record.cronograma_data_inicio || record.temporada_inicio || '').slice(0, 10);
                 const classEnd = String(record.aulas_fim || record.cronograma_data_fim || record.temporada_fim || '').slice(0, 10);
                 App.state.courseClassAttendanceCalendar = new FullCalendar.Calendar(element, {
                     locale: 'pt-br', initialView: 'dayGridMonth', height: 'auto',
                     headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
-                    dayCellClassNames: function (info) { const iso = info.date.getDay() === 0 ? 7 : info.date.getDay(), date = info.date.getFullYear() + '-' + String(info.date.getMonth() + 1).padStart(2, '0') + '-' + String(info.date.getDate()).padStart(2, '0'), outsidePeriod = (classStart && date < classStart) || (classEnd && date > classEnd); return (weekdays.indexOf(iso) === -1 || info.date > today || outsidePeriod) ? ['class-attendance-day-disabled'] : []; },
+                    // Temporariamente, datas futuras permanecem liberadas para testes da chamada.
+                    dayCellClassNames: function (info) { const iso = info.date.getDay() === 0 ? 7 : info.date.getDay(), date = info.date.getFullYear() + '-' + String(info.date.getMonth() + 1).padStart(2, '0') + '-' + String(info.date.getDate()).padStart(2, '0'), outsidePeriod = (classStart && date < classStart) || (classEnd && date > classEnd); return (weekdays.indexOf(iso) === -1 || outsidePeriod) ? ['class-attendance-day-disabled'] : []; },
                     dateClick: function (info) {
                         const iso = info.date.getDay() === 0 ? 7 : info.date.getDay();
-                        if (info.date > today) { window.alert('Não é possível fazer chamada para uma data futura.'); return; }
                         if ((classStart && info.dateStr < classStart) || (classEnd && info.dateStr > classEnd)) { window.alert('Esta data está fora do período de aulas da turma.'); return; }
                         if (weekdays.indexOf(iso) === -1) { window.alert('Esta turma não possui aula neste dia da semana. Selecione um dos dias de aula informados no card.'); return; }
                         loadClassAttendanceRoster(String(record.id || ''), String(info.dateStr || '').slice(0, 10));
