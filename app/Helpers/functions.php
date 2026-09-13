@@ -109,7 +109,11 @@ function asset_url(string $path): string
         $assetFile = ROOT_PATH . '/public/assets/' . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $normalizedPath);
 
         if (is_file($assetFile)) {
-            $assetUrl .= '?v=' . (string) filemtime($assetFile);
+            $contentHash = hash_file('sha256', $assetFile);
+            $assetVersion = is_string($contentHash) && $contentHash !== ''
+                ? substr($contentHash, 0, 12)
+                : (string) filemtime($assetFile);
+            $assetUrl .= '?v=' . $assetVersion;
         }
     }
 
