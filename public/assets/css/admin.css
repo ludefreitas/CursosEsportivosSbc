@@ -140,6 +140,10 @@
 }
 .class-attendance-modal-card { width: min(1050px, calc(100vw - 24px)); }
 .class-attendance-roster-modal { z-index: 10020; }
+#course-class-justification-modal,
+#class-enrollment-action-modal,
+#admin-health-certificate-validation-modal,
+#popup-mensagem { z-index: 2147483000 !important; }
 .class-attendance-roster-modal-card { width: min(900px, calc(100vw - 24px)); max-height: min(84vh, 820px); overflow: auto; }
 .class-justification-modal-card { width: min(620px, calc(100vw - 24px)); }
 .class-attendance-modal-card .fc-day-disabled,
@@ -157,6 +161,7 @@
 .class-attendance-certificate-name { font-weight:700; }.class-attendance-certificate-name.is-valid,.class-attendance-certificate-name.is-warning,.class-attendance-certificate-name.is-expired { color:#16843d; }.class-attendance-certificate-name.is-none { color:#e87800; }
 .class-certificate-state { display:inline-grid; place-items:center; margin-left:4px; font-weight:900; }.class-certificate-state.is-expired { width:18px;height:18px;border-radius:50%;background:#c92828;color:#fff; }.class-certificate-state.is-warning { color:#e87800; }.class-certificate-state.is-valid { color:#16843d; }
 .class-attendance-suspended { margin-top:18px;border:1px solid var(--line);border-radius:10px;overflow:hidden}.class-attendance-suspended h3{text-align:center;margin:0;padding:10px;background:#f5f6f6}.class-attendance-suspended>div{display:flex;justify-content:space-between;gap:12px;padding:12px;border-top:1px solid var(--line)}.class-enrollment-action.is-danger{color:#c92828}
+.class-attendance-absence-excluded small { display:block; margin-top:3px; color:#c92828; font-weight:700; }
 .class-attendance-student:last-child { border-bottom: 0; }
 .class-attendance-certificates, .class-attendance-options { display: flex; flex-wrap: wrap; gap: 10px 24px; }
 .class-attendance-options label { font-weight: 700; }
@@ -191,6 +196,13 @@
     border-radius: 14px;
 }
 .course-class-details-modal-content p { margin: 0; }
+.course-class-details-modal-content .course-class-information-highlight {
+    border: 2px solid var(--accent-orange);
+    background: linear-gradient(135deg, #fff4dc, #fffdf8);
+    box-shadow: 0 8px 20px rgba(226, 119, 0, .12);
+}
+.course-class-information-highlight > strong { color: #a94f00; font-size: 1.05rem; }
+.course-class-information-highlight p { margin-top: 3px; white-space: pre-line; font-weight: 600; }
 #course-class-status-modal fieldset {
     display: grid;
     gap: 8px;

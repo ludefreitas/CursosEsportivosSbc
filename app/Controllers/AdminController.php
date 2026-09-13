@@ -2725,7 +2725,12 @@ class AdminController extends Controller
         $user = $this->assertAdminAccess();
         try {
             $service = new CourseEnrollmentService();
-            if (!empty($_POST['acao_matricula'])) { $service->changeAttendanceEnrollmentStatus((int)($_POST['turma_id']??0),(int)($_POST['inscricao_id']??0),trim((string)$_POST['acao_matricula']),(int)$user['conta_id']); $this->jsonResponse(['success'=>true,'message'=>'Matrícula atualizada.']); return; }
+            if (!empty($_POST['acao_matricula'])) {
+                $classId=(int)($_POST['turma_id']??0); $date=trim((string)($_POST['data']??''));
+                $service->changeAttendanceEnrollmentStatus($classId,(int)($_POST['inscricao_id']??0),trim((string)$_POST['acao_matricula']),(int)$user['conta_id']);
+                $attendance=$service->classAttendanceRoster($classId,$date); ob_start(); require ROOT_PATH.'/app/Views/admin/partials/course_class_attendance.php';
+                $this->jsonResponse(['success'=>true,'message'=>'Matrícula atualizada.','html'=>(string)ob_get_clean()]); return;
+            }
             $service->saveClassAttendance((int) ($_POST['turma_id'] ?? 0), (int) ($_POST['inscricao_id'] ?? 0), trim((string) ($_POST['data'] ?? '')), trim((string) ($_POST['status'] ?? '')), trim((string) ($_POST['justificativa'] ?? '')), (int) $user['conta_id']);
             $this->jsonResponse(['success' => true, 'message' => 'Chamada atualizada.']);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }

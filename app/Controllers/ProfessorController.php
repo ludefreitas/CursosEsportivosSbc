@@ -140,11 +140,15 @@ class ProfessorController extends Controller
         try {
             $service = new \App\Services\CourseEnrollmentService();
             $classId = (int) ($_POST['id'] ?? 0);
-            if (($_POST['operacao'] ?? '') !== 'editar' || !$service->professorIsAssignedToClass((int) $user['conta_id'], $classId)) {
+            $operation = trim((string) ($_POST['operacao'] ?? ''));
+            if ($operation === 'editar' && !$service->professorIsAssignedToClass((int) $user['conta_id'], $classId)) {
                 throw new \RuntimeException('Você não possui acesso a esta turma ou não está mais atribuído a ela.');
             }
+            if (!in_array($operation, ['criar', 'editar'], true) || ($operation === 'criar' && $classId > 0)) {
+                throw new \RuntimeException('Não foi possível identificar a operação solicitada para a turma.');
+            }
             $service->createClass((int) $user['conta_id'], $_POST);
-            $this->jsonResponse(['success' => true, 'message' => 'Turma atualizada com sucesso.', 'professor_class_refresh' => true]);
+            $this->jsonResponse(['success' => true, 'message' => $operation === 'criar' ? 'Turma criada com sucesso.' : 'Turma atualizada com sucesso.', 'professor_class_refresh' => true]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
@@ -197,7 +201,11 @@ class ProfessorController extends Controller
             $service = new \App\Services\CourseEnrollmentService();
             $classId = (int) ($_POST['turma_id'] ?? 0);
             if (!$service->professorIsAssignedToClass((int) $user['conta_id'], $classId)) { throw new \RuntimeException('Você não está atribuído a esta turma.'); }
-            if (!empty($_POST['acao_matricula'])) { $service->changeAttendanceEnrollmentStatus($classId,(int)($_POST['inscricao_id']??0),trim((string)$_POST['acao_matricula']),(int)$user['conta_id']); $this->jsonResponse(['success'=>true,'message'=>'Matrícula atualizada.']); return; }
+            if (!empty($_POST['acao_matricula'])) {
+                $date=trim((string)($_POST['data']??'')); $service->changeAttendanceEnrollmentStatus($classId,(int)($_POST['inscricao_id']??0),trim((string)$_POST['acao_matricula']),(int)$user['conta_id']);
+                $attendance=$service->classAttendanceRoster($classId,$date); $professorView=true; ob_start(); require ROOT_PATH.'/app/Views/admin/partials/course_class_attendance.php';
+                $this->jsonResponse(['success'=>true,'message'=>'Matrícula atualizada.','html'=>(string)ob_get_clean()]); return;
+            }
             $service->saveClassAttendance($classId, (int) ($_POST['inscricao_id'] ?? 0), trim((string) ($_POST['data'] ?? '')), trim((string) ($_POST['status'] ?? '')), trim((string) ($_POST['justificativa'] ?? '')), (int) $user['conta_id']);
             $this->jsonResponse(['success' => true, 'message' => 'Chamada atualizada.']);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }

@@ -898,7 +898,8 @@ class CourseEnrollmentService
             LEFT JOIN turmas_chamadas ch ON ch.inscricao_turma_id=i.id AND ch.data_aula=:data
             LEFT JOIN atestados_saude ac ON ac.id=(SELECT a.id FROM atestados_saude a WHERE a.pessoa_id=p.id AND a.tipo_atestado='clinico' AND a.status_validacao='validado' ORDER BY a.id DESC LIMIT 1)
             LEFT JOIN atestados_saude ad ON ad.id=(SELECT a.id FROM atestados_saude a WHERE a.pessoa_id=p.id AND a.tipo_atestado='dermatologico' AND a.status_validacao='validado' ORDER BY a.id DESC LIMIT 1)
-            WHERE i.turma_id=:turma AND i.status IN ('matriculada','suspensa') ORDER BY i.status='suspensa', p.nome_completo");
+            WHERE i.turma_id=:turma AND i.status IN ('matriculada','suspensa','excluida_por_falta')
+            ORDER BY CASE i.status WHEN 'matriculada' THEN 1 WHEN 'suspensa' THEN 2 ELSE 3 END, p.nome_completo");
         $stmt->execute([':data' => $date, ':turma' => $classId]);
         return ['class' => $class, 'date' => $date, 'students' => $stmt->fetchAll(PDO::FETCH_ASSOC) ?: []];
     }
@@ -921,7 +922,7 @@ class CourseEnrollmentService
 
     public function changeAttendanceEnrollmentStatus(int $classId, int $enrollmentId, string $status, int $accountId): void
     {
-        $allowed = ['matriculada' => ['suspensa'], 'suspensa' => ['matriculada', 'desistente']];
+        $allowed = ['matriculada' => ['suspensa'], 'suspensa' => ['matriculada', 'desistente'], 'excluida_por_falta' => ['matriculada']];
         $pdo = Database::connection();
         $stmt = $pdo->prepare('SELECT status FROM inscricoes_turma WHERE id=:id AND turma_id=:turma LIMIT 1');
         $stmt->execute([':id'=>$enrollmentId, ':turma'=>$classId]); $current=(string)$stmt->fetchColumn();
@@ -935,6 +936,7 @@ class CourseEnrollmentService
     {
         try { $day = new DateTimeImmutable($date); } catch (\Throwable $e) { throw new RuntimeException('Selecione uma data válida para a chamada.'); }
         if ($day->format('Y-m-d') !== $date) { throw new RuntimeException('Selecione uma data válida para a chamada.'); }
+        if ($day > new DateTimeImmutable('today')) { throw new RuntimeException('Não é possível fazer chamada para uma data futura.'); }
         $weekdays = array_map('intval', array_filter(explode(',', $this->normalizeClassWeekdays((string) ($class['dias_semana'] ?? '')))));
         if (!in_array((int) $day->format('N'), $weekdays, true)) { throw new RuntimeException('A turma não possui aula neste dia da semana.'); }
         $start = (string) ($class['aulas_inicio'] ?? $class['cronograma_data_inicio'] ?? '');

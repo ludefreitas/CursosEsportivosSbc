@@ -2727,7 +2727,7 @@
 
         iniciarValidacaoAtestadosSaudeAdmin: function () {
             function getModal() {
-                return $('#admin-health-certificate-validation-modal');
+                return $('#admin-health-certificate-validation-modal').appendTo(document.body).css('z-index', '2147483000');
             }
 
             function getModalContent() {
@@ -6259,8 +6259,13 @@
                 const escape = function (value) { return $('<div>').text(String(value == null || value === '' ? 'Não informado' : value)).html(); };
                 const range = function (start, end) { return classDetailDate(start) + ' — ' + classDetailDate(end); };
                 const $modal = $('#course-class-details-modal');
+                const classInformation = String(record.observacao || '').trim();
+                const informationSection = classInformation !== ''
+                    ? '<section class="course-class-information-highlight"><strong>Informação da turma</strong><p>' + escape(classInformation) + '</p></section>'
+                    : '';
                 $modal.find('[data-course-details-subtitle]').text('[' + String(record.id || '') + '] ' + String(record.nome || 'Turma'));
                 $modal.find('[data-course-details-content]').html(
+                    informationSection +
                     '<section><strong>Nível e equipe</strong>' +
                     '<p><b>Níveis aceitos:</b> ' + escape(record.niveis_aceitos_descricao || 'Sem limitação de nível') + '</p>' +
                     '<p><b>Professor principal:</b> ' + escape(record.professor_principal_nome || 'Sem professor principal') + '</p>' +
@@ -6316,13 +6321,18 @@
                 const element = document.getElementById('course-class-attendance-calendar');
                 if (!element || typeof FullCalendar === 'undefined') { App.core.abrirPopup('erro', 'O calendário não pôde ser carregado.'); return; }
                 if (App.state.courseClassAttendanceCalendar) App.state.courseClassAttendanceCalendar.destroy();
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const classStart = String(record.aulas_inicio || record.cronograma_data_inicio || record.temporada_inicio || '').slice(0, 10);
+                const classEnd = String(record.aulas_fim || record.cronograma_data_fim || record.temporada_fim || '').slice(0, 10);
                 App.state.courseClassAttendanceCalendar = new FullCalendar.Calendar(element, {
                     locale: 'pt-br', initialView: 'dayGridMonth', height: 'auto',
                     headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
-                    validRange: { start: String(record.aulas_inicio || record.cronograma_data_inicio || record.temporada_inicio || ''), end: String(record.aulas_fim || record.cronograma_data_fim || record.temporada_fim || '') || undefined },
-                    dayCellClassNames: function (info) { const iso = info.date.getDay() === 0 ? 7 : info.date.getDay(); return weekdays.indexOf(iso) === -1 ? ['class-attendance-day-disabled'] : []; },
+                    dayCellClassNames: function (info) { const iso = info.date.getDay() === 0 ? 7 : info.date.getDay(), date = info.date.getFullYear() + '-' + String(info.date.getMonth() + 1).padStart(2, '0') + '-' + String(info.date.getDate()).padStart(2, '0'), outsidePeriod = (classStart && date < classStart) || (classEnd && date > classEnd); return (weekdays.indexOf(iso) === -1 || info.date > today || outsidePeriod) ? ['class-attendance-day-disabled'] : []; },
                     dateClick: function (info) {
                         const iso = info.date.getDay() === 0 ? 7 : info.date.getDay();
+                        if (info.date > today) { window.alert('Não é possível fazer chamada para uma data futura.'); return; }
+                        if ((classStart && info.dateStr < classStart) || (classEnd && info.dateStr > classEnd)) { window.alert('Esta data está fora do período de aulas da turma.'); return; }
                         if (weekdays.indexOf(iso) === -1) { window.alert('Esta turma não possui aula neste dia da semana. Selecione um dos dias de aula informados no card.'); return; }
                         loadClassAttendanceRoster(String(record.id || ''), String(info.dateStr || '').slice(0, 10));
                     }
@@ -6375,11 +6385,24 @@
                 const labels={suspensa:'suspender a matrícula de ',matriculada:'rematricular ',desistente:'marcar como desistente '};
                 $('#class-enrollment-action-modal').data('sourceButton',$button).removeClass('hidden').attr('aria-hidden','false').find('[data-class-enrollment-action-question]').text('Deseja realmente '+(labels[action]||'alterar a matrícula de ')+name+'?');
             });
+            $(document).on('click', '[data-missing-health-certificate="1"]', function () {
+                const label = String($(this).attr('data-certificate-label') || 'selecionado');
+                App.core.abrirPopup('erro', 'Não existe atestado ' + label + ' enviado para validar.');
+                $('#popup-mensagem').appendTo(document.body).css('z-index', '2147483000');
+            });
             $(document).on('click','[data-class-enrollment-action-close="1"]',function(){ $('#class-enrollment-action-modal').removeData('sourceButton').addClass('hidden').attr('aria-hidden','true'); });
             $(document).on('click','[data-class-enrollment-action-confirm="1"]',function(){
                 const $modal=$('#class-enrollment-action-modal'), $button=$modal.data('sourceButton'); if (!$button||!$button.length) return;
                 const $roster=$('#course-class-attendance-roster-modal [data-class-attendance-roster]'), date=String($roster.find('[data-class-attendance-date]').attr('data-class-attendance-date')||''), classId=String($('#course-class-attendance-roster-modal').attr('data-class-id')||'');
-                $(this).prop('disabled',true); $.ajax({url:classAttendanceEndpoint(),method:'POST',dataType:'json',data:{turma_id:classId,inscricao_id:$button.attr('data-enrollment-id'),acao_matricula:$button.attr('data-class-enrollment-action')},suppressGlobalLoading:true}).done(function(){ $modal.addClass('hidden').attr('aria-hidden','true'); loadClassAttendanceRoster(classId,date); }).fail(function(xhr){App.core.abrirPopup('erro',App.core.extrairMensagemErroAjax(xhr).mensagem);}).always(function(){$modal.find('[data-class-enrollment-action-confirm="1"]').prop('disabled',false);});
+                const enrollmentId=String($button.attr('data-enrollment-id')||'');
+                $(this).prop('disabled',true); $.ajax({url:classAttendanceEndpoint(),method:'POST',dataType:'json',data:{turma_id:classId,inscricao_id:enrollmentId,acao_matricula:$button.attr('data-class-enrollment-action'),data:date},suppressGlobalLoading:true}).done(function(response){
+                    $modal.addClass('hidden').attr('aria-hidden','true');
+                    const $current=$roster.find('[data-enrollment-id="'+enrollmentId+'"]').first().closest('.class-attendance-student, .class-attendance-suspended > div'), $parsed=$('<div>').html(String((response&&response.html)||'')), $replacement=$parsed.find('[data-enrollment-id="'+enrollmentId+'"]').first().closest('.class-attendance-student, .class-attendance-suspended > div');
+                    const destinationClass=$replacement.closest('.class-attendance-list').length?'class-attendance-list':($replacement.closest('.class-attendance-absence-excluded').length?'class-attendance-absence-excluded':'class-attendance-suspended');
+                    $current.remove();
+                    if($replacement.length){let $destination=$roster.find('.'+destinationClass).first();if(!$destination.length){$roster.append($parsed.find('.'+destinationClass).first());}else{$destination.append($replacement);}}
+                    $roster.find('.class-attendance-suspended').each(function(){if($(this).children('div').length===0)$(this).remove();});
+                }).fail(function(xhr){App.core.abrirPopup('erro',App.core.extrairMensagemErroAjax(xhr).mensagem);}).always(function(){$modal.find('[data-class-enrollment-action-confirm="1"]').prop('disabled',false);});
             });
 
             $(document).on('submit', '[data-course-class-status-form="1"]', function (event) {
@@ -6487,6 +6510,7 @@
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
                 }).done(function (response) {
                     if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar o registro.')); return; }
+                    closeModals();
                     replacePanel(response, classFilterState);
                     App.core.abrirPopup('sucesso', String(response.message || 'Registro salvo com sucesso.'));
                 }).fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); })
