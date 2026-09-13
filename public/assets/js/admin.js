@@ -2727,7 +2727,24 @@
 
         iniciarValidacaoAtestadosSaudeAdmin: function () {
             function getModal() {
-                return $('#admin-health-certificate-validation-modal').appendTo(document.body).css('z-index', '2147483000');
+                let $modal = $('#admin-health-certificate-validation-modal');
+
+                if ($modal.length === 0) {
+                    $modal = $('<div>', {
+                        id: 'admin-health-certificate-validation-modal',
+                        class: 'popup-overlay hidden',
+                        'aria-hidden': 'true'
+                    }).append(
+                        $('<div>', {
+                            class: 'popup-card popup-admin-card admin-condition-validation-card',
+                            role: 'dialog',
+                            'aria-modal': 'true',
+                            'aria-labelledby': 'admin-health-certificate-validation-title'
+                        }).append($('<div>', { id: 'admin-health-certificate-validation-modal-content' }))
+                    );
+                }
+
+                return $modal.appendTo(document.body).css('z-index', '2147483000');
             }
 
             function getModalContent() {
