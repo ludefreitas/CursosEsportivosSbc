@@ -2744,6 +2744,11 @@
 
                 $modal.addClass('hidden').attr('aria-hidden', 'true');
                 $content.empty();
+
+                if ($modal.attr('data-return-to-attendance-roster') === '1') {
+                    $('#course-class-attendance-roster-modal').removeClass('hidden').attr('aria-hidden', 'false');
+                    $modal.removeAttr('data-return-to-attendance-roster');
+                }
             }
 
             function openModal() {
@@ -2751,6 +2756,12 @@
 
                 if ($modal.length === 0) {
                     return;
+                }
+
+                const $attendanceRoster = $('#course-class-attendance-roster-modal');
+                if ($attendanceRoster.length && !$attendanceRoster.hasClass('hidden')) {
+                    $attendanceRoster.addClass('hidden').attr('aria-hidden', 'true');
+                    $modal.attr('data-return-to-attendance-roster', '1');
                 }
 
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
@@ -6290,7 +6301,12 @@
                 return App.core.buildUrl(base === '/professor' ? '/professor/minhas-turmas/chamada' : '/admin/turmas/chamada');
             }
 
+            function confirmClassAttendanceExit(message) {
+                return window.confirm(message);
+            }
+
             function closeClassAttendance() {
+                if (!confirmClassAttendanceExit('Deseja sair do calendário de chamada?')) return;
                 if (App.state.courseClassAttendanceCalendar && typeof App.state.courseClassAttendanceCalendar.destroy === 'function') App.state.courseClassAttendanceCalendar.destroy();
                 App.state.courseClassAttendanceCalendar = null;
                 $('#course-class-attendance-modal').addClass('hidden').attr('aria-hidden', 'true');
@@ -6298,6 +6314,7 @@
             }
 
             function closeClassAttendanceRoster() {
+                if (!confirmClassAttendanceExit('Deseja sair da lista para fazer chamada?')) return;
                 $('#course-class-attendance-roster-modal').addClass('hidden').attr('aria-hidden', 'true').find('[data-class-attendance-roster]').empty();
             }
 
@@ -6341,6 +6358,12 @@
             $(document).on('click', '#course-class-attendance-modal', function (event) { if (event.target === this) closeClassAttendance(); });
             $(document).on('click', '[data-class-attendance-roster-close="1"]', closeClassAttendanceRoster);
             $(document).on('click', '#course-class-attendance-roster-modal', function (event) { if (event.target === this) closeClassAttendanceRoster(); });
+            $(document).on('keydown', function (event) {
+                const $validationModal = $('#admin-health-certificate-validation-modal');
+                if (event.key !== 'Escape' || ($validationModal.length && !$validationModal.hasClass('hidden'))) return;
+                if (!$('#course-class-attendance-roster-modal').hasClass('hidden')) { closeClassAttendanceRoster(); return; }
+                if (!$('#course-class-attendance-modal').hasClass('hidden')) closeClassAttendance();
+            });
 
             function saveClassAttendanceStatus($input, status, justification) {
                 const $row = $input.closest('[data-class-attendance-row]');
