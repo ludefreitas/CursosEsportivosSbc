@@ -373,8 +373,10 @@ class ProfessorController extends Controller
             $courseEnrollmentSortDirection = trim((string) ($_POST['direcao'] ?? 'asc'));
             $courseEnrollmentStatusFilter = trim((string) ($_POST['status_filtro'] ?? 'todos'));
             $courseEnrollmentConditionFilter = trim((string) ($_POST['condicao_filtro'] ?? 'todas'));
-            $courseEnrollmentsManagement = $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter);
-            $courseEnrollmentStatusSummary = $courseEnrollmentService->enrollmentStatusSummaryForManagement();
+            $courseEnrollmentClassId = max(0, (int) ($_POST['turma_id'] ?? 0));
+            $courseEnrollmentClassName = trim((string) ($_POST['turma_nome'] ?? ''));
+            $courseEnrollmentsManagement = $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId);
+            $courseEnrollmentStatusSummary = $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId);
             $professorView = true;
             ob_start();
             require ROOT_PATH . '/app/Views/admin/partials/course_enrollment_panel.php';
@@ -493,6 +495,8 @@ class ProfessorController extends Controller
             $courseEnrollmentSortDirection = trim((string) ($_GET['direcao'] ?? 'asc'));
             $courseEnrollmentStatusFilter = trim((string) ($_GET['status'] ?? 'todos'));
             $courseEnrollmentConditionFilter = trim((string) ($_GET['condicao'] ?? 'todas'));
+            $courseEnrollmentClassId = max(0, (int) ($_GET['turma_id'] ?? 0));
+            $courseEnrollmentClassName = trim((string) ($_GET['turma_nome'] ?? ''));
             return [
                 'sectionName' => $sectionName,
                 'professorView' => true,
@@ -500,8 +504,10 @@ class ProfessorController extends Controller
                 'courseEnrollmentSortDirection' => $courseEnrollmentSortDirection,
                 'courseEnrollmentStatusFilter' => $courseEnrollmentStatusFilter,
                 'courseEnrollmentConditionFilter' => $courseEnrollmentConditionFilter,
-                'courseEnrollmentsManagement' => $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter),
-                'courseEnrollmentStatusSummary' => $courseEnrollmentService->enrollmentStatusSummaryForManagement(),
+                'courseEnrollmentClassId' => $courseEnrollmentClassId,
+                'courseEnrollmentClassName' => $courseEnrollmentClassName,
+                'courseEnrollmentsManagement' => $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId),
+                'courseEnrollmentStatusSummary' => $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId),
             ];
         }
         if ($sectionName === 'minhas-turmas') {

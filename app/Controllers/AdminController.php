@@ -2158,8 +2158,10 @@ class AdminController extends Controller
             $data['courseEnrollmentSortDirection'] = trim((string) ($_GET['direcao'] ?? 'asc'));
             $data['courseEnrollmentStatusFilter'] = trim((string) ($_GET['status'] ?? 'todos'));
             $data['courseEnrollmentConditionFilter'] = trim((string) ($_GET['condicao'] ?? 'todas'));
-            $data['courseEnrollmentsManagement'] = $courseEnrollmentService->listForManagement($data['courseEnrollmentSortBy'], $data['courseEnrollmentSortDirection'], $data['courseEnrollmentStatusFilter'], $data['courseEnrollmentConditionFilter']);
-            $data['courseEnrollmentStatusSummary'] = $courseEnrollmentService->enrollmentStatusSummaryForManagement();
+            $data['courseEnrollmentClassId'] = max(0, (int) ($_GET['turma_id'] ?? 0));
+            $data['courseEnrollmentClassName'] = trim((string) ($_GET['turma_nome'] ?? ''));
+            $data['courseEnrollmentsManagement'] = $courseEnrollmentService->listForManagement($data['courseEnrollmentSortBy'], $data['courseEnrollmentSortDirection'], $data['courseEnrollmentStatusFilter'], $data['courseEnrollmentConditionFilter'], $data['courseEnrollmentClassId']);
+            $data['courseEnrollmentStatusSummary'] = $courseEnrollmentService->enrollmentStatusSummaryForManagement($data['courseEnrollmentClassId']);
         }
 
         if ($sectionName === 'pagina-professor') {

@@ -5,6 +5,8 @@ $courseEnrollmentSortBy = in_array(($courseEnrollmentSortBy ?? ''), ['alfabetica
 $courseEnrollmentSortDirection = strtolower((string) ($courseEnrollmentSortDirection ?? 'asc')) === 'desc' ? 'desc' : 'asc';
 $courseEnrollmentStatusFilter = (string) ($courseEnrollmentStatusFilter ?? 'todos');
 $courseEnrollmentConditionFilter = in_array(($courseEnrollmentConditionFilter ?? ''), ['geral', 'pcd', 'plm', 'pvs'], true) ? (string) $courseEnrollmentConditionFilter : 'todas';
+$courseEnrollmentClassId = max(0, (int) ($courseEnrollmentClassId ?? 0));
+$courseEnrollmentClassName = trim((string) ($courseEnrollmentClassName ?? ''));
 $enrollmentsByPerson = [];
 foreach ($courseEnrollmentsManagement as $item) {
     $enrollmentsByPerson[(int) ($item['pessoa_id'] ?? 0)][] = [
@@ -20,12 +22,19 @@ $nextEnrollmentStatuses = [
     'aguardando_matricula' => ['value' => 'matriculada', 'label' => 'Matriculada', 'action' => 'Matricular'],
     'matriculada' => ['value' => 'desistente', 'label' => 'Desistente', 'action' => 'Marcar como desistente'],
 ];
+$certificateDocumentBase = !empty($professorView) ? '/professor/atestados/arquivo' : '/admin/atestados/arquivo';
+$renderEnrollmentCertificate = static function (array $enrollment, string $type, string $label, bool $expired) use ($certificateDocumentBase): void {
+    $certificateId = (int) ($enrollment['atestado_' . $type . '_id'] ?? 0);
+    $validated = (string) ($enrollment['atestado_' . $type . '_status'] ?? '') === 'validado';
+    if ($certificateId > 0) { ?><a class="class-attendance-pdf" href="<?php echo e(url($certificateDocumentBase . '?certificate_id=' . $certificateId)); ?>" target="_blank" rel="noopener" title="Abrir PDF" aria-label="Abrir PDF do atestado <?php echo e(mb_strtolower($label, 'UTF-8')); ?>">PDF</a><?php }
+    ?><button type="button" class="link-button class-attendance-certificate-name <?php echo $validated ? 'is-valid' : 'is-none'; ?>" <?php if ($certificateId > 0) { ?>data-open-health-certificate-validation="1"<?php } else { ?>data-missing-health-certificate="1" data-certificate-label="<?php echo e(mb_strtolower($label, 'UTF-8')); ?>"<?php } ?> data-person-id="<?php echo e((string) ($enrollment['pessoa_id'] ?? 0)); ?>" data-certificate-type="<?php echo e($type); ?>"><?php echo $validated ? e($label) : '[' . e($label) . ']'; ?><?php if ($validated) { ?><span class="class-certificate-state <?php echo $expired ? 'is-expired' : 'is-valid'; ?>" title="<?php echo $expired ? 'Atestado vencido' : 'Atestado validado'; ?>"><?php echo $expired ? '?' : '✓'; ?></span><?php } ?></button><?php
+};
 ?>
 <section class="admin-section-panel course-enrollment-management" data-admin-section="inscricoes">
     <div class="section-head admin-section-head course-enrollment-summary-head">
         <div>
             <div class="course-enrollment-title-line">
-                <h2>Inscrições em cursos</h2>
+                <h2><?php echo $courseEnrollmentClassId > 0 ? '[' . e((string) $courseEnrollmentClassId) . '] ' . e($courseEnrollmentClassName) : 'Inscrições em cursos'; ?></h2>
                 <button type="button" class="chip course-enrollment-total course-enrollment-quick-filter<?php echo $courseEnrollmentStatusFilter === 'todos' && $courseEnrollmentConditionFilter === 'todas' ? ' is-active' : ''; ?>" data-course-enrollment-filter-all="1" title="Mostrar todas as inscrições" aria-pressed="<?php echo $courseEnrollmentStatusFilter === 'todos' && $courseEnrollmentConditionFilter === 'todas' ? 'true' : 'false'; ?>"><?php echo e((string) ($courseEnrollmentStatusSummary['total'] ?? 0)); ?></button>
             </div>
             <div class="course-enrollment-status-summary" aria-label="Quantidade de inscrições por status">
@@ -42,6 +51,8 @@ $nextEnrollmentStatuses = [
     <div class="course-enrollment-sort" aria-label="Ordenação das inscrições">
         <input type="hidden" data-course-enrollment-filter="status" value="<?php echo e($courseEnrollmentStatusFilter); ?>">
         <input type="hidden" data-course-enrollment-filter="condition" value="<?php echo e($courseEnrollmentConditionFilter); ?>">
+        <input type="hidden" data-course-enrollment-filter="class" value="<?php echo e((string) $courseEnrollmentClassId); ?>">
+        <input type="hidden" data-course-enrollment-filter="class-name" value="<?php echo e($courseEnrollmentClassName); ?>">
         <span>Ordenar:</span>
         <label><span class="sr-only">Critério de ordenação</span><select data-course-enrollment-sort="criterion" aria-label="Ordenar inscrições por">
             <option value="alfabetica"<?php echo $courseEnrollmentSortBy === 'alfabetica' ? ' selected' : ''; ?>>Ordem alfabética</option>
@@ -54,6 +65,7 @@ $nextEnrollmentStatuses = [
             <option value="desc"<?php echo $courseEnrollmentSortDirection === 'desc' ? ' selected' : ''; ?>>Decrescente</option>
         </select></label>
     </div>
+    <?php if ($courseEnrollmentClassId > 0) { ?><button type="button" class="link-button course-enrollment-back" data-course-enrollment-back="1" aria-label="Voltar para as turmas">← Voltar</button><?php } ?>
     <?php if ($courseEnrollmentsManagement === []) { ?><p class="muted">Nenhuma inscrição encontrada.</p><?php } else { ?>
         <div class="course-enrollment-list">
         <?php foreach ($courseEnrollmentsManagement as $enrollment) {
@@ -88,8 +100,8 @@ $nextEnrollmentStatuses = [
                     <p><?php if ((int) ($enrollment['eh_pvs'] ?? 0) === 1 && trim((string) ($enrollment['numero_nis'] ?? '')) !== '') { ?><strong>Número do CadÚnico (NIS):</strong> <?php echo e((string) $enrollment['numero_nis']); ?> · <?php } ?><a href="#" class="course-future-link" data-future-label="PAR-Q">PAR-Q</a><?php if (!empty($enrollment['responsavel_nome'])) { ?> · <strong>Resp.:</strong> <?php echo e((string) $enrollment['responsavel_nome']); ?><?php } ?><?php if ($whatsapp !== '') { ?> · <a class="course-whatsapp-link" href="https://wa.me/<?php echo e($whatsapp); ?>" target="_blank" rel="noopener">WhatsApp: <?php echo e((string) (($enrollment['responsavel_whatsapp'] ?? '') ?: $enrollment['telefone_whatsapp'])); ?></a><?php } ?> · <button type="button" class="link-button course-address-open" data-address="<?php echo $jsonAttribute($address); ?>">Endereço</button></p>
                     <p><strong>Dt. Insc.:</strong> <?php echo e($formatDate($enrollment['created_at'] ?? null)); ?> · <strong>Dt. Matric.:</strong> <?php echo e($formatDate($enrollment['data_matricula'] ?? null)); ?></p>
                     <p class="course-certificate-line"><strong>Atestados:</strong>
-                        <?php if (!empty($enrollment['atestado_clinico_id'])) { ?><a class="certificate-present" href="<?php echo e(url('/professor/atestados/arquivo?certificate_id=' . (int) $enrollment['atestado_clinico_id'])); ?>" target="_blank" rel="noopener" title="Abrir atestado clínico">▧ Clínico</a><?php if ($clinicalExpired) { ?> <span class="certificate-expired" title="Atestado clínico vencido">?</span><?php } ?><?php } else { ?><span class="certificate-missing">[Clínico]</span><?php } ?>
-                        <?php if (!empty($enrollment['atestado_dermatologico_id'])) { ?><a class="certificate-present" href="<?php echo e(url('/professor/atestados/arquivo?certificate_id=' . (int) $enrollment['atestado_dermatologico_id'])); ?>" target="_blank" rel="noopener" title="Abrir atestado dermatológico">▧ Dermatológico</a><?php if ($dermExpired) { ?> <span class="certificate-expired" title="Atestado dermatológico vencido">?</span><?php } ?><?php } else { ?><span class="certificate-missing">[Dermatológico]</span><?php } ?>
+                        <?php $renderEnrollmentCertificate($enrollment, 'clinico', 'Clínico', $clinicalExpired); ?>
+                        <?php $renderEnrollmentCertificate($enrollment, 'dermatologico', 'Dermatológico', $dermExpired); ?>
                         <?php if (trim((string) ($enrollment['condicoes'] ?? '')) !== '') { ?> · <span class="course-special-condition"><?php echo e((string) $enrollment['condicoes']); ?></span><?php } ?>
                         <?php if (!empty($enrollment['excecao_condicao'])) { ?> · <strong class="course-special-condition">Público geral — exceção etária autorizada por <?php echo e(condition_public_label((string) $enrollment['excecao_condicao'])); ?></strong><?php } ?>
                     </p>
@@ -105,5 +117,6 @@ $nextEnrollmentStatuses = [
         </div>
     <?php } ?>
 </section>
+<div class="popup-overlay hidden" id="admin-health-certificate-validation-modal" aria-hidden="true"><div class="popup-card popup-admin-card admin-condition-validation-card" role="dialog" aria-modal="true" aria-labelledby="admin-health-certificate-validation-title"><div id="admin-health-certificate-validation-modal-content"></div></div></div>
 <div id="course-enrollment-info-modal" class="popup-overlay hidden" aria-hidden="true"><div class="popup-card course-enrollment-info-card" role="dialog" aria-modal="true" aria-labelledby="course-enrollment-info-title"><div class="popup-head"><h3 id="course-enrollment-info-title">Informações da inscrição</h3><button type="button" class="popup-close-icon" data-course-enrollment-modal-close="1" aria-label="Fechar">×</button></div><div id="course-enrollment-info-body" class="popup-body"></div><div class="popup-actions"><button type="button" class="btn btn-secondary" data-course-enrollment-modal-close="1">Fechar</button></div></div></div>
 <div id="course-status-change-modal" class="popup-overlay hidden" aria-hidden="true"><div class="popup-card course-enrollment-info-card" role="dialog" aria-modal="true" aria-labelledby="course-status-change-title"><div class="popup-head"><h3 id="course-status-change-title">Alterar status da inscrição</h3><button type="button" class="popup-close-icon" data-course-status-change-close="1" aria-label="Fechar">×</button></div><div class="popup-body"><p id="course-status-change-question"></p><form method="POST" action="<?php echo e(url('/professor/inscricoes/status')); ?>" class="stack-form" id="course-status-change-form" data-manual-submit="1"><input type="hidden" name="inscricao_id"><input type="hidden" name="status"><input type="hidden" name="ordenar_por" value="<?php echo e($courseEnrollmentSortBy); ?>"><input type="hidden" name="direcao" value="<?php echo e($courseEnrollmentSortDirection); ?>"><input type="hidden" name="status_filtro" value="<?php echo e($courseEnrollmentStatusFilter); ?>"><input type="hidden" name="condicao_filtro" value="<?php echo e($courseEnrollmentConditionFilter); ?>"><p><strong>Data da alteração:</strong> <span id="course-status-change-date"><?php echo e(date('d/m/Y H:i')); ?></span></p><div id="course-vacancy-notice-fields" class="hidden"><label class="checkbox-chip"><input type="checkbox" name="vaga_informada" value="1"><span>Confirmo que o usuário já foi avisado da vaga disponível.</span></label><label><span>Data e hora do envio da mensagem</span><input type="datetime-local" name="vaga_informada_em" max="<?php echo e(date('Y-m-d\\TH:i')); ?>"></label></div><label><span>Motivo (opcional)</span><textarea name="motivo" rows="3"></textarea></label><div class="popup-actions"><button type="button" class="btn btn-secondary" data-course-status-change-close="1">Cancelar</button><button type="submit" class="btn btn-primary">Confirmar alteração</button></div></form></div></div></div>

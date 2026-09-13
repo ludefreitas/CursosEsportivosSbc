@@ -138,6 +138,13 @@
     text-decoration: underline;
     cursor: pointer;
 }
+.course-class-enrollments-link {
+    color: var(--accent-blue);
+    font-weight: 700;
+    text-decoration: underline;
+}
+.course-class-secondary-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.course-enrollment-back { color: var(--accent-blue); font-weight: 700; margin: 4px 0 18px; text-decoration: underline; }
 .class-attendance-modal-card { width: min(1050px, calc(100vw - 24px)); }
 .class-attendance-roster-modal { z-index: 10020; }
 #course-class-justification-modal,

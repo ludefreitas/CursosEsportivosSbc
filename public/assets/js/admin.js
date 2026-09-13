@@ -705,9 +705,41 @@
                     ordenar_por: String($panel.find('[data-course-enrollment-sort="criterion"]').val() || 'ordem_inscricao'),
                     direcao: String($panel.find('[data-course-enrollment-sort="direction"]').val() || 'asc'),
                     status: String($panel.find('[data-course-enrollment-filter="status"]').val() || 'todos'),
-                    condicao: String($panel.find('[data-course-enrollment-filter="condition"]').val() || 'todas')
+                    condicao: String($panel.find('[data-course-enrollment-filter="condition"]').val() || 'todas'),
+                    turma_id: String($panel.find('[data-course-enrollment-filter="class"]').val() || '0'),
+                    turma_nome: String($panel.find('[data-course-enrollment-filter="class-name"]').val() || '')
                 };
             }
+
+            $(document).on('click', '[data-course-class-enrollments]', function () {
+                App.state.courseEnrollmentReturn = {
+                    html: $host.html(),
+                    section: String($(this).closest('[data-admin-section]').attr('data-admin-section') || ''),
+                    scrollTop: window.scrollY || document.documentElement.scrollTop || 0
+                };
+                activateSection('inscricoes', {
+                    turma_id: String($(this).attr('data-course-class-enrollments') || '0'),
+                    turma_nome: String($(this).attr('data-course-class-enrollments-name') || ''),
+                    ordenar_por: 'ordem_inscricao',
+                    direcao: 'asc',
+                    status: 'todos',
+                    condicao: 'todas'
+                }, { suppressGlobalLoading: true });
+            });
+
+            $(document).on('click', '[data-course-enrollment-back]', function () {
+                const returnState = App.state.courseEnrollmentReturn;
+                if (!returnState || !returnState.html) return;
+                $host.html(returnState.html);
+                $host.find('[data-admin-class-browser]').each(function () {
+                    layoutClassFilterLine($(this).find('[data-class-filter-line="season"]'));
+                    layoutClassFilterLine($(this).find('[data-class-group-line]:not(.hidden)'));
+                });
+                syncActiveButton(returnState.section);
+                updateHash(returnState.section);
+                window.scrollTo(0, Number(returnState.scrollTop || 0));
+                App.state.courseEnrollmentReturn = null;
+            });
 
             $(document).on('change', '[data-course-enrollment-sort]', function () {
                 const $panel = $(this).closest('[data-admin-section="inscricoes"]');
@@ -732,7 +764,9 @@
                     ordenar_por: filters.ordenar_por,
                     direcao: filters.direcao,
                     status: filters.status,
-                    condicao: filters.condicao
+                    condicao: filters.condicao,
+                    turma_id: filters.turma_id,
+                    turma_nome: filters.turma_nome
                 }, { suppressGlobalLoading: true });
             });
 
@@ -6770,6 +6804,10 @@
                 $form[0].reset();
                 $form.find('[name="inscricao_id"]').val(enrollmentId);
                 $form.find('[name="status"]').val(nextStatus);
+                if (!$form.find('[name="turma_id"]').length) $form.append($('<input>', { type: 'hidden', name: 'turma_id' }));
+                $form.find('[name="turma_id"]').val(String($('.course-enrollment-management [data-course-enrollment-filter="class"]').val() || '0'));
+                if (!$form.find('[name="turma_nome"]').length) $form.append($('<input>', { type: 'hidden', name: 'turma_nome' }));
+                $form.find('[name="turma_nome"]').val(String($('.course-enrollment-management [data-course-enrollment-filter="class-name"]').val() || ''));
                 $modal.find('#course-status-change-question').text('Deseja realmente mudar o status da inscrição \'' + enrollmentNumber + '\' para \'' + nextLabel + '\'?');
                 $modal.find('#course-status-change-date').text(new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date()));
                 const requiresNotice = currentStatus === 'lista_espera' && nextStatus === 'aguardando_matricula';

@@ -169,7 +169,7 @@ class CourseEnrollmentService
         return $rows;
     }
 
-    public function listForManagement(string $sortBy = 'ordem_inscricao', string $sortDirection = 'asc', string $statusFilter = 'todos', string $conditionFilter = 'todas'): array
+    public function listForManagement(string $sortBy = 'ordem_inscricao', string $sortDirection = 'asc', string $statusFilter = 'todos', string $conditionFilter = 'todas', int $classId = 0): array
     {
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
@@ -204,6 +204,10 @@ class CourseEnrollmentService
             $where[] = 'LOWER(i.publico_alvo) = :condition_filter';
             $params[':condition_filter'] = $conditionFilter;
         }
+        if ($classId > 0) {
+            $where[] = 'i.turma_id = :class_filter';
+            $params[':class_filter'] = $classId;
+        }
         $whereSql = $where === [] ? '' : ' WHERE ' . implode(' AND ', $where);
         $stmt = $pdo->prepare("SELECT
                 i.id, i.turma_id, i.pessoa_id, i.numero_ordem, i.publico_alvo, i.excecao_condicao, i.status, i.created_at, i.updated_at, i.motivo_status,
@@ -230,8 +234,8 @@ class CourseEnrollmentService
                   WHERE cp.pessoa_id = p.id AND tc.slug = 'pcd') AS possui_laudo,
                 (SELECT MIN(hm.criado_em) FROM inscricoes_turma_historico hm
                   WHERE hm.inscricao_turma_id = i.id AND hm.status_novo = 'matriculada') AS data_matricula,
-                ac.id AS atestado_clinico_id, ac.validade_certificado AS atestado_clinico_validade,
-                ad.id AS atestado_dermatologico_id, ad.validade_certificado AS atestado_dermatologico_validade
+                ac.id AS atestado_clinico_id, ac.status_validacao AS atestado_clinico_status, ac.validade_certificado AS atestado_clinico_validade,
+                ad.id AS atestado_dermatologico_id, ad.status_validacao AS atestado_dermatologico_status, ad.validade_certificado AS atestado_dermatologico_validade
             FROM inscricoes_turma i
             INNER JOIN pessoas p ON p.id = i.pessoa_id
             INNER JOIN turmas t ON t.id = i.turma_id
@@ -242,8 +246,8 @@ class CourseEnrollmentService
             LEFT JOIN cronogramas_modalidade cm ON cm.id = t.cronograma_modalidade_id
             LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id = p.id AND vr.data_fim IS NULL
             LEFT JOIN pessoas responsavel ON responsavel.id = vr.responsavel_pessoa_id
-            LEFT JOIN atestados_saude ac ON ac.pessoa_id = p.id AND ac.tipo_atestado = 'clinico'
-            LEFT JOIN atestados_saude ad ON ad.pessoa_id = p.id AND ad.tipo_atestado = 'dermatologico'
+            LEFT JOIN atestados_saude ac ON ac.id = (SELECT a.id FROM atestados_saude a WHERE a.pessoa_id = p.id AND a.tipo_atestado = 'clinico' ORDER BY a.id DESC LIMIT 1)
+            LEFT JOIN atestados_saude ad ON ad.id = (SELECT a.id FROM atestados_saude a WHERE a.pessoa_id = p.id AND a.tipo_atestado = 'dermatologico' ORDER BY a.id DESC LIMIT 1)
             " . $whereSql . "
             ORDER BY " . $orderSql);
         $stmt->execute($params);
@@ -287,10 +291,12 @@ class CourseEnrollmentService
     /**
      * Resume todas as inscrições por status para os painéis de gestão.
      */
-    public function enrollmentStatusSummaryForManagement(): array
+    public function enrollmentStatusSummaryForManagement(int $classId = 0): array
     {
         $pdo = Database::connection();
-        $stmt = $pdo->query('SELECT status, COUNT(*) AS quantidade FROM inscricoes_turma GROUP BY status ORDER BY status');
+        $classWhere = $classId > 0 ? ' WHERE turma_id = :class_id' : '';
+        $stmt = $pdo->prepare('SELECT status, COUNT(*) AS quantidade FROM inscricoes_turma' . $classWhere . ' GROUP BY status ORDER BY status');
+        $stmt->execute($classId > 0 ? [':class_id' => $classId] : []);
         $items = [];
         $total = 0;
 
@@ -306,10 +312,13 @@ class CourseEnrollmentService
         }
 
         $conditionCounts = ['geral' => 0, 'pcd' => 0, 'plm' => 0, 'pvs' => 0];
-        $conditionStmt = $pdo->query("SELECT LOWER(publico_alvo) AS condicao, COUNT(*) AS quantidade
+        $conditionSql = "SELECT LOWER(publico_alvo) AS condicao, COUNT(*) AS quantidade
             FROM inscricoes_turma
             WHERE LOWER(publico_alvo) IN ('geral', 'pcd', 'plm', 'pvs')
-            GROUP BY LOWER(publico_alvo)");
+            " . ($classId > 0 ? ' AND turma_id = :class_id' : '') . "
+            GROUP BY LOWER(publico_alvo)";
+        $conditionStmt = $pdo->prepare($conditionSql);
+        $conditionStmt->execute($classId > 0 ? [':class_id' => $classId] : []);
         foreach ($conditionStmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
             $condition = (string) ($row['condicao'] ?? '');
             if (array_key_exists($condition, $conditionCounts)) {
@@ -422,7 +431,9 @@ class CourseEnrollmentService
         $this->synchronizeCalculatedClassStatuses($pdo);
         $stmt = $pdo->query("SELECT t.*, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio, te.data_fim AS temporada_fim, m.nome AS modalidade_nome, cm.nome AS cronograma_nome, cm.inscricoes_inicio AS cronograma_inscricoes_inicio, cm.inscricoes_fim AS cronograma_inscricoes_fim, cm.matriculas_inicio AS cronograma_matriculas_inicio, cm.matriculas_fim AS cronograma_matriculas_fim, cm.inscricoes_abertas_inicio AS cronograma_inscricoes_abertas_inicio, cm.inscricoes_abertas_fim AS cronograma_inscricoes_abertas_fim, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome, nm.nome AS nivel_nome, (SELECT p.nome_completo FROM contas c INNER JOIN pessoas p ON p.cpf = c.cpf WHERE c.id = t.professor_conta_id LIMIT 1) AS professor_principal_nome, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_professores tp INNER JOIN contas c ON c.id = tp.professor_conta_id INNER JOIN pessoas p ON p.cpf = c.cpf WHERE tp.turma_id = t.id AND tp.professor_conta_id <> t.professor_conta_id) AS professores_auxiliares_nomes, (SELECT CONCAT('[', GROUP_CONCAT(tp.professor_conta_id ORDER BY tp.professor_conta_id SEPARATOR ','), ']') FROM turmas_professores tp WHERE tp.turma_id = t.id) AS professores_ids_json, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_estagiarios teq INNER JOIN contas c ON c.id = teq.estagiario_conta_id INNER JOIN pessoas p ON p.cpf = c.cpf WHERE teq.turma_id = t.id) AS estagiarios_nomes, (SELECT CONCAT('[', GROUP_CONCAT(teq.estagiario_conta_id ORDER BY teq.estagiario_conta_id SEPARATOR ','), ']') FROM turmas_estagiarios teq WHERE teq.turma_id = t.id) AS estagiarios_ids_json FROM turmas t INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id LEFT JOIN cronogramas_modalidade cm ON cm.id = t.cronograma_modalidade_id INNER JOIN locais_treino l ON l.id = t.local_treino_id INNER JOIN espacos_treino e ON e.id = t.espaco_treino_id LEFT JOIN niveis_modalidade nm ON nm.id = t.nivel_modalidade_id ORDER BY te.data_inicio DESC, t.nome ASC");
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $enrollmentCounts = $this->enrollmentCountsByClass($pdo);
         foreach ($classes as &$class) {
+            $class['total_inscritos'] = $enrollmentCounts[(int) $class['id']] ?? 0;
             $class = array_merge($this->findClass($pdo, (int) $class['id']), $class);
             $class['professores_ids'] = json_decode((string) ($class['professores_ids_json'] ?? '[]'), true) ?: [];
             $class['estagiarios_ids'] = json_decode((string) ($class['estagiarios_ids_json'] ?? '[]'), true) ?: [];
@@ -816,7 +827,9 @@ class CourseEnrollmentService
         $stmt = $pdo->prepare("SELECT t.*, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio, m.nome AS modalidade_nome, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome, (SELECT p.nome_completo FROM contas c INNER JOIN pessoas p ON p.cpf=c.cpf WHERE c.id=t.professor_conta_id LIMIT 1) AS professor_principal_nome, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_professores tp2 INNER JOIN contas c ON c.id=tp2.professor_conta_id INNER JOIN pessoas p ON p.cpf=c.cpf WHERE tp2.turma_id=t.id AND tp2.professor_conta_id<>t.professor_conta_id) AS professores_auxiliares_nomes, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_estagiarios teq INNER JOIN contas c ON c.id=teq.estagiario_conta_id INNER JOIN pessoas p ON p.cpf=c.cpf WHERE teq.turma_id=t.id) AS estagiarios_nomes FROM turmas t INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id INNER JOIN locais_treino l ON l.id = t.local_treino_id INNER JOIN espacos_treino e ON e.id = t.espaco_treino_id WHERE EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id = t.id AND tp.professor_conta_id = :professor_id) ORDER BY te.data_inicio DESC, t.nome ASC");
         $stmt->execute([':professor_id' => $accountId]);
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $enrollmentCounts = $this->enrollmentCountsByClass($pdo);
         foreach ($classes as &$class) {
+            $class['total_inscritos'] = $enrollmentCounts[(int) $class['id']] ?? 0;
             $classDetails = $this->findClass($pdo, (int) $class['id']);
             $class = array_merge($classDetails, $class);
             $professorIdsStmt = $pdo->prepare('SELECT professor_conta_id FROM turmas_professores WHERE turma_id=:id ORDER BY professor_conta_id');
@@ -839,6 +852,16 @@ class CourseEnrollmentService
         }
         unset($class);
         return $classes;
+    }
+
+    private function enrollmentCountsByClass(PDO $pdo): array
+    {
+        $counts = [];
+        $stmt = $pdo->query('SELECT turma_id, COUNT(*) AS total FROM inscricoes_turma GROUP BY turma_id');
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $counts[(int) ($row['turma_id'] ?? 0)] = (int) ($row['total'] ?? 0);
+        }
+        return $counts;
     }
 
     public function professorClassBrowser(int $accountId, int $seasonId = 0, int $locationId = 0, int $modalityId = 0): array
