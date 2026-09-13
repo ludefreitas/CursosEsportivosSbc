@@ -1130,6 +1130,7 @@ class AdminService
             INNER JOIN pessoas p ON p.id = a.pessoa_id
             WHERE a.pessoa_id = :pessoa_id
               AND a.tipo_atestado = :tipo_atestado
+            ORDER BY a.id DESC
             LIMIT 1
         ');
         $stmt->execute([
