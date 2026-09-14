@@ -509,8 +509,17 @@
             function renderVacanciesModal(details) {
                 const record = details.class;
                 const $grid = $('<div>', { class: 'home-course-vacancies-grid' });
+                const registrationsAreOpen = String(record.status || '') === 'inscricoes_abertas';
                 [['Público geral', 'vagas_geral_disponiveis', 'espera_geral_disponivel'], ['PCD (Pessoa Com Deficiência)', 'vagas_pcd_disponiveis', 'espera_pcd_disponivel'], ['PLM (Pessoa com Laudo Médico de Doença)', 'vagas_plm_disponiveis', 'espera_plm_disponivel'], ['PVS (Pessoa em situação de Vulnerabilidade Social)', 'vagas_pvs_disponiveis', 'espera_pvs_disponivel']].forEach(function (item) {
-                    $grid.append($('<article>').append($('<strong>', { text: item[0] })).append($('<span>', { text: String(record[item[1]] || 0) + ' vagas' })).append($('<small>', { text: String(record[item[2]] || 0) + ' lugares na espera' })));
+                    const regularVacancies = Math.max(0, Number(record[item[1]] || 0));
+                    const waitlistVacancies = Math.max(0, Number(record[item[2]] || 0));
+                    const displayedVacancies = registrationsAreOpen
+                        ? regularVacancies + waitlistVacancies
+                        : (regularVacancies > 0 ? regularVacancies : waitlistVacancies);
+                    const vacanciesLabel = displayedVacancies <= 0
+                        ? 'Não há vagas'
+                        : String(displayedVacancies) + (displayedVacancies === 1 ? ' vaga' : ' vagas');
+                    $grid.append($('<article>').append($('<strong>', { text: item[0] })).append($('<span>', { text: vacanciesLabel })));
                 });
                 $('#home-course-vacancies-subtitle').text(String((classesById[String(record.id)] || record).nome || ''));
                 $('#home-course-vacancies-content').empty().append($grid);
