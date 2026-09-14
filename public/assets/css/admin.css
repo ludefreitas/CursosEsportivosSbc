@@ -145,6 +145,7 @@
 }
 .course-class-secondary-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .course-enrollment-back { color: var(--accent-blue); font-weight: 700; margin: 4px 0 18px; text-decoration: underline; }
+.course-enrollment-management .is-disabled { cursor:not-allowed; opacity:.48; pointer-events:none; text-decoration:none; }
 .class-attendance-modal-card { width: min(1050px, calc(100vw - 24px)); }
 .class-attendance-roster-modal { z-index: 10020; }
 #course-class-justification-modal,
@@ -166,6 +167,10 @@
 .class-attendance-mark.is-presente { color:#16843d; }.class-attendance-mark.is-ausente { color:#c92828; }.class-attendance-mark.is-justificado { color:#1767c4; }.class-attendance-mark.is-pending { color:#56626a; border-color:transparent; }
 .class-attendance-pdf { display:inline-block;color:#e87800;border:1px solid currentColor;border-radius:3px;padding:1px 3px;font-size:.65rem;font-weight:900;text-decoration:none;margin-right:5px; }
 .class-attendance-certificate-name { font-weight:700; }.class-attendance-certificate-name.is-valid,.class-attendance-certificate-name.is-warning,.class-attendance-certificate-name.is-expired { color:#16843d; }.class-attendance-certificate-name.is-none { color:#e87800; }
+.health-certificate-summary { display:inline-flex; align-items:flex-start; gap:5px; vertical-align:middle; }
+.health-certificate-summary-text { display:inline-flex; flex-direction:column; align-items:flex-start; line-height:1.2; }
+.health-certificate-summary-text small { display:flex; align-items:center; gap:5px; white-space:nowrap; }
+.course-certificate-line .health-certificate-summary { margin:2px 12px 2px 4px; }
 .class-certificate-state { display:inline-grid; place-items:center; margin-left:4px; font-weight:900; }.class-certificate-state.is-expired { width:18px;height:18px;border-radius:50%;background:#c92828;color:#fff; }.class-certificate-state.is-warning { color:#e87800; }.class-certificate-state.is-valid { color:#16843d; }
 .class-attendance-suspended { margin-top:18px;border:1px solid var(--line);border-radius:10px;overflow:hidden}.class-attendance-suspended h3{text-align:center;margin:0;padding:10px;background:#f5f6f6}.class-attendance-suspended>div{display:flex;justify-content:space-between;gap:12px;padding:12px;border-top:1px solid var(--line)}.class-enrollment-action.is-danger{color:#c92828}
 .class-attendance-absence-excluded small { display:block; margin-top:3px; color:#c92828; font-weight:700; }

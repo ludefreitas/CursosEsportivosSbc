@@ -234,8 +234,14 @@ class CourseEnrollmentService
                   WHERE cp.pessoa_id = p.id AND tc.slug = 'pcd') AS possui_laudo,
                 (SELECT MIN(hm.criado_em) FROM inscricoes_turma_historico hm
                   WHERE hm.inscricao_turma_id = i.id AND hm.status_novo = 'matriculada') AS data_matricula,
-                ac.id AS atestado_clinico_id, ac.status_validacao AS atestado_clinico_status, ac.validade_certificado AS atestado_clinico_validade,
-                ad.id AS atestado_dermatologico_id, ad.status_validacao AS atestado_dermatologico_status, ad.validade_certificado AS atestado_dermatologico_validade
+                CASE WHEN aic.id IS NULL THEN ac.id ELSE NULL END AS atestado_clinico_id,
+                COALESCE(IF(aic.id IS NOT NULL, 'validado', NULL), ac.status_validacao) AS atestado_clinico_status,
+                COALESCE(aic.validade_certificado, ac.validade_certificado) AS atestado_clinico_validade,
+                CASE WHEN aic.id IS NOT NULL THEN 'importado' WHEN ac.id IS NOT NULL THEN 'interno' ELSE '' END AS atestado_clinico_origem,
+                CASE WHEN aid.id IS NULL THEN ad.id ELSE NULL END AS atestado_dermatologico_id,
+                COALESCE(IF(aid.id IS NOT NULL, 'validado', NULL), ad.status_validacao) AS atestado_dermatologico_status,
+                COALESCE(aid.validade_certificado, ad.validade_certificado) AS atestado_dermatologico_validade,
+                CASE WHEN aid.id IS NOT NULL THEN 'importado' WHEN ad.id IS NOT NULL THEN 'interno' ELSE '' END AS atestado_dermatologico_origem
             FROM inscricoes_turma i
             INNER JOIN pessoas p ON p.id = i.pessoa_id
             INNER JOIN turmas t ON t.id = i.turma_id
@@ -248,6 +254,8 @@ class CourseEnrollmentService
             LEFT JOIN pessoas responsavel ON responsavel.id = vr.responsavel_pessoa_id
             LEFT JOIN atestados_saude ac ON ac.id = (SELECT a.id FROM atestados_saude a WHERE a.pessoa_id = p.id AND a.tipo_atestado = 'clinico' ORDER BY a.id DESC LIMIT 1)
             LEFT JOIN atestados_saude ad ON ad.id = (SELECT a.id FROM atestados_saude a WHERE a.pessoa_id = p.id AND a.tipo_atestado = 'dermatologico' ORDER BY a.id DESC LIMIT 1)
+            LEFT JOIN atestados_saude_importados aic ON ac.id IS NULL AND aic.id = (SELECT ai.id FROM atestados_saude_importados ai WHERE ai.cpf = p.cpf AND ai.tipo_atestado = 'clinico' AND ai.status_importacao = 'ativo' ORDER BY ai.data_atualizacao_origem DESC, ai.id_externo DESC LIMIT 1)
+            LEFT JOIN atestados_saude_importados aid ON ad.id IS NULL AND aid.id = (SELECT ai.id FROM atestados_saude_importados ai WHERE ai.cpf = p.cpf AND ai.tipo_atestado = 'dermatologico' AND ai.status_importacao = 'ativo' ORDER BY ai.data_atualizacao_origem DESC, ai.id_externo DESC LIMIT 1)
             " . $whereSql . "
             ORDER BY " . $orderSql);
         $stmt->execute($params);
@@ -913,14 +921,22 @@ class CourseEnrollmentService
         $this->validateClassAttendanceDate($class, $date);
         $stmt = $pdo->prepare("SELECT i.id AS inscricao_id, i.status AS matricula_status, p.id AS pessoa_id, p.nome_completo, p.data_nascimento,
                 COALESCE(ch.status, '') AS chamada_status, COALESCE(ch.justificativa, '') AS justificativa,
-                ac.id AS atestado_clinico_validado_id, ac.validade_certificado AS atestado_clinico_validade,
-                ad.id AS atestado_dermatologico_validado_id, ad.validade_certificado AS atestado_dermatologico_validade,
-                (SELECT a.id FROM atestados_saude a WHERE a.pessoa_id=p.id AND a.tipo_atestado='clinico' ORDER BY a.id DESC LIMIT 1) AS atestado_clinico_arquivo_id,
-                (SELECT a.id FROM atestados_saude a WHERE a.pessoa_id=p.id AND a.tipo_atestado='dermatologico' ORDER BY a.id DESC LIMIT 1) AS atestado_dermatologico_arquivo_id
+                COALESCE(aic.id, ac.id) AS atestado_clinico_validado_id,
+                COALESCE(aic.validade_certificado, ac.validade_certificado) AS atestado_clinico_validade,
+                CASE WHEN aic.id IS NOT NULL THEN 'importado' WHEN ac.id IS NOT NULL THEN 'interno' ELSE '' END AS atestado_clinico_origem,
+                CASE WHEN aic.id IS NOT NULL THEN 'validado' ELSE ac.status_validacao END AS atestado_clinico_status,
+                CASE WHEN aic.id IS NULL THEN ac.id ELSE NULL END AS atestado_clinico_arquivo_id,
+                COALESCE(aid.id, ad.id) AS atestado_dermatologico_validado_id,
+                COALESCE(aid.validade_certificado, ad.validade_certificado) AS atestado_dermatologico_validade,
+                CASE WHEN aid.id IS NOT NULL THEN 'importado' WHEN ad.id IS NOT NULL THEN 'interno' ELSE '' END AS atestado_dermatologico_origem,
+                CASE WHEN aid.id IS NOT NULL THEN 'validado' ELSE ad.status_validacao END AS atestado_dermatologico_status,
+                CASE WHEN aid.id IS NULL THEN ad.id ELSE NULL END AS atestado_dermatologico_arquivo_id
             FROM inscricoes_turma i INNER JOIN pessoas p ON p.id=i.pessoa_id
             LEFT JOIN turmas_chamadas ch ON ch.inscricao_turma_id=i.id AND ch.data_aula=:data
-            LEFT JOIN atestados_saude ac ON ac.id=(SELECT a.id FROM atestados_saude a WHERE a.pessoa_id=p.id AND a.tipo_atestado='clinico' AND a.status_validacao='validado' ORDER BY a.id DESC LIMIT 1)
-            LEFT JOIN atestados_saude ad ON ad.id=(SELECT a.id FROM atestados_saude a WHERE a.pessoa_id=p.id AND a.tipo_atestado='dermatologico' AND a.status_validacao='validado' ORDER BY a.id DESC LIMIT 1)
+            LEFT JOIN atestados_saude ac ON ac.id=(SELECT a.id FROM atestados_saude a WHERE a.pessoa_id=p.id AND a.tipo_atestado='clinico' ORDER BY a.id DESC LIMIT 1)
+            LEFT JOIN atestados_saude ad ON ad.id=(SELECT a.id FROM atestados_saude a WHERE a.pessoa_id=p.id AND a.tipo_atestado='dermatologico' ORDER BY a.id DESC LIMIT 1)
+            LEFT JOIN atestados_saude_importados aic ON ac.id IS NULL AND aic.id=(SELECT ai.id FROM atestados_saude_importados ai WHERE ai.cpf=p.cpf AND ai.tipo_atestado='clinico' AND ai.status_importacao='ativo' ORDER BY ai.data_atualizacao_origem DESC, ai.id_externo DESC LIMIT 1)
+            LEFT JOIN atestados_saude_importados aid ON ad.id IS NULL AND aid.id=(SELECT ai.id FROM atestados_saude_importados ai WHERE ai.cpf=p.cpf AND ai.tipo_atestado='dermatologico' AND ai.status_importacao='ativo' ORDER BY ai.data_atualizacao_origem DESC, ai.id_externo DESC LIMIT 1)
             WHERE i.turma_id=:turma AND i.status IN ('matriculada','suspensa','excluida_por_falta')
             ORDER BY CASE i.status WHEN 'matriculada' THEN 1 WHEN 'suspensa' THEN 2 ELSE 3 END, p.nome_completo");
         $stmt->execute([':data' => $date, ':turma' => $classId]);
