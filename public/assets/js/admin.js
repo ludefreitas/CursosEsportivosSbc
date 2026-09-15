@@ -6379,11 +6379,70 @@
                     .fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); });
             }
 
+            function placeClassAttendanceModal(selector, $context) {
+                let $candidate = $context && $context.length ? $context.find(selector).last() : $();
+                if (!$candidate.length) $candidate = $('body > ' + selector).last();
+                if (!$candidate.length) $candidate = $(selector).last();
+                if (!$candidate.length) return $();
+
+                $candidate.detach();
+                $(selector).remove();
+                return $candidate.appendTo(document.body);
+            }
+
+            function prepareClassAttendanceModals($trigger) {
+                const $context = $trigger.closest('[data-class-results], [data-professor-class-results]');
+                const selectors = [
+                    '#course-class-attendance-modal',
+                    '#course-class-attendance-roster-modal',
+                    '#course-class-justification-modal',
+                    '#class-enrollment-action-modal'
+                ];
+                const modals = {};
+                selectors.forEach(function (selector) {
+                    modals[selector] = placeClassAttendanceModal(selector, $context);
+                });
+                return modals;
+            }
+
+            const classAttendanceAdultAbsenceReasons = ['Acompanhamento de familiar', 'Afastamento temporário', 'Atividade ou compromisso oficial', 'Compromisso de trabalho', 'Compromisso escolar ou acadêmico', 'Condições climáticas', 'Consulta médica ou odontológica', 'Exame médico', 'Falecimento ou emergência familiar', 'Outro motivo', 'Problema de saúde', 'Problema de transporte', 'Tratamento ou fisioterapia', 'Viagem'];
+            const classAttendanceMinorAbsenceReasons = ['Afastamento temporário', 'Compromisso escolar', 'Condições climáticas', 'Consulta médica ou odontológica', 'Emergência familiar', 'Exame, tratamento ou terapia', 'Falta de acompanhante responsável', 'Falecimento na família', 'Guarda ou convivência familiar', 'Orientação dos pais ou responsáveis', 'Outro motivo', 'Passeio ou evento escolar', 'Problema de saúde do menor', 'Problema de transporte', 'Prova ou atividade extracurricular', 'Responsável impossibilitado de levar ou buscar', 'Viagem familiar'];
+
+            function isClassAttendanceMinor(birthDate, referenceDate) {
+                const birth = new Date(String(birthDate || '') + 'T12:00:00');
+                const reference = referenceDate ? new Date(String(referenceDate).slice(0, 10) + 'T12:00:00') : new Date();
+                if (Number.isNaN(birth.getTime())) return false;
+                let age = reference.getFullYear() - birth.getFullYear();
+                if (reference.getMonth() < birth.getMonth() || (reference.getMonth() === birth.getMonth() && reference.getDate() < birth.getDate())) age--;
+                return age < 18;
+            }
+
+            function prepareClassAttendanceJustificationFields($form, birthDate, referenceDate, currentReason) {
+                const reasons = isClassAttendanceMinor(birthDate, referenceDate) ? classAttendanceMinorAbsenceReasons : classAttendanceAdultAbsenceReasons;
+                const reason = String(currentReason || '').trim();
+                const isKnown = reasons.indexOf(reason) !== -1;
+                const $select = $form.find('[data-justification-reason-select]');
+                $select.html('<option value="">Selecione o motivo</option>' + reasons.map(function (item) { return $('<option>').val(item).text(item)[0].outerHTML; }).join(''));
+                $select.val(reason === '' ? '' : (isKnown ? reason : 'Outro motivo'));
+                $form.find('[data-justification-other-wrap]').toggleClass('hidden', $select.val() !== 'Outro motivo');
+                $form.find('[data-justification-other]').val(isKnown ? '' : reason).prop('required', $select.val() === 'Outro motivo');
+            }
+
+            function selectedClassAttendanceJustificationReason($form) {
+                const selected = String($form.find('[data-justification-reason-select]').val() || '').trim();
+                return selected === 'Outro motivo' ? String($form.find('[data-justification-other]').val() || '').trim() : selected;
+            }
+
             $(document).on('click', '[data-course-class-attendance]', function () {
                 let record = {};
                 try { record = JSON.parse(String($(this).attr('data-course-class-attendance') || '{}')); } catch (error) { record = {}; }
                 const weekdays = String(record.dias_semana || '').split(',').map(Number).filter(Boolean);
-                const $modal = $('#course-class-attendance-modal');
+                const modals = prepareClassAttendanceModals($(this));
+                const $modal = modals['#course-class-attendance-modal'];
+                if (!$modal.length) {
+                    App.core.abrirPopup('erro', 'O modal da chamada não está disponível nesta tela.');
+                    return;
+                }
                 $modal.attr('data-class-id', String(record.id || '')).attr('data-class-weekdays', weekdays.join(','));
                 const schedule = String(record.dias_semana_descricao || 'dias não informados') + (record.hora_inicio && record.hora_fim ? ', ' + String(record.hora_inicio).slice(0, 5) + ' às ' + String(record.hora_fim).slice(0, 5) : '');
                 $modal.find('[data-class-attendance-subtitle]').text('[' + String(record.id || '') + '] ' + String(record.nome || 'Turma') + ' · ' + schedule);
@@ -6430,26 +6489,52 @@
                     .always(function () { $row.find('[data-class-attendance-status]').prop('disabled', false); });
             }
 
-            $(document).on('change', '[data-class-attendance-status]', function () {
-                const $input = $(this); if (!$input.is(':checked')) { $input.prop('checked', true); return; }
+            function openClassAttendanceJustification($input) {
                 const $row = $input.closest('[data-class-attendance-row]');
-                const status = String($input.attr('data-class-attendance-status') || '');
-                if (status === 'justificado') {
-                    $input.prop('checked', false);
-                    const $modal = $('#course-class-justification-modal').data('attendanceInput', $input);
-                    const referenceDate = String($row.closest('[data-class-attendance-roster]').find('[data-class-attendance-date]').attr('data-class-attendance-date') || '');
-                    prepareJustificationFields($modal.find('form'), String($input.attr('data-birth-date') || ''), referenceDate, String($input.attr('data-current-justification') || ''));
-                    $modal.find('[data-class-justification-person]').text(String($input.attr('data-person-name') || ''));
-                    $modal.removeClass('hidden').attr('aria-hidden', 'false').find('[data-justification-reason-select]').trigger('focus');
+                $input.prop('checked', false);
+                let $modal = $('body > #course-class-justification-modal').last();
+                if (!$modal.length) {
+                    const $context = $input.closest('[data-class-results], [data-professor-class-results]');
+                    $modal = placeClassAttendanceModal('#course-class-justification-modal', $context);
+                }
+                if (!$modal.length) {
+                    App.core.abrirPopup('erro', 'O modal de justificativa não está disponível nesta tela.');
                     return;
                 }
+                $modal = $modal.appendTo(document.body).data('attendanceInput', $input);
+                const referenceDate = String($row.closest('[data-class-attendance-roster]').find('[data-class-attendance-date]').attr('data-class-attendance-date') || '');
+                prepareClassAttendanceJustificationFields($modal.find('form'), String($input.attr('data-birth-date') || ''), referenceDate, String($input.attr('data-current-justification') || ''));
+                $modal.find('[data-class-justification-person]').text(String($input.attr('data-person-name') || ''));
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+                window.setTimeout(function () { $modal.find('[data-justification-reason-select]').trigger('focus'); }, 0);
+            }
+
+            $(document).on('click', '[data-class-attendance-status="justificado"]', function (event) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                openClassAttendanceJustification($(this));
+            });
+
+            $(document).on('change', '#course-class-justification-modal [data-justification-reason-select]', function () {
+                const $form = $(this).closest('form');
+                const isOther = String($(this).val() || '') === 'Outro motivo';
+                $form.find('[data-justification-other-wrap]').toggleClass('hidden', !isOther);
+                $form.find('[data-justification-other]').prop('required', isOther);
+                if (isOther) $form.find('[data-justification-other]').trigger('focus');
+            });
+
+            $(document).on('change', '[data-class-attendance-status]', function () {
+                const $input = $(this);
+                const status = String($input.attr('data-class-attendance-status') || '');
+                if (status === 'justificado') return;
+                if (!$input.is(':checked')) { $input.prop('checked', true); return; }
                 saveClassAttendanceStatus($input, status, '');
             });
             $(document).on('click', '[data-class-justification-close="1"]', function () { $('#course-class-justification-modal').removeData('attendanceInput').addClass('hidden').attr('aria-hidden', 'true'); });
             $(document).on('click', '#course-class-justification-modal', function (event) { if (event.target === this) $(this).removeData('attendanceInput').addClass('hidden').attr('aria-hidden', 'true'); });
             $(document).on('submit', '[data-class-justification-form="1"]', function (event) {
                 event.preventDefault();
-                const $form = $(this); const reason = selectedJustificationReason($form);
+                const $form = $(this); const reason = selectedClassAttendanceJustificationReason($form);
                 if (!reason) { App.core.abrirPopup('erro', 'Selecione ou informe o motivo da justificativa.'); return; }
                 const $modal = $('#course-class-justification-modal'); const $input = $modal.data('attendanceInput');
                 $modal.removeData('attendanceInput').addClass('hidden').attr('aria-hidden', 'true');
