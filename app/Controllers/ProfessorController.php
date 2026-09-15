@@ -358,24 +358,29 @@ class ProfessorController extends Controller
     {
         $user = $this->assertProfessorAccess();
         try {
-            (new \App\Services\CourseEnrollmentService())->changeStatus(
-                (int) ($_POST['inscricao_id'] ?? 0),
+            $courseEnrollmentService = new \App\Services\CourseEnrollmentService();
+            $enrollmentId = (int) ($_POST['inscricao_id'] ?? 0);
+            $professorAccountId = (int) ($user['conta_id'] ?? 0);
+            if (!$courseEnrollmentService->professorCanManageEnrollment($professorAccountId, $enrollmentId)) {
+                throw new \RuntimeException('Você não está atribuído a esta turma e não pode alterar esta inscrição.');
+            }
+            $courseEnrollmentService->changeStatus(
+                $enrollmentId,
                 trim((string) ($_POST['status'] ?? '')),
-                (int) $user['conta_id'],
+                $professorAccountId,
                 trim((string) ($_POST['motivo'] ?? '')),
                 trim((string) ($_POST['suspensa_fim'] ?? '')) ?: null,
                 trim((string) ($_POST['token'] ?? '')),
                 trim((string) ($_POST['vaga_informada_em'] ?? '')) ?: null,
                 !empty($_POST['vaga_informada'])
             );
-            $courseEnrollmentService = new \App\Services\CourseEnrollmentService();
             $courseEnrollmentSortBy = trim((string) ($_POST['ordenar_por'] ?? 'ordem_inscricao'));
             $courseEnrollmentSortDirection = trim((string) ($_POST['direcao'] ?? 'asc'));
             $courseEnrollmentStatusFilter = trim((string) ($_POST['status_filtro'] ?? 'todos'));
             $courseEnrollmentConditionFilter = trim((string) ($_POST['condicao_filtro'] ?? 'todas'));
             $courseEnrollmentClassId = max(0, (int) ($_POST['turma_id'] ?? 0));
             $courseEnrollmentClassName = trim((string) ($_POST['turma_nome'] ?? ''));
-            $courseEnrollmentsManagement = $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId);
+            $courseEnrollmentsManagement = $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId, $professorAccountId);
             $courseEnrollmentStatusSummary = $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId);
             $professorView = true;
             ob_start();
@@ -506,7 +511,7 @@ class ProfessorController extends Controller
                 'courseEnrollmentConditionFilter' => $courseEnrollmentConditionFilter,
                 'courseEnrollmentClassId' => $courseEnrollmentClassId,
                 'courseEnrollmentClassName' => $courseEnrollmentClassName,
-                'courseEnrollmentsManagement' => $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId),
+                'courseEnrollmentsManagement' => $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId, (int) ($user['conta_id'] ?? 0)),
                 'courseEnrollmentStatusSummary' => $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId),
             ];
         }

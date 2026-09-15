@@ -169,7 +169,7 @@ class CourseEnrollmentService
         return $rows;
     }
 
-    public function listForManagement(string $sortBy = 'ordem_inscricao', string $sortDirection = 'asc', string $statusFilter = 'todos', string $conditionFilter = 'todas', int $classId = 0): array
+    public function listForManagement(string $sortBy = 'ordem_inscricao', string $sortDirection = 'asc', string $statusFilter = 'todos', string $conditionFilter = 'todas', int $classId = 0, int $professorAccountId = 0): array
     {
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
@@ -195,7 +195,10 @@ class CourseEnrollmentService
         $statusFilter = array_key_exists($statusFilter, self::STATUS_LABELS) ? $statusFilter : 'todos';
         $conditionFilter = in_array($conditionFilter, ['geral', 'pcd', 'plm', 'pvs'], true) ? $conditionFilter : 'todas';
         $where = [];
-        $params = [];
+        $params = [
+            ':management_primary_professor_id' => $professorAccountId,
+            ':management_auxiliary_professor_id' => $professorAccountId,
+        ];
         if ($statusFilter !== 'todos') {
             $where[] = 'i.status = :status_filter';
             $params[':status_filter'] = $statusFilter;
@@ -211,6 +214,7 @@ class CourseEnrollmentService
         $whereSql = $where === [] ? '' : ' WHERE ' . implode(' AND ', $where);
         $stmt = $pdo->prepare("SELECT
                 i.id, i.turma_id, i.pessoa_id, i.numero_ordem, i.publico_alvo, i.excecao_condicao, i.status, i.created_at, i.updated_at, i.motivo_status,
+                (t.professor_conta_id = :management_primary_professor_id OR EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id = i.turma_id AND tp.professor_conta_id = :management_auxiliary_professor_id)) AS professor_pode_gerenciar,
                 p.nome_completo, p.cpf, p.data_nascimento, p.email, p.telefone_whatsapp,
                 p.cep, p.logradouro, p.numero_endereco, p.complemento, p.bairro, p.cidade, p.uf,
                 p.contato_emergencia_nome, p.contato_emergencia_telefone,
@@ -731,6 +735,10 @@ class CourseEnrollmentService
             $stmt = $pdo->prepare('INSERT INTO turmas (temporada_id, modalidade_id, cronograma_modalidade_id, local_treino_id, espaco_treino_id, nivel_modalidade_id, niveis_aceitos_json, professor_conta_id, nome, observacao, excecoes_idade_json, dias_semana, hora_inicio, hora_fim, idade_minima, idade_maxima, criterio_faixa_etaria, sexo, vagas_totais, vagas_geral, vagas_pcd, vagas_plm, vagas_pvs, vagas_espera_geral, vagas_espera_pcd, vagas_espera_plm, vagas_espera_pvs, ativo, inscricoes_abertas) VALUES (:temporada, :modalidade, :cronograma, :local, :espaco, :nivel, :niveis_aceitos, :professor, :nome, :observacao, :excecoes_idade, :dias_semana, :hora_inicio, :hora_fim, :idade_minima, :idade_maxima, :criterio_faixa_etaria, :sexo, :vagas_totais, :vagas_geral, :vagas_pcd, :vagas_plm, :vagas_pvs, :espera_geral, :espera_pcd, :espera_plm, :espera_pvs, 1, :inscricoes_abertas)');
             $stmt->execute($params);
             $id = (int) $pdo->lastInsertId();
+            if ((int) ($params[':professor'] ?? 0) > 0) {
+                $pdo->prepare('INSERT IGNORE INTO turmas_professores (turma_id, professor_conta_id) VALUES (:turma_id, :professor_id)')
+                    ->execute([':turma_id' => $id, ':professor_id' => (int) $params[':professor']]);
+            }
             AuditLogService::record('turma.criada', 'turmas', $id, ['conta_id' => $accountId]);
         }
         $this->synchronizeCalculatedClassStatuses($pdo, $id);
@@ -909,6 +917,14 @@ class CourseEnrollmentService
         if ($accountId <= 0 || $classId <= 0) { return false; }
         $stmt = Database::connection()->prepare('SELECT 1 FROM turmas_professores WHERE turma_id=:turma AND professor_conta_id=:professor LIMIT 1');
         $stmt->execute([':turma' => $classId, ':professor' => $accountId]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    public function professorCanManageEnrollment(int $accountId, int $enrollmentId): bool
+    {
+        if ($accountId <= 0 || $enrollmentId <= 0) { return false; }
+        $stmt = Database::connection()->prepare('SELECT 1 FROM inscricoes_turma i INNER JOIN turmas t ON t.id = i.turma_id WHERE i.id = :inscricao AND (t.professor_conta_id = :professor_principal OR EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id = t.id AND tp.professor_conta_id = :professor_auxiliar)) LIMIT 1');
+        $stmt->execute([':inscricao' => $enrollmentId, ':professor_principal' => $accountId, ':professor_auxiliar' => $accountId]);
         return (bool) $stmt->fetchColumn();
     }
 
