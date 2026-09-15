@@ -6214,6 +6214,8 @@
             $(document).on('click', '[data-course-professor-close="1"]', closeModals);
             $(document).on('click', '[data-course-assign-professor]', function () {
                 const $modal = $('#course-professor-modal');
+                $modal.find('[data-course-team-search]').val('');
+                $modal.find('[data-course-team-options] label').removeClass('hidden');
                 $modal.find('[name="turma_id"]').val(String($(this).attr('data-course-assign-professor') || ''));
                 let professorIds = [];
                 let internIds = [];
@@ -6228,6 +6230,13 @@
                 $modal.find('[name="estagiario_conta_ids[]"]').each(function () { $(this).prop('checked', internIds.indexOf(String($(this).val())) !== -1); });
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
             });
+            $(document).on('input', '[data-course-team-search]', function () {
+                const query = String($(this).val() || '').trim().toLocaleLowerCase('pt-BR');
+                $(this).siblings('[data-course-team-options]').find('label').each(function () {
+                    const name = String($(this).find('span').text() || '').toLocaleLowerCase('pt-BR');
+                    $(this).toggleClass('hidden', query !== '' && name.indexOf(query) === -1);
+                });
+            });
             $(document).on('submit', '[data-course-professor-form="1"]', function (event) {
                 event.preventDefault();
                 const $form = $(this);
@@ -6236,12 +6245,46 @@
                     return;
                 }
                 const $button = $form.find('button[type="submit"]').prop('disabled', true);
+                const classId = String($form.find('[name="turma_id"]').val() || '');
+                const $mainProfessor = $form.find('[name="professor_principal_conta_id"]:checked');
+                const mainProfessorId = String($mainProfessor.val() || '');
+                const mainProfessorName = $.trim($mainProfessor.closest('label').find('span').text());
+                const auxiliaryProfessorIds = [];
+                const auxiliaryProfessorNames = [];
+                const internIds = [];
+                const internNames = [];
+                $form.find('[name="professor_auxiliar_conta_ids[]"]:checked').each(function () {
+                    auxiliaryProfessorIds.push(String($(this).val() || ''));
+                    auxiliaryProfessorNames.push($.trim($(this).closest('label').find('span').text()));
+                });
+                $form.find('[name="estagiario_conta_ids[]"]:checked').each(function () {
+                    internIds.push(String($(this).val() || ''));
+                    internNames.push($.trim($(this).closest('label').find('span').text()));
+                });
                 $.ajax({ url: $form.attr('action'), method: 'POST', dataType: 'json', data: $form.serialize() })
                     .done(function (response) {
                         if (!response || !response.success) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atribuir o professor.')); return; }
+                        const professorIds = [mainProfessorId].concat(auxiliaryProfessorIds).filter(Boolean);
+                        const $card = $('[data-course-class-card="' + classId + '"]').first();
+                        $card.find('[data-course-class-main-professor-name]').text(mainProfessorName || 'Sem professor principal');
+                        const $teamButton = $card.find('[data-course-assign-professor]').first()
+                            .attr('data-course-main-professor', mainProfessorId)
+                            .attr('data-course-current-professors', JSON.stringify(professorIds))
+                            .attr('data-course-current-interns', JSON.stringify(internIds));
+                        $card.find('[data-course-class-details], [data-course-edit="class"]').each(function () {
+                            const attribute = $(this).is('[data-course-class-details]') ? 'data-course-class-details' : 'data-course-record';
+                            let record = {};
+                            try { record = JSON.parse(String($(this).attr(attribute) || '{}')); } catch (error) { record = {}; }
+                            record.professor_conta_id = mainProfessorId;
+                            record.professor_principal_nome = mainProfessorName;
+                            record.professores_ids = professorIds;
+                            record.professores_auxiliares_nomes = auxiliaryProfessorNames.join(', ');
+                            record.estagiarios_ids = internIds;
+                            record.estagiarios_nomes = internNames.join(', ');
+                            $(this).attr(attribute, JSON.stringify(record));
+                        });
                         closeModals();
-                        replacePanel(response);
-                        App.core.abrirPopup('sucesso', String(response.message || 'Professor atribuído com sucesso.'));
+                        $teamButton.trigger('blur');
                     })
                     .fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); })
                     .always(function () { $button.prop('disabled', false); });

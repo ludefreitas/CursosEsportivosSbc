@@ -11,7 +11,7 @@
                 <p><strong>Dias:</strong> <?php echo e((string) ($class['dias_semana_descricao'] ?? 'Não informado')); ?><?php if (!empty($class['hora_inicio']) && !empty($class['hora_fim'])) { echo e(', ' . substr((string) $class['hora_inicio'], 0, 5) . ' às ' . substr((string) $class['hora_fim'], 0, 5)); } ?></p>
                 <p><strong><?php echo ($class['criterio_faixa_etaria'] ?? '') === 'ano_nascimento' ? 'Ano de nascimento' : 'Faixa etária'; ?>:</strong> <?php echo e((string) ($class['faixa_etaria_descricao'] ?? 'Não informada')); ?></p>
                 <?php if (!empty($class['excecoes_idade_descricao'])) { ?><p><strong>Exceções de idade:</strong> <?php echo e(implode('; ', (array) $class['excecoes_idade_descricao'])); ?></p><?php } ?>
-                <p><strong>Professor principal:</strong> <?php echo e((string) (($class['professor_principal_nome'] ?? '') ?: 'Sem professor principal')); ?></p>
+                <p><strong>Professor principal:</strong> <span data-course-class-main-professor-name><?php echo e((string) (($class['professor_principal_nome'] ?? '') ?: 'Sem professor principal')); ?></span></p>
                 <p><strong>Status:</strong> <span class="class-status-badge class-status-<?php echo e((string) ($class['status'] ?? 'planejada')); ?>" data-course-class-status-label="1"><?php echo e((string) ($class['status_label'] ?? (!empty($class['ativo']) ? 'Planejada' : 'Inscrições suspensas'))); ?></span></p>
                 <p><button type="button" class="course-class-details-link" data-course-class-details='<?php echo e((string) json_encode($class, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>'>Detalhes</button></p>
                 <?php $totalClassEnrollments = (int) ($class['total_inscritos'] ?? 0); ?>

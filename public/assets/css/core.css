@@ -1360,7 +1360,8 @@ body.pagina-error label span {
 .agenda-terms-acceptance .link-button { display: inline; padding: 0; font: inherit; vertical-align: baseline; }
 .course-team-field { margin: 0; padding: 14px; border: 1px solid var(--line); border-radius: 14px; }
 .course-team-field legend { padding: 0 6px; font-weight: 700; }
-.course-team-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; }
+.course-team-search { width: 100%; margin-bottom: 10px; }
+.course-team-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; max-height: 190px; overflow-y: auto; padding-right: 4px; }
 .course-enrollment-sort { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; margin: 0 0 10px; color: var(--muted); font-size: .82rem; }
 .course-enrollment-sort label { width: auto; }
 .course-enrollment-sort select { width: auto; min-height: 32px; padding: 5px 28px 5px 9px; border-radius: 999px; font-size: .82rem; background-color: rgba(255, 255, 255, .78); }

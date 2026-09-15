@@ -518,7 +518,7 @@
                         : (regularVacancies > 0 ? regularVacancies : waitlistVacancies);
                     const vacanciesLabel = displayedVacancies <= 0
                         ? 'Não há vagas'
-                        : String(displayedVacancies) + (displayedVacancies === 1 ? ' vaga' : ' vagas');
+                        : String(displayedVacancies) + (displayedVacancies === 1 ? ' vaga' : ' vagas') + (registrationsAreOpen ? ' na lista de espera' : '');
                     $grid.append($('<article>').append($('<strong>', { text: item[0] })).append($('<span>', { text: vacanciesLabel })));
                 });
                 $('#home-course-vacancies-subtitle').text(String((classesById[String(record.id)] || record).nome || ''));

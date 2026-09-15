@@ -2749,8 +2749,7 @@ class AdminController extends Controller
                 (array) ($_POST['estagiario_conta_ids'] ?? []),
                 (int) $user['conta_id']
             );
-            $view = ($_POST['course_management_view'] ?? '') === 'turmas-locais' ? 'turmas-locais' : 'turmas';
-            $this->jsonResponse(['success' => true, 'message' => 'Equipe da turma atualizada com sucesso.', 'html' => $this->renderCourseManagementPanelHtml($view)]);
+            $this->jsonResponse(['success' => true, 'message' => 'Equipe da turma atualizada com sucesso.']);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
