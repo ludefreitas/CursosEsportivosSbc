@@ -301,6 +301,63 @@ class CourseEnrollmentService
     }
 
     /**
+     * Retorna o histórico completo de inscrições das pessoas exibidas no painel,
+     * sem reaproveitar os filtros de turma, situação ou condição da listagem.
+     */
+    public function enrollmentSummariesByPerson(array $personIds): array
+    {
+        return $this->queryEnrollmentSummariesByPerson($personIds);
+    }
+
+    /**
+     * Fornece à área do professor somente os campos necessários ao modal.
+     * Esta saída não reutiliza dados montados pelo painel administrativo.
+     */
+    public function professorEnrollmentSummariesByPerson(array $personIds, int $professorAccountId): array
+    {
+        if ($professorAccountId <= 0) {
+            return [];
+        }
+
+        return $this->queryEnrollmentSummariesByPerson($personIds);
+    }
+
+    private function queryEnrollmentSummariesByPerson(array $personIds): array
+    {
+        $personIds = array_values(array_unique(array_filter(
+            array_map('intval', $personIds),
+            static fn (int $id): bool => $id > 0
+        )));
+        if ($personIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($personIds), '?'));
+        $stmt = Database::connection()->prepare("SELECT
+                i.id, i.pessoa_id, i.created_at, i.status,
+                t.nome AS turma_nome, te.nome AS temporada_nome
+            FROM inscricoes_turma i
+            INNER JOIN turmas t ON t.id = i.turma_id
+            INNER JOIN temporadas te ON te.id = t.temporada_id
+            WHERE i.pessoa_id IN ($placeholders)
+            ORDER BY i.pessoa_id, i.created_at DESC, i.id DESC");
+        $stmt->execute($personIds);
+
+        $summaries = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $summaries[(int) $row['pessoa_id']][] = [
+                'id' => (int) $row['id'],
+                'turma' => (string) $row['turma_nome'],
+                'temporada' => (string) $row['temporada_nome'],
+                'status' => self::STATUS_LABELS[(string) $row['status']] ?? (string) $row['status'],
+                'data' => !empty($row['created_at']) ? date('d/m/Y H:i', strtotime((string) $row['created_at'])) : '-',
+            ];
+        }
+
+        return $summaries;
+    }
+
+    /**
      * Resume todas as inscrições por status para os painéis de gestão.
      */
     public function enrollmentStatusSummaryForManagement(int $classId = 0): array
@@ -1301,6 +1358,72 @@ class CourseEnrollmentService
         $history = $pdo->prepare('INSERT INTO inscricoes_turma_historico (inscricao_turma_id, status_anterior, status_novo, motivo, alterado_por_conta_id) VALUES (:id, :anterior, :novo, :motivo, :conta)');
         $history->execute([':id' => $enrollmentId, ':anterior' => $enrollment['status'], ':novo' => 'cancelada', ':motivo' => 'Cancelamento solicitado pelo responsável.', ':conta' => Auth::id()]);
         AuditLogService::record('inscricao_turma.cancelada', 'inscricoes_turma', $enrollmentId, ['conta_id' => Auth::id()]);
+    }
+
+    public function deletePermanentlyForProfessor(int $enrollmentId, int $accountId): void
+    {
+        if ($enrollmentId <= 0 || $accountId <= 0) {
+            throw new RuntimeException('Não foi possível identificar a inscrição para exclusão.');
+        }
+
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+        try {
+            $stmt = $pdo->prepare("SELECT i.id, i.turma_id, i.pessoa_id, i.publico_alvo
+                FROM inscricoes_turma i
+                WHERE i.id = :id
+                  AND EXISTS (
+                    SELECT 1
+                    FROM conta_papeis cp
+                    INNER JOIN papeis papel ON papel.id = cp.papel_id
+                    WHERE cp.conta_id = :professor_conta_id AND papel.slug = 'teacher'
+                  )
+                  AND EXISTS (
+                    SELECT 1
+                    FROM contas c
+                    INNER JOIN pessoas titular ON titular.cpf = c.cpf
+                    LEFT JOIN vinculos_responsaveis vr
+                      ON vr.responsavel_pessoa_id = titular.id AND vr.data_fim IS NULL
+                    WHERE c.id = :conta_id
+                      AND (i.pessoa_id = titular.id OR i.pessoa_id = vr.dependente_pessoa_id)
+                  )
+                LIMIT 1 FOR UPDATE");
+            $stmt->execute([':id' => $enrollmentId, ':professor_conta_id' => $accountId, ':conta_id' => $accountId]);
+            $enrollment = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$enrollment) {
+                throw new RuntimeException('A exclusão é exclusiva para professores e somente alcança inscrições próprias ou de dependentes vinculados.');
+            }
+
+            $attendance = $pdo->prepare('SELECT COUNT(*) FROM turmas_chamadas WHERE inscricao_turma_id = :id');
+            $attendance->execute([':id' => $enrollmentId]);
+            if ((int) $attendance->fetchColumn() > 0) {
+                throw new RuntimeException('Esta inscrição não pode ser excluída definitivamente porque já possui chamada registrada.');
+            }
+
+            $pdo->prepare('DELETE FROM inscricoes_turma_historico WHERE inscricao_turma_id = :id')->execute([':id' => $enrollmentId]);
+            $pdo->prepare('DELETE FROM inscricoes_turma WHERE id = :id')->execute([':id' => $enrollmentId]);
+
+            $waitlist = $pdo->prepare("SELECT id FROM inscricoes_turma
+                WHERE turma_id = :turma AND publico_alvo = :publico AND status = 'lista_espera'
+                ORDER BY COALESCE(posicao_lista_espera, 2147483647), created_at, id");
+            $waitlist->execute([':turma' => (int) $enrollment['turma_id'], ':publico' => (string) $enrollment['publico_alvo']]);
+            $updatePosition = $pdo->prepare('UPDATE inscricoes_turma SET posicao_lista_espera = :posicao WHERE id = :id');
+            foreach ($waitlist->fetchAll(PDO::FETCH_COLUMN) ?: [] as $index => $waitlistEnrollmentId) {
+                $updatePosition->execute([':posicao' => $index + 1, ':id' => (int) $waitlistEnrollmentId]);
+            }
+
+            AuditLogService::record('inscricao_turma.excluida_definitivamente_por_professor', 'inscricoes_turma', $enrollmentId, [
+                'conta_id' => $accountId,
+                'turma_id' => (int) $enrollment['turma_id'],
+                'pessoa_id' => (int) $enrollment['pessoa_id'],
+            ]);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
     }
 
     public function createExceptionToken(int $accountId, array $data): string

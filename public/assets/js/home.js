@@ -648,13 +648,11 @@
                             return;
                         }
                         $('#home-course-enrollment-modal, #home-course-cpf-modal').addClass('hidden').attr('aria-hidden', 'true');
+                        const redirect = String(response.redirect || '').trim();
                         App.core.abrirPopup('sucesso', String(response.message || 'Inscrição realizada com sucesso.'), function () {
-                            if (response.redirect && Number(response.enrollment_id || 0) > 0) {
-                                window.location.assign(String(response.redirect));
-                                return;
-                            }
+                            if (redirect !== '') return;
                             loadClasses();
-                        });
+                        }, redirect);
                     }).fail(function (xhr) {
                         App.core.renovarVerificacaoHumana($form);
                         App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);

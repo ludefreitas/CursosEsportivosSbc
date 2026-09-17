@@ -29,6 +29,7 @@ return [
     ['GET', '/api/locais/popup', [CourseEnrollmentController::class, 'locationPopup']],
     ['POST', '/cursos/inscrever', [CourseEnrollmentController::class, 'enroll']],
     ['POST', '/cursos/inscricoes/cancelar', [CourseEnrollmentController::class, 'cancel']],
+    ['POST', '/cursos/inscricoes/excluir-definitivamente', [CourseEnrollmentController::class, 'deletePermanentlyForProfessor']],
     ['GET', '/login', [AuthController::class, 'showLogin']],
     ['POST', '/login', [AuthController::class, 'login']],
     ['GET', '/recuperar-senha', [AuthController::class, 'showPasswordRecovery']],

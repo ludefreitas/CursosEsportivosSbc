@@ -2170,6 +2170,7 @@ class AdminController extends Controller
             $data['courseEnrollmentClassId'] = max(0, (int) ($_GET['turma_id'] ?? 0));
             $data['courseEnrollmentClassName'] = trim((string) ($_GET['turma_nome'] ?? ''));
             $data['courseEnrollmentsManagement'] = $courseEnrollmentService->listForManagement($data['courseEnrollmentSortBy'], $data['courseEnrollmentSortDirection'], $data['courseEnrollmentStatusFilter'], $data['courseEnrollmentConditionFilter'], $data['courseEnrollmentClassId']);
+            $data['courseEnrollmentsByPerson'] = $courseEnrollmentService->enrollmentSummariesByPerson(array_column($data['courseEnrollmentsManagement'], 'pessoa_id'));
             $data['courseEnrollmentStatusSummary'] = $courseEnrollmentService->enrollmentStatusSummaryForManagement($data['courseEnrollmentClassId']);
         }
 

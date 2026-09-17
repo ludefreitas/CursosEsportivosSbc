@@ -1410,6 +1410,9 @@ body.pagina-error label span {
 .course-enrollment-detail-person { font-size: 1.15rem; }
 .course-enrollment-detail-links { display: grid; justify-items: start; gap: 7px; margin-top: 14px; }
 .dashboard-course-enrollment-status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.dashboard-course-enrollment-actions { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.dashboard-course-enrollment-actions form { margin: 0; }
+.dashboard-course-enrollment-actions .btn { width: 100%; }
 .dashboard-course-enrollment-details-open { min-height: 34px; padding: 6px 12px; }
 .dashboard-course-enrollment-next-steps { margin-top: 18px; padding: 14px 16px; border: 1px solid #acd4b5; border-radius: 12px; background: #f0faf2; }
 .dashboard-course-enrollment-next-steps h4 { margin: 0 0 8px; color: #176c35; }

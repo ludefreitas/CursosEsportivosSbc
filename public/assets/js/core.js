@@ -3,6 +3,7 @@
 
     App.state = App.state || {
         popupCloseCallback: null,
+        popupCloseRedirect: '',
         agendaPendingEventData: null,
         profileCompletionReturnTo: '',
         loadingCounter: 0
@@ -39,13 +40,14 @@
                 .replace(/'/g, '&#39;');
         },
 
-        abrirPopup: function (tipo, mensagem, onClose) {
+        abrirPopup: function (tipo, mensagem, onClose, redirectOnClose) {
             const $popup = $('#popup-mensagem');
             const $titulo = $('#popup-titulo');
             const $texto = $('#popup-texto');
             const titulo = tipo === 'erro' ? 'Erro no formulário' : 'Mensagem do sistema';
 
             App.state.popupCloseCallback = typeof onClose === 'function' ? onClose : null;
+            App.state.popupCloseRedirect = String(redirectOnClose || '').trim();
 
             $popup.removeClass('popup-erro popup-sucesso hidden').addClass(tipo === 'erro' ? 'popup-erro' : 'popup-sucesso');
             $popup.attr('aria-hidden', 'false');
@@ -60,6 +62,7 @@
             const titulo = tipo === 'erro' ? 'Erro no formulário' : 'Mensagem do sistema';
 
             App.state.popupCloseCallback = typeof onClose === 'function' ? onClose : null;
+            App.state.popupCloseRedirect = '';
 
             $popup.removeClass('popup-erro popup-sucesso hidden').addClass(tipo === 'erro' ? 'popup-erro' : 'popup-sucesso');
             $popup.attr('aria-hidden', 'false');
@@ -73,12 +76,18 @@
 
         fecharPopup: function () {
             const callback = App.state.popupCloseCallback;
+            const redirect = String(App.state.popupCloseRedirect || '').trim();
 
             App.state.popupCloseCallback = null;
+            App.state.popupCloseRedirect = '';
             $('#popup-mensagem').addClass('hidden').attr('aria-hidden', 'true');
 
             if (callback) {
                 callback();
+            }
+
+            if (redirect !== '') {
+                window.location.assign(redirect);
             }
         },
 
