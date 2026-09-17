@@ -11,7 +11,6 @@ class ModalityPopupService
     public function listAll(): array
     {
         $pdo = Database::connection();
-        $this->ensureSchema($pdo);
         return $pdo->query("SELECT mp.*, m.nome AS modalidade_nome, lt.apelido_local AS local_apelido, lt.nome_local, CASE WHEN mp.status='ativo' AND NOW() BETWEEN mp.data_inicio AND mp.data_fim THEN 1 ELSE 0 END AS publico_ativo FROM modalidade_popups mp INNER JOIN modalidades m ON m.id=mp.modalidade_id LEFT JOIN locais_treino lt ON lt.id=mp.local_treino_id WHERE mp.status <> 'excluido' ORDER BY m.nome, mp.area, lt.apelido_local, lt.nome_local")->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
@@ -19,7 +18,6 @@ class ModalityPopupService
     {
         if ($modalityId <= 0 || !in_array($area, ['cursos', 'agenda'], true)) return null;
         $pdo = Database::connection();
-        $this->ensureSchema($pdo);
         $locationClause = $locationId > 0 ? 'AND (mp.local_treino_id=:local OR mp.local_treino_id IS NULL)' : 'AND mp.local_treino_id IS NULL';
         $stmt = $pdo->prepare("SELECT mp.*, m.nome AS modalidade_nome, lt.apelido_local AS local_apelido, lt.nome_local FROM modalidade_popups mp INNER JOIN modalidades m ON m.id=mp.modalidade_id LEFT JOIN locais_treino lt ON lt.id=mp.local_treino_id WHERE mp.modalidade_id=:modalidade AND mp.area=:area {$locationClause} AND mp.status='ativo' AND NOW() BETWEEN mp.data_inicio AND mp.data_fim ORDER BY (mp.local_treino_id IS NOT NULL) DESC LIMIT 1");
         $params = [':modalidade' => $modalityId, ':area' => $area];
@@ -31,7 +29,6 @@ class ModalityPopupService
     public function save(int $accountId, array $data): int
     {
         $pdo = Database::connection();
-        $this->ensureSchema($pdo);
         $id = (int) ($data['modalidade_popup_id'] ?? 0);
         $modalityId = (int) ($data['modalidade_id'] ?? 0);
         $locationId = max(0, (int) ($data['local_treino_id'] ?? 0));
@@ -84,7 +81,7 @@ class ModalityPopupService
     public function delete(int $accountId, int $id): void
     {
         if ($id <= 0) throw new RuntimeException('Pop-up inválido.');
-        $pdo=Database::connection(); $this->ensureSchema($pdo);
+        $pdo=Database::connection();
         $stmt=$pdo->prepare("UPDATE modalidade_popups SET status='excluido',atualizado_por_conta_id=:conta,updated_at=NOW() WHERE id=:id AND status<>'excluido'");
         $stmt->execute([':conta'=>$accountId,':id'=>$id]);
         if ($stmt->rowCount() !== 1) throw new RuntimeException('Pop-up não encontrado.');

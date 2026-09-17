@@ -12,7 +12,6 @@ class ProfessorPageService
 
     public function get(): array
     {
-        $this->ensureSchema();
         $row = Database::connection()->query('SELECT * FROM pagina_professor_config WHERE id=1 LIMIT 1')->fetch(PDO::FETCH_ASSOC);
         if (!$row) return $this->defaults();
         $row['acoes'] = json_decode((string) ($row['acoes_json'] ?? '[]'), true) ?: [];
@@ -46,7 +45,6 @@ class ProfessorPageService
             if (!str_starts_with($url, '/') && filter_var($url, FILTER_VALIDATE_URL) === false) throw new RuntimeException('Informe uma URL válida, iniciada por /, http:// ou https://.');
             $actions[] = ['rotulo' => mb_substr($label, 0, 90), 'url' => mb_substr($url, 0, 2048), 'tipo' => ($types[$index] ?? '') === 'link' ? 'link' : 'botao'];
         }
-        $this->ensureSchema();
         $stmt = Database::connection()->prepare('INSERT INTO pagina_professor_config (id,titulo,comunicado,texto_secundario,imagem_url,acoes_json,atualizado_por_conta_id) VALUES (1,:titulo,:comunicado,:texto_secundario,:imagem_url,:acoes,:conta) ON DUPLICATE KEY UPDATE titulo=VALUES(titulo), comunicado=VALUES(comunicado), texto_secundario=VALUES(texto_secundario), imagem_url=VALUES(imagem_url), acoes_json=VALUES(acoes_json), atualizado_por_conta_id=VALUES(atualizado_por_conta_id), updated_at=NOW()');
         $stmt->execute([':titulo' => $title, ':comunicado' => $message ?: null, ':texto_secundario' => $secondaryText ?: null, ':imagem_url' => $imageUrl ?: null, ':acoes' => json_encode($actions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ':conta' => $accountId]);
         AuditLogService::record('pagina_professor.atualizada', 'pagina_professor_config', 1, ['conta_id' => $accountId]);

@@ -17,7 +17,6 @@ class ExternalHealthCertificateService
 
     public function __construct()
     {
-        $this->ensureSchema();
     }
 
     public function importBatch(

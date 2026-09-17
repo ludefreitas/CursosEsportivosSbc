@@ -16,7 +16,6 @@ class AccountAccessService
         $sessionId = (string) session_id();
         if ($sessionId === '') { return; }
         $pdo = Database::connection();
-        $this->ensurePresenceSchema($pdo);
         $stmt = $pdo->prepare('
             INSERT INTO sessoes_ativas (session_hash, conta_id, ip_usuario, user_agent, caminho, ultima_atividade_em)
             VALUES (:session_hash, :conta_id, :ip_usuario, :user_agent, :caminho, NOW())

@@ -37,8 +37,6 @@ class CourseEnrollmentService
     public function listOpenClasses(?int $locationId = null, ?int $modalityId = null): array
     {
         $pdo = Database::connection();
-        $this->ensureCourseSeasonSchema($pdo);
-        $this->ensureCourseAgeCriterionSchema($pdo);
         $this->synchronizeCalculatedSeasonStatuses($pdo);
         $this->synchronizeCalculatedClassStatuses($pdo);
         $sql = "SELECT t.*, te.id AS temporada_id, te.nome AS temporada_nome,
@@ -129,7 +127,6 @@ class CourseEnrollmentService
     {
         if (!Auth::check()) { return []; }
         $pdo = Database::connection();
-        $this->ensureCourseSeasonSchema($pdo);
         $this->synchronizeCalculatedSeasonStatuses($pdo);
         $stmt = $pdo->prepare("SELECT i.id, i.numero_ordem, i.posicao_lista_espera, i.publico_alvo, i.excecao_condicao, i.status, i.created_at, i.updated_at, i.motivo_status,
                    p.nome_completo, p.cpf, p.data_nascimento, t.nome AS turma_nome, t.dias_semana, t.hora_inicio, t.hora_fim,
@@ -172,7 +169,6 @@ class CourseEnrollmentService
     public function listForManagement(string $sortBy = 'ordem_inscricao', string $sortDirection = 'asc', string $statusFilter = 'todos', string $conditionFilter = 'todas', int $classId = 0, int $professorAccountId = 0): array
     {
         $pdo = Database::connection();
-        $this->ensureCourseSeasonSchema($pdo);
         $this->synchronizeCalculatedSeasonStatuses($pdo);
         $sortExpressions = [
             'alfabetica' => 'p.nome_completo',
@@ -409,7 +405,6 @@ class CourseEnrollmentService
     public function listSeasonsForManagement(): array
     {
         $pdo = Database::connection();
-        $this->ensureCourseSeasonSchema($pdo);
         $this->synchronizeCalculatedSeasonStatuses($pdo);
         $stmt = $pdo->query('SELECT * FROM temporadas ORDER BY data_inicio DESC, id DESC');
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
@@ -418,7 +413,6 @@ class CourseEnrollmentService
     public function listSeasonOriginsForManagement(): array
     {
         $pdo = Database::connection();
-        $this->ensureCourseSeasonSchema($pdo);
         $stmt = $pdo->query('SELECT id, nome, ativo FROM origens_temporada ORDER BY ativo DESC, nome ASC');
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -426,7 +420,6 @@ class CourseEnrollmentService
     public function saveSeasonOrigin(int $accountId, array $data): array
     {
         $pdo = Database::connection();
-        $this->ensureCourseSeasonSchema($pdo);
         $id = (int) ($data['id'] ?? 0);
         $name = trim((string) ($data['nome'] ?? ''));
         $active = (!isset($data['ativo']) || (int) $data['ativo'] === 1) ? 1 : 0;
@@ -472,7 +465,6 @@ class CourseEnrollmentService
         }
 
         $pdo = Database::connection();
-        $this->ensureCourseSeasonSchema($pdo);
         $origin = $this->findSeasonOrigin($pdo, $originId);
         if (!$origin) {
             throw new RuntimeException('A origem da temporada informada não foi encontrada.');
@@ -495,8 +487,6 @@ class CourseEnrollmentService
     public function listClassesForManagement(): array
     {
         $pdo = Database::connection();
-        $this->ensureCourseSeasonSchema($pdo);
-        $this->ensureCourseAgeCriterionSchema($pdo);
         $this->synchronizeCalculatedClassStatuses($pdo);
         $stmt = $pdo->query("SELECT t.*, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio, te.data_fim AS temporada_fim, m.nome AS modalidade_nome, cm.nome AS cronograma_nome, cm.inscricoes_inicio AS cronograma_inscricoes_inicio, cm.inscricoes_fim AS cronograma_inscricoes_fim, cm.matriculas_inicio AS cronograma_matriculas_inicio, cm.matriculas_fim AS cronograma_matriculas_fim, cm.inscricoes_abertas_inicio AS cronograma_inscricoes_abertas_inicio, cm.inscricoes_abertas_fim AS cronograma_inscricoes_abertas_fim, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome, nm.nome AS nivel_nome, (SELECT p.nome_completo FROM contas c INNER JOIN pessoas p ON p.cpf = c.cpf WHERE c.id = t.professor_conta_id LIMIT 1) AS professor_principal_nome, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_professores tp INNER JOIN contas c ON c.id = tp.professor_conta_id INNER JOIN pessoas p ON p.cpf = c.cpf WHERE tp.turma_id = t.id AND tp.professor_conta_id <> t.professor_conta_id) AS professores_auxiliares_nomes, (SELECT CONCAT('[', GROUP_CONCAT(tp.professor_conta_id ORDER BY tp.professor_conta_id SEPARATOR ','), ']') FROM turmas_professores tp WHERE tp.turma_id = t.id) AS professores_ids_json, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_estagiarios teq INNER JOIN contas c ON c.id = teq.estagiario_conta_id INNER JOIN pessoas p ON p.cpf = c.cpf WHERE teq.turma_id = t.id) AS estagiarios_nomes, (SELECT CONCAT('[', GROUP_CONCAT(teq.estagiario_conta_id ORDER BY teq.estagiario_conta_id SEPARATOR ','), ']') FROM turmas_estagiarios teq WHERE teq.turma_id = t.id) AS estagiarios_ids_json FROM turmas t INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id LEFT JOIN cronogramas_modalidade cm ON cm.id = t.cronograma_modalidade_id INNER JOIN locais_treino l ON l.id = t.local_treino_id INNER JOIN espacos_treino e ON e.id = t.espaco_treino_id LEFT JOIN niveis_modalidade nm ON nm.id = t.nivel_modalidade_id ORDER BY te.data_inicio DESC, t.nome ASC");
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
@@ -526,7 +516,6 @@ class CourseEnrollmentService
     public function listModalitySchedulesForManagement(): array
     {
         $pdo = Database::connection();
-        $this->ensureCourseSeasonSchema($pdo);
         $stmt = $pdo->query('SELECT cm.*, te.nome AS temporada_nome, m.nome AS modalidade_nome, (SELECT COUNT(*) FROM turmas t WHERE t.cronograma_modalidade_id = cm.id) AS total_turmas, (SELECT COUNT(*) FROM turmas pendentes WHERE pendentes.temporada_id=cm.temporada_id AND pendentes.modalidade_id=cm.modalidade_id AND (pendentes.cronograma_modalidade_id IS NULL OR pendentes.cronograma_modalidade_id=0)) AS total_turmas_sem_cronograma, (SELECT COUNT(*) FROM cronogramas_modalidade pares WHERE pares.temporada_id=cm.temporada_id AND pares.modalidade_id=cm.modalidade_id) AS total_cronogramas_modalidade FROM cronogramas_modalidade cm INNER JOIN temporadas te ON te.id = cm.temporada_id INNER JOIN modalidades m ON m.id = cm.modalidade_id ORDER BY te.data_inicio DESC, m.nome ASC, cm.nome ASC');
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -534,7 +523,6 @@ class CourseEnrollmentService
     public function saveModalitySchedule(int $accountId, array $data): array
     {
         $pdo = Database::connection();
-        $this->ensureCourseSeasonSchema($pdo);
         $id = (int) ($data['cronograma_modalidade_id'] ?? 0);
         $seasonId = (int) ($data['temporada_id'] ?? 0);
         $modalityId = (int) ($data['modalidade_id'] ?? 0);
@@ -637,8 +625,6 @@ class CourseEnrollmentService
         $noticeNumber = $hasNotice ? trim((string) ($data['numero_edital'] ?? '')) : null;
         $noticeLink = $hasNotice ? trim((string) ($data['link_edital'] ?? '')) : null;
         $pdo = Database::connection();
-        $this->ensureCourseSeasonSchema($pdo);
-        $this->ensureCourseAgeCriterionSchema($pdo);
         $originId = (int) ($data['origem_temporada_id'] ?? 0);
         $origin = $this->findSeasonOrigin($pdo, $originId);
         if ($name === '' || !$origin || !in_array($type, ['anual', 'semestral', 'quadrimestral', 'bimestral', 'mensal'], true) || $start === '' || $end === '') { throw new RuntimeException('Preencha nome, instituição gestora, periodicidade e período da temporada.'); }
@@ -689,7 +675,6 @@ class CourseEnrollmentService
             throw new RuntimeException('Temporada inválida.');
         }
         $pdo = Database::connection();
-        $this->ensureCourseSeasonSchema($pdo);
 
         $season = $pdo->prepare('SELECT nome FROM temporadas WHERE id=:id LIMIT 1');
         $season->execute([':id' => $id]);
@@ -720,7 +705,6 @@ class CourseEnrollmentService
     {
         if ($id <= 0) { throw new RuntimeException('Temporada inválida.'); }
         $pdo = Database::connection();
-        $this->ensureCourseSeasonSchema($pdo);
         $season = $this->findSeason($pdo, $id);
         if (!$season) { throw new RuntimeException('Temporada não encontrada.'); }
         if ((string) ($season['status'] ?? '') === 'cancelada') {
@@ -747,8 +731,6 @@ class CourseEnrollmentService
         $required = ['temporada_id', 'modalidade_id', 'local_treino_id', 'espaco_treino_id', 'nome'];
         foreach ($required as $field) { if (trim((string) ($data[$field] ?? '')) === '') { throw new RuntimeException('Preencha todos os campos obrigatórios da turma.'); } }
         $pdo = Database::connection();
-        $this->ensureCourseSeasonSchema($pdo);
-        $this->ensureCourseAgeCriterionSchema($pdo);
         $id = (int) ($data['id'] ?? 0);
         $scheduleId = (int) ($data['cronograma_modalidade_id'] ?? 0);
         if ($scheduleId <= 0) {
@@ -1061,7 +1043,6 @@ class CourseEnrollmentService
     public function classAttendanceRoster(int $classId, string $date): array
     {
         $pdo = Database::connection();
-        $this->ensureClassAttendanceSchema($pdo);
         $class = $this->findClass($pdo, $classId);
         $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? ''));
         $this->validateClassAttendanceDate($class, $date);
@@ -1094,7 +1075,6 @@ class CourseEnrollmentService
         if (!in_array($status, ['presente', 'ausente', 'justificado'], true)) { throw new RuntimeException('Selecione um status válido para a chamada.'); }
         if ($status === 'justificado' && trim($justification) === '') { throw new RuntimeException('Informe a justificativa da ausência.'); }
         $pdo = Database::connection();
-        $this->ensureClassAttendanceSchema($pdo);
         $class = $this->findClass($pdo, $classId);
         $this->validateClassAttendanceDate($class, $date);
         $check = $pdo->prepare("SELECT 1 FROM inscricoes_turma WHERE id=:inscricao AND turma_id=:turma AND status='matriculada' LIMIT 1");
@@ -1131,6 +1111,8 @@ class CourseEnrollmentService
 
     private function ensureClassAttendanceSchema(PDO $pdo): void
     {
+        // A estrutura é aplicada exclusivamente pelas migrações SQL.
+        return;
         $pdo->exec("CREATE TABLE IF NOT EXISTS turmas_chamadas (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, turma_id BIGINT UNSIGNED NOT NULL, inscricao_turma_id BIGINT UNSIGNED NOT NULL, pessoa_id BIGINT UNSIGNED NOT NULL, data_aula DATE NOT NULL, status ENUM('presente','ausente','justificado') NOT NULL, justificativa VARCHAR(500) NULL, chamada_por_conta_id BIGINT UNSIGNED NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NULL DEFAULT NULL, UNIQUE KEY uk_turma_chamada (inscricao_turma_id,data_aula), INDEX idx_turma_chamada_data (turma_id,data_aula)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     }
 
@@ -1143,7 +1125,6 @@ class CourseEnrollmentService
     public function assignClassTeam(int $classId, int $mainProfessorAccountId, array $assistantProfessorAccountIds, array $internAccountIds, int $accountId): void
     {
         $pdo = Database::connection();
-        $this->ensureCourseAgeCriterionSchema($pdo);
         $assistantIds = array_values(array_unique(array_filter(array_map('intval', $assistantProfessorAccountIds), static fn (int $id): bool => $id > 0 && $id !== $mainProfessorAccountId)));
         $ids = $mainProfessorAccountId > 0 ? array_merge([$mainProfessorAccountId], $assistantIds) : [];
         $internIds = array_values(array_unique(array_filter(array_map('intval', $internAccountIds), static fn (int $id): bool => $id > 0)));
@@ -1526,7 +1507,6 @@ class CourseEnrollmentService
         $reason = trim($reason);
 
         $pdo = Database::connection();
-        $this->ensureCourseSeasonSchema($pdo);
         $stmt = $pdo->prepare("SELECT i.id, i.status, i.turma_id, i.publico_alvo, p.cpf, te.status AS temporada_status FROM inscricoes_turma i INNER JOIN pessoas p ON p.id = i.pessoa_id INNER JOIN turmas t ON t.id = i.turma_id INNER JOIN temporadas te ON te.id = t.temporada_id WHERE i.id = :id LIMIT 1");
         $stmt->execute([':id' => $enrollmentId]);
         $enrollment = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -1582,8 +1562,6 @@ class CourseEnrollmentService
 
     private function findClass(PDO $pdo, int $id): array
     {
-        $this->ensureCourseSeasonSchema($pdo);
-        $this->ensureCourseAgeCriterionSchema($pdo);
         $this->synchronizeCalculatedClassStatuses($pdo, $id);
         $stmt = $pdo->prepare('SELECT t.*, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio, te.data_fim AS temporada_fim, cm.data_inicio AS cronograma_data_inicio, cm.data_fim AS cronograma_data_fim, cm.aulas_inicio, cm.inscricoes_inicio AS cronograma_inscricoes_inicio, cm.inscricoes_fim AS cronograma_inscricoes_fim, cm.matriculas_inicio AS cronograma_matriculas_inicio, cm.matriculas_fim AS cronograma_matriculas_fim, cm.permitir_inscricao_periodo_matricula AS cronograma_permitir_inscricao_matricula, cm.inscricoes_abertas_inicio AS cronograma_inscricoes_abertas_inicio, cm.inscricoes_abertas_fim AS cronograma_inscricoes_abertas_fim, cm.permitir_multiplas_inscricoes_modalidade AS cronograma_multiplas_modalidade, cm.limite_inscricoes_modalidade AS cronograma_limite_modalidade, cm.data_liberacao_multiplas_inscricoes_modalidade AS cronograma_liberacao_modalidade, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome FROM turmas t INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN cronogramas_modalidade cm ON cm.id = t.cronograma_modalidade_id INNER JOIN locais_treino l ON l.id=t.local_treino_id INNER JOIN espacos_treino e ON e.id=t.espaco_treino_id WHERE t.id = :id LIMIT 1');
         $stmt->execute([':id' => $id]);
@@ -2223,6 +2201,8 @@ class CourseEnrollmentService
 
     private function ensureCourseAgeCriterionSchema(PDO $pdo): void
     {
+        // A estrutura é aplicada exclusivamente pelas migrações SQL.
+        return;
         if (self::$courseAgeCriterionSchemaChecked) { return; }
         $stmt = $pdo->query("SHOW COLUMNS FROM turmas LIKE 'criterio_faixa_etaria'");
         if (!$stmt || !$stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -2295,6 +2275,8 @@ class CourseEnrollmentService
 
     private function ensureCourseSeasonSchema(PDO $pdo): void
     {
+        // A estrutura é aplicada exclusivamente pelas migrações SQL.
+        return;
         if (self::$courseSeasonSchemaChecked) { return; }
         $originTableCheck = $pdo->query("SHOW TABLES LIKE 'origens_temporada'");
         $originTableAlreadyExisted = $originTableCheck && $originTableCheck->fetchColumn();

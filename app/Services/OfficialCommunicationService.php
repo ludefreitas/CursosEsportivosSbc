@@ -18,8 +18,6 @@ class OfficialCommunicationService
 
     public function getBlogBlock(bool $draft = false): array
     {
-        $this->ensureSchema();
-
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
             SELECT *
@@ -56,8 +54,6 @@ class OfficialCommunicationService
 
     public function saveBlogBlock(int $accountId, array $data): array
     {
-        $this->ensureSchema();
-
         $block = $this->validatePayload($data);
         $publishedDefault = $this->defaultBlogBlock();
         $pdo = Database::connection();
@@ -111,7 +107,6 @@ class OfficialCommunicationService
 
     public function publishBlogBlock(int $accountId): array
     {
-        $this->ensureSchema();
         $pdo = Database::connection();
         $stmt = $pdo->prepare('SELECT rascunho_json FROM comunicacoes_oficiais WHERE slug = :slug LIMIT 1');
         $stmt->execute([':slug' => self::SLUG_BLOG]);

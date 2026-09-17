@@ -31,7 +31,6 @@ class AdminService
     public function listOnlineSessions(int $limit = 25, string $type = 'todos', string $device = 'todos', string $sort = 'atividade'): array
     {
         $pdo = Database::connection();
-        (new AccountAccessService())->ensurePresenceSchema($pdo);
         $stmt = $pdo->query('
             SELECT sa.session_hash, sa.conta_id, sa.caminho, sa.user_agent, sa.iniciada_em, sa.ultima_atividade_em,
                    p.nome_completo, GROUP_CONCAT(DISTINCT papel.slug ORDER BY papel.slug SEPARATOR ",") AS papeis_slugs
@@ -80,11 +79,6 @@ class AdminService
 
     public function __construct()
     {
-        new SpaceAccessibilityService();
-        $this->ensureHealthCertificateSchema();
-        $this->ensureSpecialScheduleSchema();
-        $this->ensureBookingSnapshotSchema();
-        $this->ensureModalityLevelSchema();
     }
 
     /**

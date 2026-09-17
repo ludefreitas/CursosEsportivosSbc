@@ -11,7 +11,6 @@ class LocationPopupService
     public function listAll(): array
     {
         $pdo = Database::connection();
-        $this->ensureSchema($pdo);
         return $pdo->query("SELECT lp.*, lt.apelido_local, lt.nome_local, CASE WHEN lp.status='ativo' AND NOW() BETWEEN lp.data_inicio AND lp.data_fim THEN 1 ELSE 0 END AS publico_ativo FROM local_popups lp INNER JOIN locais_treino lt ON lt.id=lp.local_treino_id WHERE lp.status<>'excluido' ORDER BY lt.apelido_local, lt.nome_local, lp.area")->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
@@ -19,7 +18,6 @@ class LocationPopupService
     {
         if ($locationId <= 0 || !in_array($area, ['cursos', 'agenda'], true)) return null;
         $pdo = Database::connection();
-        $this->ensureSchema($pdo);
         $stmt = $pdo->prepare("SELECT lp.*, lt.apelido_local, lt.nome_local FROM local_popups lp INNER JOIN locais_treino lt ON lt.id=lp.local_treino_id WHERE lp.local_treino_id=:local AND lp.area=:area AND lp.status='ativo' AND NOW() BETWEEN lp.data_inicio AND lp.data_fim LIMIT 1");
         $stmt->execute([':local' => $locationId, ':area' => $area]);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
@@ -28,7 +26,6 @@ class LocationPopupService
     public function save(int $accountId, array $data): int
     {
         $pdo = Database::connection();
-        $this->ensureSchema($pdo);
         $id = (int) ($data['local_popup_id'] ?? 0);
         $locationId = (int) ($data['local_treino_id'] ?? 0);
         $area = trim((string) ($data['area'] ?? ''));
@@ -75,7 +72,7 @@ class LocationPopupService
     public function delete(int $accountId, int $id): void
     {
         if ($id <= 0) throw new RuntimeException('Pop-up inválido.');
-        $pdo=Database::connection(); $this->ensureSchema($pdo);
+        $pdo=Database::connection();
         $stmt=$pdo->prepare("UPDATE local_popups SET status='excluido',atualizado_por_conta_id=:conta,updated_at=NOW() WHERE id=:id AND status<>'excluido'");
         $stmt->execute([':conta'=>$accountId,':id'=>$id]);
         if ($stmt->rowCount()!==1) throw new RuntimeException('Pop-up não encontrado.');

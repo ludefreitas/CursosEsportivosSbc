@@ -24,7 +24,6 @@ class HomeInfoService
 
     public function __construct()
     {
-        $this->ensureContentSchema();
     }
 
     /**

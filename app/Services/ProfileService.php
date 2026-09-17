@@ -25,7 +25,6 @@ class ProfileService
     {
         $this->cepService = new CepService();
         $this->externalPersonService = new ExternalPersonService();
-        $this->ensureHealthCertificateSchema();
     }
 
     /**

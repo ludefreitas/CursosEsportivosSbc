@@ -18,8 +18,6 @@ class BlogService
      */
     public function listPublishedPosts(array $filters = []): array
     {
-        $this->ensureSchema();
-
         $limit = max(1, min(24, (int) ($filters['limit'] ?? 12)));
         $search = trim((string) ($filters['search'] ?? ''));
         $category = trim((string) ($filters['category'] ?? ''));
@@ -82,7 +80,6 @@ class BlogService
      */
     public function listPostsForAdmin(): array
     {
-        $this->ensureSchema();
 
         $pdo = Database::connection();
         $stmt = $pdo->query('
@@ -111,7 +108,6 @@ class BlogService
 
     public function listInactivePostsForAdmin(): array
     {
-        $this->ensureSchema();
         $stmt = Database::connection()->query('
             SELECT pb.*, p.nome_completo AS autor_nome,
                    COALESCE(pb.data_publicacao, pb.publicado_em, pb.created_at) AS data_publica_ordenacao
@@ -135,7 +131,6 @@ class BlogService
      */
     public function getPostForAdmin(int $postId): array
     {
-        $this->ensureSchema();
 
         if ($postId <= 0) {
             throw new RuntimeException('Postagem inválida.');
@@ -165,7 +160,6 @@ class BlogService
 
     public function publishPost(int $postId): array
     {
-        $this->ensureSchema();
         if ($postId <= 0) {
             throw new RuntimeException('Postagem inválida.');
         }
@@ -177,7 +171,6 @@ class BlogService
 
     public function activatePost(int $postId): array
     {
-        $this->ensureSchema();
         if ($postId <= 0) {
             throw new RuntimeException('Postagem inválida.');
         }
@@ -194,7 +187,6 @@ class BlogService
      */
     public function findPublishedPostBySlug(string $slug): ?array
     {
-        $this->ensureSchema();
 
         $slug = trim($slug);
 
@@ -231,7 +223,6 @@ class BlogService
      */
     public function savePost(int $accountId, array $data, array $files = []): array
     {
-        $this->ensureSchema();
 
         $postId = (int) ($data['post_id'] ?? 0);
         $title = trim((string) ($data['titulo'] ?? ''));
@@ -437,7 +428,6 @@ class BlogService
      */
     public function deletePost(int $postId): void
     {
-        $this->ensureSchema();
 
         if ($postId <= 0) {
             throw new RuntimeException('Postagem inválida.');
@@ -459,7 +449,6 @@ class BlogService
      */
     public function listPublicCategories(): array
     {
-        $this->ensureSchema();
 
         $pdo = Database::connection();
         $stmt = $pdo->query("
@@ -482,7 +471,6 @@ class BlogService
      */
     public function listArchiveMonths(): array
     {
-        $this->ensureSchema();
 
         $pdo = Database::connection();
         $stmt = $pdo->query("
@@ -507,7 +495,6 @@ class BlogService
      */
     public function listRelatedPosts(array $post, int $limit = 3): array
     {
-        $this->ensureSchema();
 
         $pdo = Database::connection();
         $limit = max(1, min(6, $limit));
@@ -569,7 +556,6 @@ class BlogService
      */
     public function adminSummary(): array
     {
-        $this->ensureSchema();
 
         $pdo = Database::connection();
         $stmt = $pdo->query("

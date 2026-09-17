@@ -13,7 +13,6 @@ class ExternalLocationService
 
     public function __construct()
     {
-        $this->ensureSchema();
     }
 
     /** Realiza uma unica carga dos locais e espacos do sistema anterior. */

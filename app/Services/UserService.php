@@ -10,7 +10,6 @@ class UserService
 {
     public function __construct()
     {
-        new ExternalHealthCertificateService();
     }
 
     /**

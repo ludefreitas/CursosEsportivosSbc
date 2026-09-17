@@ -15,7 +15,6 @@ class ExternalPersonService
 
     public function __construct()
     {
-        $this->ensureMigrationSchema();
     }
 
     /**
