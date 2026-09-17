@@ -453,6 +453,7 @@
                             + '<input type="radio" name="person_id" data-person-choice="1" data-person-name="' + App.agenda.escapeHtml(String(item.nome_completo || '')) + '" data-birth-date="' + App.agenda.escapeHtml(String(item.data_nascimento || '')) + '" data-publicos-permitidos="' + App.agenda.escapeHtml(JSON.stringify(publicosPermitidos)) + '" value="' + String(item.id) + '"' + checkedAttr + '>'
                             + '<span class="agenda-person-main">' + String(item.nome_completo || '') + '</span>'
                             + '</span>'
+                            + '<small class="muted">' + App.agenda.escapeHtml(App.core.formatBirthDateWithAge(item.data_nascimento)) + '</small>'
                             + reasonsHtml
                             + warningsHtml
                             + '</label>';

@@ -86,6 +86,17 @@
             $(selector).addClass('hidden').attr('aria-hidden', 'true');
         },
 
+        formatBirthDateWithAge: function (value) {
+            const raw = String(value || '').trim();
+            const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (!match) return raw || '-';
+            const birth = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+            const today = new Date();
+            let age = today.getFullYear() - birth.getFullYear();
+            if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age -= 1;
+            return match[3] + '/' + match[2] + '/' + match[1] + ' · ' + String(age) + ' anos';
+        },
+
         iniciarAjudaContextualCampos: function () {
             $(document).off('click.fieldHelp', '[data-field-help-message]').on('click.fieldHelp', '[data-field-help-message]', function (event) {
                 event.preventDefault();

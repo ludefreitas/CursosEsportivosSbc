@@ -50,7 +50,7 @@
                     <tr>
                         <td><button type="button" class="link-button" data-external-migration-details="1" data-migration-id="<?php echo e((string) $row['id']); ?>"><?php echo e((string) $row['nome_completo']); ?></button></td>
                         <td><?php echo e(format_cpf((string) $row['cpf'])); ?></td>
-                        <td><?php echo e(!empty($row['data_nascimento']) ? date('d/m/Y', strtotime((string) $row['data_nascimento'])) : '-'); ?></td>
+                        <td><?php echo e(format_birth_date_with_age($row['data_nascimento'] ?? null)); ?></td>
                         <td><?php echo e(trim((string) ($row['cidade'] ?? '') . '/' . (string) ($row['uf'] ?? ''), '/')); ?></td>
                         <td><?php echo (string) ($row['status_migracao'] ?? '') === 'migrado' ? 'Migrado' : 'Pendente'; ?></td>
                         <td><?php echo e(!empty($row['importado_em']) ? date('d/m/Y H:i', strtotime((string) $row['importado_em'])) : '-'); ?></td>

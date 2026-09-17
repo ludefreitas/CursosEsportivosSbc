@@ -694,6 +694,20 @@ function person_matches_age_rule(?string $birthDate, int $minAge, int $maxAge, ?
     return $age !== null && $age >= $minAge && $age <= $maxAge;
 }
 
+/** Formata a data de nascimento acompanhada da idade atual. */
+function format_birth_date_with_age(?string $birthDate): string
+{
+    $raw = trim((string) $birthDate);
+    if ($raw === '') return '-';
+    try {
+        $formatted = (new DateTimeImmutable($raw))->format('d/m/Y');
+    } catch (Exception $e) {
+        return $raw;
+    }
+    $age = calculate_age($raw);
+    return $age === null ? $formatted : $formatted . ' · ' . $age . ' anos';
+}
+
 /**
  * Gera a descricao humana da regra etaria.
  */

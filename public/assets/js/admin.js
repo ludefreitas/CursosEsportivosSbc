@@ -1109,11 +1109,7 @@
                 $('#admin-person-details-full-name').text(String(person.nome_completo || '-'));
                 $('#admin-person-details-cpf').text(formatPersonCpf(person.cpf));
                 $('#admin-person-details-sex').text(formatSex(person.sexo));
-                $('#admin-person-details-birth-date').text((function (value) {
-                    const raw = String(value || '').trim();
-                    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-                    return match ? match[3] + '/' + match[2] + '/' + match[1] : (raw || '-');
-                }(person.data_nascimento)));
+                $('#admin-person-details-birth-date').text(App.core.formatBirthDateWithAge(person.data_nascimento));
                 $('#admin-person-details-registration').text(formatRegistration(person.cadastro_completo));
                 $('#admin-person-details-account').text(formatAccountStatus(person));
                 $('#admin-person-details-conditions').text(formatDeclaredConditions(person));
@@ -1427,7 +1423,7 @@
                 $('#admin-user-details-email').text(String(user.email || '-'));
                 $('#admin-user-details-phone').text(String(user.telefone_whatsapp || '-'));
                 $('#admin-user-details-sex').text(formatSex(user.sexo));
-                $('#admin-user-details-birth-date').text(formatDate(user.data_nascimento));
+                $('#admin-user-details-birth-date').text(App.core.formatBirthDateWithAge(user.data_nascimento));
                 $('#admin-user-details-registration').text(formatRegistration(user.cadastro_completo));
                 $('#admin-user-details-account-status').text(Number(user.conta_ativa || 0) === 1 ? 'Conta ativa' : 'Conta inativa');
                 $('#admin-user-details-roles').text(formatRoles(user.roles));
@@ -1458,7 +1454,7 @@
                         '<tr>' +
                             '<td>' + App.core.escapeHtml(String(dependent.nome_completo || '-')) + '</td>' +
                             '<td>' + App.core.escapeHtml(formatCpf(dependent.cpf)) + '</td>' +
-                            '<td>' + App.core.escapeHtml(formatDate(dependent.data_nascimento)) + '</td>' +
+                            '<td>' + App.core.escapeHtml(App.core.formatBirthDateWithAge(dependent.data_nascimento)) + '</td>' +
                             '<td>' + App.core.escapeHtml(registration) + '</td>' +
                             '<td>' + App.core.escapeHtml(since) + '</td>' +
                             '<td>' + App.core.escapeHtml(note) + '</td>' +
