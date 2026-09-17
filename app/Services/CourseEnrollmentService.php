@@ -925,23 +925,48 @@ class CourseEnrollmentService
     public function listClassesForProfessor(int $accountId): array
     {
         $pdo = Database::connection();
-        $this->ensureCourseSeasonSchema($pdo);
-        $this->ensureCourseAgeCriterionSchema($pdo);
-        $this->synchronizeCalculatedClassStatuses($pdo);
-        $stmt = $pdo->prepare("SELECT t.*, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio, m.nome AS modalidade_nome, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome, (SELECT p.nome_completo FROM contas c INNER JOIN pessoas p ON p.cpf=c.cpf WHERE c.id=t.professor_conta_id LIMIT 1) AS professor_principal_nome, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_professores tp2 INNER JOIN contas c ON c.id=tp2.professor_conta_id INNER JOIN pessoas p ON p.cpf=c.cpf WHERE tp2.turma_id=t.id AND tp2.professor_conta_id<>t.professor_conta_id) AS professores_auxiliares_nomes, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_estagiarios teq INNER JOIN contas c ON c.id=teq.estagiario_conta_id INNER JOIN pessoas p ON p.cpf=c.cpf WHERE teq.turma_id=t.id) AS estagiarios_nomes FROM turmas t INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id INNER JOIN locais_treino l ON l.id = t.local_treino_id INNER JOIN espacos_treino e ON e.id = t.espaco_treino_id WHERE EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id = t.id AND tp.professor_conta_id = :professor_id) ORDER BY te.data_inicio DESC, t.nome ASC");
+        $stmt = $pdo->prepare("SELECT t.*, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio,
+                m.nome AS modalidade_nome, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome,
+                cm.data_inicio AS cronograma_data_inicio, cm.data_fim AS cronograma_data_fim, cm.aulas_inicio,
+                cm.inscricoes_inicio AS cronograma_inscricoes_inicio, cm.inscricoes_fim AS cronograma_inscricoes_fim,
+                cm.matriculas_inicio AS cronograma_matriculas_inicio, cm.matriculas_fim AS cronograma_matriculas_fim,
+                cm.permitir_inscricao_periodo_matricula AS cronograma_permitir_inscricao_matricula,
+                cm.inscricoes_abertas_inicio AS cronograma_inscricoes_abertas_inicio,
+                cm.inscricoes_abertas_fim AS cronograma_inscricoes_abertas_fim,
+                (SELECT p.nome_completo FROM contas c INNER JOIN pessoas p ON p.cpf=c.cpf WHERE c.id=t.professor_conta_id LIMIT 1) AS professor_principal_nome,
+                (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_professores tp2 INNER JOIN contas c ON c.id=tp2.professor_conta_id INNER JOIN pessoas p ON p.cpf=c.cpf WHERE tp2.turma_id=t.id AND tp2.professor_conta_id<>t.professor_conta_id) AS professores_auxiliares_nomes,
+                (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_estagiarios teq INNER JOIN contas c ON c.id=teq.estagiario_conta_id INNER JOIN pessoas p ON p.cpf=c.cpf WHERE teq.turma_id=t.id) AS estagiarios_nomes
+            FROM turmas t
+            INNER JOIN temporadas te ON te.id=t.temporada_id
+            INNER JOIN modalidades m ON m.id=t.modalidade_id
+            INNER JOIN locais_treino l ON l.id=t.local_treino_id
+            INNER JOIN espacos_treino e ON e.id=t.espaco_treino_id
+            INNER JOIN cronogramas_modalidade cm ON cm.id=t.cronograma_modalidade_id
+            WHERE EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id=t.id AND tp.professor_conta_id=:professor_id)
+            ORDER BY te.data_inicio DESC, t.nome ASC");
         $stmt->execute([':professor_id' => $accountId]);
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         $enrollmentCounts = $this->enrollmentCountsByClass($pdo);
+        $professorIdsByClass = [];
+        $internIdsByClass = [];
+        if ($classes !== []) {
+            $classIds = array_map(static fn (array $class): int => (int) $class['id'], $classes);
+            $placeholders = implode(',', array_fill(0, count($classIds), '?'));
+            $teamStmt = $pdo->prepare("SELECT turma_id, GROUP_CONCAT(professor_conta_id ORDER BY professor_conta_id) AS ids FROM turmas_professores WHERE turma_id IN ($placeholders) GROUP BY turma_id");
+            $teamStmt->execute($classIds);
+            foreach ($teamStmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+                $professorIdsByClass[(int) $row['turma_id']] = array_map('intval', explode(',', (string) $row['ids']));
+            }
+            $internStmt = $pdo->prepare("SELECT turma_id, GROUP_CONCAT(estagiario_conta_id ORDER BY estagiario_conta_id) AS ids FROM turmas_estagiarios WHERE turma_id IN ($placeholders) GROUP BY turma_id");
+            $internStmt->execute($classIds);
+            foreach ($internStmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+                $internIdsByClass[(int) $row['turma_id']] = array_map('intval', explode(',', (string) $row['ids']));
+            }
+        }
         foreach ($classes as &$class) {
             $class['total_inscritos'] = $enrollmentCounts[(int) $class['id']] ?? 0;
-            $classDetails = $this->findClass($pdo, (int) $class['id']);
-            $class = array_merge($classDetails, $class);
-            $professorIdsStmt = $pdo->prepare('SELECT professor_conta_id FROM turmas_professores WHERE turma_id=:id ORDER BY professor_conta_id');
-            $professorIdsStmt->execute([':id' => (int) $class['id']]);
-            $class['professores_ids'] = array_map('intval', $professorIdsStmt->fetchAll(PDO::FETCH_COLUMN) ?: []);
-            $internIdsStmt = $pdo->prepare('SELECT estagiario_conta_id FROM turmas_estagiarios WHERE turma_id=:id ORDER BY estagiario_conta_id');
-            $internIdsStmt->execute([':id' => (int) $class['id']]);
-            $class['estagiarios_ids'] = array_map('intval', $internIdsStmt->fetchAll(PDO::FETCH_COLUMN) ?: []);
+            $class['professores_ids'] = $professorIdsByClass[(int) $class['id']] ?? [];
+            $class['estagiarios_ids'] = $internIdsByClass[(int) $class['id']] ?? [];
             $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? ''));
             $class['criterio_faixa_etaria'] = normalize_age_rule_mode((string) ($class['criterio_faixa_etaria'] ?? 'idade_exata'));
             $class['faixa_etaria_descricao'] = $this->describeClassAgeRule($class);
@@ -950,7 +975,7 @@ class CourseEnrollmentService
             $class['excecoes_idade'] = $this->normalizeClassAgeExceptions($class['excecoes_idade_json'] ?? null);
             $class['excecoes_idade_descricao'] = $this->describeClassAgeExceptions($class);
             $class['status_label'] = self::CLASS_STATUS_LABELS[(string) ($class['status'] ?? '')] ?? (string) ($class['status'] ?? '');
-            $classForSchedule = $classDetails;
+            $classForSchedule = $class;
             $classForSchedule['status'] = 'planejada';
             $class['status_cronograma'] = $this->calculatedClassStatus($classForSchedule);
         }
@@ -970,32 +995,49 @@ class CourseEnrollmentService
 
     public function professorClassBrowser(int $accountId, int $seasonId = 0, int $locationId = 0, int $modalityId = 0): array
     {
-        $classes = $this->listClassesForProfessor($accountId);
-        $unique = static function (array $rows, string $idKey, string $nameKey): array {
-            $items = [];
-            foreach ($rows as $row) {
-                $id = (int) ($row[$idKey] ?? 0);
-                if ($id > 0) { $items[$id] = ['id' => $id, 'nome' => (string) ($row[$nameKey] ?? $id)]; }
-            }
-            $items = array_values($items);
-            usort($items, static fn(array $a, array $b): int => strnatcasecmp($a['nome'], $b['nome']));
-            return $items;
-        };
-
+        if ($accountId <= 0) {
+            throw new RuntimeException('Não foi possível identificar o professor autenticado.');
+        }
+        $pdo = Database::connection();
         if ($seasonId <= 0) {
-            return ['stage' => 'seasons', 'items' => $unique($classes, 'temporada_id', 'temporada_nome')];
+            $stmt = $pdo->prepare("SELECT DISTINCT te.id, te.nome
+                FROM turmas t
+                INNER JOIN temporadas te ON te.id=t.temporada_id
+                WHERE EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id=t.id AND tp.professor_conta_id=:professor)
+                ORDER BY te.data_inicio DESC, te.nome");
+            $stmt->execute([':professor' => $accountId]);
+            return ['stage' => 'seasons', 'items' => $stmt->fetchAll(PDO::FETCH_ASSOC) ?: []];
         }
-        $classes = array_values(array_filter($classes, static fn(array $class): bool => (int) ($class['temporada_id'] ?? 0) === $seasonId));
-        if ($classes === []) { throw new RuntimeException('A temporada selecionada não possui turmas atribuídas a você.'); }
         if ($locationId <= 0) {
-            return ['stage' => 'locations', 'items' => $unique($classes, 'local_treino_id', 'local_nome')];
+            $stmt = $pdo->prepare("SELECT DISTINCT l.id, COALESCE(l.apelido_local,l.nome_local) AS nome
+                FROM turmas t
+                INNER JOIN locais_treino l ON l.id=t.local_treino_id
+                WHERE t.temporada_id=:temporada
+                  AND EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id=t.id AND tp.professor_conta_id=:professor)
+                ORDER BY nome");
+            $stmt->execute([':temporada' => $seasonId, ':professor' => $accountId]);
+            $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            if ($items === []) { throw new RuntimeException('A temporada selecionada não possui turmas atribuídas a você.'); }
+            return ['stage' => 'locations', 'items' => $items];
         }
-        $classes = array_values(array_filter($classes, static fn(array $class): bool => (int) ($class['local_treino_id'] ?? 0) === $locationId));
-        if ($classes === []) { throw new RuntimeException('O local selecionado não possui turmas atribuídas a você nesta temporada.'); }
         if ($modalityId <= 0) {
-            return ['stage' => 'modalities', 'items' => $unique($classes, 'modalidade_id', 'modalidade_nome')];
+            $stmt = $pdo->prepare("SELECT DISTINCT m.id, m.nome
+                FROM turmas t
+                INNER JOIN modalidades m ON m.id=t.modalidade_id
+                WHERE t.temporada_id=:temporada AND t.local_treino_id=:local
+                  AND EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id=t.id AND tp.professor_conta_id=:professor)
+                ORDER BY m.nome");
+            $stmt->execute([':temporada' => $seasonId, ':local' => $locationId, ':professor' => $accountId]);
+            $items = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            if ($items === []) { throw new RuntimeException('O local selecionado não possui turmas atribuídas a você nesta temporada.'); }
+            return ['stage' => 'modalities', 'items' => $items];
         }
-        $classes = array_values(array_filter($classes, static fn(array $class): bool => (int) ($class['modalidade_id'] ?? 0) === $modalityId));
+        $classes = $this->listClassesForProfessor($accountId);
+        $classes = array_values(array_filter($classes, static fn(array $class): bool =>
+            (int) ($class['temporada_id'] ?? 0) === $seasonId
+            && (int) ($class['local_treino_id'] ?? 0) === $locationId
+            && (int) ($class['modalidade_id'] ?? 0) === $modalityId
+        ));
         if ($classes === []) { throw new RuntimeException('A modalidade selecionada não possui turmas atribuídas a você neste local e temporada.'); }
         return ['stage' => 'classes', 'classes' => $classes];
     }
@@ -2317,10 +2359,6 @@ class CourseEnrollmentService
         $classObservationColumn = $pdo->query("SHOW COLUMNS FROM turmas LIKE 'observacao'");
         if (!$classObservationColumn || !$classObservationColumn->fetch(PDO::FETCH_ASSOC)) {
             $pdo->exec('ALTER TABLE turmas ADD COLUMN observacao TEXT NULL AFTER nome');
-        }
-        $classProgramColumn = $pdo->query("SHOW COLUMNS FROM turmas LIKE 'programa'");
-        if (!$classProgramColumn || !$classProgramColumn->fetch(PDO::FETCH_ASSOC)) {
-            $pdo->exec("ALTER TABLE turmas ADD COLUMN programa ENUM('Corpo em Ação', 'Hora do Treino', 'Campeões da Vida', 'GR São Bernardo') NULL AFTER nome");
         }
         $enrollmentOrderColumn = $pdo->query("SHOW COLUMNS FROM inscricoes_turma LIKE 'numero_ordem'");
         if (!$enrollmentOrderColumn || !$enrollmentOrderColumn->fetch(PDO::FETCH_ASSOC)) {

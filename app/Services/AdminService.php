@@ -82,7 +82,6 @@ class AdminService
     {
         new SpaceAccessibilityService();
         $this->ensureHealthCertificateSchema();
-        $this->ensureWeeklyScheduleAgeRuleSchema();
         $this->ensureSpecialScheduleSchema();
         $this->ensureBookingSnapshotSchema();
         $this->ensureModalityLevelSchema();
