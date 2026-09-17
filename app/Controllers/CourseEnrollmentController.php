@@ -126,7 +126,11 @@ class CourseEnrollmentController extends Controller
                 $message .= ' ' . (string) $result['orientacao_matricula'];
             }
             if ($this->isAjaxRequest()) {
-                $this->jsonResponse(['success' => true, 'message' => $message, 'redirect' => url('/cursos')]);
+                $enrollmentId = (int) ($result['id'] ?? 0);
+                $redirect = Auth::check()
+                    ? url('/dashboard?inscricao_destaque=' . $enrollmentId . '#minhas-inscricoes-cursos')
+                    : url('/cursos');
+                $this->jsonResponse(['success' => true, 'message' => $message, 'redirect' => $redirect, 'enrollment_id' => $enrollmentId]);
             }
             flash('success', $message);
         } catch (\Throwable $e) {

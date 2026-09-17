@@ -4,6 +4,24 @@
     App.dashboard = Object.assign(App.dashboard || {}, {
         init: function () {
             let pendingEnrollmentCancellationForm = null;
+            const highlightEnrollmentId = new URLSearchParams(window.location.search).get('inscricao_destaque');
+            if (highlightEnrollmentId) {
+                const $highlightedEnrollment = $('[data-dashboard-enrollment-id="' + String(highlightEnrollmentId).replace(/[^0-9]/g, '') + '"]').first();
+                if ($highlightedEnrollment.length) {
+                    $highlightedEnrollment.addClass('dashboard-enrollment-highlight');
+                    window.setTimeout(function () {
+                        $highlightedEnrollment[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 150);
+                    window.setTimeout(function () {
+                        $highlightedEnrollment.removeClass('dashboard-enrollment-highlight');
+                    }, 6000);
+                }
+                if (window.history && window.history.replaceState) {
+                    const cleanUrl = new URL(window.location.href);
+                    cleanUrl.searchParams.delete('inscricao_destaque');
+                    window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+                }
+            }
             function getModal() {
                 return $('#dashboard-certificates-modal');
             }
