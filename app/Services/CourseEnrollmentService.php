@@ -707,10 +707,15 @@ class CourseEnrollmentService
         $scheduleData = $schedule->fetch(PDO::FETCH_ASSOC) ?: null;
         if (!$scheduleData) throw new RuntimeException('Selecione um cronograma correspondente à temporada e à modalidade da turma.');
         $ageExceptions = $this->normalizeClassAgeExceptions($data['excecoes_idade'] ?? []);
+        $allowedPrograms = ['Corpo em Ação', 'Hora do Treino', 'Campeões da Vida', 'GR São Bernardo'];
+        $program = trim((string) ($data['programa'] ?? ''));
+        if ($program !== '' && !in_array($program, $allowedPrograms, true)) {
+            throw new RuntimeException('Selecione um programa válido para a turma.');
+        }
         foreach ($ageExceptions as $condition => $range) {
             if ($range['min'] > $range['max']) { throw new RuntimeException('Na exceção de idade para ' . strtoupper($condition) . ', a idade máxima deve ser igual ou superior à idade mínima.'); }
         }
-        $params = [':temporada' => (int) $data['temporada_id'], ':modalidade' => (int) $data['modalidade_id'], ':local' => (int) $data['local_treino_id'], ':espaco' => (int) $data['espaco_treino_id'], ':nivel' => (int) ($data['nivel_modalidade_id'] ?? 0) ?: null, ':nome' => trim((string) $data['nome']), ':observacao' => trim((string) ($data['observacao'] ?? '')) ?: null, ':excecoes_idade' => json_encode($ageExceptions, JSON_UNESCAPED_UNICODE), ':idade_minima' => max(0, (int) ($data['idade_minima'] ?? 0)), ':idade_maxima' => max(0, (int) ($data['idade_maxima'] ?? 120)), ':criterio_faixa_etaria' => normalize_age_rule_mode((string) ($data['criterio_faixa_etaria'] ?? 'idade_exata')), ':vagas_totais' => max(0, (int) ($data['vagas_totais'] ?? 0)), ':vagas_geral' => max(0, (int) ($data['vagas_geral'] ?? 0)), ':vagas_pcd' => max(0, (int) ($data['vagas_pcd'] ?? 0)), ':vagas_plm' => max(0, (int) ($data['vagas_plm'] ?? 0)), ':vagas_pvs' => max(0, (int) ($data['vagas_pvs'] ?? 0)), ':espera_geral' => max(0, (int) ($data['vagas_espera_geral'] ?? 0)), ':espera_pcd' => max(0, (int) ($data['vagas_espera_pcd'] ?? 0)), ':espera_plm' => max(0, (int) ($data['vagas_espera_plm'] ?? 0)), ':espera_pvs' => max(0, (int) ($data['vagas_espera_pvs'] ?? 0))];
+        $params = [':temporada' => (int) $data['temporada_id'], ':modalidade' => (int) $data['modalidade_id'], ':local' => (int) $data['local_treino_id'], ':espaco' => (int) $data['espaco_treino_id'], ':nivel' => (int) ($data['nivel_modalidade_id'] ?? 0) ?: null, ':nome' => trim((string) $data['nome']), ':programa' => $program !== '' ? $program : null, ':observacao' => trim((string) ($data['observacao'] ?? '')) ?: null, ':excecoes_idade' => json_encode($ageExceptions, JSON_UNESCAPED_UNICODE), ':idade_minima' => max(0, (int) ($data['idade_minima'] ?? 0)), ':idade_maxima' => max(0, (int) ($data['idade_maxima'] ?? 120)), ':criterio_faixa_etaria' => normalize_age_rule_mode((string) ($data['criterio_faixa_etaria'] ?? 'idade_exata')), ':vagas_totais' => max(0, (int) ($data['vagas_totais'] ?? 0)), ':vagas_geral' => max(0, (int) ($data['vagas_geral'] ?? 0)), ':vagas_pcd' => max(0, (int) ($data['vagas_pcd'] ?? 0)), ':vagas_plm' => max(0, (int) ($data['vagas_plm'] ?? 0)), ':vagas_pvs' => max(0, (int) ($data['vagas_pvs'] ?? 0)), ':espera_geral' => max(0, (int) ($data['vagas_espera_geral'] ?? 0)), ':espera_pcd' => max(0, (int) ($data['vagas_espera_pcd'] ?? 0)), ':espera_plm' => max(0, (int) ($data['vagas_espera_plm'] ?? 0)), ':espera_pvs' => max(0, (int) ($data['vagas_espera_pvs'] ?? 0))];
         $params[':cronograma'] = $scheduleId;
         $weekdays = $this->normalizeClassWeekdays($data['dias_semana'] ?? []);
         $params[':dias_semana'] = $weekdays ?: null;
@@ -728,11 +733,11 @@ class CourseEnrollmentService
         $params[':professor'] = $id > 0 ? ($currentProfessorId ?: null) : ($this->accountIsProfessor($pdo, $accountId) ? $accountId : null);
         if ($id > 0) {
             $params[':id'] = $id;
-            $stmt = $pdo->prepare('UPDATE turmas SET temporada_id=:temporada, modalidade_id=:modalidade, cronograma_modalidade_id=:cronograma, local_treino_id=:local, espaco_treino_id=:espaco, nivel_modalidade_id=:nivel, niveis_aceitos_json=:niveis_aceitos, professor_conta_id=:professor, nome=:nome, observacao=:observacao, excecoes_idade_json=:excecoes_idade, dias_semana=:dias_semana, hora_inicio=:hora_inicio, hora_fim=:hora_fim, idade_minima=:idade_minima, idade_maxima=:idade_maxima, criterio_faixa_etaria=:criterio_faixa_etaria, sexo=:sexo, vagas_totais=:vagas_totais, vagas_geral=:vagas_geral, vagas_pcd=:vagas_pcd, vagas_plm=:vagas_plm, vagas_pvs=:vagas_pvs, vagas_espera_geral=:espera_geral, vagas_espera_pcd=:espera_pcd, vagas_espera_plm=:espera_plm, vagas_espera_pvs=:espera_pvs, inscricoes_abertas=:inscricoes_abertas WHERE id=:id LIMIT 1');
+            $stmt = $pdo->prepare('UPDATE turmas SET temporada_id=:temporada, modalidade_id=:modalidade, cronograma_modalidade_id=:cronograma, local_treino_id=:local, espaco_treino_id=:espaco, nivel_modalidade_id=:nivel, niveis_aceitos_json=:niveis_aceitos, professor_conta_id=:professor, nome=:nome, programa=:programa, observacao=:observacao, excecoes_idade_json=:excecoes_idade, dias_semana=:dias_semana, hora_inicio=:hora_inicio, hora_fim=:hora_fim, idade_minima=:idade_minima, idade_maxima=:idade_maxima, criterio_faixa_etaria=:criterio_faixa_etaria, sexo=:sexo, vagas_totais=:vagas_totais, vagas_geral=:vagas_geral, vagas_pcd=:vagas_pcd, vagas_plm=:vagas_plm, vagas_pvs=:vagas_pvs, vagas_espera_geral=:espera_geral, vagas_espera_pcd=:espera_pcd, vagas_espera_plm=:espera_plm, vagas_espera_pvs=:espera_pvs, inscricoes_abertas=:inscricoes_abertas WHERE id=:id LIMIT 1');
             $stmt->execute($params);
             AuditLogService::record('turma.atualizada', 'turmas', $id, ['conta_id' => $accountId]);
         } else {
-            $stmt = $pdo->prepare('INSERT INTO turmas (temporada_id, modalidade_id, cronograma_modalidade_id, local_treino_id, espaco_treino_id, nivel_modalidade_id, niveis_aceitos_json, professor_conta_id, nome, observacao, excecoes_idade_json, dias_semana, hora_inicio, hora_fim, idade_minima, idade_maxima, criterio_faixa_etaria, sexo, vagas_totais, vagas_geral, vagas_pcd, vagas_plm, vagas_pvs, vagas_espera_geral, vagas_espera_pcd, vagas_espera_plm, vagas_espera_pvs, ativo, inscricoes_abertas) VALUES (:temporada, :modalidade, :cronograma, :local, :espaco, :nivel, :niveis_aceitos, :professor, :nome, :observacao, :excecoes_idade, :dias_semana, :hora_inicio, :hora_fim, :idade_minima, :idade_maxima, :criterio_faixa_etaria, :sexo, :vagas_totais, :vagas_geral, :vagas_pcd, :vagas_plm, :vagas_pvs, :espera_geral, :espera_pcd, :espera_plm, :espera_pvs, 1, :inscricoes_abertas)');
+            $stmt = $pdo->prepare('INSERT INTO turmas (temporada_id, modalidade_id, cronograma_modalidade_id, local_treino_id, espaco_treino_id, nivel_modalidade_id, niveis_aceitos_json, professor_conta_id, nome, programa, observacao, excecoes_idade_json, dias_semana, hora_inicio, hora_fim, idade_minima, idade_maxima, criterio_faixa_etaria, sexo, vagas_totais, vagas_geral, vagas_pcd, vagas_plm, vagas_pvs, vagas_espera_geral, vagas_espera_pcd, vagas_espera_plm, vagas_espera_pvs, ativo, inscricoes_abertas) VALUES (:temporada, :modalidade, :cronograma, :local, :espaco, :nivel, :niveis_aceitos, :professor, :nome, :programa, :observacao, :excecoes_idade, :dias_semana, :hora_inicio, :hora_fim, :idade_minima, :idade_maxima, :criterio_faixa_etaria, :sexo, :vagas_totais, :vagas_geral, :vagas_pcd, :vagas_plm, :vagas_pvs, :espera_geral, :espera_pcd, :espera_plm, :espera_pvs, 1, :inscricoes_abertas)');
             $stmt->execute($params);
             $id = (int) $pdo->lastInsertId();
             if ((int) ($params[':professor'] ?? 0) > 0) {
@@ -755,6 +760,32 @@ class CourseEnrollmentService
         $stmt->execute([':id' => $id]);
         if ($stmt->rowCount() === 0) { throw new RuntimeException('Registro não encontrado ou já inativo.'); }
         AuditLogService::record($entity . '.inativada', $table, $id, ['conta_id' => $accountId]);
+    }
+
+    public function deleteClass(int $classId, int $accountId): void
+    {
+        if ($classId <= 0) { throw new RuntimeException('Turma inválida.'); }
+        $pdo = Database::connection();
+        $enrollments = $pdo->prepare('SELECT COUNT(*) FROM inscricoes_turma WHERE turma_id = :turma_id');
+        $enrollments->execute([':turma_id' => $classId]);
+        if ((int) $enrollments->fetchColumn() > 0) {
+            throw new RuntimeException('Esta turma não pode ser excluída porque possui uma ou mais inscrições.');
+        }
+        $exists = $pdo->prepare('SELECT nome FROM turmas WHERE id = :id LIMIT 1');
+        $exists->execute([':id' => $classId]);
+        $className = $exists->fetchColumn();
+        if ($className === false) { throw new RuntimeException('Turma não encontrada.'); }
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare('DELETE FROM turmas_estagiarios WHERE turma_id = :id')->execute([':id' => $classId]);
+            $pdo->prepare('DELETE FROM turmas_professores WHERE turma_id = :id')->execute([':id' => $classId]);
+            $pdo->prepare('DELETE FROM turmas WHERE id = :id LIMIT 1')->execute([':id' => $classId]);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+            throw $e;
+        }
+        AuditLogService::record('turma.excluida', 'turmas', $classId, ['conta_id' => $accountId, 'nome' => (string) $className]);
     }
 
     public function setClassOperationalStatus(int $classId, string $status, int $accountId): array
@@ -2161,6 +2192,10 @@ class CourseEnrollmentService
         $classObservationColumn = $pdo->query("SHOW COLUMNS FROM turmas LIKE 'observacao'");
         if (!$classObservationColumn || !$classObservationColumn->fetch(PDO::FETCH_ASSOC)) {
             $pdo->exec('ALTER TABLE turmas ADD COLUMN observacao TEXT NULL AFTER nome');
+        }
+        $classProgramColumn = $pdo->query("SHOW COLUMNS FROM turmas LIKE 'programa'");
+        if (!$classProgramColumn || !$classProgramColumn->fetch(PDO::FETCH_ASSOC)) {
+            $pdo->exec("ALTER TABLE turmas ADD COLUMN programa ENUM('Corpo em Ação', 'Hora do Treino', 'Campeões da Vida', 'GR São Bernardo') NULL AFTER nome");
         }
         $enrollmentOrderColumn = $pdo->query("SHOW COLUMNS FROM inscricoes_turma LIKE 'numero_ordem'");
         if (!$enrollmentOrderColumn || !$enrollmentOrderColumn->fetch(PDO::FETCH_ASSOC)) {

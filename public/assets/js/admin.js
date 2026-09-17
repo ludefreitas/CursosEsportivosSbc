@@ -1758,7 +1758,7 @@
                 }
 
                 peopleFilterRequest = $.ajax({
-                    url: App.core.buildUrl('/admin/pessoas/lista'),
+                    url: String($form.attr('action') || $peopleForm.attr('action') || App.core.buildUrl('/admin/pessoas/lista')),
                     method: 'GET',
                     dataType: 'json',
                     data: {
@@ -2220,6 +2220,44 @@
 
             $(document).on('change', '#admin-weekly-schedule-create-form select[name="tipo_horario"], #admin-weekly-schedule-create-form select[name="dispensar_avaliacao_previa"], #admin-weekly-schedule-form select[name="tipo_horario"], #admin-weekly-schedule-form select[name="dispensar_avaliacao_previa"]', function () {
                 syncWeeklyScheduleEvaluationRequirement($(this).closest('form'));
+            });
+
+            $(document).on('click', '[data-weekly-schedule-team="1"]', function () {
+                const $button = $(this), $modal = $('#weekly-schedule-team-modal'), mainId = String($button.attr('data-weekly-schedule-main-professor') || '');
+                let professorIds = [], internIds = [];
+                try { professorIds = JSON.parse(String($button.attr('data-weekly-schedule-professors') || '[]')).map(String); } catch (error) {}
+                try { internIds = JSON.parse(String($button.attr('data-weekly-schedule-interns') || '[]')).map(String); } catch (error) {}
+                $modal.find('form')[0].reset();
+                $modal.find('[data-course-team-search]').val('');
+                $modal.find('[data-course-team-options] label').removeClass('hidden');
+                $modal.find('[name="horario_semanal_id"]').val(String($button.attr('data-weekly-schedule-id') || ''));
+                $modal.find('[name="professor_principal_conta_id"]').filter('[value="' + mainId + '"]').prop('checked', true);
+                $modal.find('[name="professor_auxiliar_conta_ids[]"]').each(function () { const id = String($(this).val()); $(this).prop('checked', id !== mainId && professorIds.indexOf(id) !== -1).prop('disabled', id === mainId); });
+                $modal.find('[name="estagiario_conta_ids[]"]').each(function () { $(this).prop('checked', internIds.indexOf(String($(this).val())) !== -1); });
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+            });
+            $(document).on('click', '[data-weekly-schedule-team-close="1"]', function () { $('#weekly-schedule-team-modal').addClass('hidden').attr('aria-hidden', 'true'); });
+            $(document).on('submit', '[data-weekly-schedule-team-form="1"]', function (event) {
+                event.preventDefault();
+                const $form = $(this), $button = $form.find('button[type="submit"]').prop('disabled', true);
+                if (!$form.find('[name="professor_principal_conta_id"]:checked').length) { App.core.abrirPopup('erro', 'Eleja o professor principal do horário.'); $button.prop('disabled', false); return; }
+                const mainName = $.trim($form.find('[name="professor_principal_conta_id"]:checked').closest('label').find('span').text());
+                const assistantNames = $form.find('[name="professor_auxiliar_conta_ids[]"]:checked').map(function () { return $.trim($(this).closest('label').find('span').text()); }).get();
+                const internNames = $form.find('[name="estagiario_conta_ids[]"]:checked').map(function () { return $.trim($(this).closest('label').find('span').text()); }).get();
+                $.ajax({ url: $form.attr('action'), method: 'POST', dataType: 'json', data: $form.serialize() })
+                    .done(function (response) {
+                        if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar a equipe.')); return; }
+                        const schedule = response.schedule || {}, id = String(schedule.id || $form.find('[name="horario_semanal_id"]').val() || '');
+                        $('[data-weekly-schedule-team="1"][data-weekly-schedule-id="' + id + '"]').attr('data-weekly-schedule-main-professor', String(schedule.professor_conta_id || '')).attr('data-weekly-schedule-professors', JSON.stringify(schedule.professores_ids || [])).attr('data-weekly-schedule-interns', JSON.stringify(schedule.estagiarios_ids || []));
+                        const $row = $('[data-weekly-schedule-row="1"][data-weekly-schedule-id="' + id + '"]');
+                        $row.find('[data-weekly-main-name]').text(mainName || 'Não atribuído');
+                        $row.find('[data-weekly-assistants-names]').text(assistantNames.join(', '));
+                        $row.find('[data-weekly-assistants-line]').toggleClass('hidden', assistantNames.length === 0);
+                        $row.find('[data-weekly-interns-names]').text(internNames.join(', '));
+                        $row.find('[data-weekly-interns-line]').toggleClass('hidden', internNames.length === 0);
+                        $('#weekly-schedule-team-modal').addClass('hidden').attr('aria-hidden', 'true');
+                        App.core.abrirPopup('sucesso', String(response.message || 'Equipe do horário atualizada com sucesso.'));
+                    }).fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); }).always(function () { $button.prop('disabled', false); });
             });
 
             $(document).on('click', '#admin-weekly-schedule-editor', function (event) {
@@ -5576,6 +5614,19 @@
                 }
             }
 
+            function ensureClassProgramField($form) {
+                if ($form.find('[name="programa"]').length) return;
+                const $nameField = $form.find('[name="nome"]').closest('label');
+                if (!$nameField.length) return;
+                const $select = $('<select>', { name: 'programa' })
+                    .append($('<option>', { value: '', text: 'Sem programa definido' }))
+                    .append($('<option>', { value: 'Corpo em Ação', text: 'Corpo em Ação' }))
+                    .append($('<option>', { value: 'Hora do Treino', text: 'Hora do Treino' }))
+                    .append($('<option>', { value: 'Campeões da Vida', text: 'Campeões da Vida' }))
+                    .append($('<option>', { value: 'GR São Bernardo', text: 'GR São Bernardo' }));
+                $nameField.after($('<label>').append($('<span>', { text: 'Programa' })).append($select));
+            }
+
             function ensureClassAgeExceptionFields($form) {
                 if ($form.find('[data-class-age-exceptions="1"]').length) return;
                 const labels = {
@@ -5940,7 +5991,7 @@
                 if ($form.find('[name="operacao"]').length === 0) {
                     $form.append($('<input>', { type: 'hidden', name: 'operacao' }));
                 }
-                if (type === 'class') { ensureClassAgeCriterionField($form); ensureClassAgeExceptionFields($form); ensureClassScheduleField($form); ensureClassLevelFields($form); ensureClassOpenEnrollmentField($form); ensureClassFieldHelp($form); }
+                if (type === 'class') { ensureClassProgramField($form); ensureClassAgeCriterionField($form); ensureClassAgeExceptionFields($form); ensureClassScheduleField($form); ensureClassLevelFields($form); ensureClassOpenEnrollmentField($form); ensureClassFieldHelp($form); }
                 if (type === 'season') { ensureSeasonNoticeFields($form); ensureSeasonWeeklyCoverageField($form); ensureSeasonFieldHelp($form); }
                 fillForm($form, record || {});
                 if (type === 'class') {
@@ -6351,6 +6402,25 @@
 
             $(document).on('click', '[data-course-class-status-close="1"]', closeModals);
 
+            $(document).on('click', '[data-course-class-delete]', function () {
+                const $button = $(this);
+                const classId = String($button.attr('data-course-class-delete') || '');
+                const className = String($button.attr('data-course-class-name') || 'esta turma');
+                if (!window.confirm('Deseja realmente excluir a turma “' + className + '”?')) return;
+                const base = String($('[data-admin-section-host]').data('adminBasePath') || '/admin');
+                const endpoint = base === '/professor' ? '/professor/minhas-turmas/excluir' : '/admin/turmas/excluir';
+                $button.prop('disabled', true);
+                $.ajax({ url: App.core.buildUrl(endpoint), method: 'POST', dataType: 'json', data: { turma_id: classId } })
+                    .done(function (response) {
+                        if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível excluir a turma.')); return; }
+                        const $card = $button.closest('[data-course-class-card]');
+                        $card.fadeOut(160, function () { $(this).remove(); });
+                        App.core.abrirPopup('sucesso', String(response.message || 'Turma excluída com sucesso.'));
+                    })
+                    .fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); })
+                    .always(function () { $button.prop('disabled', false); });
+            });
+
             function classDetailDate(value) {
                 const raw = String(value || '').trim();
                 if (!raw) return 'Não informado';
@@ -6373,6 +6443,7 @@
                 $modal.find('[data-course-details-content]').html(
                     informationSection +
                     '<section><strong>Nível e equipe</strong>' +
+                    '<p><b>Programa:</b> ' + escape(record.programa || 'Sem programa definido') + '</p>' +
                     '<p><b>Níveis aceitos:</b> ' + escape(record.niveis_aceitos_descricao || 'Sem limitação de nível') + '</p>' +
                     '<p><b>Professor principal:</b> ' + escape(record.professor_principal_nome || 'Sem professor principal') + '</p>' +
                     '<p><b>Professores auxiliares:</b> ' + escape(record.professores_auxiliares_nomes || 'Sem professor auxiliar') + '</p>' +

@@ -97,13 +97,14 @@ class ProfessorController extends Controller
 
     public function calendarEvents(): void
     {
-        $this->assertProfessorAccess();
+        $user = $this->assertProfessorAccess();
         try {
             $events = $this->adminService->listCalendarEventsForManagement(
                 (int) ($_GET['local_treino_id'] ?? 0),
                 (int) ($_GET['modalidade_id'] ?? 0),
                 trim((string) ($_GET['start'] ?? '')),
-                trim((string) ($_GET['end'] ?? ''))
+                trim((string) ($_GET['end'] ?? '')),
+                (int) ($user['conta_id'] ?? 0)
             );
             $this->jsonResponse($events);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
@@ -178,6 +179,20 @@ class ProfessorController extends Controller
             }
             $result = $service->setClassOperationalStatus($classId, trim((string) ($_POST['status'] ?? '')), (int) $user['conta_id']);
             $this->jsonResponse(array_merge(['success' => true, 'message' => 'Status da turma alterado para “' . $result['status_label'] . '”.'], $result));
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function deleteAssignedClass(): void
+    {
+        $user = $this->assertProfessorAccess();
+        try {
+            $service = new \App\Services\CourseEnrollmentService();
+            $classId = (int) ($_POST['turma_id'] ?? 0);
+            if (!$service->professorIsAssignedToClass((int) $user['conta_id'], $classId)) {
+                throw new \RuntimeException('Você não está atribuído a esta turma e não pode excluí-la.');
+            }
+            $service->deleteClass($classId, (int) $user['conta_id']);
+            $this->jsonResponse(['success' => true, 'message' => 'Turma excluída com sucesso.', 'class_id' => $classId]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
@@ -537,6 +552,9 @@ class ProfessorController extends Controller
             'scheduleFilterOptions' => (new AgendaService())->activeWeeklyScheduleFilterOptions(true),
             'selectedDailyDate' => $dailyDate, 'selectedDailyLocationId' => $dailyLocationId, 'selectedDailySpaceId' => $dailySpaceId,
             'weeklySchedules' => $this->adminService->listWeeklySchedulesForManagement($locationId, $modalityId, (int) ($user['conta_id'] ?? 0)),
+            'courseProfessors' => (new \App\Services\CourseEnrollmentService())->listProfessors(),
+            'courseInterns' => (new \App\Services\CourseEnrollmentService())->listInterns(),
+            'currentAccountId' => (int) ($user['conta_id'] ?? 0),
             'specialSchedules' => $this->adminService->listSpecialSchedulesForManagement($locationId, $modalityId),
             'dailyBookings' => array_map(fn (array $booking): array => $this->maskCpfData($booking), $this->adminService->listDailyBookingsForManagement($dailyDate, $dailyLocationId, $dailySpaceId)),
             'currentAdminName' => (string) ($user['nome_completo'] ?? ''),

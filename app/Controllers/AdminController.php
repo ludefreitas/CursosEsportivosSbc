@@ -2093,6 +2093,15 @@ class AdminController extends Controller
         return $this->canAccessMasterSections($user);
     }
 
+    public function assignWeeklyScheduleTeam(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $schedule = $this->adminService->assignWeeklyScheduleTeam((int) ($_POST['horario_semanal_id'] ?? 0), $_POST, (int) ($user['conta_id'] ?? 0));
+            $this->jsonResponse(['success' => true, 'message' => 'Equipe do horário atualizada com sucesso.', 'schedule' => $schedule]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
     private function canAccessMasterSections(array $user): bool
     {
         return has_role($user['roles'] ?? [], 'master_admin');
@@ -2267,6 +2276,10 @@ class AdminController extends Controller
             $data['selectedDailyLocationId'] = $dailyLocationId > 0 ? $dailyLocationId : 0;
             $data['selectedDailySpaceId'] = $dailySpaceId > 0 ? $dailySpaceId : 0;
             $data['weeklySchedules'] = $this->adminService->listWeeklySchedulesForManagement($locationId, $modalityId);
+            $courseService = new CourseEnrollmentService();
+            $data['courseProfessors'] = $courseService->listProfessors();
+            $data['courseInterns'] = $courseService->listInterns();
+            $data['currentAccountId'] = (int) ($user['conta_id'] ?? 0);
             $data['specialSchedules'] = $this->adminService->listSpecialSchedulesForManagement($locationId, $modalityId);
             $data['dailyBookings'] = $this->adminService->listDailyBookingsForManagement($dailyDate, $dailyLocationId, $dailySpaceId);
             $data['currentAdminName'] = (string) ($user['nome_completo'] ?? '');
@@ -2750,6 +2763,16 @@ class AdminController extends Controller
                 (int) $user['conta_id']
             );
             $this->jsonResponse(['success' => true, 'message' => 'Equipe da turma atualizada com sucesso.']);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function deleteCourseClass(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $classId = (int) ($_POST['turma_id'] ?? 0);
+            (new CourseEnrollmentService())->deleteClass($classId, (int) $user['conta_id']);
+            $this->jsonResponse(['success' => true, 'message' => 'Turma excluída com sucesso.', 'class_id' => $classId]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 

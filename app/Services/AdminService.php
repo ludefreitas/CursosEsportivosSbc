@@ -2140,7 +2140,7 @@ class AdminService
             ORDER BY nome
         ');
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     /** Lista modalidades para a seção administrativa de gerenciamento. */
@@ -2349,6 +2349,7 @@ class AdminService
             SELECT
                 hs.id,
                 hs.criado_por_conta_id,
+                hs.professor_conta_id,
                 hs.tipo_horario,
                 hs.niveis_aceitos_json,
                 hs.dia_semana,
@@ -2378,11 +2379,16 @@ class AdminService
                     THEN CONCAT(lt.apelido_local, " — ", lt.nome_local)
                     ELSE lt.nome_local END AS local_nome,
                 et.nome AS espaco_nome,
-                m.nome AS modalidade_nome
+                m.nome AS modalidade_nome,
+                principal.nome_completo AS professor_principal_nome,
+                (SELECT GROUP_CONCAT(DISTINCT pa.nome_completo ORDER BY pa.nome_completo SEPARATOR ", ") FROM horarios_semanais_professores hspn INNER JOIN contas ca ON ca.id=hspn.professor_conta_id INNER JOIN pessoas pa ON pa.cpf=ca.cpf WHERE hspn.horario_semanal_id=hs.id AND hspn.professor_conta_id<>hs.professor_conta_id) AS professores_auxiliares_nomes,
+                (SELECT GROUP_CONCAT(DISTINCT pe.nome_completo ORDER BY pe.nome_completo SEPARATOR ", ") FROM horarios_semanais_estagiarios hsen INNER JOIN contas ce ON ce.id=hsen.estagiario_conta_id INNER JOIN pessoas pe ON pe.cpf=ce.cpf WHERE hsen.horario_semanal_id=hs.id) AS estagiarios_nomes
             FROM horarios_semanais hs
             INNER JOIN locais_treino lt ON lt.id = hs.local_treino_id
             INNER JOIN espacos_treino et ON et.id = hs.espaco_treino_id
             INNER JOIN modalidades m ON m.id = hs.modalidade_id
+            LEFT JOIN contas principal_conta ON principal_conta.id=hs.professor_conta_id
+            LEFT JOIN pessoas principal ON principal.cpf=principal_conta.cpf
         ';
 
         $params = [];
@@ -2399,8 +2405,9 @@ class AdminService
         }
 
         if ($creatorAccountId > 0) {
-            $conditions[] = 'hs.criado_por_conta_id = :criado_por_conta_id';
-            $params[':criado_por_conta_id'] = $creatorAccountId;
+            $conditions[] = '(hs.professor_conta_id = :professor_principal_id OR EXISTS (SELECT 1 FROM horarios_semanais_professores hsp WHERE hsp.horario_semanal_id = hs.id AND hsp.professor_conta_id = :professor_auxiliar_id))';
+            $params[':professor_principal_id'] = $creatorAccountId;
+            $params[':professor_auxiliar_id'] = $creatorAccountId;
         }
 
         if ($conditions !== []) {
@@ -2413,8 +2420,14 @@ class AdminService
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
-
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        foreach ($schedules as &$schedule) {
+            $scheduleId = (int) ($schedule['id'] ?? 0);
+            $schedule['professores_ids'] = $this->weeklyScheduleTeamIds($pdo, $scheduleId, 'professor');
+            $schedule['estagiarios_ids'] = $this->weeklyScheduleTeamIds($pdo, $scheduleId, 'estagiario');
+        }
+        unset($schedule);
+        return $schedules;
     }
 
     /**
@@ -2672,13 +2685,14 @@ class AdminService
     /**
      * Monta os eventos do FullCalendar administrativo para os horários semanais cadastrados.
      */
-    public function listCalendarEventsForManagement(int $locationId = 0, int $modalityId = 0, string $rangeStart = '', string $rangeEnd = ''): array
+    public function listCalendarEventsForManagement(int $locationId = 0, int $modalityId = 0, string $rangeStart = '', string $rangeEnd = '', int $professorAccountId = 0): array
     {
         if ($locationId <= 0 || $modalityId <= 0) {
             return [];
         }
 
-        $schedules = $this->listWeeklySchedulesForManagement($locationId, $modalityId);
+        $schedules = $this->listWeeklySchedulesForManagement($locationId, $modalityId, $professorAccountId);
+        $allowedScheduleIds = array_fill_keys(array_map(static fn (array $schedule): int => (int) ($schedule['id'] ?? 0), $schedules), true);
         $range = $this->resolveAdminCalendarRange($rangeStart, $rangeEnd);
         $today = new DateTimeImmutable('today');
         $bookedOccurrences = $this->loadBookedWeeklyScheduleOccurrences($range['start'], $range['end']);
@@ -2703,6 +2717,7 @@ class AdminService
         // Agendamentos existentes conservam o retrato aceito pelo usuário,
         // mesmo após uma edição do cadastro do horário semanal.
         foreach ($this->loadBookingSnapshotOccurrences($locationId, $modalityId, $range['start'], $range['end']) as $snapshot) {
+            if ($professorAccountId > 0 && !isset($allowedScheduleIds[(int) ($snapshot['horario_semanal_id'] ?? 0)])) continue;
             $start = new DateTimeImmutable((string) $snapshot['data_agendada']);
             $endParts = array_map('intval', explode(':', (string) $snapshot['hora_fim']));
             $end = $start->setTime($endParts[0] ?? 0, $endParts[1] ?? 0, $endParts[2] ?? 0);
@@ -2757,8 +2772,9 @@ class AdminService
         ';
         $params = [':id' => $scheduleId];
         if ($creatorAccountId > 0) {
-            $sql .= ' AND hs.criado_por_conta_id = :criado_por_conta_id';
-            $params[':criado_por_conta_id'] = $creatorAccountId;
+            $sql .= ' AND (hs.professor_conta_id = :professor_principal_id OR EXISTS (SELECT 1 FROM horarios_semanais_professores hsp WHERE hsp.horario_semanal_id = hs.id AND hsp.professor_conta_id = :professor_auxiliar_id))';
+            $params[':professor_principal_id'] = $creatorAccountId;
+            $params[':professor_auxiliar_id'] = $creatorAccountId;
         }
         $sql .= ' LIMIT 1';
         $stmt = $pdo->prepare($sql);
@@ -2768,6 +2784,9 @@ class AdminService
         if (!$schedule) {
             throw new RuntimeException('Horário semanal não encontrado.');
         }
+
+        $schedule['professores_ids'] = $this->weeklyScheduleTeamIds($pdo, $scheduleId, 'professor');
+        $schedule['estagiarios_ids'] = $this->weeklyScheduleTeamIds($pdo, $scheduleId, 'estagiario');
 
         return $schedule;
     }
@@ -3033,11 +3052,13 @@ class AdminService
         $space = $this->findTrainingSpaceById((int) $payload['espaco_treino_id']);
         $modality = $this->findModalityById((int) $payload['modalidade_id']);
         $pdo = Database::connection();
+        $mainProfessorId = $this->accountHasActiveRole($pdo, $accountId, 'teacher') ? $accountId : null;
         $this->assertWeeklyScheduleNoOverlap($pdo, $payload);
 
         $stmt = $pdo->prepare('
             INSERT INTO horarios_semanais (
                 criado_por_conta_id,
+                professor_conta_id,
                 local_treino_id,
                 espaco_treino_id,
                 modalidade_id,
@@ -3068,6 +3089,7 @@ class AdminService
                 data_inativacao
             ) VALUES (
                 :criado_por_conta_id,
+                :professor_conta_id,
                 :local_treino_id,
                 :espaco_treino_id,
                 :modalidade_id,
@@ -3100,6 +3122,7 @@ class AdminService
         ');
         $stmt->execute([
             ':criado_por_conta_id' => $accountId,
+            ':professor_conta_id' => $mainProfessorId,
             ':local_treino_id' => (int) $space['local_treino_id'],
             ':espaco_treino_id' => (int) $payload['espaco_treino_id'],
             ':modalidade_id' => (int) $payload['modalidade_id'],
@@ -3130,7 +3153,11 @@ class AdminService
             ':data_inativacao' => (int) $payload['ativo'] === 1 ? null : date('Y-m-d'),
         ]);
 
-        AuditLogService::record('admin.horario_semanal_criado', 'horarios_semanais', (int) $pdo->lastInsertId(), [
+        $scheduleId = (int) $pdo->lastInsertId();
+        if ($mainProfessorId !== null) {
+            $this->syncWeeklyScheduleTeam($pdo, $scheduleId, ['principal_id' => $mainProfessorId, 'auxiliares_ids' => [], 'estagiarios_ids' => []]);
+        }
+        AuditLogService::record('admin.horario_semanal_criado', 'horarios_semanais', $scheduleId, [
             'conta_id' => $accountId,
             'local_treino_id' => (int) $space['local_treino_id'],
             'local_nome' => $space['local_nome'],
@@ -3285,7 +3312,28 @@ class AdminService
             ],
         ]);
 
-        return $this->getWeeklyScheduleDetails($scheduleId, $onlyOwnSchedule ? $accountId : 0);
+        // A alteração pode retirar o próprio professor da equipe. O salvamento deve
+        // concluir normalmente; nas próximas consultas o horário deixa de aparecer.
+        return $this->getWeeklyScheduleDetails($scheduleId);
+    }
+
+    public function assignWeeklyScheduleTeam(int $scheduleId, array $data, int $accountId): array
+    {
+        if ($scheduleId <= 0) throw new RuntimeException('Horário semanal inválido.');
+        $pdo = Database::connection();
+        $this->getWeeklyScheduleDetails($scheduleId);
+        $team = $this->validateWeeklyScheduleTeam($pdo, $data, 0);
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare('UPDATE horarios_semanais SET professor_conta_id=:professor WHERE id=:id')->execute([':professor' => $team['principal_id'], ':id' => $scheduleId]);
+            $this->syncWeeklyScheduleTeam($pdo, $scheduleId, $team);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $e;
+        }
+        AuditLogService::record('admin.horario_semanal_equipe_atribuida', 'horarios_semanais', $scheduleId, ['conta_id' => $accountId, 'professor_principal_conta_id' => $team['principal_id'], 'professores_auxiliares_ids' => $team['auxiliares_ids'], 'estagiarios_ids' => $team['estagiarios_ids']]);
+        return $this->getWeeklyScheduleDetails($scheduleId);
     }
 
     /**
@@ -3298,6 +3346,9 @@ class AdminService
         }
 
         $pdo = Database::connection();
+        if ($creatorAccountId > 0 && !$this->weeklyScheduleIsAssignedToProfessor($pdo, $scheduleId, $creatorAccountId)) {
+            throw new RuntimeException('Horário semanal não encontrado ou não atribuído a este professor.');
+        }
         $sql = '
             UPDATE horarios_semanais
             SET ativo = 0,
@@ -3305,15 +3356,11 @@ class AdminService
             WHERE id = :id
         ';
         $params = [':id' => $scheduleId];
-        if ($creatorAccountId > 0) {
-            $sql .= ' AND criado_por_conta_id = :criado_por_conta_id';
-            $params[':criado_por_conta_id'] = $creatorAccountId;
-        }
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
 
         if ($stmt->rowCount() === 0) {
-            throw new RuntimeException('Horário semanal não encontrado ou não criado por este professor.');
+            throw new RuntimeException('Horário semanal não encontrado ou não atribuído a este professor.');
         }
 
         AuditLogService::record('admin.horario_semanal_inativado', 'horarios_semanais', $scheduleId, [
@@ -3331,6 +3378,9 @@ class AdminService
         }
 
         $pdo = Database::connection();
+        if ($creatorAccountId > 0 && !$this->weeklyScheduleIsAssignedToProfessor($pdo, $scheduleId, $creatorAccountId)) {
+            throw new RuntimeException('Horário semanal não encontrado ou não atribuído a este professor.');
+        }
         $sql = '
             UPDATE horarios_semanais
             SET ativo = 1,
@@ -3338,15 +3388,11 @@ class AdminService
             WHERE id = :id
         ';
         $params = [':id' => $scheduleId];
-        if ($creatorAccountId > 0) {
-            $sql .= ' AND criado_por_conta_id = :criado_por_conta_id';
-            $params[':criado_por_conta_id'] = $creatorAccountId;
-        }
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
 
         if ($stmt->rowCount() === 0) {
-            throw new RuntimeException('Horário semanal não encontrado ou não criado por este professor.');
+            throw new RuntimeException('Horário semanal não encontrado ou não atribuído a este professor.');
         }
 
         AuditLogService::record('admin.horario_semanal_ativado', 'horarios_semanais', $scheduleId, []);
@@ -4246,7 +4292,67 @@ class AdminService
                 WHERE hs.criado_por_conta_id IS NULL");
         }
 
+        if (!isset($columns['professor_conta_id'])) {
+            $pdo->exec('ALTER TABLE horarios_semanais ADD COLUMN professor_conta_id BIGINT UNSIGNED NULL AFTER criado_por_conta_id, ADD INDEX idx_horarios_semanais_professor (professor_conta_id)');
+            $pdo->exec('UPDATE horarios_semanais SET professor_conta_id=criado_por_conta_id WHERE professor_conta_id IS NULL');
+        }
+        $pdo->exec('CREATE TABLE IF NOT EXISTS horarios_semanais_professores (horario_semanal_id BIGINT UNSIGNED NOT NULL, professor_conta_id BIGINT UNSIGNED NOT NULL, atribuido_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (horario_semanal_id, professor_conta_id), CONSTRAINT fk_hsp_horario FOREIGN KEY (horario_semanal_id) REFERENCES horarios_semanais(id) ON DELETE CASCADE, CONSTRAINT fk_hsp_professor FOREIGN KEY (professor_conta_id) REFERENCES contas(id) ON DELETE CASCADE) ENGINE=InnoDB');
+        $pdo->exec('CREATE TABLE IF NOT EXISTS horarios_semanais_estagiarios (horario_semanal_id BIGINT UNSIGNED NOT NULL, estagiario_conta_id BIGINT UNSIGNED NOT NULL, atribuido_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (horario_semanal_id, estagiario_conta_id), CONSTRAINT fk_hse_horario FOREIGN KEY (horario_semanal_id) REFERENCES horarios_semanais(id) ON DELETE CASCADE, CONSTRAINT fk_hse_estagiario FOREIGN KEY (estagiario_conta_id) REFERENCES contas(id) ON DELETE CASCADE) ENGINE=InnoDB');
+        $pdo->exec('INSERT IGNORE INTO horarios_semanais_professores (horario_semanal_id, professor_conta_id) SELECT id, professor_conta_id FROM horarios_semanais WHERE professor_conta_id IS NOT NULL');
+
         $ensured = true;
+    }
+
+    private function validateWeeklyScheduleTeam(PDO $pdo, array $data, int $creatorAccountId): array
+    {
+        $principalId = (int) ($data['professor_principal_conta_id'] ?? 0);
+        if ($principalId <= 0 && $this->accountHasActiveRole($pdo, $creatorAccountId, 'teacher')) {
+            $principalId = $creatorAccountId;
+        }
+        if ($principalId <= 0 || !$this->accountHasActiveRole($pdo, $principalId, 'teacher')) {
+            throw new RuntimeException('Selecione um professor principal ativo para o horário semanal.');
+        }
+        $auxiliaryIds = array_values(array_unique(array_filter(array_map('intval', (array) ($data['professor_auxiliar_conta_ids'] ?? [])), static fn (int $id): bool => $id > 0 && $id !== $principalId)));
+        foreach ($auxiliaryIds as $id) {
+            if (!$this->accountHasActiveRole($pdo, $id, 'teacher')) throw new RuntimeException('Um dos professores auxiliares selecionados não possui acesso ativo de professor.');
+        }
+        $internIds = array_values(array_unique(array_filter(array_map('intval', (array) ($data['estagiario_conta_ids'] ?? [])), static fn (int $id): bool => $id > 0)));
+        foreach ($internIds as $id) {
+            if (!$this->accountHasActiveRole($pdo, $id, 'intern')) throw new RuntimeException('Um dos estagiários selecionados não possui acesso ativo de estagiário.');
+        }
+        return ['principal_id' => $principalId, 'auxiliares_ids' => $auxiliaryIds, 'estagiarios_ids' => $internIds];
+    }
+
+    private function accountHasActiveRole(PDO $pdo, int $accountId, string $role): bool
+    {
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM contas c INNER JOIN conta_papeis cp ON cp.conta_id=c.id INNER JOIN papeis p ON p.id=cp.papel_id WHERE c.id=:id AND c.ativo=1 AND p.slug=:role');
+        $stmt->execute([':id' => $accountId, ':role' => $role]);
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
+    private function syncWeeklyScheduleTeam(PDO $pdo, int $scheduleId, array $team): void
+    {
+        $pdo->prepare('DELETE FROM horarios_semanais_professores WHERE horario_semanal_id=:id')->execute([':id' => $scheduleId]);
+        $insertProfessor = $pdo->prepare('INSERT INTO horarios_semanais_professores (horario_semanal_id, professor_conta_id) VALUES (:horario, :conta)');
+        foreach (array_merge([(int) $team['principal_id']], (array) $team['auxiliares_ids']) as $id) $insertProfessor->execute([':horario' => $scheduleId, ':conta' => $id]);
+        $pdo->prepare('DELETE FROM horarios_semanais_estagiarios WHERE horario_semanal_id=:id')->execute([':id' => $scheduleId]);
+        $insertIntern = $pdo->prepare('INSERT INTO horarios_semanais_estagiarios (horario_semanal_id, estagiario_conta_id) VALUES (:horario, :conta)');
+        foreach ((array) $team['estagiarios_ids'] as $id) $insertIntern->execute([':horario' => $scheduleId, ':conta' => $id]);
+    }
+
+    private function weeklyScheduleTeamIds(PDO $pdo, int $scheduleId, string $type): array
+    {
+        $isIntern = $type === 'estagiario';
+        $stmt = $pdo->prepare('SELECT ' . ($isIntern ? 'estagiario_conta_id' : 'professor_conta_id') . ' FROM ' . ($isIntern ? 'horarios_semanais_estagiarios' : 'horarios_semanais_professores') . ' WHERE horario_semanal_id=:id ORDER BY 1');
+        $stmt->execute([':id' => $scheduleId]);
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN) ?: []);
+    }
+
+    private function weeklyScheduleIsAssignedToProfessor(PDO $pdo, int $scheduleId, int $accountId): bool
+    {
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM horarios_semanais hs WHERE hs.id=:horario AND (hs.professor_conta_id=:principal OR EXISTS (SELECT 1 FROM horarios_semanais_professores hsp WHERE hsp.horario_semanal_id=hs.id AND hsp.professor_conta_id=:auxiliar))');
+        $stmt->execute([':horario' => $scheduleId, ':principal' => $accountId, ':auxiliar' => $accountId]);
+        return (int) $stmt->fetchColumn() > 0;
     }
 
     private function ensureModalityLevelSchema(): void

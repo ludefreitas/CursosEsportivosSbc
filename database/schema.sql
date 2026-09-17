@@ -489,6 +489,7 @@ CREATE TABLE IF NOT EXISTS turmas (
     niveis_aceitos_json JSON NULL,
     professor_conta_id BIGINT UNSIGNED NULL,
     nome VARCHAR(160) NOT NULL,
+    programa ENUM('Corpo em Ação', 'Hora do Treino', 'Campeões da Vida', 'GR São Bernardo') NULL,
     observacao TEXT NULL,
     dias_semana VARCHAR(120) NULL,
     hora_inicio TIME NULL,
@@ -556,6 +557,7 @@ CREATE TABLE IF NOT EXISTS avaliacoes_fisicas (
 CREATE TABLE IF NOT EXISTS horarios_semanais (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     criado_por_conta_id BIGINT UNSIGNED NULL,
+    professor_conta_id BIGINT UNSIGNED NULL,
     local_treino_id BIGINT UNSIGNED NOT NULL,
     espaco_treino_id BIGINT UNSIGNED NOT NULL,
     modalidade_id BIGINT UNSIGNED NOT NULL,
@@ -587,7 +589,9 @@ CREATE TABLE IF NOT EXISTS horarios_semanais (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_horarios_semanais (dia_semana, hora_inicio, ativo),
     INDEX idx_horarios_semanais_criador (criado_por_conta_id),
+    INDEX idx_horarios_semanais_professor (professor_conta_id),
     CONSTRAINT fk_horario_criador FOREIGN KEY (criado_por_conta_id) REFERENCES contas(id) ON DELETE SET NULL,
+    CONSTRAINT fk_horario_professor FOREIGN KEY (professor_conta_id) REFERENCES contas(id) ON DELETE SET NULL,
     CONSTRAINT fk_horario_local FOREIGN KEY (local_treino_id) REFERENCES locais_treino(id),
     CONSTRAINT fk_horario_espaco FOREIGN KEY (espaco_treino_id) REFERENCES espacos_treino(id),
     CONSTRAINT fk_horario_modalidade FOREIGN KEY (modalidade_id) REFERENCES modalidades(id)
@@ -792,6 +796,24 @@ CREATE TABLE IF NOT EXISTS site_popups (
     updated_at TIMESTAMP NULL DEFAULT NULL,
     INDEX idx_site_popups_status_datas (status, data_inicio, data_fim),
     CONSTRAINT fk_site_popup_conta FOREIGN KEY (criado_por_conta_id) REFERENCES contas(id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS horarios_semanais_professores (
+    horario_semanal_id BIGINT UNSIGNED NOT NULL,
+    professor_conta_id BIGINT UNSIGNED NOT NULL,
+    atribuido_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (horario_semanal_id, professor_conta_id),
+    CONSTRAINT fk_hsp_horario FOREIGN KEY (horario_semanal_id) REFERENCES horarios_semanais(id) ON DELETE CASCADE,
+    CONSTRAINT fk_hsp_professor FOREIGN KEY (professor_conta_id) REFERENCES contas(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS horarios_semanais_estagiarios (
+    horario_semanal_id BIGINT UNSIGNED NOT NULL,
+    estagiario_conta_id BIGINT UNSIGNED NOT NULL,
+    atribuido_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (horario_semanal_id, estagiario_conta_id),
+    CONSTRAINT fk_hse_horario FOREIGN KEY (horario_semanal_id) REFERENCES horarios_semanais(id) ON DELETE CASCADE,
+    CONSTRAINT fk_hse_estagiario FOREIGN KEY (estagiario_conta_id) REFERENCES contas(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS modalidade_popups (

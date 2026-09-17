@@ -457,6 +457,7 @@
                 const modalityName = String(courseClass.modalidade_nome || selectedModality.nome || 'Modalidade');
                 $summary.append($('<h4>', { class: 'home-course-detail-main-title', text: modalityName + ' - ' + seasonYear }));
                 $summary.append($('<p>', { class: 'home-course-detail-class-name' }).append($('<strong>', { text: '[' + String(courseClass.id || '') + '] - ' + String(courseClass.nome || '') })));
+                $summary.append($('<p>').append($('<strong>', { text: 'Programa: ' })).append(document.createTextNode(String(courseClass.programa || 'Sem programa definido'))));
                 $summary.append($('<p>').append($('<strong>', { text: 'Local da aula: ' })).append(document.createTextNode(String(courseClass.local_nome || ''))));
                 if (courseClass.dias_semana && courseClass.hora_inicio && courseClass.hora_fim) {
                     $summary.append($('<p>', { class: 'home-course-detail-schedule' }).append($('<strong>', { text: 'Dias e horário: ' })).append(document.createTextNode(String(courseClass.dias_semana_descricao || courseClass.dias_semana) + ', das ' + String(courseClass.hora_inicio).slice(0, 5) + ' às ' + String(courseClass.hora_fim).slice(0, 5))));
