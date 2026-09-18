@@ -487,6 +487,7 @@
                         $line.append($('<input>', { type: 'radio', name: 'pessoa_id', value: String(person.id || ''), required: true, disabled: blocked, 'data-home-course-person-choice': '1', 'data-public': String(person.publico_alvo || 'geral'), 'data-person-name': String(person.nome_completo || ''), 'data-birth-date': String(person.data_nascimento || '') }));
                         $line.append($('<span>', { class: 'home-course-person-main', text: String(person.nome_completo || '') }));
                         $card.append($line);
+                        $card.append($('<small>', { class: 'muted', text: App.core.formatBirthDateWithAge(person.data_nascimento) }));
                         if (person.condicao_excecao_idade) {
                             const conditionLabels = { pcd: 'PCD (Pessoa Com Deficiência)', plm: 'PLM (Pessoa com Laudo Médico de Doença)', pvs: 'PVS (Pessoa em situação de Vulnerabilidade Social)' };
                             $card.append($('<small>', { class: 'home-course-person-exception', text: 'Esta inscrição será classificada como público geral e utilizará a exceção etária autorizada pela condição ' + String(conditionLabels[String(person.condicao_excecao_idade)] || String(person.condicao_excecao_idade).toUpperCase()) + '.' }));

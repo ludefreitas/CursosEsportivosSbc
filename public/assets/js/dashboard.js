@@ -58,6 +58,7 @@
                 const $details = $('<div>', { class: 'course-enrollment-details' });
                 $details.append($('<h4>', { text: 'Inscrição Nº ' + String(details.id || '') }));
                 $details.append(enrollmentDetailLine('Pessoa', details.pessoa));
+                $details.append(enrollmentDetailLine('Data de nascimento', details.nascimento));
                 $details.append(enrollmentDetailLine('Turma', details.turma));
                 $details.append(enrollmentDetailLine('Modalidade', details.modalidade));
                 $details.append(enrollmentDetailLine('Temporada', details.temporada));

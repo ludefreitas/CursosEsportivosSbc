@@ -58,6 +58,7 @@
                                 data-person-edit="1"
                                 data-person-id="<?php echo e((string) $person['id']); ?>"
                             ><?php echo e($person['nome_completo']); ?></button>
+                            <br><small class="muted"><?php echo e(format_birth_date_with_age($person['data_nascimento'] ?? null)); ?></small>
                         </td>
                         <td><?php echo e(!empty($professorView) ? format_cpf_professor((string) $person['cpf']) : format_cpf($person['cpf'])); ?></td>
                         <td data-person-cadastro><?php echo (int) $person['cadastro_completo'] === 1 ? 'Completo' : 'Pendente'; ?></td>
