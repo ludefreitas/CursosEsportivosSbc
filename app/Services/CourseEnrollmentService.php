@@ -1836,9 +1836,11 @@ class CourseEnrollmentService
         $capacity = (int) ($class[$waitlistSeatKey] ?? 0);
         $statuses = "status = 'lista_espera'";
 
-        // Durante a matrícula, as inscrições novas permanecem na lista de espera,
-        // mas podem ocupar toda a capacidade ainda livre da cota, além da espera.
-        if ((string) ($class['status'] ?? '') === 'periodo_matricula') {
+        // Durante a matrícula e as inscrições abertas, toda nova inscrição entra
+        // como lista de espera, mas consome primeiro a capacidade regular da cota
+        // e depois a capacidade adicional de espera. Por isso, nesses períodos,
+        // a disponibilidade é calculada sobre a soma das duas capacidades.
+        if (in_array((string) ($class['status'] ?? ''), ['periodo_matricula', 'inscricoes_abertas'], true)) {
             $regularSeatKey = $isReservedPublic ? 'vagas_' . $public : 'vagas_geral';
             $capacity += (int) ($class[$regularSeatKey] ?? 0);
             $statuses = "status IN ('aguardando_matricula', 'matriculada', 'lista_espera', 'suspensa')";

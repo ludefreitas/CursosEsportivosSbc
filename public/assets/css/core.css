@@ -1415,6 +1415,8 @@ body.pagina-error label span {
 .dashboard-course-enrollment-next-steps h4 { margin: 0 0 8px; color: #176c35; }
 .dashboard-course-enrollment-next-steps ol { margin: 0; padding-left: 22px; }
 .dashboard-course-enrollment-next-steps li + li { margin-top: 7px; }
+[data-dashboard-enrollment-id] > td { transition: background-color 1.2s ease; }
+.dashboard-enrollment-highlight > td { background: #dff5e4 !important; }
 @media (max-width: 980px) { .course-enrollment-row { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 640px) { .course-enrollment-row { grid-template-columns: 1fr; gap: 9px; } .course-enrollment-info-card { margin-top: 1vh; } }
 .app-loading-overlay {

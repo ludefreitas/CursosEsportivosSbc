@@ -516,7 +516,7 @@
                     const regularVacancies = Math.max(0, Number(record[item[1]] || 0));
                     const waitlistVacancies = Math.max(0, Number(record[item[2]] || 0));
                     const displayedVacancies = registrationsAreOpen
-                        ? regularVacancies + waitlistVacancies
+                        ? waitlistVacancies
                         : (regularVacancies > 0 ? regularVacancies : waitlistVacancies);
                     const vacanciesLabel = displayedVacancies <= 0
                         ? 'Não há vagas'
@@ -648,7 +648,13 @@
                             return;
                         }
                         $('#home-course-enrollment-modal, #home-course-cpf-modal').addClass('hidden').attr('aria-hidden', 'true');
-                        App.core.abrirPopup('sucesso', String(response.message || 'Inscrição realizada com sucesso.'), loadClasses);
+                        App.core.abrirPopup('sucesso', String(response.message || 'Inscrição realizada com sucesso.'), function () {
+                            if (response.redirect && Number(response.enrollment_id || 0) > 0) {
+                                window.location.assign(String(response.redirect));
+                                return;
+                            }
+                            loadClasses();
+                        });
                     }).fail(function (xhr) {
                         App.core.renovarVerificacaoHumana($form);
                         App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
