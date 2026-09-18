@@ -36,6 +36,7 @@ class DataRecoveryService
 
     public function __construct()
     {
+        $this->ensureSchema();
     }
 
     public function listOperations(string $search = '', int $limit = 25, bool $revertedOnly = false): array

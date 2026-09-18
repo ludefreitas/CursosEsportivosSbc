@@ -14,7 +14,7 @@
         <div class="dashboard-dependent-details-grid">
             <div><strong>Nome completo:</strong><span><?php echo e((string) ($dependent['nome_completo'] ?? '')); ?></span></div>
             <div><strong>CPF:</strong><span><?php echo e(format_cpf((string) ($dependent['cpf'] ?? ''))); ?></span></div>
-            <div><strong>Data de nascimento:</strong><span><?php echo e(format_birth_date_with_age($dependent['data_nascimento'] ?? null)); ?></span></div>
+            <div><strong>Data de nascimento:</strong><span><?php echo e(!empty($dependent['data_nascimento']) ? date('d/m/Y', strtotime((string) $dependent['data_nascimento'])) : '-'); ?></span></div>
             <div><strong>Sexo:</strong><span><?php echo e((string) ($dependent['sexo'] ?? '-')); ?></span></div>
             <div><strong>WhatsApp:</strong><span><?php echo e((string) ($dependent['telefone_whatsapp'] ?? '-')); ?></span></div>
             <div><strong>E-mail:</strong><span><?php echo e((string) ($dependent['email'] ?? '-')); ?></span></div>

@@ -135,30 +135,6 @@ class ProfessorController extends Controller
         }
     }
 
-    public function classControls(): void
-    {
-        $this->assertProfessorAccess();
-        try {
-            $courseService = new \App\Services\CourseEnrollmentService();
-            $courseSeasons = $courseService->listSeasonsForManagement();
-            $courseSeasonOrigins = [];
-            $modalitySchedules = $courseService->listModalitySchedulesForManagement();
-            $courseProfessors = $courseService->listProfessors();
-            $courseInterns = $courseService->listInterns();
-            $courseModalitiesManagement = $this->adminService->listModalitiesForManagement();
-            $courseLocationsManagement = $this->adminService->listTrainingLocationsForSpaceForm();
-            $courseSpacesManagement = $this->adminService->listTrainingSpacesForManagement();
-            $courseManagementView = 'professor-turmas';
-            $courseClasses = [];
-            ob_start();
-            require ROOT_PATH . '/app/Views/admin/partials/course_management_panel.php';
-            $this->jsonResponse(['success' => true, 'html' => (string) ob_get_clean()]);
-        } catch (\Throwable $e) {
-            while (ob_get_level() > 0) { ob_end_clean(); }
-            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
-        }
-    }
-
     public function saveAssignedClass(): void
     {
         $user = $this->assertProfessorAccess();
@@ -420,7 +396,6 @@ class ProfessorController extends Controller
             $courseEnrollmentClassId = max(0, (int) ($_POST['turma_id'] ?? 0));
             $courseEnrollmentClassName = trim((string) ($_POST['turma_nome'] ?? ''));
             $courseEnrollmentsManagement = $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId, $professorAccountId);
-            $courseEnrollmentsByPerson = $courseEnrollmentService->professorEnrollmentSummariesByPerson(array_column($courseEnrollmentsManagement, 'pessoa_id'), $professorAccountId);
             $courseEnrollmentStatusSummary = $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId);
             $professorView = true;
             ob_start();
@@ -542,7 +517,6 @@ class ProfessorController extends Controller
             $courseEnrollmentConditionFilter = trim((string) ($_GET['condicao'] ?? 'todas'));
             $courseEnrollmentClassId = max(0, (int) ($_GET['turma_id'] ?? 0));
             $courseEnrollmentClassName = trim((string) ($_GET['turma_nome'] ?? ''));
-            $courseEnrollmentsManagement = $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId, (int) ($user['conta_id'] ?? 0));
             return [
                 'sectionName' => $sectionName,
                 'professorView' => true,
@@ -552,15 +526,18 @@ class ProfessorController extends Controller
                 'courseEnrollmentConditionFilter' => $courseEnrollmentConditionFilter,
                 'courseEnrollmentClassId' => $courseEnrollmentClassId,
                 'courseEnrollmentClassName' => $courseEnrollmentClassName,
-                'courseEnrollmentsManagement' => $courseEnrollmentsManagement,
-                'courseEnrollmentsByPerson' => $courseEnrollmentService->professorEnrollmentSummariesByPerson(array_column($courseEnrollmentsManagement, 'pessoa_id'), (int) ($user['conta_id'] ?? 0)),
+                'courseEnrollmentsManagement' => $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId, (int) ($user['conta_id'] ?? 0)),
                 'courseEnrollmentStatusSummary' => $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId),
             ];
         }
         if ($sectionName === 'minhas-turmas') {
             $courseService = new \App\Services\CourseEnrollmentService();
             $browser = $courseService->professorClassBrowser((int) ($user['conta_id'] ?? 0));
-            return ['sectionName' => $sectionName, 'professorView' => true, 'professorClassSeasons' => (array) ($browser['items'] ?? [])];
+            return ['sectionName' => $sectionName, 'professorView' => true, 'professorClassSeasons' => (array) ($browser['items'] ?? []),
+                'courseSeasons' => $courseService->listSeasonsForManagement(), 'courseSeasonOrigins' => [],
+                'modalitySchedules' => $courseService->listModalitySchedulesForManagement(), 'courseProfessors' => $courseService->listProfessors(),
+                'courseInterns' => $courseService->listInterns(), 'courseModalitiesManagement' => $this->adminService->listModalitiesForManagement(),
+                'courseLocationsManagement' => $this->adminService->listTrainingLocationsForSpaceForm(), 'courseSpacesManagement' => $this->adminService->listTrainingSpacesForManagement()];
         }
 
         $locationId = (int) ($_GET['local_treino_id'] ?? 0);

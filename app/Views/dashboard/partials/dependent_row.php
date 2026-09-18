@@ -3,7 +3,7 @@
 <tr id="dependente-<?php echo e((string) ($dependent['id'] ?? '0')); ?>" data-dependent-row-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>">
     <td><?php echo e((string) ($dependent['nome_completo'] ?? '')); ?></td>
     <td><?php echo e(format_cpf((string) ($dependent['cpf'] ?? ''))); ?></td>
-    <td><?php echo e(format_birth_date_with_age($dependent['data_nascimento'] ?? null)); ?></td>
+    <td><?php echo e(!empty($dependent['data_nascimento']) ? date('d/m/Y', strtotime((string) $dependent['data_nascimento'])) : '-'); ?></td>
     <td>
         <button
             type="button"

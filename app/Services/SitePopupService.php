@@ -15,6 +15,7 @@ class SitePopupService
     public function listAll(): array
     {
         $pdo = Database::connection();
+        $this->ensureActionsSchema($pdo);
         $stmt = $pdo->query('
             SELECT sp.*, p.nome_completo AS autor_nome
             FROM site_popups sp
@@ -35,6 +36,7 @@ class SitePopupService
     public function findActiveForPath(string $path): ?array
     {
         $pdo = Database::connection();
+        $this->ensureActionsSchema($pdo);
         $stmt = $pdo->query('
             SELECT *
             FROM site_popups
@@ -69,6 +71,7 @@ class SitePopupService
         $this->validatePayload($payload);
 
         $pdo = Database::connection();
+        $this->ensureActionsSchema($pdo);
         $stmt = $pdo->prepare('
             INSERT INTO site_popups (
                 titulo,
@@ -137,6 +140,7 @@ class SitePopupService
         $this->validatePayload($payload);
 
         $pdo = Database::connection();
+        $this->ensureActionsSchema($pdo);
         $stmt = $pdo->prepare('
             UPDATE site_popups
             SET titulo = :titulo,

@@ -7,7 +7,14 @@ $courseEnrollmentStatusFilter = (string) ($courseEnrollmentStatusFilter ?? 'todo
 $courseEnrollmentConditionFilter = in_array(($courseEnrollmentConditionFilter ?? ''), ['geral', 'pcd', 'plm', 'pvs'], true) ? (string) $courseEnrollmentConditionFilter : 'todas';
 $courseEnrollmentClassId = max(0, (int) ($courseEnrollmentClassId ?? 0));
 $courseEnrollmentClassName = trim((string) ($courseEnrollmentClassName ?? ''));
-$enrollmentsByPerson = $courseEnrollmentsByPerson ?? [];
+$enrollmentsByPerson = [];
+foreach ($courseEnrollmentsManagement as $item) {
+    $enrollmentsByPerson[(int) ($item['pessoa_id'] ?? 0)][] = [
+        'id' => (int) ($item['id'] ?? 0), 'turma' => (string) ($item['turma_nome'] ?? ''),
+        'temporada' => (string) ($item['temporada_nome'] ?? ''), 'status' => (string) ($item['status_label'] ?? ''),
+        'data' => !empty($item['created_at']) ? date('d/m/Y H:i', strtotime((string) $item['created_at'])) : '-',
+    ];
+}
 $jsonAttribute = static fn (array $value): string => e((string) json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 $formatDate = static fn ($value, bool $withTime = false): string => !empty($value) ? date($withTime ? 'd/m/Y H:i' : 'd/m/Y', strtotime((string) $value)) : ($withTime ? '-' : '00/00/0000');
 $nextEnrollmentStatuses = [

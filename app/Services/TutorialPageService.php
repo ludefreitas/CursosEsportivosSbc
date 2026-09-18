@@ -12,6 +12,7 @@ class TutorialPageService
 
     public function get(): array
     {
+        $this->ensureSchema();
         $row = Database::connection()->query('SELECT * FROM pagina_tutorial_config WHERE id=1 LIMIT 1')->fetch(PDO::FETCH_ASSOC);
         if (!$row) return $this->defaults();
         $videos = json_decode((string) ($row['videos_json'] ?? '[]'), true) ?: [];
@@ -44,6 +45,7 @@ class TutorialPageService
         }
         if (!$videos) throw new RuntimeException('Cadastre pelo menos um vídeo de ajuda.');
 
+        $this->ensureSchema();
         $statement = Database::connection()->prepare('INSERT INTO pagina_tutorial_config (id,titulo,texto_introdutorio,videos_json,atualizado_por_conta_id) VALUES (1,:titulo,:texto,:videos,:conta) ON DUPLICATE KEY UPDATE titulo=VALUES(titulo), texto_introdutorio=VALUES(texto_introdutorio), videos_json=VALUES(videos_json), atualizado_por_conta_id=VALUES(atualizado_por_conta_id), updated_at=NOW()');
         $statement->execute([
             ':titulo' => $title,

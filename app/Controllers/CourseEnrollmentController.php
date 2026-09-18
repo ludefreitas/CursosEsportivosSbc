@@ -4,7 +4,6 @@ namespace App\Controllers;
 
 use App\Core\Auth;
 use App\Core\Controller;
-use App\Services\UserService;
 use App\Services\CourseEnrollmentService;
 use App\Services\HumanVerificationService;
 use App\Services\ModalityPopupService;
@@ -127,11 +126,7 @@ class CourseEnrollmentController extends Controller
                 $message .= ' ' . (string) $result['orientacao_matricula'];
             }
             if ($this->isAjaxRequest()) {
-                $enrollmentId = (int) ($result['id'] ?? 0);
-                $redirect = Auth::check()
-                    ? url('/dashboard?inscricao_destaque=' . $enrollmentId . '#minhas-inscricoes-cursos')
-                    : url('/cursos');
-                $this->jsonResponse(['success' => true, 'message' => $message, 'redirect' => $redirect, 'enrollment_id' => $enrollmentId]);
+                $this->jsonResponse(['success' => true, 'message' => $message, 'redirect' => url('/cursos')]);
             }
             flash('success', $message);
         } catch (\Throwable $e) {
@@ -155,8 +150,6 @@ class CourseEnrollmentController extends Controller
             $this->service->cancel((int) ($_POST['inscricao_id'] ?? 0));
             if ($this->isAjaxRequest()) {
                 $courseEnrollments = $this->service->listForAuthenticatedAccount();
-                $currentUser = (new UserService())->currentAccountWithRoles();
-                $professorEnrollmentDeletionEnabled = $currentUser && has_role($currentUser['roles'] ?? [], 'teacher');
                 ob_start();
                 require ROOT_PATH . '/app/Views/dashboard/partials/course_enrollment_rows.php';
                 $this->jsonResponse(['success' => true, 'message' => 'Inscrição cancelada definitivamente.', 'panel_html' => (string) ob_get_clean()]);
@@ -168,48 +161,6 @@ class CourseEnrollmentController extends Controller
             }
             flash('error', $e->getMessage());
         }
-        redirect('/dashboard');
-    }
-
-    public function deletePermanentlyForProfessor(): void
-    {
-        if (!Auth::check()) {
-            if ($this->isAjaxRequest()) {
-                $this->jsonResponse(['success' => false, 'message' => 'Faça login como professor para excluir a inscrição.'], 401);
-            }
-            redirect_to_login_modal('/dashboard');
-        }
-
-        try {
-            $currentUser = (new UserService())->currentAccountWithRoles();
-            if (!$currentUser || !has_role($currentUser['roles'] ?? [], 'teacher')) {
-                throw new \RuntimeException('Somente professores podem excluir definitivamente inscrições de teste pelo painel.');
-            }
-
-            $enrollmentId = (int) ($_POST['inscricao_id'] ?? 0);
-            $this->service->deletePermanentlyForProfessor($enrollmentId, (int) Auth::id());
-
-            if ($this->isAjaxRequest()) {
-                $courseEnrollments = $this->service->listForAuthenticatedAccount();
-                $professorEnrollmentDeletionEnabled = true;
-                ob_start();
-                require ROOT_PATH . '/app/Views/dashboard/partials/course_enrollment_rows.php';
-                $this->jsonResponse([
-                    'success' => true,
-                    'message' => 'Inscrição excluída definitivamente.',
-                    'enrollment_id' => $enrollmentId,
-                    'panel_html' => (string) ob_get_clean(),
-                ]);
-            }
-
-            flash('success', 'Inscrição excluída definitivamente.');
-        } catch (\Throwable $e) {
-            if ($this->isAjaxRequest()) {
-                $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
-            }
-            flash('error', $e->getMessage());
-        }
-
         redirect('/dashboard');
     }
 }

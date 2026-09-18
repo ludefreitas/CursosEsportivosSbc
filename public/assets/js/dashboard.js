@@ -4,24 +4,6 @@
     App.dashboard = Object.assign(App.dashboard || {}, {
         init: function () {
             let pendingEnrollmentCancellationForm = null;
-            const highlightEnrollmentId = new URLSearchParams(window.location.search).get('inscricao_destaque');
-            if (highlightEnrollmentId) {
-                const $highlightedEnrollment = $('[data-dashboard-enrollment-id="' + String(highlightEnrollmentId).replace(/[^0-9]/g, '') + '"]').first();
-                if ($highlightedEnrollment.length) {
-                    $highlightedEnrollment.addClass('dashboard-enrollment-highlight');
-                    window.setTimeout(function () {
-                        $highlightedEnrollment[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }, 150);
-                    window.setTimeout(function () {
-                        $highlightedEnrollment.removeClass('dashboard-enrollment-highlight');
-                    }, 6000);
-                }
-                if (window.history && window.history.replaceState) {
-                    const cleanUrl = new URL(window.location.href);
-                    cleanUrl.searchParams.delete('inscricao_destaque');
-                    window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
-                }
-            }
             function getModal() {
                 return $('#dashboard-certificates-modal');
             }
@@ -76,7 +58,6 @@
                 const $details = $('<div>', { class: 'course-enrollment-details' });
                 $details.append($('<h4>', { text: 'Inscrição Nº ' + String(details.id || '') }));
                 $details.append(enrollmentDetailLine('Pessoa', details.pessoa));
-                $details.append(enrollmentDetailLine('Data de nascimento', details.nascimento));
                 $details.append(enrollmentDetailLine('Turma', details.turma));
                 $details.append(enrollmentDetailLine('Modalidade', details.modalidade));
                 $details.append(enrollmentDetailLine('Temporada', details.temporada));
@@ -120,8 +101,6 @@
                 }
             });
 
-            let pendingEnrollmentDeletionForm = null;
-
             function closeEnrollmentCancellationModal() {
                 $('#dashboard-course-enrollment-cancel-modal').addClass('hidden').attr('aria-hidden', 'true');
                 pendingEnrollmentCancellationForm = null;
@@ -156,46 +135,6 @@
                     if (response.panel_html) $('#dashboard-course-enrollments-panel').replaceWith(String(response.panel_html));
                     App.core.abrirPopup('sucesso', String(response.message || 'Inscrição cancelada definitivamente.'));
                 }).fail(function (xhr) {
-                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
-                }).always(function () { $button.prop('disabled', false); });
-            });
-
-            function closeEnrollmentDeletionModal() {
-                $('#dashboard-course-enrollment-delete-modal').addClass('hidden').attr('aria-hidden', 'true');
-                pendingEnrollmentDeletionForm = null;
-            }
-
-            $(document).on('submit', '[data-dashboard-enrollment-delete="1"]', function (event) {
-                event.preventDefault();
-                pendingEnrollmentDeletionForm = this;
-                const $form = $(this);
-                $('#dashboard-course-enrollment-delete-question').text('Deseja excluir definitivamente a inscrição de ' + String($form.attr('data-person-name') || 'esta pessoa') + ' na turma ' + String($form.attr('data-class-name') || '') + '?');
-                $('#dashboard-course-enrollment-delete-modal').removeClass('hidden').attr('aria-hidden', 'false');
-            });
-
-            $(document).on('click', '[data-dashboard-enrollment-delete-close="1"], #dashboard-course-enrollment-delete-modal', function (event) {
-                if ($(event.target).is('#dashboard-course-enrollment-delete-modal') || $(event.target).is('[data-dashboard-enrollment-delete-close="1"]')) closeEnrollmentDeletionModal();
-            });
-
-            $(document).on('click', '[data-dashboard-enrollment-delete-confirm="1"]', function () {
-                if (!pendingEnrollmentDeletionForm) return;
-                const $button = $(this).prop('disabled', true);
-                const form = pendingEnrollmentDeletionForm;
-                $.ajax({
-                    url: String($(form).attr('action') || ''), method: 'POST', data: new FormData(form),
-                    processData: false, contentType: false, dataType: 'json',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-                }).done(function (response) {
-                    if (!response || response.success === false) {
-                        closeEnrollmentDeletionModal();
-                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível excluir a inscrição.'));
-                        return;
-                    }
-                    closeEnrollmentDeletionModal();
-                    if (response.panel_html) $('#dashboard-course-enrollments-panel').replaceWith(String(response.panel_html));
-                    App.core.abrirPopup('sucesso', String(response.message || 'Inscrição excluída definitivamente.'));
-                }).fail(function (xhr) {
-                    closeEnrollmentDeletionModal();
                     App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
                 }).always(function () { $button.prop('disabled', false); });
             });

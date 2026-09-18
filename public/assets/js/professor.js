@@ -13,10 +13,8 @@
             $host.find('.admin-section-panel').addClass('professor-view');
             $host.attr('data-professor-ready', '1');
 
-            function hydrateCourseControls($controlsSource) {
-                if (!$controlsSource.length) {
-                    return;
-                }
+            const $controlsSource = $('[data-professor-course-controls-source="1"]');
+            if ($controlsSource.length) {
                 const schedules = String($controlsSource.find('[data-course-modality-schedules]').attr('data-course-modality-schedules') || '[]');
                 const $freshControls = $controlsSource.find('#course-class-modal, #course-professor-modal, #course-class-status-modal').detach();
                 $('#course-class-modal, #course-professor-modal, #course-class-status-modal').remove();
@@ -27,31 +25,6 @@
                 $('#course-professor-modal [data-course-professor-form="1"]').attr('action', '/professor/minhas-turmas/equipe');
                 $('#course-class-status-modal [data-course-class-status-form="1"]').attr('action', '/professor/minhas-turmas/status');
                 $controlsSource.remove();
-                $host.find('[data-course-create="class"]').prop('disabled', false);
-            }
-
-            hydrateCourseControls($('[data-professor-course-controls-source="1"]'));
-
-            const $controlsLoader = $host.find('[data-professor-course-controls-loader="1"]');
-            if ($controlsLoader.length) {
-                $.ajax({
-                    url: String($controlsLoader.attr('data-controls-url') || ''),
-                    method: 'GET',
-                    dataType: 'json',
-                    suppressGlobalLoading: true,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-                }).done(function (response) {
-                    if (!response || response.success === false || !response.html) {
-                        return;
-                    }
-                    const $source = $('<div>', { class: 'hidden', 'data-professor-course-controls-source': '1' }).html(String(response.html));
-                    $controlsLoader.replaceWith($source);
-                    hydrateCourseControls($source);
-                }).fail(function (xhr) {
-                    if (App.auth && App.auth.tratarFalhaDeAcesso(xhr, function () { App.admin.activateSection('minhas-turmas'); }, '/professor')) return;
-                    $host.find('[data-course-create="class"]').prop('disabled', false);
-                    $controlsLoader.remove();
-                });
             }
 
             function browserRequest($browser, data, done, failed) {

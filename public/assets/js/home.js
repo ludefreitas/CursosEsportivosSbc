@@ -487,7 +487,6 @@
                         $line.append($('<input>', { type: 'radio', name: 'pessoa_id', value: String(person.id || ''), required: true, disabled: blocked, 'data-home-course-person-choice': '1', 'data-public': String(person.publico_alvo || 'geral'), 'data-person-name': String(person.nome_completo || ''), 'data-birth-date': String(person.data_nascimento || '') }));
                         $line.append($('<span>', { class: 'home-course-person-main', text: String(person.nome_completo || '') }));
                         $card.append($line);
-                        $card.append($('<small>', { class: 'muted', text: App.core.formatBirthDateWithAge(person.data_nascimento) }));
                         if (person.condicao_excecao_idade) {
                             const conditionLabels = { pcd: 'PCD (Pessoa Com Deficiência)', plm: 'PLM (Pessoa com Laudo Médico de Doença)', pvs: 'PVS (Pessoa em situação de Vulnerabilidade Social)' };
                             $card.append($('<small>', { class: 'home-course-person-exception', text: 'Esta inscrição será classificada como público geral e utilizará a exceção etária autorizada pela condição ' + String(conditionLabels[String(person.condicao_excecao_idade)] || String(person.condicao_excecao_idade).toUpperCase()) + '.' }));
@@ -516,7 +515,7 @@
                     const regularVacancies = Math.max(0, Number(record[item[1]] || 0));
                     const waitlistVacancies = Math.max(0, Number(record[item[2]] || 0));
                     const displayedVacancies = registrationsAreOpen
-                        ? waitlistVacancies
+                        ? regularVacancies + waitlistVacancies
                         : (regularVacancies > 0 ? regularVacancies : waitlistVacancies);
                     const vacanciesLabel = displayedVacancies <= 0
                         ? 'Não há vagas'
@@ -648,11 +647,7 @@
                             return;
                         }
                         $('#home-course-enrollment-modal, #home-course-cpf-modal').addClass('hidden').attr('aria-hidden', 'true');
-                        const redirect = String(response.redirect || '').trim();
-                        App.core.abrirPopup('sucesso', String(response.message || 'Inscrição realizada com sucesso.'), function () {
-                            if (redirect !== '') return;
-                            loadClasses();
-                        }, redirect);
+                        App.core.abrirPopup('sucesso', String(response.message || 'Inscrição realizada com sucesso.'), loadClasses);
                     }).fail(function (xhr) {
                         App.core.renovarVerificacaoHumana($form);
                         App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
