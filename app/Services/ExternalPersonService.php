@@ -13,11 +13,6 @@ class ExternalPersonService
     public const MAX_LIST_LIMIT = 50;
     private ?PDO $connection = null;
 
-    public function __construct()
-    {
-        $this->ensureMigrationSchema();
-    }
-
     /**
      * Lista somente os dados resumidos encontrados no banco externo.
      */

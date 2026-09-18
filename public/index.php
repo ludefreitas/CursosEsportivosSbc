@@ -79,6 +79,12 @@ foreach ($routes as [$method, $path, $handler]) {
         continue;
     }
 
+    try {
+        (new \App\Services\AccountAccessService())->touchSessionPresence($currentPath);
+    } catch (\Throwable $e) {
+        // O controle de presença nunca deve impedir a ação solicitada pelo usuário.
+    }
+
     [$controllerClass, $action] = $handler;
     $controller = new $controllerClass();
     $controller->$action();

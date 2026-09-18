@@ -11,8 +11,9 @@ use RuntimeException;
 
 class CourseEnrollmentService
 {
-    private static bool $courseAgeCriterionSchemaChecked = false;
-    private static bool $courseSeasonSchemaChecked = false;
+    // A estrutura do banco é aplicada pelos scripts de schema/migração, nunca durante uma requisição web.
+    private static bool $courseAgeCriterionSchemaChecked = true;
+    private static bool $courseSeasonSchemaChecked = true;
     private const ACTIVE_STATUSES = ['aguardando_matricula', 'matriculada'];
     private const IMMUTABLE_STATUSES = ['cancelada', 'excluida', 'excluida_por_falta', 'desistente', 'suspensa'];
     private const STATUS_LABELS = [
@@ -1032,6 +1033,9 @@ class CourseEnrollmentService
 
     private function ensureClassAttendanceSchema(PDO $pdo): void
     {
+        // A tabela é criada pela migração database/migracao_chamada_turmas.sql.
+        return;
+
         $pdo->exec("CREATE TABLE IF NOT EXISTS turmas_chamadas (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, turma_id BIGINT UNSIGNED NOT NULL, inscricao_turma_id BIGINT UNSIGNED NOT NULL, pessoa_id BIGINT UNSIGNED NOT NULL, data_aula DATE NOT NULL, status ENUM('presente','ausente','justificado') NOT NULL, justificativa VARCHAR(500) NULL, chamada_por_conta_id BIGINT UNSIGNED NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NULL DEFAULT NULL, UNIQUE KEY uk_turma_chamada (inscricao_turma_id,data_aula), INDEX idx_turma_chamada_data (turma_id,data_aula)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     }
 

@@ -10,21 +10,28 @@ class AccountAccessService
 {
     public const ROLE_INACTIVITY_DAYS = 60;
     private const TOUCH_INTERVAL_SECONDS = 900;
+    private const PRESENCE_TOUCH_INTERVAL_SECONDS = 90;
 
     public function touchSessionPresence(?string $reportedPath = null): void
     {
         $sessionId = (string) session_id();
         if ($sessionId === '') { return; }
+
+        $presencePath = trim((string) ($reportedPath ?? current_path()));
+        if ($presencePath === '' || !str_starts_with($presencePath, '/')) { $presencePath = current_path(); }
+        $lastTouch = (int) ($_SESSION['session_presence_last_touch'] ?? 0);
+        $lastPath = (string) ($_SESSION['session_presence_last_path'] ?? '');
+        if ($lastTouch > 0 && (time() - $lastTouch) < self::PRESENCE_TOUCH_INTERVAL_SECONDS && $lastPath === $presencePath) {
+            return;
+        }
+
         $pdo = Database::connection();
-        $this->ensurePresenceSchema($pdo);
         $stmt = $pdo->prepare('
             INSERT INTO sessoes_ativas (session_hash, conta_id, ip_usuario, user_agent, caminho, ultima_atividade_em)
             VALUES (:session_hash, :conta_id, :ip_usuario, :user_agent, :caminho, NOW())
             ON DUPLICATE KEY UPDATE conta_id=VALUES(conta_id), ip_usuario=VALUES(ip_usuario),
                 user_agent=VALUES(user_agent), caminho=VALUES(caminho), ultima_atividade_em=NOW()
         ');
-        $presencePath = trim((string) ($reportedPath ?? current_path()));
-        if ($presencePath === '' || !str_starts_with($presencePath, '/')) { $presencePath = current_path(); }
         $stmt->execute([
             ':session_hash' => hash('sha256', $sessionId),
             ':conta_id' => Auth::check() ? Auth::id() : null,
@@ -32,25 +39,8 @@ class AccountAccessService
             ':user_agent' => substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255) ?: null,
             ':caminho' => substr($presencePath, 0, 255) ?: null,
         ]);
-    }
-
-    public function ensurePresenceSchema(?PDO $pdo = null): void
-    {
-        $pdo = $pdo ?? Database::connection();
-        $pdo->exec('
-            CREATE TABLE IF NOT EXISTS sessoes_ativas (
-                session_hash CHAR(64) PRIMARY KEY,
-                conta_id BIGINT UNSIGNED NULL,
-                ip_usuario VARCHAR(45) NULL,
-                user_agent VARCHAR(255) NULL,
-                caminho VARCHAR(255) NULL,
-                iniciada_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                ultima_atividade_em DATETIME NOT NULL,
-                INDEX idx_sessoes_ativas_atividade (ultima_atividade_em),
-                INDEX idx_sessoes_ativas_conta (conta_id),
-                CONSTRAINT fk_sessoes_ativas_conta FOREIGN KEY (conta_id) REFERENCES contas(id) ON DELETE SET NULL
-            ) ENGINE=InnoDB
-        ');
+        $_SESSION['session_presence_last_touch'] = time();
+        $_SESSION['session_presence_last_path'] = $presencePath;
     }
 
     /**

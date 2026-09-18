@@ -3,7 +3,6 @@
 namespace App\Core;
 
 use App\Core\Auth;
-use App\Services\AccountAccessService;
 use App\Services\ProfileService;
 use App\Services\SitePopupService;
 use App\Services\UserService;
@@ -13,8 +12,6 @@ class View
 {
     public static function render(string $view, array $data = []): void
     {
-        try { (new AccountAccessService())->touchSessionPresence(); }
-        catch (\Throwable $e) { /* A presença não deve impedir a página de abrir. */ }
         if (!array_key_exists('footerContent', $data)) {
             try { $data['footerContent'] = (new HomeInfoService())->getFooterContent(); }
             catch (\Throwable $e) { $data['footerContent'] = []; }
@@ -33,7 +30,7 @@ class View
 
             if (Auth::check()) {
                 try {
-                    (new AccountAccessService())->touchAuthenticatedAccount();
+                    (new \App\Services\AccountAccessService())->touchAuthenticatedAccount();
                     $profileService = new ProfileService();
                     $person = $profileService->getAuthenticatedPerson();
                     $registrationBlock = $profileService->getRegistrationBlockForAuthenticatedPerson();

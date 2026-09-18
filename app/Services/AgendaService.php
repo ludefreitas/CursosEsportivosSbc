@@ -10,15 +10,6 @@ use RuntimeException;
 
 class AgendaService
 {
-    public function __construct()
-    {
-        new ExternalHealthCertificateService();
-        new SpaceAccessibilityService();
-        $this->ensureWeeklyScheduleAgeRuleSchema();
-        $this->ensureSpecialScheduleSchema();
-        $this->ensureBookingSnapshotSchema();
-    }
-
     /**
      * Lista locais resumidos para a home e agenda.
      */

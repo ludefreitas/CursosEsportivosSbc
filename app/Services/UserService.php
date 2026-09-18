@@ -8,11 +8,6 @@ use PDO;
 
 class UserService
 {
-    public function __construct()
-    {
-        new ExternalHealthCertificateService();
-    }
-
     /**
      * Retorna a conta atual com seus papeis.
      */

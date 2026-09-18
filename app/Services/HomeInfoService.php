@@ -22,11 +22,6 @@ class HomeInfoService
     public const MAX_LOCATION_TITLE_LENGTH = 90;
     public const MAX_LOCATION_TEXT_LENGTH = 500;
 
-    public function __construct()
-    {
-        $this->ensureContentSchema();
-    }
-
     /**
      * Retorna o quadro configurado para a home.
      */

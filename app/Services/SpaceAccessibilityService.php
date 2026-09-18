@@ -53,11 +53,6 @@ class SpaceAccessibilityService
         ],
     ];
 
-    public function __construct()
-    {
-        $this->ensureSchema();
-    }
-
     public function options(): array
     {
         return self::OPTIONS;

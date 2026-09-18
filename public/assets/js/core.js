@@ -2132,14 +2132,6 @@
             observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'aria-hidden'] });
         },
 
-        iniciarPresencaDaSessao: function () {
-            function touch() {
-                $.ajax({ url: App.core.buildUrl('/api/sessao/atividade'), method: 'POST', data: { caminho: window.location.pathname }, global: false });
-            }
-            window.setTimeout(touch, 5000);
-            window.setInterval(touch, 45000);
-        },
-
         init: function () {
             App.core.iniciarValidacaoFormularios();
             App.core.iniciarBalaoCpfLoginHeader();
@@ -2162,7 +2154,6 @@
             App.core.iniciarImportacaoPessoaExterna();
             App.core.iniciarProtecaoFormulariosModal();
             App.core.iniciarAjudaContextualCampos();
-            App.core.iniciarPresencaDaSessao();
         }
     });
 

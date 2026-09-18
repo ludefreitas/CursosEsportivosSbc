@@ -15,11 +15,6 @@ class ExternalHealthCertificateService
     public const MAX_LIST_LIMIT = 50;
     private ?PDO $externalConnection = null;
 
-    public function __construct()
-    {
-        $this->ensureSchema();
-    }
-
     public function importBatch(
         string $type,
         int $accountId,
