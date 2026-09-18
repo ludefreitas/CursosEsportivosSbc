@@ -904,7 +904,7 @@ class CourseEnrollmentService
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function listClassesForProfessor(int $accountId): array
+    public function listClassesForProfessor(int $accountId, int $seasonId = 0, int $locationId = 0, int $modalityId = 0): array
     {
         $pdo = Database::connection();
         $stmt = $pdo->prepare("SELECT t.*, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio,
@@ -924,15 +924,23 @@ class CourseEnrollmentService
             INNER JOIN locais_treino l ON l.id=t.local_treino_id
             INNER JOIN espacos_treino e ON e.id=t.espaco_treino_id
             INNER JOIN cronogramas_modalidade cm ON cm.id=t.cronograma_modalidade_id
-            WHERE EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id=t.id AND tp.professor_conta_id=:professor_id)
+            WHERE t.temporada_id = :temporada_id
+              AND t.local_treino_id = :local_treino_id
+              AND t.modalidade_id = :modalidade_id
+              AND EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id=t.id AND tp.professor_conta_id=:professor_id)
             ORDER BY te.data_inicio DESC, t.nome ASC");
-        $stmt->execute([':professor_id' => $accountId]);
+        $stmt->execute([
+            ':professor_id' => $accountId,
+            ':temporada_id' => $seasonId,
+            ':local_treino_id' => $locationId,
+            ':modalidade_id' => $modalityId,
+        ]);
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        $enrollmentCounts = $this->enrollmentCountsByClass($pdo);
+        $classIds = array_map(static fn (array $class): int => (int) $class['id'], $classes);
+        $enrollmentCounts = $this->enrollmentCountsByClass($pdo, $classIds);
         $professorIdsByClass = [];
         $internIdsByClass = [];
         if ($classes !== []) {
-            $classIds = array_map(static fn (array $class): int => (int) $class['id'], $classes);
             $placeholders = implode(',', array_fill(0, count($classIds), '?'));
             $teamStmt = $pdo->prepare("SELECT turma_id, GROUP_CONCAT(professor_conta_id ORDER BY professor_conta_id) AS ids FROM turmas_professores WHERE turma_id IN ($placeholders) GROUP BY turma_id");
             $teamStmt->execute($classIds);
@@ -965,10 +973,19 @@ class CourseEnrollmentService
         return $classes;
     }
 
-    private function enrollmentCountsByClass(PDO $pdo): array
+    private function enrollmentCountsByClass(PDO $pdo, ?array $classIds = null): array
     {
         $counts = [];
-        $stmt = $pdo->query('SELECT turma_id, COUNT(*) AS total FROM inscricoes_turma GROUP BY turma_id');
+        if ($classIds === []) { return $counts; }
+        if ($classIds === null) {
+            $stmt = $pdo->query('SELECT turma_id, COUNT(*) AS total FROM inscricoes_turma GROUP BY turma_id');
+        } else {
+            $classIds = array_values(array_unique(array_filter(array_map('intval', $classIds), static fn (int $id): bool => $id > 0)));
+            if ($classIds === []) { return $counts; }
+            $placeholders = implode(',', array_fill(0, count($classIds), '?'));
+            $stmt = $pdo->prepare("SELECT turma_id, COUNT(*) AS total FROM inscricoes_turma WHERE turma_id IN ($placeholders) GROUP BY turma_id");
+            $stmt->execute($classIds);
+        }
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
             $counts[(int) ($row['turma_id'] ?? 0)] = (int) ($row['total'] ?? 0);
         }
@@ -1014,12 +1031,7 @@ class CourseEnrollmentService
             if ($items === []) { throw new RuntimeException('O local selecionado não possui turmas atribuídas a você nesta temporada.'); }
             return ['stage' => 'modalities', 'items' => $items];
         }
-        $classes = $this->listClassesForProfessor($accountId);
-        $classes = array_values(array_filter($classes, static fn(array $class): bool =>
-            (int) ($class['temporada_id'] ?? 0) === $seasonId
-            && (int) ($class['local_treino_id'] ?? 0) === $locationId
-            && (int) ($class['modalidade_id'] ?? 0) === $modalityId
-        ));
+        $classes = $this->listClassesForProfessor($accountId, $seasonId, $locationId, $modalityId);
         if ($classes === []) { throw new RuntimeException('A modalidade selecionada não possui turmas atribuídas a você neste local e temporada.'); }
         return ['stage' => 'classes', 'classes' => $classes];
     }

@@ -609,7 +609,7 @@
             function activateSection(target, extraParams, options) {
                 const normalizedTarget = String(target || '').trim();
                 const requestData = Object.assign({ nome: normalizedTarget }, extraParams || {});
-                const requestOptions = Object.assign({ suppressGlobalLoading: normalizedTarget === 'minhas-turmas' }, options || {});
+                const requestOptions = Object.assign({ suppressGlobalLoading: false }, options || {});
                 const previousContent = $host.html();
 
                 if (normalizedTarget === '') {

@@ -1,5 +1,5 @@
 <section class="admin-section-panel professor-view" data-admin-section="minhas-turmas" data-professor-class-browser="1" data-browser-url="<?php echo e(url('/professor/minhas-turmas/filtro')); ?>">
-    <div class="section-head admin-section-head"><div><h2>Minhas turmas</h2></div><button type="button" class="btn btn-primary" data-course-create="class">Criar turma</button></div>
+    <div class="section-head admin-section-head"><div><h2>Minhas turmas</h2></div><button type="button" class="btn btn-primary" data-course-create="class" disabled>Criar turma</button></div>
     <?php if (empty($professorClassSeasons)) { ?>
         <article class="content-card"><p class="muted">Nenhuma turma está atribuída a você como professor principal ou auxiliar.</p></article>
     <?php } else { ?>
@@ -11,11 +11,4 @@
         <div class="professor-classes-grid hidden" data-professor-class-results></div>
     <?php } ?>
 </section>
-<?php
-$courseManagementView = 'professor-turmas';
-$courseClasses = [];
-ob_start();
-require ROOT_PATH . '/app/Views/admin/partials/course_management_panel.php';
-$professorCourseControls = (string) ob_get_clean();
-?>
-<div class="hidden" data-professor-course-controls-source="1"><?php echo $professorCourseControls; ?></div>
+<div class="hidden" data-professor-course-controls-loader="1" data-controls-url="<?php echo e(url('/professor/minhas-turmas/controles')); ?>"></div>

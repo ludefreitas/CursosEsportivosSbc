@@ -168,6 +168,7 @@ return [
     ['GET', '/professor', [ProfessorController::class, 'index']],
     ['GET', '/professor/secao', [ProfessorController::class, 'section']],
     ['GET', '/professor/minhas-turmas/filtro', [ProfessorController::class, 'classBrowser']],
+    ['GET', '/professor/minhas-turmas/controles', [ProfessorController::class, 'classControls']],
     ['POST', '/professor/minhas-turmas/salvar', [ProfessorController::class, 'saveAssignedClass']],
     ['POST', '/professor/minhas-turmas/equipe', [ProfessorController::class, 'saveAssignedClassTeam']],
     ['POST', '/professor/minhas-turmas/status', [ProfessorController::class, 'changeAssignedClassStatus']],

@@ -135,6 +135,30 @@ class ProfessorController extends Controller
         }
     }
 
+    public function classControls(): void
+    {
+        $this->assertProfessorAccess();
+        try {
+            $courseService = new \App\Services\CourseEnrollmentService();
+            $courseSeasons = $courseService->listSeasonsForManagement();
+            $courseSeasonOrigins = [];
+            $modalitySchedules = $courseService->listModalitySchedulesForManagement();
+            $courseProfessors = $courseService->listProfessors();
+            $courseInterns = $courseService->listInterns();
+            $courseModalitiesManagement = $this->adminService->listModalitiesForManagement();
+            $courseLocationsManagement = $this->adminService->listTrainingLocationsForSpaceForm();
+            $courseSpacesManagement = $this->adminService->listTrainingSpacesForManagement();
+            $courseManagementView = 'professor-turmas';
+            $courseClasses = [];
+            ob_start();
+            require ROOT_PATH . '/app/Views/admin/partials/course_management_panel.php';
+            $this->jsonResponse(['success' => true, 'html' => (string) ob_get_clean()]);
+        } catch (\Throwable $e) {
+            while (ob_get_level() > 0) { ob_end_clean(); }
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
     public function saveAssignedClass(): void
     {
         $user = $this->assertProfessorAccess();
@@ -536,11 +560,7 @@ class ProfessorController extends Controller
         if ($sectionName === 'minhas-turmas') {
             $courseService = new \App\Services\CourseEnrollmentService();
             $browser = $courseService->professorClassBrowser((int) ($user['conta_id'] ?? 0));
-            return ['sectionName' => $sectionName, 'professorView' => true, 'professorClassSeasons' => (array) ($browser['items'] ?? []),
-                'courseSeasons' => $courseService->listSeasonsForManagement(), 'courseSeasonOrigins' => [],
-                'modalitySchedules' => $courseService->listModalitySchedulesForManagement(), 'courseProfessors' => $courseService->listProfessors(),
-                'courseInterns' => $courseService->listInterns(), 'courseModalitiesManagement' => $this->adminService->listModalitiesForManagement(),
-                'courseLocationsManagement' => $this->adminService->listTrainingLocationsForSpaceForm(), 'courseSpacesManagement' => $this->adminService->listTrainingSpacesForManagement()];
+            return ['sectionName' => $sectionName, 'professorView' => true, 'professorClassSeasons' => (array) ($browser['items'] ?? [])];
         }
 
         $locationId = (int) ($_GET['local_treino_id'] ?? 0);
