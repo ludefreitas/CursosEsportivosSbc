@@ -396,6 +396,7 @@ class ProfessorController extends Controller
             $courseEnrollmentClassId = max(0, (int) ($_POST['turma_id'] ?? 0));
             $courseEnrollmentClassName = trim((string) ($_POST['turma_nome'] ?? ''));
             $courseEnrollmentsManagement = $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId, $professorAccountId);
+            $courseEnrollmentsByPerson = $courseEnrollmentService->professorEnrollmentSummariesByPerson(array_column($courseEnrollmentsManagement, 'pessoa_id'), $professorAccountId);
             $courseEnrollmentStatusSummary = $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId);
             $professorView = true;
             ob_start();
@@ -517,6 +518,7 @@ class ProfessorController extends Controller
             $courseEnrollmentConditionFilter = trim((string) ($_GET['condicao'] ?? 'todas'));
             $courseEnrollmentClassId = max(0, (int) ($_GET['turma_id'] ?? 0));
             $courseEnrollmentClassName = trim((string) ($_GET['turma_nome'] ?? ''));
+            $courseEnrollmentsManagement = $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId, (int) ($user['conta_id'] ?? 0));
             return [
                 'sectionName' => $sectionName,
                 'professorView' => true,
@@ -526,7 +528,8 @@ class ProfessorController extends Controller
                 'courseEnrollmentConditionFilter' => $courseEnrollmentConditionFilter,
                 'courseEnrollmentClassId' => $courseEnrollmentClassId,
                 'courseEnrollmentClassName' => $courseEnrollmentClassName,
-                'courseEnrollmentsManagement' => $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId, (int) ($user['conta_id'] ?? 0)),
+                'courseEnrollmentsManagement' => $courseEnrollmentsManagement,
+                'courseEnrollmentsByPerson' => $courseEnrollmentService->professorEnrollmentSummariesByPerson(array_column($courseEnrollmentsManagement, 'pessoa_id'), (int) ($user['conta_id'] ?? 0)),
                 'courseEnrollmentStatusSummary' => $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId),
             ];
         }

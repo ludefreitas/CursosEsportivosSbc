@@ -36,6 +36,7 @@ class DashboardController extends Controller
         $userService = new UserService();
         $courseEnrollmentService = new CourseEnrollmentService();
         $user = $userService->currentAccountWithRoles();
+        $professorEnrollmentDeletionEnabled = $user && has_role($user['roles'] ?? [], 'teacher');
 
         $this->view('dashboard/index', [
             'title' => 'Painel do Usuário',
@@ -44,6 +45,7 @@ class DashboardController extends Controller
             'dependents' => $profileService->listDependents(),
             'metrics' => $userService->dashboardMetrics((int) $person['id']),
             'courseEnrollments' => $courseEnrollmentService->listForAuthenticatedAccount(),
+            'professorEnrollmentDeletionEnabled' => $professorEnrollmentDeletionEnabled,
         ]);
     }
 }
