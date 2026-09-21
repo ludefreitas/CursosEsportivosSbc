@@ -7,7 +7,7 @@ UPDATE horarios_semanais
 SET professor_conta_id = criado_por_conta_id
 WHERE professor_conta_id IS NULL;
 
-CREATE TABLE IF NOT EXISTS horarios_semanais_professores (
+CREATE TABLE horarios_semanais_professores (
     horario_semanal_id BIGINT UNSIGNED NOT NULL,
     professor_conta_id BIGINT UNSIGNED NOT NULL,
     atribuido_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS horarios_semanais_professores (
 INSERT IGNORE INTO horarios_semanais_professores (horario_semanal_id, professor_conta_id)
 SELECT id, professor_conta_id FROM horarios_semanais WHERE professor_conta_id IS NOT NULL;
 
-CREATE TABLE IF NOT EXISTS horarios_semanais_estagiarios (
+CREATE TABLE horarios_semanais_estagiarios (
     horario_semanal_id BIGINT UNSIGNED NOT NULL,
     estagiario_conta_id BIGINT UNSIGNED NOT NULL,
     atribuido_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

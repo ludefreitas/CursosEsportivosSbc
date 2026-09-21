@@ -555,8 +555,6 @@ class ProfessorController extends Controller
             'scheduleFilterOptions' => (new AgendaService())->activeWeeklyScheduleFilterOptions(true),
             'selectedDailyDate' => $dailyDate, 'selectedDailyLocationId' => $dailyLocationId, 'selectedDailySpaceId' => $dailySpaceId,
             'weeklySchedules' => $this->adminService->listWeeklySchedulesForManagement($locationId, $modalityId, (int) ($user['conta_id'] ?? 0)),
-            'courseProfessors' => (new \App\Services\CourseEnrollmentService())->listProfessors(),
-            'courseInterns' => (new \App\Services\CourseEnrollmentService())->listInterns(),
             'currentAccountId' => (int) ($user['conta_id'] ?? 0),
             'specialSchedules' => $this->adminService->listSpecialSchedulesForManagement($locationId, $modalityId),
             'dailyBookings' => array_map(fn (array $booking): array => $this->maskCpfData($booking), $this->adminService->listDailyBookingsForManagement($dailyDate, $dailyLocationId, $dailySpaceId)),

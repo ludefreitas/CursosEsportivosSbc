@@ -2371,7 +2371,9 @@ class AdminService
                 m.nome AS modalidade_nome,
                 principal.nome_completo AS professor_principal_nome,
                 (SELECT GROUP_CONCAT(DISTINCT pa.nome_completo ORDER BY pa.nome_completo SEPARATOR ", ") FROM horarios_semanais_professores hspn INNER JOIN contas ca ON ca.id=hspn.professor_conta_id INNER JOIN pessoas pa ON pa.cpf=ca.cpf WHERE hspn.horario_semanal_id=hs.id AND hspn.professor_conta_id<>hs.professor_conta_id) AS professores_auxiliares_nomes,
-                (SELECT GROUP_CONCAT(DISTINCT pe.nome_completo ORDER BY pe.nome_completo SEPARATOR ", ") FROM horarios_semanais_estagiarios hsen INNER JOIN contas ce ON ce.id=hsen.estagiario_conta_id INNER JOIN pessoas pe ON pe.cpf=ce.cpf WHERE hsen.horario_semanal_id=hs.id) AS estagiarios_nomes
+                (SELECT GROUP_CONCAT(DISTINCT pe.nome_completo ORDER BY pe.nome_completo SEPARATOR ", ") FROM horarios_semanais_estagiarios hsen INNER JOIN contas ce ON ce.id=hsen.estagiario_conta_id INNER JOIN pessoas pe ON pe.cpf=ce.cpf WHERE hsen.horario_semanal_id=hs.id) AS estagiarios_nomes,
+                (SELECT GROUP_CONCAT(DISTINCT hsp_ids.professor_conta_id ORDER BY hsp_ids.professor_conta_id SEPARATOR ",") FROM horarios_semanais_professores hsp_ids WHERE hsp_ids.horario_semanal_id=hs.id) AS professores_ids_csv,
+                (SELECT GROUP_CONCAT(DISTINCT hse_ids.estagiario_conta_id ORDER BY hse_ids.estagiario_conta_id SEPARATOR ",") FROM horarios_semanais_estagiarios hse_ids WHERE hse_ids.horario_semanal_id=hs.id) AS estagiarios_ids_csv
             FROM horarios_semanais hs
             INNER JOIN locais_treino lt ON lt.id = hs.local_treino_id
             INNER JOIN espacos_treino et ON et.id = hs.espaco_treino_id
@@ -2411,9 +2413,9 @@ class AdminService
         $stmt->execute($params);
         $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         foreach ($schedules as &$schedule) {
-            $scheduleId = (int) ($schedule['id'] ?? 0);
-            $schedule['professores_ids'] = $this->weeklyScheduleTeamIds($pdo, $scheduleId, 'professor');
-            $schedule['estagiarios_ids'] = $this->weeklyScheduleTeamIds($pdo, $scheduleId, 'estagiario');
+            $schedule['professores_ids'] = array_values(array_filter(array_map('intval', explode(',', (string) ($schedule['professores_ids_csv'] ?? '')))));
+            $schedule['estagiarios_ids'] = array_values(array_filter(array_map('intval', explode(',', (string) ($schedule['estagiarios_ids_csv'] ?? '')))));
+            unset($schedule['professores_ids_csv'], $schedule['estagiarios_ids_csv']);
         }
         unset($schedule);
         return $schedules;
@@ -4280,14 +4282,6 @@ class AdminService
                 )
                 WHERE hs.criado_por_conta_id IS NULL");
         }
-
-        if (!isset($columns['professor_conta_id'])) {
-            $pdo->exec('ALTER TABLE horarios_semanais ADD COLUMN professor_conta_id BIGINT UNSIGNED NULL AFTER criado_por_conta_id, ADD INDEX idx_horarios_semanais_professor (professor_conta_id)');
-            $pdo->exec('UPDATE horarios_semanais SET professor_conta_id=criado_por_conta_id WHERE professor_conta_id IS NULL');
-        }
-        $pdo->exec('CREATE TABLE IF NOT EXISTS horarios_semanais_professores (horario_semanal_id BIGINT UNSIGNED NOT NULL, professor_conta_id BIGINT UNSIGNED NOT NULL, atribuido_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (horario_semanal_id, professor_conta_id), CONSTRAINT fk_hsp_horario FOREIGN KEY (horario_semanal_id) REFERENCES horarios_semanais(id) ON DELETE CASCADE, CONSTRAINT fk_hsp_professor FOREIGN KEY (professor_conta_id) REFERENCES contas(id) ON DELETE CASCADE) ENGINE=InnoDB');
-        $pdo->exec('CREATE TABLE IF NOT EXISTS horarios_semanais_estagiarios (horario_semanal_id BIGINT UNSIGNED NOT NULL, estagiario_conta_id BIGINT UNSIGNED NOT NULL, atribuido_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (horario_semanal_id, estagiario_conta_id), CONSTRAINT fk_hse_horario FOREIGN KEY (horario_semanal_id) REFERENCES horarios_semanais(id) ON DELETE CASCADE, CONSTRAINT fk_hse_estagiario FOREIGN KEY (estagiario_conta_id) REFERENCES contas(id) ON DELETE CASCADE) ENGINE=InnoDB');
-        $pdo->exec('INSERT IGNORE INTO horarios_semanais_professores (horario_semanal_id, professor_conta_id) SELECT id, professor_conta_id FROM horarios_semanais WHERE professor_conta_id IS NOT NULL');
 
         $ensured = true;
     }

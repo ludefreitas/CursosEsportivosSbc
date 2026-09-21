@@ -2307,10 +2307,6 @@ class CourseEnrollmentService
         if (!$classObservationColumn || !$classObservationColumn->fetch(PDO::FETCH_ASSOC)) {
             $pdo->exec('ALTER TABLE turmas ADD COLUMN observacao TEXT NULL AFTER nome');
         }
-        $classProgramColumn = $pdo->query("SHOW COLUMNS FROM turmas LIKE 'programa'");
-        if (!$classProgramColumn || !$classProgramColumn->fetch(PDO::FETCH_ASSOC)) {
-            $pdo->exec("ALTER TABLE turmas ADD COLUMN programa ENUM('Corpo em Ação', 'Hora do Treino', 'Campeões da Vida', 'GR São Bernardo') NULL AFTER nome");
-        }
         $enrollmentOrderColumn = $pdo->query("SHOW COLUMNS FROM inscricoes_turma LIKE 'numero_ordem'");
         if (!$enrollmentOrderColumn || !$enrollmentOrderColumn->fetch(PDO::FETCH_ASSOC)) {
             $pdo->exec('ALTER TABLE inscricoes_turma ADD COLUMN numero_ordem INT UNSIGNED NULL AFTER turma_id');
