@@ -2,6 +2,32 @@
     const App = window.App || {};
 
     App.auth = Object.assign(App.auth || {}, {
+        obterPaginaProtegidaAtual: function () {
+            return App.core.getAppRelativePath(window.location.pathname + window.location.search + window.location.hash);
+        },
+
+        lembrarPaginaProtegidaAtual: function () {
+            const destination = App.auth.obterPaginaProtegidaAtual();
+            const area = App.auth.identificarAreaProtegida(destination);
+            const path = window.location.pathname.replace(/\/+$/, '') || '/';
+            const dashboardPath = App.core.buildUrl('/dashboard').replace(/\/+$/, '');
+            if (area === 'admin' || area === 'professor' || path === dashboardPath) {
+                try { window.sessionStorage.setItem('cursos_sbc_last_protected_path', destination); } catch (error) {}
+            }
+        },
+
+        recuperarPaginaProtegida: function (fallback) {
+            const safeFallback = App.core.getAppRelativePath(fallback || '/dashboard');
+            try {
+                const rawStored = window.sessionStorage.getItem('cursos_sbc_last_protected_path') || '';
+                const stored = rawStored ? App.core.getAppRelativePath(rawStored) : '';
+                if (stored !== '' && App.auth.identificarAreaProtegida(stored) === App.auth.identificarAreaProtegida(safeFallback)) {
+                    return stored;
+                }
+            } catch (error) {}
+            return safeFallback;
+        },
+
         identificarAreaProtegida: function (returnTo) {
             try {
                 const path = new URL(String(returnTo || '/'), window.location.origin).pathname.replace(/\/+$/, '') || '/';
@@ -15,7 +41,12 @@
         },
 
         solicitarAutenticacaoNaPaginaAtual: function (returnTo, retry) {
-            const destination = App.core.getAppRelativePath(returnTo || window.location.pathname + window.location.search);
+            let destination = App.core.getAppRelativePath(returnTo || App.auth.obterPaginaProtegidaAtual());
+            const currentDestination = App.auth.obterPaginaProtegidaAtual();
+            if (App.auth.identificarAreaProtegida(destination) === App.auth.identificarAreaProtegida(currentDestination)) {
+                destination = currentDestination;
+            }
+            try { window.sessionStorage.setItem('cursos_sbc_last_protected_path', destination); } catch (error) {}
             App.state.pendingProtectedAccess = {
                 area: App.auth.identificarAreaProtegida(destination),
                 returnTo: destination,
@@ -116,7 +147,8 @@
             window.history.replaceState({}, document.title, parsed.pathname + (parsed.search ? '?' + parsed.searchParams.toString() : '') + parsed.hash);
 
             if (action === 'login') {
-                const returnTo = parsed.searchParams.get('return_to') || window.location.pathname + window.location.search;
+                const returnTo = App.auth.recuperarPaginaProtegida(parsed.searchParams.get('return_to') || window.location.pathname + window.location.search + window.location.hash);
+                parsed.searchParams.set('return_to', returnTo);
                 App.state.pendingProtectedAccess = App.state.pendingProtectedAccess || {
                     area: App.auth.identificarAreaProtegida(returnTo),
                     returnTo: returnTo,
@@ -450,8 +482,10 @@
                             }
                             if (!authenticationNeedsProfileCompletion && typeof pendingAccess.retry === 'function') {
                                 window.setTimeout(pendingAccess.retry, 0);
+                                response._protected_access_handled = true;
+                            } else if (!authenticationNeedsProfileCompletion && pendingAccess.returnTo) {
+                                response.redirect = App.core.buildUrl(String(pendingAccess.returnTo));
                             }
-                            response._protected_access_handled = true;
                         }
                     }
 
@@ -577,6 +611,7 @@
         },
 
         init: function () {
+            App.auth.lembrarPaginaProtegidaAtual();
             App.auth.iniciarFormulariosAjax();
             App.auth.iniciarModalPelaUrl();
             App.auth.iniciarSincronizacaoEntreAbas();

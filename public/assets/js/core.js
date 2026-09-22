@@ -196,6 +196,10 @@
                     relativePath += parsed.search;
                 }
 
+                if (parsed.hash) {
+                    relativePath += parsed.hash;
+                }
+
                 return relativePath;
             } catch (error) {
                 return String(url || '');

@@ -142,6 +142,7 @@ function safe_internal_path(?string $path, string $default = '/'): string
 
     $parsedPath = parse_url($path, PHP_URL_PATH);
     $parsedQuery = parse_url($path, PHP_URL_QUERY);
+    $parsedFragment = parse_url($path, PHP_URL_FRAGMENT);
 
     if (!is_string($parsedPath) || $parsedPath === '') {
         return $default;
@@ -155,6 +156,10 @@ function safe_internal_path(?string $path, string $default = '/'): string
 
     if (is_string($parsedQuery) && $parsedQuery !== '') {
         $normalized .= '?' . $parsedQuery;
+    }
+
+    if (is_string($parsedFragment) && $parsedFragment !== '') {
+        $normalized .= '#' . $parsedFragment;
     }
 
     return $normalized;

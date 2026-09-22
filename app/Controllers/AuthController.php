@@ -126,7 +126,8 @@ class AuthController extends Controller
             }
 
             flash('success', $successMessage);
-            redirect((string) parse_url($redirectUrl, PHP_URL_PATH));
+            header('Location: ' . $redirectUrl);
+            exit;
         } catch (\Throwable $e) {
             $_SESSION['login_failure_count'] = min(20, (int) ($_SESSION['login_failure_count'] ?? 0) + 1);
             if ($this->isAjaxRequest()) {

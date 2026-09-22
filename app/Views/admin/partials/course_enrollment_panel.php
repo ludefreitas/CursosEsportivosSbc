@@ -7,6 +7,14 @@ $courseEnrollmentStatusFilter = (string) ($courseEnrollmentStatusFilter ?? 'todo
 $courseEnrollmentConditionFilter = in_array(($courseEnrollmentConditionFilter ?? ''), ['geral', 'pcd', 'plm', 'pvs'], true) ? (string) $courseEnrollmentConditionFilter : 'todas';
 $courseEnrollmentClassId = max(0, (int) ($courseEnrollmentClassId ?? 0));
 $courseEnrollmentClassName = trim((string) ($courseEnrollmentClassName ?? ''));
+$courseEnrollmentGroupBy = in_array(($courseEnrollmentGroupBy ?? ''), ['local', 'modalidade'], true) ? (string) $courseEnrollmentGroupBy : '';
+$courseEnrollmentSeasonId = max(0, (int) ($courseEnrollmentSeasonId ?? 0));
+$courseEnrollmentGroupId = max(0, (int) ($courseEnrollmentGroupId ?? 0));
+$courseEnrollmentSecondaryGroupId = max(0, (int) ($courseEnrollmentSecondaryGroupId ?? 0));
+$courseEnrollmentPage = max(1, (int) ($courseEnrollmentPage ?? 1));
+$courseEnrollmentFilterOptions = $courseEnrollmentFilterOptions ?? ['temporadas' => [], 'grupos' => []];
+$courseEnrollmentSelectionComplete = $courseEnrollmentClassId > 0 || ($courseEnrollmentGroupBy !== '' && $courseEnrollmentSeasonId > 0 && $courseEnrollmentGroupId > 0 && $courseEnrollmentSecondaryGroupId > 0);
+$courseEnrollmentTotalPages = max(1, (int) ceil(((int) ($courseEnrollmentStatusSummary['total'] ?? 0)) / 100));
 $enrollmentsByPerson = $courseEnrollmentsByPerson ?? [];
 $jsonAttribute = static fn (array $value): string => e((string) json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 $formatDate = static fn ($value, bool $withTime = false): string => !empty($value) ? date($withTime ? 'd/m/Y H:i' : 'd/m/Y', strtotime((string) $value)) : ($withTime ? '-' : '00/00/0000');
@@ -43,6 +51,43 @@ $renderEnrollmentCertificate = static function (array $enrollment, string $type,
 };
 ?>
 <section class="admin-section-panel course-enrollment-management" data-admin-section="inscricoes">
+    <?php if ($courseEnrollmentClassId === 0) { ?>
+    <nav class="course-enrollment-browser" aria-label="Filtros principais das inscrições">
+        <div class="course-enrollment-browser-row">
+            <strong>Visualizar:</strong>
+            <button type="button" class="btn btn-secondary<?php echo $courseEnrollmentGroupBy === 'local' ? ' is-active' : ''; ?>" data-course-enrollment-group-by="local" aria-pressed="<?php echo $courseEnrollmentGroupBy === 'local' ? 'true' : 'false'; ?>">Inscrições por local</button>
+            <button type="button" class="btn btn-secondary<?php echo $courseEnrollmentGroupBy === 'modalidade' ? ' is-active' : ''; ?>" data-course-enrollment-group-by="modalidade" aria-pressed="<?php echo $courseEnrollmentGroupBy === 'modalidade' ? 'true' : 'false'; ?>">Inscrições por modalidade</button>
+        </div>
+        <?php if ($courseEnrollmentGroupBy !== '') { ?>
+        <div class="course-enrollment-browser-row" aria-label="Temporadas">
+            <strong>Temporada:</strong>
+            <?php foreach (($courseEnrollmentFilterOptions['temporadas'] ?? []) as $season) { ?>
+                <button type="button" class="btn btn-secondary<?php echo $courseEnrollmentSeasonId === (int) $season['id'] ? ' is-active' : ''; ?>" data-course-enrollment-season="<?php echo e((string) $season['id']); ?>" aria-pressed="<?php echo $courseEnrollmentSeasonId === (int) $season['id'] ? 'true' : 'false'; ?>"><?php echo e((string) $season['nome']); ?></button>
+            <?php } ?>
+            <?php if (($courseEnrollmentFilterOptions['temporadas'] ?? []) === []) { ?><span class="muted">Nenhuma temporada com inscrições.</span><?php } ?>
+        </div>
+        <?php } ?>
+        <?php if ($courseEnrollmentGroupBy !== '' && $courseEnrollmentSeasonId > 0) { ?>
+        <div class="course-enrollment-browser-row" aria-label="<?php echo $courseEnrollmentGroupBy === 'local' ? 'Locais' : 'Modalidades'; ?>">
+            <strong><?php echo $courseEnrollmentGroupBy === 'local' ? 'Local:' : 'Modalidade:'; ?></strong>
+            <?php foreach (($courseEnrollmentFilterOptions['grupos'] ?? []) as $group) { ?>
+                <button type="button" class="btn btn-secondary<?php echo $courseEnrollmentGroupId === (int) $group['id'] ? ' is-active' : ''; ?>" data-course-enrollment-group="<?php echo e((string) $group['id']); ?>" aria-pressed="<?php echo $courseEnrollmentGroupId === (int) $group['id'] ? 'true' : 'false'; ?>"><?php echo e((string) $group['nome']); ?></button>
+            <?php } ?>
+            <?php if (($courseEnrollmentFilterOptions['grupos'] ?? []) === []) { ?><span class="muted">Nenhuma opção com inscrições nesta temporada.</span><?php } ?>
+        </div>
+        <?php } ?>
+        <?php if ($courseEnrollmentGroupBy !== '' && $courseEnrollmentSeasonId > 0 && $courseEnrollmentGroupId > 0) { ?>
+        <div class="course-enrollment-browser-row" aria-label="<?php echo $courseEnrollmentGroupBy === 'local' ? 'Modalidades' : 'Locais'; ?>">
+            <strong><?php echo $courseEnrollmentGroupBy === 'local' ? 'Modalidade:' : 'Local:'; ?></strong>
+            <?php foreach (($courseEnrollmentFilterOptions['grupos_secundarios'] ?? []) as $group) { ?>
+                <button type="button" class="btn btn-secondary<?php echo $courseEnrollmentSecondaryGroupId === (int) $group['id'] ? ' is-active' : ''; ?>" data-course-enrollment-secondary-group="<?php echo e((string) $group['id']); ?>" aria-pressed="<?php echo $courseEnrollmentSecondaryGroupId === (int) $group['id'] ? 'true' : 'false'; ?>"><?php echo e((string) $group['nome']); ?></button>
+            <?php } ?>
+            <?php if (($courseEnrollmentFilterOptions['grupos_secundarios'] ?? []) === []) { ?><span class="muted">Nenhuma opção correspondente com inscrições.</span><?php } ?>
+        </div>
+        <?php } ?>
+    </nav>
+    <?php } ?>
+    <?php if ($courseEnrollmentSelectionComplete) { ?>
     <div class="section-head admin-section-head course-enrollment-summary-head">
         <div>
             <div class="course-enrollment-title-line">
@@ -65,6 +110,11 @@ $renderEnrollmentCertificate = static function (array $enrollment, string $type,
         <input type="hidden" data-course-enrollment-filter="condition" value="<?php echo e($courseEnrollmentConditionFilter); ?>">
         <input type="hidden" data-course-enrollment-filter="class" value="<?php echo e((string) $courseEnrollmentClassId); ?>">
         <input type="hidden" data-course-enrollment-filter="class-name" value="<?php echo e($courseEnrollmentClassName); ?>">
+        <input type="hidden" data-course-enrollment-filter="group-by" value="<?php echo e($courseEnrollmentGroupBy); ?>">
+        <input type="hidden" data-course-enrollment-filter="season" value="<?php echo e((string) $courseEnrollmentSeasonId); ?>">
+        <input type="hidden" data-course-enrollment-filter="group" value="<?php echo e((string) $courseEnrollmentGroupId); ?>">
+        <input type="hidden" data-course-enrollment-filter="secondary-group" value="<?php echo e((string) $courseEnrollmentSecondaryGroupId); ?>">
+        <input type="hidden" data-course-enrollment-filter="page" value="<?php echo e((string) $courseEnrollmentPage); ?>">
         <span>Ordenar:</span>
         <label><span class="sr-only">Critério de ordenação</span><select data-course-enrollment-sort="criterion" aria-label="Ordenar inscrições por">
             <option value="alfabetica"<?php echo $courseEnrollmentSortBy === 'alfabetica' ? ' selected' : ''; ?>>Ordem alfabética</option>
@@ -78,7 +128,7 @@ $renderEnrollmentCertificate = static function (array $enrollment, string $type,
         </select></label>
     </div>
     <?php if ($courseEnrollmentClassId > 0) { ?><button type="button" class="link-button course-enrollment-back" data-course-enrollment-back="1" aria-label="Voltar para as turmas">← Voltar</button><?php } ?>
-    <?php if ($courseEnrollmentsManagement === []) { ?><p class="muted">Nenhuma inscrição encontrada.</p><?php } else { ?>
+    <?php if ($courseEnrollmentsManagement === []) { ?><p class="muted">Nenhuma inscrição encontrada para os filtros selecionados.</p><?php } else { ?>
         <div class="course-enrollment-list">
         <?php foreach ($courseEnrollmentsManagement as $enrollment) {
             $professorCanManageEnrollment = empty($professorView) || !empty($enrollment['professor_pode_gerenciar']);
@@ -127,7 +177,16 @@ $renderEnrollmentCertificate = static function (array $enrollment, string $type,
         <?php } ?>
         </div>
     <?php } ?>
+    <?php if ($courseEnrollmentPage < $courseEnrollmentTotalPages) { ?>
+        <div class="course-enrollment-load-more">
+            <button type="button" class="btn btn-secondary" data-course-enrollment-show-more="<?php echo e((string) ($courseEnrollmentPage + 1)); ?>">Mostrar mais...</button>
+            <span class="muted">Exibindo <?php echo e((string) min($courseEnrollmentPage * 100, (int) ($courseEnrollmentStatusSummary['total'] ?? 0))); ?> de <?php echo e((string) ($courseEnrollmentStatusSummary['total'] ?? 0)); ?> inscrições</span>
+        </div>
+    <?php } ?>
+    <?php } else { ?>
+        <p class="muted course-enrollment-browser-help">Selecione como deseja consultar, a temporada, <?php echo $courseEnrollmentGroupBy === 'modalidade' ? 'uma modalidade e depois um local' : ($courseEnrollmentGroupBy === 'local' ? 'um local e depois uma modalidade' : 'uma das opções acima'); ?>.</p>
+    <?php } ?>
 </section>
 <div class="popup-overlay hidden" id="admin-health-certificate-validation-modal" aria-hidden="true"><div class="popup-card popup-admin-card admin-condition-validation-card" role="dialog" aria-modal="true" aria-labelledby="admin-health-certificate-validation-title"><div id="admin-health-certificate-validation-modal-content"></div></div></div>
 <div id="course-enrollment-info-modal" class="popup-overlay hidden" aria-hidden="true"><div class="popup-card course-enrollment-info-card" role="dialog" aria-modal="true" aria-labelledby="course-enrollment-info-title"><div class="popup-head"><h3 id="course-enrollment-info-title">Informações da inscrição</h3><button type="button" class="popup-close-icon" data-course-enrollment-modal-close="1" aria-label="Fechar">×</button></div><div id="course-enrollment-info-body" class="popup-body"></div><div class="popup-actions"><button type="button" class="btn btn-secondary" data-course-enrollment-modal-close="1">Fechar</button></div></div></div>
-<div id="course-status-change-modal" class="popup-overlay hidden" aria-hidden="true"><div class="popup-card course-enrollment-info-card" role="dialog" aria-modal="true" aria-labelledby="course-status-change-title"><div class="popup-head"><h3 id="course-status-change-title">Alterar status da inscrição</h3><button type="button" class="popup-close-icon" data-course-status-change-close="1" aria-label="Fechar">×</button></div><div class="popup-body"><p id="course-status-change-question"></p><form method="POST" action="<?php echo e(url('/professor/inscricoes/status')); ?>" class="stack-form" id="course-status-change-form" data-manual-submit="1"><input type="hidden" name="inscricao_id"><input type="hidden" name="status"><input type="hidden" name="ordenar_por" value="<?php echo e($courseEnrollmentSortBy); ?>"><input type="hidden" name="direcao" value="<?php echo e($courseEnrollmentSortDirection); ?>"><input type="hidden" name="status_filtro" value="<?php echo e($courseEnrollmentStatusFilter); ?>"><input type="hidden" name="condicao_filtro" value="<?php echo e($courseEnrollmentConditionFilter); ?>"><p><strong>Data da alteração:</strong> <span id="course-status-change-date"><?php echo e(date('d/m/Y H:i')); ?></span></p><div id="course-vacancy-notice-fields" class="hidden"><label class="checkbox-chip"><input type="checkbox" name="vaga_informada" value="1"><span>Confirmo que o usuário já foi avisado da vaga disponível.</span></label><label><span>Data e hora do envio da mensagem</span><input type="datetime-local" name="vaga_informada_em" max="<?php echo e(date('Y-m-d\\TH:i')); ?>"></label></div><label><span>Motivo (opcional)</span><textarea name="motivo" rows="3"></textarea></label><div class="popup-actions"><button type="button" class="btn btn-secondary" data-course-status-change-close="1">Cancelar</button><button type="submit" class="btn btn-primary">Confirmar alteração</button></div></form></div></div></div>
+<div id="course-status-change-modal" class="popup-overlay hidden" aria-hidden="true"><div class="popup-card course-enrollment-info-card" role="dialog" aria-modal="true" aria-labelledby="course-status-change-title"><div class="popup-head"><h3 id="course-status-change-title">Alterar status da inscrição</h3><button type="button" class="popup-close-icon" data-course-status-change-close="1" aria-label="Fechar">×</button></div><div class="popup-body"><p id="course-status-change-question"></p><form method="POST" action="<?php echo e(url('/professor/inscricoes/status')); ?>" class="stack-form" id="course-status-change-form" data-manual-submit="1"><input type="hidden" name="inscricao_id"><input type="hidden" name="status"><input type="hidden" name="ordenar_por" value="<?php echo e($courseEnrollmentSortBy); ?>"><input type="hidden" name="direcao" value="<?php echo e($courseEnrollmentSortDirection); ?>"><input type="hidden" name="status_filtro" value="<?php echo e($courseEnrollmentStatusFilter); ?>"><input type="hidden" name="condicao_filtro" value="<?php echo e($courseEnrollmentConditionFilter); ?>"><input type="hidden" name="agrupar_por" value="<?php echo e($courseEnrollmentGroupBy); ?>"><input type="hidden" name="temporada_id" value="<?php echo e((string) $courseEnrollmentSeasonId); ?>"><input type="hidden" name="grupo_id" value="<?php echo e((string) $courseEnrollmentGroupId); ?>"><input type="hidden" name="grupo_secundario_id" value="<?php echo e((string) $courseEnrollmentSecondaryGroupId); ?>"><input type="hidden" name="pagina" value="<?php echo e((string) $courseEnrollmentPage); ?>"><p><strong>Data da alteração:</strong> <span id="course-status-change-date"><?php echo e(date('d/m/Y H:i')); ?></span></p><div id="course-vacancy-notice-fields" class="hidden"><label class="checkbox-chip"><input type="checkbox" name="vaga_informada" value="1"><span>Confirmo que o usuário já foi avisado da vaga disponível.</span></label><label><span>Data e hora do envio da mensagem</span><input type="datetime-local" name="vaga_informada_em" max="<?php echo e(date('Y-m-d\\TH:i')); ?>"></label></div><label><span>Motivo (opcional)</span><textarea name="motivo" rows="3"></textarea></label><div class="popup-actions"><button type="button" class="btn btn-secondary" data-course-status-change-close="1">Cancelar</button><button type="submit" class="btn btn-primary">Confirmar alteração</button></div></form></div></div></div>

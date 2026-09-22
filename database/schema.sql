@@ -511,6 +511,8 @@ CREATE TABLE IF NOT EXISTS turmas (
     ativo TINYINT(1) NOT NULL DEFAULT 1,
     inscricoes_abertas TINYINT(1) NOT NULL DEFAULT 0,
     status ENUM('planejada', 'processo_inicial', 'periodo_matricula', 'inscricoes_abertas', 'inscricoes_suspensas', 'inscricoes_encerradas') NOT NULL DEFAULT 'planejada',
+    INDEX idx_turmas_temporada_local_modalidade (temporada_id, local_treino_id, modalidade_id, id),
+    INDEX idx_turmas_temporada_modalidade_local (temporada_id, modalidade_id, local_treino_id, id),
     CONSTRAINT fk_turmas_temporada FOREIGN KEY (temporada_id) REFERENCES temporadas(id),
     CONSTRAINT fk_turmas_modalidade FOREIGN KEY (modalidade_id) REFERENCES modalidades(id),
     CONSTRAINT fk_turmas_cronograma_modalidade FOREIGN KEY (cronograma_modalidade_id) REFERENCES cronogramas_modalidade(id),
@@ -796,6 +798,22 @@ CREATE TABLE IF NOT EXISTS site_popups (
     updated_at TIMESTAMP NULL DEFAULT NULL,
     INDEX idx_site_popups_status_datas (status, data_inicio, data_fim),
     CONSTRAINT fk_site_popup_conta FOREIGN KEY (criado_por_conta_id) REFERENCES contas(id)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS turmas_copias (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    origem_tipo ENUM('legacy', 'current') NOT NULL,
+    origem_temporada_id BIGINT UNSIGNED NOT NULL,
+    origem_turma_id BIGINT UNSIGNED NOT NULL,
+    destino_temporada_id BIGINT UNSIGNED NOT NULL,
+    destino_turma_id BIGINT UNSIGNED NOT NULL,
+    copiado_por_conta_id BIGINT UNSIGNED NOT NULL,
+    copiado_em DATETIME NOT NULL,
+    INDEX idx_turma_copia_origem (origem_tipo, origem_temporada_id, origem_turma_id),
+    INDEX idx_turma_copia_destino (destino_turma_id),
+    CONSTRAINT fk_turma_copia_temporada FOREIGN KEY (destino_temporada_id) REFERENCES temporadas(id),
+    CONSTRAINT fk_turma_copia_destino FOREIGN KEY (destino_turma_id) REFERENCES turmas(id) ON DELETE CASCADE,
+    CONSTRAINT fk_turma_copia_conta FOREIGN KEY (copiado_por_conta_id) REFERENCES contas(id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS horarios_semanais_professores (

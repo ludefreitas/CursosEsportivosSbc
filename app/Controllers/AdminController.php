@@ -2169,9 +2169,15 @@ class AdminController extends Controller
             $data['courseEnrollmentConditionFilter'] = trim((string) ($_GET['condicao'] ?? 'todas'));
             $data['courseEnrollmentClassId'] = max(0, (int) ($_GET['turma_id'] ?? 0));
             $data['courseEnrollmentClassName'] = trim((string) ($_GET['turma_nome'] ?? ''));
-            $data['courseEnrollmentsManagement'] = $courseEnrollmentService->listForManagement($data['courseEnrollmentSortBy'], $data['courseEnrollmentSortDirection'], $data['courseEnrollmentStatusFilter'], $data['courseEnrollmentConditionFilter'], $data['courseEnrollmentClassId']);
+            $data['courseEnrollmentGroupBy'] = in_array(($_GET['agrupar_por'] ?? ''), ['local', 'modalidade'], true) ? (string) $_GET['agrupar_por'] : '';
+            $data['courseEnrollmentSeasonId'] = max(0, (int) ($_GET['temporada_id'] ?? 0));
+            $data['courseEnrollmentGroupId'] = max(0, (int) ($_GET['grupo_id'] ?? 0));
+            $data['courseEnrollmentSecondaryGroupId'] = max(0, (int) ($_GET['grupo_secundario_id'] ?? 0));
+            $data['courseEnrollmentPage'] = max(1, (int) ($_GET['pagina'] ?? 1));
+            $data['courseEnrollmentFilterOptions'] = $courseEnrollmentService->enrollmentManagementFilters($data['courseEnrollmentSeasonId'], $data['courseEnrollmentGroupBy'], $data['courseEnrollmentGroupId']);
+            $data['courseEnrollmentsManagement'] = $courseEnrollmentService->listForManagement($data['courseEnrollmentSortBy'], $data['courseEnrollmentSortDirection'], $data['courseEnrollmentStatusFilter'], $data['courseEnrollmentConditionFilter'], $data['courseEnrollmentClassId'], 0, $data['courseEnrollmentSeasonId'], $data['courseEnrollmentGroupBy'], $data['courseEnrollmentGroupId'], $data['courseEnrollmentSecondaryGroupId'], $data['courseEnrollmentPage']);
             $data['courseEnrollmentsByPerson'] = $courseEnrollmentService->enrollmentSummariesByPerson(array_column($data['courseEnrollmentsManagement'], 'pessoa_id'));
-            $data['courseEnrollmentStatusSummary'] = $courseEnrollmentService->enrollmentStatusSummaryForManagement($data['courseEnrollmentClassId']);
+            $data['courseEnrollmentStatusSummary'] = $courseEnrollmentService->enrollmentStatusSummaryForManagement($data['courseEnrollmentClassId'], $data['courseEnrollmentSeasonId'], $data['courseEnrollmentGroupBy'], $data['courseEnrollmentGroupId'], $data['courseEnrollmentSecondaryGroupId']);
         }
 
         if ($sectionName === 'pagina-professor') {

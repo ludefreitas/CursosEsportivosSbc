@@ -170,7 +170,7 @@ class CourseEnrollmentService
         return $rows;
     }
 
-    public function listForManagement(string $sortBy = 'ordem_inscricao', string $sortDirection = 'asc', string $statusFilter = 'todos', string $conditionFilter = 'todas', int $classId = 0, int $professorAccountId = 0): array
+    public function listForManagement(string $sortBy = 'ordem_inscricao', string $sortDirection = 'asc', string $statusFilter = 'todos', string $conditionFilter = 'todas', int $classId = 0, int $professorAccountId = 0, int $seasonId = 0, string $groupBy = '', int $groupId = 0, int $secondaryGroupId = 0, int $page = 1, int $pageSize = 100): array
     {
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
@@ -211,7 +211,24 @@ class CourseEnrollmentService
         if ($classId > 0) {
             $where[] = 'i.turma_id = :class_filter';
             $params[':class_filter'] = $classId;
+        } elseif ($seasonId > 0 && $groupId > 0 && $secondaryGroupId > 0 && in_array($groupBy, ['local', 'modalidade'], true)) {
+            $where[] = 't.temporada_id = :season_filter';
+            $params[':season_filter'] = $seasonId;
+            if ($groupBy === 'local') {
+                $where[] = 't.local_treino_id = :group_filter';
+                $where[] = 't.modalidade_id = :secondary_group_filter';
+            } else {
+                $where[] = 't.modalidade_id = :group_filter';
+                $where[] = 't.local_treino_id = :secondary_group_filter';
+            }
+            $params[':group_filter'] = $groupId;
+            $params[':secondary_group_filter'] = $secondaryGroupId;
+        } else {
+            return [];
         }
+        $page = max(1, $page);
+        $pageSize = max(1, min(200, $pageSize));
+        $offset = ($page - 1) * $pageSize;
         $whereSql = $where === [] ? '' : ' WHERE ' . implode(' AND ', $where);
         $stmt = $pdo->prepare("SELECT
                 i.id, i.turma_id, i.pessoa_id, i.numero_ordem, i.publico_alvo, i.excecao_condicao, i.status, i.created_at, i.updated_at, i.motivo_status,
@@ -262,7 +279,7 @@ class CourseEnrollmentService
             LEFT JOIN atestados_saude_importados aic ON ac.id IS NULL AND aic.id = (SELECT ai.id FROM atestados_saude_importados ai WHERE ai.cpf = p.cpf AND ai.tipo_atestado = 'clinico' AND ai.status_importacao = 'ativo' ORDER BY ai.data_atualizacao_origem DESC, ai.id_externo DESC LIMIT 1)
             LEFT JOIN atestados_saude_importados aid ON ad.id IS NULL AND aid.id = (SELECT ai.id FROM atestados_saude_importados ai WHERE ai.cpf = p.cpf AND ai.tipo_atestado = 'dermatologico' AND ai.status_importacao = 'ativo' ORDER BY ai.data_atualizacao_origem DESC, ai.id_externo DESC LIMIT 1)
             " . $whereSql . "
-            ORDER BY " . $orderSql);
+            ORDER BY " . $orderSql . " LIMIT " . $pageSize . " OFFSET " . $offset);
         $stmt->execute($params);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         $histories = [];
@@ -350,12 +367,29 @@ class CourseEnrollmentService
     /**
      * Resume todas as inscrições por status para os painéis de gestão.
      */
-    public function enrollmentStatusSummaryForManagement(int $classId = 0): array
+    public function enrollmentStatusSummaryForManagement(int $classId = 0, int $seasonId = 0, string $groupBy = '', int $groupId = 0, int $secondaryGroupId = 0): array
     {
         $pdo = Database::connection();
-        $classWhere = $classId > 0 ? ' WHERE turma_id = :class_id' : '';
-        $stmt = $pdo->prepare('SELECT status, COUNT(*) AS quantidade FROM inscricoes_turma' . $classWhere . ' GROUP BY status ORDER BY status');
-        $stmt->execute($classId > 0 ? [':class_id' => $classId] : []);
+        $joins = '';
+        $where = [];
+        $params = [];
+        if ($classId > 0) {
+            $where[] = 'i.turma_id = :class_id';
+            $params[':class_id'] = $classId;
+        } elseif ($seasonId > 0 && $groupId > 0 && $secondaryGroupId > 0 && in_array($groupBy, ['local', 'modalidade'], true)) {
+            $joins = ' INNER JOIN turmas t ON t.id = i.turma_id';
+            $where[] = 't.temporada_id = :season_id';
+            $where[] = $groupBy === 'local' ? 't.local_treino_id = :group_id' : 't.modalidade_id = :group_id';
+            $where[] = $groupBy === 'local' ? 't.modalidade_id = :secondary_group_id' : 't.local_treino_id = :secondary_group_id';
+            $params[':season_id'] = $seasonId;
+            $params[':group_id'] = $groupId;
+            $params[':secondary_group_id'] = $secondaryGroupId;
+        } else {
+            return ['total' => 0, 'por_status' => [], 'por_condicao' => []];
+        }
+        $whereSql = ' WHERE ' . implode(' AND ', $where);
+        $stmt = $pdo->prepare('SELECT i.status, COUNT(*) AS quantidade FROM inscricoes_turma i' . $joins . $whereSql . ' GROUP BY i.status ORDER BY i.status');
+        $stmt->execute($params);
         $items = [];
         $total = 0;
 
@@ -371,13 +405,13 @@ class CourseEnrollmentService
         }
 
         $conditionCounts = ['geral' => 0, 'pcd' => 0, 'plm' => 0, 'pvs' => 0];
-        $conditionSql = "SELECT LOWER(publico_alvo) AS condicao, COUNT(*) AS quantidade
-            FROM inscricoes_turma
-            WHERE LOWER(publico_alvo) IN ('geral', 'pcd', 'plm', 'pvs')
-            " . ($classId > 0 ? ' AND turma_id = :class_id' : '') . "
-            GROUP BY LOWER(publico_alvo)";
+        $conditionSql = "SELECT LOWER(i.publico_alvo) AS condicao, COUNT(*) AS quantidade
+            FROM inscricoes_turma i" . $joins . "
+            WHERE LOWER(i.publico_alvo) IN ('geral', 'pcd', 'plm', 'pvs')
+            AND " . implode(' AND ', $where) . "
+            GROUP BY LOWER(i.publico_alvo)";
         $conditionStmt = $pdo->prepare($conditionSql);
-        $conditionStmt->execute($classId > 0 ? [':class_id' => $classId] : []);
+        $conditionStmt->execute($params);
         foreach ($conditionStmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
             $condition = (string) ($row['condicao'] ?? '');
             if (array_key_exists($condition, $conditionCounts)) {
@@ -394,6 +428,61 @@ class CourseEnrollmentService
         }
 
         return ['total' => $total, 'por_status' => $items, 'por_condicao' => $conditions];
+    }
+
+    /** Opções enxutas para filtrar a listagem antes de consultar as inscrições. */
+    public function enrollmentManagementFilters(int $seasonId = 0, string $groupBy = '', int $groupId = 0): array
+    {
+        $pdo = Database::connection();
+        $seasons = $pdo->query("SELECT DISTINCT te.id, te.nome, te.data_inicio
+            FROM temporadas te
+            INNER JOIN turmas t ON t.temporada_id = te.id
+            INNER JOIN inscricoes_turma i ON i.turma_id = t.id
+            ORDER BY te.data_inicio DESC, te.id DESC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $groups = [];
+        if ($seasonId > 0 && in_array($groupBy, ['local', 'modalidade'], true)) {
+            if ($groupBy === 'local') {
+                $stmt = $pdo->prepare("SELECT DISTINCT l.id, COALESCE(l.apelido_local, l.nome_local) AS nome
+                    FROM locais_treino l
+                    INNER JOIN turmas t ON t.local_treino_id = l.id
+                    INNER JOIN inscricoes_turma i ON i.turma_id = t.id
+                    WHERE t.temporada_id = :season_id
+                    ORDER BY nome, l.id");
+            } else {
+                $stmt = $pdo->prepare("SELECT DISTINCT m.id, m.nome
+                    FROM modalidades m
+                    INNER JOIN turmas t ON t.modalidade_id = m.id
+                    INNER JOIN inscricoes_turma i ON i.turma_id = t.id
+                    WHERE t.temporada_id = :season_id
+                    ORDER BY m.nome, m.id");
+            }
+            $stmt->execute([':season_id' => $seasonId]);
+            $groups = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        }
+
+        $secondaryGroups = [];
+        if ($seasonId > 0 && $groupId > 0 && in_array($groupBy, ['local', 'modalidade'], true)) {
+            if ($groupBy === 'local') {
+                $stmt = $pdo->prepare("SELECT DISTINCT m.id, m.nome
+                    FROM modalidades m
+                    INNER JOIN turmas t ON t.modalidade_id = m.id
+                    INNER JOIN inscricoes_turma i ON i.turma_id = t.id
+                    WHERE t.temporada_id = :season_id AND t.local_treino_id = :group_id
+                    ORDER BY m.nome, m.id");
+            } else {
+                $stmt = $pdo->prepare("SELECT DISTINCT l.id, COALESCE(l.apelido_local, l.nome_local) AS nome
+                    FROM locais_treino l
+                    INNER JOIN turmas t ON t.local_treino_id = l.id
+                    INNER JOIN inscricoes_turma i ON i.turma_id = t.id
+                    WHERE t.temporada_id = :season_id AND t.modalidade_id = :group_id
+                    ORDER BY nome, l.id");
+            }
+            $stmt->execute([':season_id' => $seasonId, ':group_id' => $groupId]);
+            $secondaryGroups = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        }
+
+        return ['temporadas' => $seasons, 'grupos' => $groups, 'grupos_secundarios' => $secondaryGroups];
     }
 
     public function listSeasonsForManagement(): array
@@ -778,6 +867,9 @@ class CourseEnrollmentService
         $params[':niveis_aceitos'] = json_encode(normalize_modality_levels($data['niveis_aceitos'] ?? []), JSON_UNESCAPED_UNICODE);
         $currentProfessorId = $id > 0 ? $this->classProfessorId($pdo, $id) : 0;
         $params[':professor'] = $id > 0 ? ($currentProfessorId ?: null) : ($this->accountIsProfessor($pdo, $accountId) ? $accountId : null);
+        if ($id === 0 && !empty($data['copia_origem_tipo'])) {
+            (new ClassCopyService())->prepareSchema();
+        }
         if ($id > 0) {
             $params[':id'] = $id;
             $stmt = $pdo->prepare('UPDATE turmas SET temporada_id=:temporada, modalidade_id=:modalidade, cronograma_modalidade_id=:cronograma, local_treino_id=:local, espaco_treino_id=:espaco, nivel_modalidade_id=:nivel, niveis_aceitos_json=:niveis_aceitos, professor_conta_id=:professor, nome=:nome, programa=:programa, observacao=:observacao, excecoes_idade_json=:excecoes_idade, dias_semana=:dias_semana, hora_inicio=:hora_inicio, hora_fim=:hora_fim, idade_minima=:idade_minima, idade_maxima=:idade_maxima, criterio_faixa_etaria=:criterio_faixa_etaria, sexo=:sexo, vagas_totais=:vagas_totais, vagas_geral=:vagas_geral, vagas_pcd=:vagas_pcd, vagas_plm=:vagas_plm, vagas_pvs=:vagas_pvs, vagas_espera_geral=:espera_geral, vagas_espera_pcd=:espera_pcd, vagas_espera_plm=:espera_plm, vagas_espera_pvs=:espera_pvs, inscricoes_abertas=:inscricoes_abertas WHERE id=:id LIMIT 1');
@@ -792,6 +884,7 @@ class CourseEnrollmentService
                     ->execute([':turma_id' => $id, ':professor_id' => (int) $params[':professor']]);
             }
             AuditLogService::record('turma.criada', 'turmas', $id, ['conta_id' => $accountId]);
+            (new ClassCopyService())->recordCopy($id, (int) $data['temporada_id'], $data, $accountId);
         }
         $this->synchronizeCalculatedClassStatuses($pdo, $id);
         return ['id' => $id];

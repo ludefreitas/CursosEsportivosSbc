@@ -146,6 +146,22 @@
 .course-class-secondary-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 .course-enrollment-back { color: var(--accent-blue); font-weight: 700; margin: 4px 0 18px; text-decoration: underline; }
 .course-enrollment-management .is-disabled { cursor:not-allowed; opacity:.48; pointer-events:none; text-decoration:none; }
+.course-enrollment-browser { display:grid; gap:10px; padding:14px; margin-bottom:14px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.72); }
+.course-enrollment-browser-row { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.course-enrollment-browser-row > strong { min-width:92px; }
+.course-enrollment-browser-row .btn { min-height:36px; padding:7px 13px; }
+.course-enrollment-browser-row .btn.is-active { color:#fff; border-color:#16768a; background:#16768a; }
+.course-enrollment-browser-help { margin:2px 0 10px; }
+.course-enrollment-load-more { display:flex; flex-direction:column; align-items:center; gap:6px; padding:18px 0 4px; }
+.course-enrollment-load-more .btn { min-width:180px; }
+.class-copy-panel { display:grid; gap:10px; padding:12px; border:1px solid var(--line); border-radius:12px; background:#f7fbfc; }
+.class-copy-toggle { margin:0; }
+.class-copy-steps, .class-copy-step { display:grid; gap:8px; }
+.class-copy-options { display:flex; flex-wrap:wrap; gap:7px; }
+.class-copy-options .btn { min-height:34px; padding:6px 11px; }
+.class-copy-options .btn.is-active { color:#fff; border-color:#16768a; background:#16768a; }
+.is-copy-required-missing > span:first-child { color:#b32626; font-weight:800; }
+.is-copy-required-missing select, .is-copy-required-missing input { border-color:#c92828 !important; box-shadow:0 0 0 2px rgba(201,40,40,.12); }
 .class-attendance-modal-card { width: min(1050px, calc(100vw - 24px)); }
 .class-attendance-roster-modal { z-index: 10020; }
 #course-class-justification-modal,

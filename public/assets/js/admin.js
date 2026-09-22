@@ -707,9 +707,52 @@
                     status: String($panel.find('[data-course-enrollment-filter="status"]').val() || 'todos'),
                     condicao: String($panel.find('[data-course-enrollment-filter="condition"]').val() || 'todas'),
                     turma_id: String($panel.find('[data-course-enrollment-filter="class"]').val() || '0'),
-                    turma_nome: String($panel.find('[data-course-enrollment-filter="class-name"]').val() || '')
+                    turma_nome: String($panel.find('[data-course-enrollment-filter="class-name"]').val() || ''),
+                    agrupar_por: String($panel.find('[data-course-enrollment-filter="group-by"]').val() || ''),
+                    temporada_id: String($panel.find('[data-course-enrollment-filter="season"]').val() || '0'),
+                    grupo_id: String($panel.find('[data-course-enrollment-filter="group"]').val() || '0'),
+                    grupo_secundario_id: String($panel.find('[data-course-enrollment-filter="secondary-group"]').val() || '0'),
+                    pagina: String($panel.find('[data-course-enrollment-filter="page"]').val() || '1')
                 };
             }
+
+            $(document).on('click', '[data-course-enrollment-group-by]', function () {
+                activateSection('inscricoes', {
+                    agrupar_por: String($(this).attr('data-course-enrollment-group-by') || ''),
+                    temporada_id: '0', grupo_id: '0', grupo_secundario_id: '0', pagina: '1'
+                }, { suppressGlobalLoading: true });
+            });
+
+            $(document).on('click', '[data-course-enrollment-season]', function () {
+                const $panel = $(this).closest('[data-admin-section="inscricoes"]');
+                activateSection('inscricoes', {
+                    agrupar_por: String($panel.find('[data-course-enrollment-filter="group-by"]').val() || $panel.find('[data-course-enrollment-group-by].is-active').attr('data-course-enrollment-group-by') || ''),
+                    temporada_id: String($(this).attr('data-course-enrollment-season') || '0'),
+                    grupo_id: '0', grupo_secundario_id: '0', pagina: '1'
+                }, { suppressGlobalLoading: true });
+            });
+
+            $(document).on('click', '[data-course-enrollment-group]', function () {
+                const $panel = $(this).closest('[data-admin-section="inscricoes"]');
+                activateSection('inscricoes', {
+                    agrupar_por: String($panel.find('[data-course-enrollment-group-by].is-active').attr('data-course-enrollment-group-by') || ''),
+                    temporada_id: String($panel.find('[data-course-enrollment-season].is-active').attr('data-course-enrollment-season') || '0'),
+                    grupo_id: String($(this).attr('data-course-enrollment-group') || '0'),
+                    grupo_secundario_id: '0',
+                    pagina: '1'
+                }, { suppressGlobalLoading: true });
+            });
+
+            $(document).on('click', '[data-course-enrollment-secondary-group]', function () {
+                const $panel = $(this).closest('[data-admin-section="inscricoes"]');
+                activateSection('inscricoes', {
+                    agrupar_por: String($panel.find('[data-course-enrollment-group-by].is-active').attr('data-course-enrollment-group-by') || ''),
+                    temporada_id: String($panel.find('[data-course-enrollment-season].is-active').attr('data-course-enrollment-season') || '0'),
+                    grupo_id: String($panel.find('[data-course-enrollment-group].is-active').attr('data-course-enrollment-group') || '0'),
+                    grupo_secundario_id: String($(this).attr('data-course-enrollment-secondary-group') || '0'),
+                    pagina: '1'
+                }, { suppressGlobalLoading: true });
+            });
 
             $(document).on('click', '[data-course-class-enrollments]', function () {
                 App.state.courseEnrollmentReturn = {
@@ -743,7 +786,9 @@
 
             $(document).on('change', '[data-course-enrollment-sort]', function () {
                 const $panel = $(this).closest('[data-admin-section="inscricoes"]');
-                activateSection('inscricoes', currentCourseEnrollmentFilters($panel), { suppressGlobalLoading: true });
+                const filters = currentCourseEnrollmentFilters($panel);
+                filters.pagina = '1';
+                activateSection('inscricoes', filters, { suppressGlobalLoading: true });
             });
 
             $(document).on('click', '[data-course-enrollment-filter-all], [data-course-enrollment-filter-status], [data-course-enrollment-filter-condition]', function () {
@@ -760,14 +805,44 @@
                     const selected = String($button.attr('data-course-enrollment-filter-condition') || 'todas');
                     filters.condicao = filters.condicao === selected ? 'todas' : selected;
                 }
-                activateSection('inscricoes', {
-                    ordenar_por: filters.ordenar_por,
-                    direcao: filters.direcao,
-                    status: filters.status,
-                    condicao: filters.condicao,
-                    turma_id: filters.turma_id,
-                    turma_nome: filters.turma_nome
-                }, { suppressGlobalLoading: true });
+                filters.pagina = '1';
+                activateSection('inscricoes', filters, { suppressGlobalLoading: true });
+            });
+
+            $(document).on('click', '[data-course-enrollment-show-more]', function () {
+                const $button = $(this);
+                const $panel = $button.closest('[data-admin-section="inscricoes"]');
+                const filters = currentCourseEnrollmentFilters($panel);
+                filters.pagina = String($button.attr('data-course-enrollment-show-more') || '2');
+                $button.prop('disabled', true).text('Carregando...');
+
+                $.ajax({
+                    url: sectionsUrl,
+                    method: 'GET',
+                    dataType: 'json',
+                    data: Object.assign({ nome: 'inscricoes' }, filters),
+                    suppressGlobalLoading: true
+                }).done(function (response) {
+                    if (!response || response.success === false || !response.html) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar mais inscrições.'));
+                        return;
+                    }
+                    const $response = $('<div>').html(String(response.html));
+                    $panel.find('.course-enrollment-list').append($response.find('.course-enrollment-list').children());
+                    $panel.find('[data-course-enrollment-filter="page"]').val(filters.pagina);
+                    const $next = $response.find('[data-course-enrollment-show-more]').first();
+                    if ($next.length) {
+                        $button.attr('data-course-enrollment-show-more', String($next.attr('data-course-enrollment-show-more') || '')).prop('disabled', false).text('Mostrar mais...');
+                    } else {
+                        $button.remove();
+                    }
+                }).fail(function (xhr) {
+                    const erro = App.core.extrairMensagemErroAjax(xhr);
+                    App.core.abrirPopup('erro', erro.mensagem);
+                }).always(function () {
+                    if ($button.closest('html').length && !$button.prop('disabled')) return;
+                    $button.prop('disabled', false).text('Mostrar mais...');
+                });
             });
 
             $(document).on('submit', '#admin-agenda-filter-form', function (event) {
@@ -1732,6 +1807,7 @@
             let peopleFilterTimer = null;
             let peopleFilterRequest = null;
             let peopleFilterSequence = 0;
+            let peopleSearchCompositionActive = false;
 
             function refreshPeoplePanel($form, options) {
                 const settings = Object.assign({
@@ -1743,10 +1819,6 @@
                 const usersLimit = String($usersForm.find('input[name="users_limit"]').val() || '').trim();
                 const peopleSearch = String($peopleForm.find('input[name="people_search"]').val() || '');
                 const usersSearch = String($usersForm.find('input[name="users_search"]').val() || '');
-                const $searchField = $form.find('.admin-people-search-input').first();
-                const selectionStart = settings.preserveSearchFocus ? Number($searchField[0] && $searchField[0].selectionStart) : null;
-                const selectionEnd = settings.preserveSearchFocus ? Number($searchField[0] && $searchField[0].selectionEnd) : null;
-                const focusFormId = settings.preserveSearchFocus ? String($form.attr('id') || '') : '';
                 const requestSequence = ++peopleFilterSequence;
 
                 if (peopleFilterRequest) {
@@ -1775,34 +1847,25 @@
                             return;
                         }
 
-                        $('#admin-people-panel-shell').replaceWith(String(response.html));
-
                         if (settings.preserveSearchFocus) {
-                            window.requestAnimationFrame(function () {
-                                let $searchInput = $();
+                            const $response = $('<div>').html(String(response.html));
+                            const $currentPeopleBody = $('#admin-people-panel .data-table tbody');
+                            const $currentUsersBody = $('#admin-users-panel .data-table tbody');
+                            const $newPeopleBody = $response.find('#admin-people-panel .data-table tbody');
+                            const $newUsersBody = $response.find('#admin-users-panel .data-table tbody');
 
-                                if (focusFormId !== '') {
-                                    $searchInput = $('#' + focusFormId).find('.admin-people-search-input').first();
-                                }
-
-                                if ($searchInput.length === 0) {
-                                    $searchInput = $('.admin-people-search-input').first();
-                                }
-
-                                if ($searchInput.length === 0) {
-                                    return;
-                                }
-
-                                $searchInput.trigger('focus');
-
-                                if ($searchInput[0] && typeof $searchInput[0].setSelectionRange === 'function') {
-                                    const currentSearch = focusFormId === 'admin-users-filter-form' ? usersSearch : peopleSearch;
-                                    const start = Number.isFinite(selectionStart) ? selectionStart : currentSearch.length;
-                                    const end = Number.isFinite(selectionEnd) ? selectionEnd : currentSearch.length;
-                                    $searchInput[0].setSelectionRange(start, end);
-                                }
-                            });
+                            if ($currentPeopleBody.length && $newPeopleBody.length) {
+                                $currentPeopleBody.replaceWith($newPeopleBody);
+                            }
+                            if ($currentUsersBody.length && $newUsersBody.length) {
+                                $currentUsersBody.replaceWith($newUsersBody);
+                            }
+                        } else {
+                            $('#admin-people-panel-shell').replaceWith(String(response.html));
                         }
+
+                        // Durante a digitação os formulários não são substituídos.
+                        // Assim, o teclado, o foco e o cursor permanecem estáveis no celular.
                     })
                     .fail(function (xhr, status) {
                         if (status !== 'abort') {
@@ -1826,7 +1889,7 @@
             $(document).on('input', '.admin-people-search-input', function () {
                 const $form = $(this).closest('form');
 
-                if ($form.length === 0) {
+                if ($form.length === 0 || peopleSearchCompositionActive) {
                     return;
                 }
 
@@ -1838,7 +1901,17 @@
                     refreshPeoplePanel($form, {
                         preserveSearchFocus: true
                     });
-                }, 250);
+                }, 600);
+            });
+
+            $(document).on('compositionstart', '.admin-people-search-input', function () {
+                peopleSearchCompositionActive = true;
+                if (peopleFilterTimer) window.clearTimeout(peopleFilterTimer);
+            });
+
+            $(document).on('compositionend', '.admin-people-search-input', function () {
+                peopleSearchCompositionActive = false;
+                $(this).trigger('input');
             });
 
             $(document).on('change', '[data-admin-people-filter="1"] input[name="people_limit"], [data-admin-people-filter="1"] input[name="users_limit"]', function () {
@@ -5676,6 +5749,127 @@
                 $form.find('[name="modalidade_id"]').closest('label').after($label, $catalog);
             }
 
+            function ensureClassCopyFields($form) {
+                if ($form.find('[data-class-copy]').length || String($form.attr('action') || '').indexOf('/professor/') === -1) return;
+                const $copy = $('<section>', { class: 'class-copy-panel', 'data-class-copy': '1' });
+                const $steps = $('<div>', { class: 'class-copy-steps hidden', 'data-class-copy-steps': '1' })
+                    .append($('<p>', { class: 'muted', text: 'Selecione a temporada de origem.' }))
+                    .append($('<div>', { class: 'class-copy-options', 'data-class-copy-options': 'seasons' }))
+                    .append($('<div>', { class: 'class-copy-step hidden', 'data-class-copy-step': 'modalities' }).append($('<strong>', { text: 'Modalidade' }), $('<div>', { class: 'class-copy-options' })))
+                    .append($('<div>', { class: 'class-copy-step hidden', 'data-class-copy-step': 'classes' }).append($('<strong>', { text: 'Turma' }), $('<div>', { class: 'class-copy-options' })))
+                    .append($('<div>', { class: 'form-notice hidden', 'data-class-copy-notice': '1' }));
+                $copy.append(
+                    $('<label>', { class: 'checkbox-chip class-copy-toggle' }).append($('<input>', { type: 'checkbox', 'data-class-copy-toggle': '1' }), $('<span>', { text: 'Deseja copiar uma turma de outra temporada?' })),
+                    $steps,
+                    $('<input>', { type: 'hidden', name: 'copia_origem_tipo' }),
+                    $('<input>', { type: 'hidden', name: 'copia_origem_temporada_id' }),
+                    $('<input>', { type: 'hidden', name: 'copia_origem_turma_id' })
+                );
+                $form.find('[name="temporada_id"]').closest('label').after($copy);
+            }
+
+            function classCopyRequest($form, data, done) {
+                $.ajax({
+                    url: App.core.buildUrl('/professor/minhas-turmas/copiar'), method: 'GET', dataType: 'json', data: data,
+                    suppressGlobalLoading: true, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function (response) {
+                    if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível consultar as turmas para cópia.')); return; }
+                    done(response);
+                }).fail(function (xhr) {
+                    if (App.auth && App.auth.tratarFalhaDeAcesso(xhr, function () { classCopyRequest($form, data, done); }, '/professor')) return;
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                });
+            }
+
+            function renderClassCopyOptions($container, items, attribute, formatter) {
+                $container.empty();
+                (items || []).forEach(function (item) {
+                    const text = formatter ? formatter(item) : String(item.nome || '');
+                    $container.append($('<button>', { type: 'button', class: 'btn btn-secondary', text: text }).attr(attribute, String(item.id || '')));
+                });
+                if (!$container.children().length) $container.append($('<span>', { class: 'muted', text: 'Nenhuma opção encontrada.' }));
+            }
+
+            function resetClassCopy($form, editing) {
+                const $copy = $form.find('[data-class-copy]');
+                $copy.toggleClass('hidden', !!editing).removeAttr('data-source-season');
+                $copy.find('[data-class-copy-toggle]').prop('checked', false);
+                $copy.find('[data-class-copy-steps], [data-class-copy-step], [data-class-copy-notice]').addClass('hidden');
+                $copy.find('[data-class-copy-options], [data-class-copy-step] .class-copy-options').empty();
+                $form.find('[name^="copia_origem_"]').val('');
+                $form.find('.is-copy-required-missing').removeClass('is-copy-required-missing');
+            }
+
+            $(document).on('change', '[data-class-copy-toggle]', function () {
+                const $form = $(this).closest('form'); const $copy = $(this).closest('[data-class-copy]');
+                if (!$(this).is(':checked')) { resetClassCopy($form, false); return; }
+                if (!String($form.find('[name="temporada_id"]').val() || '')) {
+                    $(this).prop('checked', false);
+                    App.core.abrirPopup('informacao', 'Selecione primeiro a temporada de destino da nova turma.');
+                    return;
+                }
+                $copy.find('[data-class-copy-steps]').removeClass('hidden');
+                classCopyRequest($form, { etapa: 'temporadas' }, function (response) {
+                    renderClassCopyOptions($copy.find('[data-class-copy-options="seasons"]'), response.items, 'data-class-copy-season');
+                });
+            });
+
+            $(document).on('click', '[data-class-copy-season]', function () {
+                const $button = $(this); const $form = $button.closest('form'); const $copy = $button.closest('[data-class-copy]');
+                $button.addClass('is-active').siblings().removeClass('is-active');
+                $copy.attr('data-source-season', String($button.attr('data-class-copy-season') || ''));
+                $copy.find('[data-class-copy-step="classes"], [data-class-copy-notice]').addClass('hidden');
+                const $step = $copy.find('[data-class-copy-step="modalities"]').removeClass('hidden');
+                classCopyRequest($form, { etapa: 'modalidades', temporada_origem: $copy.attr('data-source-season') }, function (response) {
+                    renderClassCopyOptions($step.find('.class-copy-options'), response.items, 'data-class-copy-modality');
+                });
+            });
+
+            $(document).on('click', '[data-class-copy-modality]', function () {
+                const $button = $(this); const $form = $button.closest('form'); const $copy = $button.closest('[data-class-copy]');
+                $button.addClass('is-active').siblings().removeClass('is-active');
+                $copy.find('[data-class-copy-notice]').addClass('hidden');
+                const $step = $copy.find('[data-class-copy-step="classes"]').removeClass('hidden');
+                classCopyRequest($form, { etapa: 'turmas', temporada_origem: $copy.attr('data-source-season'), modalidade_origem_id: $button.attr('data-class-copy-modality') }, function (response) {
+                    renderClassCopyOptions($step.find('.class-copy-options'), response.items, 'data-class-copy-class', function (item) { return '[' + String(item.id || '') + '] ' + String(item.nome || ''); });
+                });
+            });
+
+            $(document).on('click', '[data-class-copy-class]', function () {
+                const $button = $(this); const $form = $button.closest('form'); const $copy = $button.closest('[data-class-copy]');
+                $button.addClass('is-active').siblings().removeClass('is-active');
+                classCopyRequest($form, {
+                    etapa: 'detalhe', temporada_origem: $copy.attr('data-source-season'), turma_origem_id: $button.attr('data-class-copy-class'),
+                    temporada_destino_id: $form.find('[name="temporada_id"]').val()
+                }, function (response) {
+                    const record = response.record || {};
+                    fillForm($form, record);
+                    $form.find('[name="id"]').val('');
+                    $form.find('[name="operacao"]').val('criar');
+                    $form.find('[data-class-copy-toggle]').prop('checked', true);
+                    $copy.removeClass('hidden').find('[data-class-copy-steps]').removeClass('hidden');
+                    filterClassSchedules($form, record.cronograma_modalidade_id || '');
+                    $form.find('[name="niveis_aceitos[]"]').each(function () { $(this).prop('checked', (record.niveis_aceitos || []).map(String).indexOf(String($(this).val())) !== -1); });
+                    const ageExceptions = record.excecoes_idade && typeof record.excecoes_idade === 'object' ? record.excecoes_idade : {};
+                    ['pcd', 'plm', 'pvs'].forEach(function (condition) {
+                        const range = ageExceptions[condition] || null;
+                        $form.find('[name="excecoes_idade[' + condition + '][enabled]"]').prop('checked', !!range);
+                        if (range) {
+                            $form.find('[name="excecoes_idade[' + condition + '][min]"]').val(String(range.min));
+                            $form.find('[name="excecoes_idade[' + condition + '][max]"]').val(String(range.max));
+                        }
+                    });
+                    updateClassAgeExceptionFields($form);
+                    $form.find('.is-copy-required-missing').removeClass('is-copy-required-missing');
+                    const missing = record.campos_obrigatorios_pendentes || [];
+                    missing.forEach(function (item) { $form.find('[name="' + String(item.campo || '') + '"]').closest('label').addClass('is-copy-required-missing'); });
+                    const notices = [];
+                    if ((response.previous_copies || []).length) notices.push('Atenção: esta turma já foi copiada para ' + response.previous_copies.map(function (item) { return 'a turma [' + String(item.turma_id) + '] da temporada ' + String(item.temporada_nome || ''); }).join('; ') + '. Você ainda pode criar outra cópia.');
+                    if (missing.length) notices.push('Preencha os campos obrigatórios destacados: ' + missing.map(function (item) { return String(item.rotulo || ''); }).join(', ') + '.');
+                    $copy.find('[data-class-copy-notice]').toggleClass('hidden', notices.length === 0).text(notices.join(' '));
+                });
+            });
+
             function ensureClassLevelFields($form) {
                 if ($form.find('[name="niveis_aceitos[]"]').length) return;
                 const levels = { iniciante: 'Iniciante', intermediario: 'Intermediário', avancado: 'Avançado', treinamento: 'Treinamento' };
@@ -5987,7 +6181,7 @@
                 if ($form.find('[name="operacao"]').length === 0) {
                     $form.append($('<input>', { type: 'hidden', name: 'operacao' }));
                 }
-                if (type === 'class') { ensureClassProgramField($form); ensureClassAgeCriterionField($form); ensureClassAgeExceptionFields($form); ensureClassScheduleField($form); ensureClassLevelFields($form); ensureClassOpenEnrollmentField($form); ensureClassFieldHelp($form); }
+                if (type === 'class') { ensureClassCopyFields($form); ensureClassProgramField($form); ensureClassAgeCriterionField($form); ensureClassAgeExceptionFields($form); ensureClassScheduleField($form); ensureClassLevelFields($form); ensureClassOpenEnrollmentField($form); ensureClassFieldHelp($form); }
                 if (type === 'season') { ensureSeasonNoticeFields($form); ensureSeasonWeeklyCoverageField($form); ensureSeasonFieldHelp($form); }
                 fillForm($form, record || {});
                 if (type === 'class') {
@@ -6006,6 +6200,7 @@
                 }
                 if (type === 'class') filterClassSchedules($form, record && record.cronograma_modalidade_id);
                 $form.find('[name="operacao"]').val(record ? 'editar' : 'criar');
+                if (type === 'class') resetClassCopy($form, !!record);
                 if (!record && type === 'season') {
                     $form.find('[name="permitir_inscricao_logada"]').prop('checked', true);
                     $form.find('[name="limite_inscricoes_periodo"]').val('1');

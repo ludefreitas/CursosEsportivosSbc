@@ -135,6 +135,29 @@ class ProfessorController extends Controller
         }
     }
 
+    public function classCopyOptions(): void
+    {
+        $this->assertProfessorAccess();
+        try {
+            $service = new \App\Services\ClassCopyService();
+            $stage = trim((string) ($_GET['etapa'] ?? 'temporadas'));
+            if ($stage === 'temporadas') {
+                $payload = ['items' => $service->sourceSeasons()];
+            } elseif ($stage === 'modalidades') {
+                $payload = ['items' => $service->sourceModalities(trim((string) ($_GET['temporada_origem'] ?? '')))];
+            } elseif ($stage === 'turmas') {
+                $payload = ['items' => $service->sourceClasses(trim((string) ($_GET['temporada_origem'] ?? '')), (int) ($_GET['modalidade_origem_id'] ?? 0))];
+            } elseif ($stage === 'detalhe') {
+                $payload = $service->copyData(trim((string) ($_GET['temporada_origem'] ?? '')), (int) ($_GET['turma_origem_id'] ?? 0), (int) ($_GET['temporada_destino_id'] ?? 0));
+            } else {
+                throw new \RuntimeException('Etapa de cópia de turma inválida.');
+            }
+            $this->jsonResponse(array_merge(['success' => true], $payload));
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
     public function saveAssignedClass(): void
     {
         $user = $this->assertProfessorAccess();
@@ -395,9 +418,15 @@ class ProfessorController extends Controller
             $courseEnrollmentConditionFilter = trim((string) ($_POST['condicao_filtro'] ?? 'todas'));
             $courseEnrollmentClassId = max(0, (int) ($_POST['turma_id'] ?? 0));
             $courseEnrollmentClassName = trim((string) ($_POST['turma_nome'] ?? ''));
-            $courseEnrollmentsManagement = $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId, $professorAccountId);
+            $courseEnrollmentGroupBy = in_array(($_POST['agrupar_por'] ?? ''), ['local', 'modalidade'], true) ? (string) $_POST['agrupar_por'] : '';
+            $courseEnrollmentSeasonId = max(0, (int) ($_POST['temporada_id'] ?? 0));
+            $courseEnrollmentGroupId = max(0, (int) ($_POST['grupo_id'] ?? 0));
+            $courseEnrollmentSecondaryGroupId = max(0, (int) ($_POST['grupo_secundario_id'] ?? 0));
+            $courseEnrollmentPage = max(1, (int) ($_POST['pagina'] ?? 1));
+            $courseEnrollmentFilterOptions = $courseEnrollmentService->enrollmentManagementFilters($courseEnrollmentSeasonId, $courseEnrollmentGroupBy, $courseEnrollmentGroupId);
+            $courseEnrollmentsManagement = $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId, $professorAccountId, $courseEnrollmentSeasonId, $courseEnrollmentGroupBy, $courseEnrollmentGroupId, $courseEnrollmentSecondaryGroupId, $courseEnrollmentPage);
             $courseEnrollmentsByPerson = $courseEnrollmentService->professorEnrollmentSummariesByPerson(array_column($courseEnrollmentsManagement, 'pessoa_id'), $professorAccountId);
-            $courseEnrollmentStatusSummary = $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId);
+            $courseEnrollmentStatusSummary = $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId, $courseEnrollmentSeasonId, $courseEnrollmentGroupBy, $courseEnrollmentGroupId, $courseEnrollmentSecondaryGroupId);
             $professorView = true;
             ob_start();
             require ROOT_PATH . '/app/Views/admin/partials/course_enrollment_panel.php';
@@ -518,7 +547,13 @@ class ProfessorController extends Controller
             $courseEnrollmentConditionFilter = trim((string) ($_GET['condicao'] ?? 'todas'));
             $courseEnrollmentClassId = max(0, (int) ($_GET['turma_id'] ?? 0));
             $courseEnrollmentClassName = trim((string) ($_GET['turma_nome'] ?? ''));
-            $courseEnrollmentsManagement = $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId, (int) ($user['conta_id'] ?? 0));
+            $courseEnrollmentGroupBy = in_array(($_GET['agrupar_por'] ?? ''), ['local', 'modalidade'], true) ? (string) $_GET['agrupar_por'] : '';
+            $courseEnrollmentSeasonId = max(0, (int) ($_GET['temporada_id'] ?? 0));
+            $courseEnrollmentGroupId = max(0, (int) ($_GET['grupo_id'] ?? 0));
+            $courseEnrollmentSecondaryGroupId = max(0, (int) ($_GET['grupo_secundario_id'] ?? 0));
+            $courseEnrollmentPage = max(1, (int) ($_GET['pagina'] ?? 1));
+            $courseEnrollmentFilterOptions = $courseEnrollmentService->enrollmentManagementFilters($courseEnrollmentSeasonId, $courseEnrollmentGroupBy, $courseEnrollmentGroupId);
+            $courseEnrollmentsManagement = $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId, (int) ($user['conta_id'] ?? 0), $courseEnrollmentSeasonId, $courseEnrollmentGroupBy, $courseEnrollmentGroupId, $courseEnrollmentSecondaryGroupId, $courseEnrollmentPage);
             return [
                 'sectionName' => $sectionName,
                 'professorView' => true,
@@ -528,9 +563,15 @@ class ProfessorController extends Controller
                 'courseEnrollmentConditionFilter' => $courseEnrollmentConditionFilter,
                 'courseEnrollmentClassId' => $courseEnrollmentClassId,
                 'courseEnrollmentClassName' => $courseEnrollmentClassName,
+                'courseEnrollmentGroupBy' => $courseEnrollmentGroupBy,
+                'courseEnrollmentSeasonId' => $courseEnrollmentSeasonId,
+                'courseEnrollmentGroupId' => $courseEnrollmentGroupId,
+                'courseEnrollmentSecondaryGroupId' => $courseEnrollmentSecondaryGroupId,
+                'courseEnrollmentPage' => $courseEnrollmentPage,
+                'courseEnrollmentFilterOptions' => $courseEnrollmentFilterOptions,
                 'courseEnrollmentsManagement' => $courseEnrollmentsManagement,
                 'courseEnrollmentsByPerson' => $courseEnrollmentService->professorEnrollmentSummariesByPerson(array_column($courseEnrollmentsManagement, 'pessoa_id'), (int) ($user['conta_id'] ?? 0)),
-                'courseEnrollmentStatusSummary' => $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId),
+                'courseEnrollmentStatusSummary' => $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId, $courseEnrollmentSeasonId, $courseEnrollmentGroupBy, $courseEnrollmentGroupId, $courseEnrollmentSecondaryGroupId),
             ];
         }
         if ($sectionName === 'minhas-turmas') {
