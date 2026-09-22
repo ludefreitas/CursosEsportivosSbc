@@ -2688,10 +2688,43 @@ class AdminController extends Controller
             if (($_POST['operacao'] ?? '') === 'editar' && (int) ($_POST['id'] ?? 0) <= 0) {
                 throw new \RuntimeException('Não foi possível identificar a turma que será editada.');
             }
-            (new CourseEnrollmentService())->createClass((int) $user['conta_id'], $_POST);
+            $classData = $_POST;
+            $classData['_atribuir_criador_como_professor'] = 1;
+            (new CourseEnrollmentService())->createClass((int) $user['conta_id'], $classData);
             $view = ($_POST['course_management_view'] ?? '') === 'turmas-locais' ? 'turmas-locais' : 'turmas';
             $this->jsonResponse(['success' => true, 'message' => !empty($_POST['id']) ? 'Turma atualizada com sucesso.' : 'Turma criada com sucesso.', 'html' => $this->renderCourseManagementPanelHtml($view)]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function classCopyOptions(): void
+    {
+        $this->assertAdminAccess();
+        try {
+            $service = new \App\Services\ClassCopyService();
+            $stage = trim((string) ($_GET['etapa'] ?? 'temporadas'));
+            if ($stage === 'temporadas') {
+                $payload = ['items' => $service->sourceSeasons()];
+            } elseif ($stage === 'turmas') {
+                $payload = ['items' => $service->sourceClassesForDestinationFilters(
+                    trim((string) ($_GET['temporada_origem'] ?? '')),
+                    (int) ($_GET['modalidade_destino_id'] ?? 0),
+                    (int) ($_GET['local_destino_id'] ?? 0)
+                )];
+            } elseif ($stage === 'detalhe') {
+                $payload = $service->copyData(
+                    trim((string) ($_GET['temporada_origem'] ?? '')),
+                    (int) ($_GET['turma_origem_id'] ?? 0),
+                    (int) ($_GET['temporada_destino_id'] ?? 0),
+                    (int) ($_GET['modalidade_destino_id'] ?? 0),
+                    (int) ($_GET['local_destino_id'] ?? 0)
+                );
+            } else {
+                throw new \RuntimeException('Etapa de cópia de turma inválida.');
+            }
+            $this->jsonResponse(array_merge(['success' => true], $payload));
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 
     public function deactivateCourseRecord(): void

@@ -63,9 +63,10 @@ class ClassCopyService
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function sourceClassesForDestinationModality(string $sourceSeason, int $destinationModalityId): array
+    public function sourceClassesForDestinationFilters(string $sourceSeason, int $destinationModalityId, int $destinationLocationId): array
     {
         if ($destinationModalityId <= 0) throw new RuntimeException('Selecione primeiro a modalidade da nova turma.');
+        if ($destinationLocationId <= 0) throw new RuntimeException('Selecione primeiro o local da nova turma.');
         $stmt = Database::connection()->prepare('SELECT nome FROM modalidades WHERE id = :id LIMIT 1');
         $stmt->execute([':id' => $destinationModalityId]);
         $destinationName = trim((string) $stmt->fetchColumn());
@@ -73,13 +74,35 @@ class ClassCopyService
 
         foreach ($this->sourceModalities($sourceSeason) as $sourceModality) {
             if ($this->normalize((string) ($sourceModality['nome'] ?? '')) === $this->normalize($destinationName)) {
-                return $this->sourceClasses($sourceSeason, (int) ($sourceModality['id'] ?? 0));
+                [$source, $seasonId] = $this->parseSourceSeason($sourceSeason);
+                $sourceModalityId = (int) ($sourceModality['id'] ?? 0);
+                if ($source === 'current') {
+                    $classes = Database::connection()->prepare('SELECT id, nome FROM turmas
+                        WHERE temporada_id = :season_id AND modalidade_id = :modality_id AND local_treino_id = :location_id
+                        ORDER BY id, nome');
+                    $classes->execute([':season_id' => $seasonId, ':modality_id' => $sourceModalityId, ':location_id' => $destinationLocationId]);
+                    return $classes->fetchAll(PDO::FETCH_ASSOC) ?: [];
+                }
+
+                $classes = $this->legacy()->prepare('SELECT t.idturma AS id, t.descturma AS nome,
+                        l.idlocal AS legacy_location_id, l.apelidolocal, l.nomelocal
+                    FROM tb_turmatemporada tt
+                    INNER JOIN tb_turma t ON t.idturma = tt.idturma
+                    LEFT JOIN tb_espaco e ON e.idespaco = t.idespaco
+                    LEFT JOIN tb_local l ON l.idlocal = e.idlocal
+                    WHERE tt.idtemporada = :season_id AND t.idmodal = :modality_id
+                    ORDER BY t.idturma, t.descturma');
+                $classes->execute([':season_id' => $seasonId, ':modality_id' => $sourceModalityId]);
+                $pdo = Database::connection();
+                return array_values(array_filter($classes->fetchAll(PDO::FETCH_ASSOC) ?: [], function (array $class) use ($pdo, $destinationLocationId): bool {
+                    return $this->mappedLocation($pdo, (int) ($class['legacy_location_id'] ?? 0), (string) ($class['apelidolocal'] ?? ''), (string) ($class['nomelocal'] ?? '')) === $destinationLocationId;
+                }));
             }
         }
         return [];
     }
 
-    public function copyData(string $sourceSeason, int $sourceClassId, int $destinationSeasonId, int $destinationModalityId = 0): array
+    public function copyData(string $sourceSeason, int $sourceClassId, int $destinationSeasonId, int $destinationModalityId = 0, int $destinationLocationId = 0): array
     {
         if ($sourceClassId <= 0 || $destinationSeasonId <= 0) {
             throw new RuntimeException('Selecione a temporada de destino e a turma de origem.');
@@ -90,6 +113,9 @@ class ClassCopyService
             : $this->currentClass($sourceSeasonId, $sourceClassId, $destinationSeasonId);
         if ($destinationModalityId <= 0 || (int) ($record['modalidade_id'] ?? 0) !== $destinationModalityId) {
             throw new RuntimeException('A turma de origem não pertence à modalidade selecionada.');
+        }
+        if ($destinationLocationId <= 0 || (int) ($record['local_treino_id'] ?? 0) !== $destinationLocationId) {
+            throw new RuntimeException('A turma de origem não pertence ao local selecionado.');
         }
         $warnings = $this->previousCopies($source, $sourceSeasonId, $sourceClassId);
         return ['record' => $record, 'previous_copies' => $warnings];

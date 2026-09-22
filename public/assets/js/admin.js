@@ -5750,7 +5750,7 @@
             }
 
             function ensureClassCopyFields($form) {
-                if ($form.find('[data-class-copy]').length || String($form.attr('action') || '').indexOf('/professor/') === -1) return;
+                if ($form.find('[data-class-copy]').length) return;
                 const $copy = $('<section>', { class: 'class-copy-panel', 'data-class-copy': '1' });
                 const $steps = $('<div>', { class: 'class-copy-steps hidden', 'data-class-copy-steps': '1' })
                     .append($('<p>', { class: 'muted', text: 'Selecione a temporada de origem.' }))
@@ -5764,12 +5764,15 @@
                     $('<input>', { type: 'hidden', name: 'copia_origem_temporada_id' }),
                     $('<input>', { type: 'hidden', name: 'copia_origem_turma_id' })
                 );
-                $form.find('[name="modalidade_id"]').closest('label').after($copy);
+                const $locationField = $form.find('[name="local_treino_id"]').closest('label');
+                const $locationRow = $locationField.closest('.grid-two');
+                ($locationRow.length ? $locationRow : $locationField).after($copy);
             }
 
             function classCopyRequest($form, data, done) {
+                const adminForm = String($form.attr('action') || '').indexOf('/admin/') !== -1;
                 $.ajax({
-                    url: App.core.buildUrl('/professor/minhas-turmas/copiar'), method: 'GET', dataType: 'json', data: data,
+                    url: App.core.buildUrl(adminForm ? '/admin/turmas/copiar' : '/professor/minhas-turmas/copiar'), method: 'GET', dataType: 'json', data: data,
                     suppressGlobalLoading: true, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
                 }).done(function (response) {
                     if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível consultar as turmas para cópia.')); return; }
@@ -5812,6 +5815,11 @@
                     App.core.abrirPopup('informacao', 'Selecione primeiro a modalidade da nova turma.');
                     return;
                 }
+                if (!String($form.find('[name="local_treino_id"]').val() || '')) {
+                    $(this).prop('checked', false);
+                    App.core.abrirPopup('informacao', 'Selecione primeiro o local da nova turma.');
+                    return;
+                }
                 $copy.find('[data-class-copy-steps]').removeClass('hidden');
                 classCopyRequest($form, { etapa: 'temporadas' }, function (response) {
                     renderClassCopyOptions($copy.find('[data-class-copy-options="seasons"]'), response.items, 'data-class-copy-season');
@@ -5824,7 +5832,7 @@
                 $copy.attr('data-source-season', String($button.attr('data-class-copy-season') || ''));
                 $copy.find('[data-class-copy-notice]').addClass('hidden');
                 const $step = $copy.find('[data-class-copy-step="classes"]').removeClass('hidden');
-                classCopyRequest($form, { etapa: 'turmas', temporada_origem: $copy.attr('data-source-season'), modalidade_destino_id: $form.find('[name="modalidade_id"]').val() }, function (response) {
+                classCopyRequest($form, { etapa: 'turmas', temporada_origem: $copy.attr('data-source-season'), modalidade_destino_id: $form.find('[name="modalidade_id"]').val(), local_destino_id: $form.find('[name="local_treino_id"]').val() }, function (response) {
                     renderClassCopyOptions($step.find('.class-copy-options'), response.items, 'data-class-copy-class', function (item) { return '[' + String(item.id || '') + '] ' + String(item.nome || ''); });
                 });
             });
@@ -5834,7 +5842,7 @@
                 $button.addClass('is-active').siblings().removeClass('is-active');
                 classCopyRequest($form, {
                     etapa: 'detalhe', temporada_origem: $copy.attr('data-source-season'), turma_origem_id: $button.attr('data-class-copy-class'),
-                    temporada_destino_id: $form.find('[name="temporada_id"]').val(), modalidade_destino_id: $form.find('[name="modalidade_id"]').val()
+                    temporada_destino_id: $form.find('[name="temporada_id"]').val(), modalidade_destino_id: $form.find('[name="modalidade_id"]').val(), local_destino_id: $form.find('[name="local_treino_id"]').val()
                 }, function (response) {
                     const record = response.record || {};
                     fillForm($form, record);
@@ -6431,7 +6439,7 @@
                     App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
                 }).always(function () { $button.prop('disabled', false); });
             });
-            $(document).on('change', '[data-course-form="class"] [name="temporada_id"], [data-course-form="class"] [name="modalidade_id"]', function () {
+            $(document).on('change', '[data-course-form="class"] [name="temporada_id"], [data-course-form="class"] [name="modalidade_id"], [data-course-form="class"] [name="local_treino_id"]', function () {
                 const $form = $(this).closest('form');
                 filterClassSchedules($form, '');
                 if ($form.find('[data-class-copy-toggle]').is(':checked')) resetClassCopy($form, false);

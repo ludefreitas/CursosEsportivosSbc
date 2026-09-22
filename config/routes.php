@@ -121,6 +121,7 @@ return [
     ['POST', '/admin/origens-temporada/atualizar', [AdminController::class, 'updateSeasonOrigin']],
     ['POST', '/admin/origens-temporada/excluir', [AdminController::class, 'deleteSeasonOrigin']],
     ['POST', '/admin/turmas', [AdminController::class, 'storeCourseClass']],
+    ['GET', '/admin/turmas/copiar', [AdminController::class, 'classCopyOptions']],
     ['POST', '/admin/turmas/atribuir-professor', [AdminController::class, 'assignCourseProfessor']],
     ['POST', '/admin/turmas/excluir', [AdminController::class, 'deleteCourseClass']],
     ['GET', '/admin/turmas/filtro', [AdminController::class, 'filterCourseClasses']],

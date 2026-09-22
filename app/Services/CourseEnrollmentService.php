@@ -866,7 +866,10 @@ class CourseEnrollmentService
         $params[':inscricoes_abertas'] = !empty($data['inscricoes_abertas']) ? 1 : 0;
         $params[':niveis_aceitos'] = json_encode(normalize_modality_levels($data['niveis_aceitos'] ?? []), JSON_UNESCAPED_UNICODE);
         $currentProfessorId = $id > 0 ? $this->classProfessorId($pdo, $id) : 0;
-        $params[':professor'] = $id > 0 ? ($currentProfessorId ?: null) : ($this->accountIsProfessor($pdo, $accountId) ? $accountId : null);
+        $assignCreatorAsProfessor = !empty($data['_atribuir_criador_como_professor']);
+        $params[':professor'] = $id > 0
+            ? ($currentProfessorId ?: null)
+            : (($assignCreatorAsProfessor || $this->accountIsProfessor($pdo, $accountId)) ? $accountId : null);
         if ($id === 0 && !empty($data['copia_origem_tipo'])) {
             (new ClassCopyService())->prepareSchema();
         }
