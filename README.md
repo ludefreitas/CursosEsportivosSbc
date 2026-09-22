@@ -39,6 +39,15 @@ Primeira entrega funcional de um sistema web em PHP MVC para cadastro por CPF, r
 
 ## Observacao importante
 
+## Diagnóstico de requisições lentas e erro 524
+
+- Cada resposta da aplicação inclui o cabeçalho `X-Request-ID`.
+- Requisições que demorarem 2 segundos ou mais são registradas no `error_log` do PHP com o prefixo `[Desempenho]`.
+- O registro contém somente identificador, método, caminho sem parâmetros, status, duração, pico de memória, situação da conexão e horário em UTC.
+- CPF, senha, conteúdo de formulários e parâmetros da URL não são registrados.
+- O limite pode ser ajustado na hospedagem pela variável `PERFORMANCE_SLOW_REQUEST_SECONDS`. Exemplo: `5` registra somente requisições com 5 segundos ou mais.
+- Ao ocorrer um erro 524, anote a URL, o horário com fuso, o Cloudflare Ray ID e, quando disponível, o `X-Request-ID` observado antes do erro.
+
 ## Proteção contra robôs
 
 - O cadastro de nova conta sempre exige o clique em “Não sou robô”.

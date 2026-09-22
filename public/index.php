@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+$requestStartedAt = microtime(true);
+
 // Toda resposta textual da aplicação usa UTF-8 e português do Brasil.
 ini_set('default_charset', 'UTF-8');
 if (function_exists('mb_internal_encoding')) {
@@ -65,8 +67,15 @@ spl_autoload_register(function ($class) {
     }
 });
 
+\App\Core\RequestPerformanceMonitor::start(
+    $requestStartedAt,
+    (float) ($appConfig['performance_slow_request_seconds'] ?? 2.0)
+);
+
 set_exception_handler(function (\Throwable $e): void {
-    error_log('[CursosEsportivosSbc] ' . $e->getMessage() . ' em ' . $e->getFile() . ':' . $e->getLine());
+    $requestId = \App\Core\RequestPerformanceMonitor::requestId();
+    $requestContext = $requestId !== null ? ' [requisição ' . $requestId . ']' : '';
+    error_log('[CursosEsportivosSbc]' . $requestContext . ' ' . $e->getMessage() . ' em ' . $e->getFile() . ':' . $e->getLine());
     render_error_page(500);
 });
 

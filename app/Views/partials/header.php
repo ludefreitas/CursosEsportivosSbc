@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo e(($title ?? '') . ' | ' . app_config('name')); ?></title>
     <link rel="icon" type="image/png" href="<?php echo e(asset_url('img/favicon-cursos-esportivos-sbc.png')); ?>">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/core.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/auth.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/agenda.css')); ?>">
@@ -17,7 +16,7 @@
     <link rel="stylesheet" href="<?php echo e(asset_url('css/style.css')); ?>">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales-all.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales-all.global.min.js"></script>
 </head>
 <body
     class="<?php echo e($pageClass ?? ''); ?>"
