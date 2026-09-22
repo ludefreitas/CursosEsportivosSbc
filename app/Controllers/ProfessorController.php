@@ -146,9 +146,9 @@ class ProfessorController extends Controller
             } elseif ($stage === 'modalidades') {
                 $payload = ['items' => $service->sourceModalities(trim((string) ($_GET['temporada_origem'] ?? '')))];
             } elseif ($stage === 'turmas') {
-                $payload = ['items' => $service->sourceClasses(trim((string) ($_GET['temporada_origem'] ?? '')), (int) ($_GET['modalidade_origem_id'] ?? 0))];
+                $payload = ['items' => $service->sourceClassesForDestinationModality(trim((string) ($_GET['temporada_origem'] ?? '')), (int) ($_GET['modalidade_destino_id'] ?? 0))];
             } elseif ($stage === 'detalhe') {
-                $payload = $service->copyData(trim((string) ($_GET['temporada_origem'] ?? '')), (int) ($_GET['turma_origem_id'] ?? 0), (int) ($_GET['temporada_destino_id'] ?? 0));
+                $payload = $service->copyData(trim((string) ($_GET['temporada_origem'] ?? '')), (int) ($_GET['turma_origem_id'] ?? 0), (int) ($_GET['temporada_destino_id'] ?? 0), (int) ($_GET['modalidade_destino_id'] ?? 0));
             } else {
                 throw new \RuntimeException('Etapa de cópia de turma inválida.');
             }

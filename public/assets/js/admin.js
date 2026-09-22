@@ -5755,7 +5755,6 @@
                 const $steps = $('<div>', { class: 'class-copy-steps hidden', 'data-class-copy-steps': '1' })
                     .append($('<p>', { class: 'muted', text: 'Selecione a temporada de origem.' }))
                     .append($('<div>', { class: 'class-copy-options', 'data-class-copy-options': 'seasons' }))
-                    .append($('<div>', { class: 'class-copy-step hidden', 'data-class-copy-step': 'modalities' }).append($('<strong>', { text: 'Modalidade' }), $('<div>', { class: 'class-copy-options' })))
                     .append($('<div>', { class: 'class-copy-step hidden', 'data-class-copy-step': 'classes' }).append($('<strong>', { text: 'Turma' }), $('<div>', { class: 'class-copy-options' })))
                     .append($('<div>', { class: 'form-notice hidden', 'data-class-copy-notice': '1' }));
                 $copy.append(
@@ -5765,7 +5764,7 @@
                     $('<input>', { type: 'hidden', name: 'copia_origem_temporada_id' }),
                     $('<input>', { type: 'hidden', name: 'copia_origem_turma_id' })
                 );
-                $form.find('[name="temporada_id"]').closest('label').after($copy);
+                $form.find('[name="modalidade_id"]').closest('label').after($copy);
             }
 
             function classCopyRequest($form, data, done) {
@@ -5808,6 +5807,11 @@
                     App.core.abrirPopup('informacao', 'Selecione primeiro a temporada de destino da nova turma.');
                     return;
                 }
+                if (!String($form.find('[name="modalidade_id"]').val() || '')) {
+                    $(this).prop('checked', false);
+                    App.core.abrirPopup('informacao', 'Selecione primeiro a modalidade da nova turma.');
+                    return;
+                }
                 $copy.find('[data-class-copy-steps]').removeClass('hidden');
                 classCopyRequest($form, { etapa: 'temporadas' }, function (response) {
                     renderClassCopyOptions($copy.find('[data-class-copy-options="seasons"]'), response.items, 'data-class-copy-season');
@@ -5818,19 +5822,9 @@
                 const $button = $(this); const $form = $button.closest('form'); const $copy = $button.closest('[data-class-copy]');
                 $button.addClass('is-active').siblings().removeClass('is-active');
                 $copy.attr('data-source-season', String($button.attr('data-class-copy-season') || ''));
-                $copy.find('[data-class-copy-step="classes"], [data-class-copy-notice]').addClass('hidden');
-                const $step = $copy.find('[data-class-copy-step="modalities"]').removeClass('hidden');
-                classCopyRequest($form, { etapa: 'modalidades', temporada_origem: $copy.attr('data-source-season') }, function (response) {
-                    renderClassCopyOptions($step.find('.class-copy-options'), response.items, 'data-class-copy-modality');
-                });
-            });
-
-            $(document).on('click', '[data-class-copy-modality]', function () {
-                const $button = $(this); const $form = $button.closest('form'); const $copy = $button.closest('[data-class-copy]');
-                $button.addClass('is-active').siblings().removeClass('is-active');
                 $copy.find('[data-class-copy-notice]').addClass('hidden');
                 const $step = $copy.find('[data-class-copy-step="classes"]').removeClass('hidden');
-                classCopyRequest($form, { etapa: 'turmas', temporada_origem: $copy.attr('data-source-season'), modalidade_origem_id: $button.attr('data-class-copy-modality') }, function (response) {
+                classCopyRequest($form, { etapa: 'turmas', temporada_origem: $copy.attr('data-source-season'), modalidade_destino_id: $form.find('[name="modalidade_id"]').val() }, function (response) {
                     renderClassCopyOptions($step.find('.class-copy-options'), response.items, 'data-class-copy-class', function (item) { return '[' + String(item.id || '') + '] ' + String(item.nome || ''); });
                 });
             });
@@ -5840,7 +5834,7 @@
                 $button.addClass('is-active').siblings().removeClass('is-active');
                 classCopyRequest($form, {
                     etapa: 'detalhe', temporada_origem: $copy.attr('data-source-season'), turma_origem_id: $button.attr('data-class-copy-class'),
-                    temporada_destino_id: $form.find('[name="temporada_id"]').val()
+                    temporada_destino_id: $form.find('[name="temporada_id"]').val(), modalidade_destino_id: $form.find('[name="modalidade_id"]').val()
                 }, function (response) {
                     const record = response.record || {};
                     fillForm($form, record);
@@ -6181,7 +6175,7 @@
                 if ($form.find('[name="operacao"]').length === 0) {
                     $form.append($('<input>', { type: 'hidden', name: 'operacao' }));
                 }
-                if (type === 'class') { ensureClassCopyFields($form); ensureClassProgramField($form); ensureClassAgeCriterionField($form); ensureClassAgeExceptionFields($form); ensureClassScheduleField($form); ensureClassLevelFields($form); ensureClassOpenEnrollmentField($form); ensureClassFieldHelp($form); }
+                if (type === 'class') { ensureClassScheduleField($form); ensureClassCopyFields($form); ensureClassProgramField($form); ensureClassAgeCriterionField($form); ensureClassAgeExceptionFields($form); ensureClassLevelFields($form); ensureClassOpenEnrollmentField($form); ensureClassFieldHelp($form); }
                 if (type === 'season') { ensureSeasonNoticeFields($form); ensureSeasonWeeklyCoverageField($form); ensureSeasonFieldHelp($form); }
                 fillForm($form, record || {});
                 if (type === 'class') {
@@ -6438,7 +6432,9 @@
                 }).always(function () { $button.prop('disabled', false); });
             });
             $(document).on('change', '[data-course-form="class"] [name="temporada_id"], [data-course-form="class"] [name="modalidade_id"]', function () {
-                filterClassSchedules($(this).closest('form'), '');
+                const $form = $(this).closest('form');
+                filterClassSchedules($form, '');
+                if ($form.find('[data-class-copy-toggle]').is(':checked')) resetClassCopy($form, false);
             });
             $(document).on('change', '[data-course-form="class"] [name="cronograma_modalidade_id"]', function () {
                 renderClassScheduleCatalog($(this).closest('form'));

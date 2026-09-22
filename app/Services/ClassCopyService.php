@@ -63,7 +63,23 @@ class ClassCopyService
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function copyData(string $sourceSeason, int $sourceClassId, int $destinationSeasonId): array
+    public function sourceClassesForDestinationModality(string $sourceSeason, int $destinationModalityId): array
+    {
+        if ($destinationModalityId <= 0) throw new RuntimeException('Selecione primeiro a modalidade da nova turma.');
+        $stmt = Database::connection()->prepare('SELECT nome FROM modalidades WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $destinationModalityId]);
+        $destinationName = trim((string) $stmt->fetchColumn());
+        if ($destinationName === '') throw new RuntimeException('A modalidade selecionada não foi encontrada.');
+
+        foreach ($this->sourceModalities($sourceSeason) as $sourceModality) {
+            if ($this->normalize((string) ($sourceModality['nome'] ?? '')) === $this->normalize($destinationName)) {
+                return $this->sourceClasses($sourceSeason, (int) ($sourceModality['id'] ?? 0));
+            }
+        }
+        return [];
+    }
+
+    public function copyData(string $sourceSeason, int $sourceClassId, int $destinationSeasonId, int $destinationModalityId = 0): array
     {
         if ($sourceClassId <= 0 || $destinationSeasonId <= 0) {
             throw new RuntimeException('Selecione a temporada de destino e a turma de origem.');
@@ -72,6 +88,9 @@ class ClassCopyService
         $record = $source === 'legacy'
             ? $this->legacyClass($sourceSeasonId, $sourceClassId, $destinationSeasonId)
             : $this->currentClass($sourceSeasonId, $sourceClassId, $destinationSeasonId);
+        if ($destinationModalityId <= 0 || (int) ($record['modalidade_id'] ?? 0) !== $destinationModalityId) {
+            throw new RuntimeException('A turma de origem não pertence à modalidade selecionada.');
+        }
         $warnings = $this->previousCopies($source, $sourceSeasonId, $sourceClassId);
         return ['record' => $record, 'previous_copies' => $warnings];
     }
