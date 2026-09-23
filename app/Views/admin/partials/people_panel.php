@@ -1,11 +1,11 @@
 <div id="admin-people-panel-shell">
 <?php if (empty($professorView)) { ?>
 <div class="content-card admin-people-list-selector" data-people-list-selector="1">
-    <button type="button" class="btn btn-primary" data-people-list-view="people">Pessoas - alunos</button>
-    <button type="button" class="btn btn-secondary" data-people-list-view="users">Usuários</button>
+    <button type="button" class="btn <?php echo ($initialPeopleListView ?? 'people') === 'people' ? 'btn-primary' : 'btn-secondary'; ?>" data-people-list-view="people">Pessoas - alunos</button>
+    <button type="button" class="btn <?php echo ($initialPeopleListView ?? 'people') === 'users' ? 'btn-primary' : 'btn-secondary'; ?>" data-people-list-view="users">Usuários</button>
 </div>
 <?php } ?>
-<article class="content-card<?php echo empty($professorView) ? ' top-gap' : ''; ?>" id="admin-people-panel" data-people-list-panel="people" data-professor-view="<?php echo !empty($professorView) ? '1' : '0'; ?>">
+<article class="content-card<?php echo empty($professorView) ? ' top-gap' : ''; ?><?php echo empty($professorView) && ($initialPeopleListView ?? 'people') === 'users' ? ' hidden' : ''; ?>" id="admin-people-panel" data-people-list-panel="people" data-professor-view="<?php echo !empty($professorView) ? '1' : '0'; ?>">
     <div class="people-panel-title-row">
         <h2>Pessoas - alunos</h2>
         <span class="people-panel-count" aria-label="Total de pessoas cadastradas"><?php echo e((string) ($peopleUsersTotals['people'] ?? 0)); ?></span>
@@ -448,7 +448,7 @@
 </article>
 
 <?php if (empty($professorView)) { ?>
-<article class="content-card top-gap hidden" id="admin-users-panel" data-people-list-panel="users">
+<article class="content-card top-gap<?php echo ($initialPeopleListView ?? 'people') === 'users' ? '' : ' hidden'; ?>" id="admin-users-panel" data-people-list-panel="users">
     <div class="people-panel-title-row">
         <h2>Usuários</h2>
         <span class="people-panel-count" aria-label="Total de usuários cadastrados"><?php echo e((string) ($peopleUsersTotals['users'] ?? 0)); ?></span>

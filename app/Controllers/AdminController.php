@@ -86,6 +86,7 @@ class AdminController extends Controller
                 'inicio',
                 'usuarios-online',
                 'usuarios-pessoas',
+                'usuarios',
                 'inscricoes',
                 'agenda',
                 'locais-espacos',
@@ -2188,7 +2189,7 @@ class AdminController extends Controller
             $data['tutorialPage'] = (new TutorialPageService())->get();
         }
 
-        if ($sectionName === 'usuarios-pessoas') {
+        if (in_array($sectionName, ['usuarios-pessoas', 'usuarios'], true)) {
             (new AccountAccessService())->revokeExpiredRoles();
             $peopleLimit = (int) ($_GET['people_limit'] ?? AdminService::DEFAULT_PEOPLE_LIMIT);
             $peopleLimit = max(1, min(AdminService::MAX_PEOPLE_LIMIT, $peopleLimit));
@@ -2207,6 +2208,7 @@ class AdminController extends Controller
             $data['peopleLimit'] = $peopleLimit;
             $data['usersLimit'] = $usersLimit;
             $data['peopleLimitMax'] = AdminService::MAX_PEOPLE_LIMIT;
+            $data['initialPeopleListView'] = $sectionName === 'usuarios' ? 'users' : 'people';
         }
 
         if ($sectionName === 'migracao-cadastros') {

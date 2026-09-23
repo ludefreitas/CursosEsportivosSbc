@@ -91,11 +91,11 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 
 <?php if ($sectionName === 'inicio') { ?><section class="admin-section-panel" data-admin-section="inicio"></section><?php } ?>
 
-<?php if ($sectionName === 'usuarios-pessoas') { ?>
-    <section class="admin-section-panel" data-admin-section="usuarios-pessoas">
+<?php if (in_array($sectionName, ['usuarios-pessoas', 'usuarios'], true)) { ?>
+    <section class="admin-section-panel" data-admin-section="<?php echo e($sectionName); ?>">
         <div class="section-head admin-section-head">
             <div>
-                <h2><?php echo !empty($professorView) ? 'Pessoas - alunos' : 'Pessoas - alunos e usuários'; ?></h2>
+                <h2><?php echo $sectionName === 'usuarios' ? 'Usuários' : 'Pessoas - alunos'; ?></h2>
                 <p class="muted">Lista, filtro e edição de pessoas, usuários e dependentes.</p>
             </div>
         </div>

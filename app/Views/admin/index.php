@@ -14,6 +14,7 @@
             <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Início</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-online">Usuários online</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-pessoas">Pessoas - alunos</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios">Usuários</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="inscricoes">Inscrições em cursos</button>
             <?php if (!empty($canEditProfessorPage)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="pagina-professor">Página do professor</button><?php } ?>
             <?php if (!empty($canAccessMasterSections)) { ?>
