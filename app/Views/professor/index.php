@@ -15,7 +15,7 @@
     <nav class="content-card admin-nav-card" aria-label="Menu da área do professor">
         <div class="admin-nav">
             <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Início</button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-pessoas">Usuários e pessoas</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-pessoas">Pessoas - alunos</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="inscricoes">Inscrições em cursos</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="minhas-turmas">Minhas turmas</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="agenda">Agenda</button>

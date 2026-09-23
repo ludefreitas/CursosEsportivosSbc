@@ -367,25 +367,32 @@ class CourseEnrollmentService
     /**
      * Resume todas as inscrições por status para os painéis de gestão.
      */
-    public function enrollmentStatusSummaryForManagement(int $classId = 0, int $seasonId = 0, string $groupBy = '', int $groupId = 0, int $secondaryGroupId = 0): array
+    public function enrollmentStatusSummaryForManagement(int $classId = 0, int $seasonId = 0, string $groupBy = '', int $groupId = 0, int $secondaryGroupId = 0, int $professorAccountId = 0): array
     {
         $pdo = Database::connection();
-        $joins = '';
-        $where = [];
+        $joins = ' INNER JOIN turmas t ON t.id = i.turma_id';
+        $where = ['1 = 1'];
         $params = [];
         if ($classId > 0) {
             $where[] = 'i.turma_id = :class_id';
             $params[':class_id'] = $classId;
-        } elseif ($seasonId > 0 && $groupId > 0 && $secondaryGroupId > 0 && in_array($groupBy, ['local', 'modalidade'], true)) {
-            $joins = ' INNER JOIN turmas t ON t.id = i.turma_id';
-            $where[] = 't.temporada_id = :season_id';
-            $where[] = $groupBy === 'local' ? 't.local_treino_id = :group_id' : 't.modalidade_id = :group_id';
-            $where[] = $groupBy === 'local' ? 't.modalidade_id = :secondary_group_id' : 't.local_treino_id = :secondary_group_id';
-            $params[':season_id'] = $seasonId;
-            $params[':group_id'] = $groupId;
-            $params[':secondary_group_id'] = $secondaryGroupId;
         } else {
-            return ['total' => 0, 'por_status' => [], 'por_condicao' => []];
+            if ($seasonId > 0) {
+                $where[] = 't.temporada_id = :season_id';
+                $params[':season_id'] = $seasonId;
+            }
+            if ($groupId > 0 && in_array($groupBy, ['local', 'modalidade'], true)) {
+                $where[] = $groupBy === 'local' ? 't.local_treino_id = :group_id' : 't.modalidade_id = :group_id';
+                $params[':group_id'] = $groupId;
+            }
+            if ($secondaryGroupId > 0 && in_array($groupBy, ['local', 'modalidade'], true)) {
+                $where[] = $groupBy === 'local' ? 't.modalidade_id = :secondary_group_id' : 't.local_treino_id = :secondary_group_id';
+                $params[':secondary_group_id'] = $secondaryGroupId;
+            }
+        }
+        if ($professorAccountId > 0) {
+            $where[] = 'EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id = t.id AND tp.professor_conta_id = :professor_account_id)';
+            $params[':professor_account_id'] = $professorAccountId;
         }
         $whereSql = ' WHERE ' . implode(' AND ', $where);
         $stmt = $pdo->prepare('SELECT i.status, COUNT(*) AS quantidade FROM inscricoes_turma i' . $joins . $whereSql . ' GROUP BY i.status ORDER BY i.status');
@@ -627,9 +634,9 @@ class CourseEnrollmentService
         if ($startDate > $endDate) throw new RuntimeException('A data final do cronograma deve ser posterior à data inicial.');
         $hasNotice = !empty($data['possui_edital']);
         $noticeNumber = $hasNotice ? trim((string) ($data['numero_edital'] ?? '')) : null;
-        $noticeLink = $hasNotice ? trim((string) ($data['link_edital'] ?? '')) : null;
+        $noticeLink = $hasNotice ? $this->normalizeNoticeUrl((string) ($data['link_edital'] ?? '')) : null;
         if ($hasNotice && ($noticeNumber === '' || $noticeLink === '')) throw new RuntimeException('Informe o número e o link do edital específico.');
-        if ($hasNotice && filter_var($noticeLink, FILTER_VALIDATE_URL) === false) throw new RuntimeException('Informe um link válido para o edital, incluindo http:// ou https://.');
+        if ($hasNotice && !$this->isValidNoticeUrl((string) $noticeLink)) throw new RuntimeException('Informe um link válido para o edital, incluindo http:// ou https://.');
         $allowMultipleByModality = !empty($data['permitir_multiplas_inscricoes_modalidade']);
         $modalityLimit = $allowMultipleByModality ? max(2, (int) ($data['limite_inscricoes_modalidade'] ?? 2)) : 1;
         $modalityReleaseInput = str_replace('T', ' ', trim((string) ($data['data_liberacao_multiplas_inscricoes_modalidade'] ?? '')));
@@ -714,7 +721,7 @@ class CourseEnrollmentService
         $end = trim((string) ($data['data_fim'] ?? ''));
         $hasNotice = !empty($data['possui_edital']);
         $noticeNumber = $hasNotice ? trim((string) ($data['numero_edital'] ?? '')) : null;
-        $noticeLink = $hasNotice ? trim((string) ($data['link_edital'] ?? '')) : null;
+        $noticeLink = $hasNotice ? $this->normalizeNoticeUrl((string) ($data['link_edital'] ?? '')) : null;
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
         $this->ensureCourseAgeCriterionSchema($pdo);
@@ -722,7 +729,7 @@ class CourseEnrollmentService
         $origin = $this->findSeasonOrigin($pdo, $originId);
         if ($name === '' || !$origin || !in_array($type, ['anual', 'semestral', 'quadrimestral', 'bimestral', 'mensal'], true) || $start === '' || $end === '') { throw new RuntimeException('Preencha nome, instituição gestora, periodicidade e período da temporada.'); }
         if ($hasNotice && ($noticeNumber === '' || $noticeLink === '')) { throw new RuntimeException('Informe o número e o link do edital da temporada.'); }
-        if ($hasNotice && filter_var($noticeLink, FILTER_VALIDATE_URL) === false) { throw new RuntimeException('Informe um link válido para o edital, incluindo http:// ou https://.'); }
+        if ($hasNotice && !$this->isValidNoticeUrl((string) $noticeLink)) { throw new RuntimeException('Informe um link válido para o edital, incluindo http:// ou https://.'); }
         if ($start > $end) { throw new RuntimeException('A data final da temporada deve ser posterior à inicial.'); }
         $id = (int) ($data['id'] ?? 0);
         $secondRelease = trim((string) ($data['data_liberacao_segunda_inscricao'] ?? '')) ?: null;
@@ -842,6 +849,9 @@ class CourseEnrollmentService
         $schedule->execute([':id' => $scheduleId, ':temporada' => (int) $data['temporada_id'], ':modalidade' => (int) $data['modalidade_id']]);
         $scheduleData = $schedule->fetch(PDO::FETCH_ASSOC) ?: null;
         if (!$scheduleData) throw new RuntimeException('Selecione um cronograma correspondente à temporada e à modalidade da turma.');
+        $space = $pdo->prepare('SELECT id FROM espacos_treino WHERE id=:space_id AND local_treino_id=:location_id AND ativo=1 LIMIT 1');
+        $space->execute([':space_id' => (int) $data['espaco_treino_id'], ':location_id' => (int) $data['local_treino_id']]);
+        if (!$space->fetchColumn()) throw new RuntimeException('Selecione um espaço cadastrado para o local escolhido.');
         $ageExceptions = $this->normalizeClassAgeExceptions($data['excecoes_idade'] ?? []);
         $allowedPrograms = ['Corpo em Ação', 'Hora do Treino', 'Campeões da Vida', 'GR São Bernardo'];
         $program = trim((string) ($data['programa'] ?? ''));
@@ -1732,6 +1742,20 @@ class CourseEnrollmentService
             (string) ($class['criterio_faixa_etaria'] ?? 'idade_exata'),
             $this->classAgeReferenceDate($class)
         ) ? $validatedPublic : null;
+    }
+
+    private function normalizeNoticeUrl(string $value): string
+    {
+        $value = trim($value);
+        $value = preg_replace('/[\x{200B}-\x{200D}\x{2060}\x{FEFF}]/u', '', $value) ?? $value;
+        return preg_replace('/[\x00-\x20\x7F]+/u', '', $value) ?? $value;
+    }
+
+    private function isValidNoticeUrl(string $value): bool
+    {
+        if (filter_var($value, FILTER_VALIDATE_URL) === false) return false;
+        $scheme = strtolower((string) parse_url($value, PHP_URL_SCHEME));
+        return in_array($scheme, ['http', 'https'], true) && trim((string) parse_url($value, PHP_URL_HOST)) !== '';
     }
 
     private function normalizeClassAgeExceptions($value): array

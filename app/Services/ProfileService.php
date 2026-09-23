@@ -49,6 +49,27 @@ class ProfileService
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
+    public function authenticatedAccountHasRole(string $roleSlug): bool
+    {
+        if (!Auth::check() || trim($roleSlug) === '') {
+            return false;
+        }
+
+        $stmt = Database::connection()->prepare('
+            SELECT 1
+            FROM conta_papeis cp
+            INNER JOIN papeis p ON p.id = cp.papel_id
+            WHERE cp.conta_id = :conta_id AND p.slug = :papel
+            LIMIT 1
+        ');
+        $stmt->execute([
+            ':conta_id' => Auth::id(),
+            ':papel' => trim($roleSlug),
+        ]);
+
+        return (bool) $stmt->fetchColumn();
+    }
+
     /**
      * Completa o cadastro principal do próprio responsavel.
      */
@@ -66,7 +87,8 @@ class ProfileService
             throw new RuntimeException($bloqueio['mensagem']);
         }
 
-        $birthDate = trim((string) ($person['data_nascimento'] ?? ''));
+        $canEditBirthDate = $this->authenticatedAccountHasRole('teacher');
+        $birthDate = trim((string) ($canEditBirthDate ? ($data['birth_date'] ?? '') : ($person['data_nascimento'] ?? '')));
         $age = calculate_age($birthDate);
 
         if ($age === null || $birthDate > date('Y-m-d') || $age < 18) {
@@ -83,6 +105,10 @@ class ProfileService
         $this->validarSexoInformado((string) ($data['sexo'] ?? ''));
         $this->validarResponsaveisInformados($data);
         $this->validarNumeroCartaoSus((string) ($data['numero_cartao_sus'] ?? ''));
+        $this->validarTelefoneEmergenciaDiferenteDoResponsavel(
+            (string) ($data['emergency_contact_phone'] ?? ''),
+            (string) ($data['phone_whatsapp'] ?? '')
+        );
         $this->cepService->validarCepOuFalhar((string) ($data['zip_code'] ?? ''));
 
         $pdo = Database::connection();
@@ -196,6 +222,10 @@ class ProfileService
         $this->validarSexoInformado((string) ($data['sexo'] ?? ''));
         $this->validarResponsaveisInformados($data);
         $this->validarNumeroCartaoSus((string) ($data['numero_cartao_sus'] ?? ''));
+        $this->validarTelefoneEmergenciaDiferenteDoResponsavel(
+            (string) ($data['emergency_contact_phone'] ?? ''),
+            (string) ($responsible['telefone_whatsapp'] ?? '')
+        );
         $this->cepService->validarCepOuFalhar((string) ($data['zip_code'] ?? ''));
 
         $pdo = Database::connection();
@@ -303,7 +333,7 @@ class ProfileService
     }
 
     /**
-     * Atualiza um dependente sem permitir alteração de CPF ou data de nascimento.
+     * Atualiza um dependente vinculado ao responsável autenticado.
      */
     public function updateManagedDependent(int $personId, array $data): array
     {
@@ -320,6 +350,14 @@ class ProfileService
         }
 
         $dependent = $this->getManagedDependent($personId);
+        $birthDate = trim((string) ($dependent['data_nascimento'] ?? ''));
+
+        if ($this->authenticatedAccountHasRole('teacher')) {
+            $birthDate = trim((string) ($data['birth_date'] ?? ''));
+            if (calculate_age($birthDate) === null || $birthDate > date('Y-m-d')) {
+                throw new RuntimeException('Informe uma data de nascimento válida para o dependente.');
+            }
+        }
 
         if (!validar_nome_cadastro((string) ($data['full_name'] ?? ''))) {
             throw new RuntimeException('Informe um nome completo com no mínimo 14 caracteres para o dependente, usando apenas letras, espaços, hífen ou apóstrofo.');
@@ -329,12 +367,17 @@ class ProfileService
         $this->validarSexoInformado((string) ($data['sexo'] ?? ''));
         $this->validarResponsaveisInformados($data);
         $this->validarNumeroCartaoSus((string) ($data['numero_cartao_sus'] ?? ''));
+        $this->validarTelefoneEmergenciaDiferenteDoResponsavel(
+            (string) ($data['emergency_contact_phone'] ?? ''),
+            (string) ($responsible['telefone_whatsapp'] ?? '')
+        );
         $this->cepService->validarCepOuFalhar((string) ($data['zip_code'] ?? ''));
 
         $stmt = Database::connection()->prepare('
             UPDATE pessoas
             SET nome_completo = :nome_completo,
                 sexo = :sexo,
+                data_nascimento = :data_nascimento,
                 telefone_whatsapp = :telefone_whatsapp,
                 email = :email,
                 numero_cartao_sus = :numero_cartao_sus,
@@ -362,6 +405,7 @@ class ProfileService
             ':id' => (int) $dependent['id'],
             ':nome_completo' => normalize_nome_completo((string) ($data['full_name'] ?? '')),
             ':sexo' => trim((string) ($data['sexo'] ?? '')),
+            ':data_nascimento' => $birthDate,
             ':telefone_whatsapp' => trim((string) ($data['phone_whatsapp'] ?? '')),
             ':email' => trim((string) ($data['email'] ?? '')),
             ':numero_cartao_sus' => $this->normalizeNumeroCartaoSus((string) ($data['numero_cartao_sus'] ?? '')) ?: null,
@@ -441,7 +485,9 @@ class ProfileService
             }
 
             $stmtNewResponsible = $pdo->prepare('
-                SELECT p.id, p.nome_completo, p.data_nascimento, c.id AS conta_id
+                SELECT p.id, p.nome_completo, p.data_nascimento, p.telefone_whatsapp,
+                       p.contato_emergencia_nome, p.contato_emergencia_telefone,
+                       c.id AS conta_id
                 FROM pessoas p
                 INNER JOIN contas c ON c.cpf = p.cpf
                 WHERE c.cpf = :cpf AND c.ativo = 1
@@ -458,6 +504,11 @@ class ProfileService
                 throw new RuntimeException('O novo responsável não pode ser menor de idade.');
             }
 
+            $this->validarTelefoneEmergenciaDiferenteDoResponsavel(
+                (string) ($newResponsible['contato_emergencia_telefone'] ?? ''),
+                (string) ($newResponsible['telefone_whatsapp'] ?? '')
+            );
+
             $stmtUpdate = $pdo->prepare('
                 UPDATE vinculos_responsaveis
                 SET responsavel_pessoa_id = :responsavel_pessoa_id,
@@ -471,6 +522,21 @@ class ProfileService
                 ':observacoes' => $reason,
                 ':conta_criadora_id' => Auth::id(),
                 ':id' => $link['id'],
+            ]);
+
+            $stmtDependentContact = $pdo->prepare('
+                UPDATE pessoas
+                SET telefone_whatsapp = :telefone_whatsapp,
+                    contato_emergencia_nome = :contato_emergencia_nome,
+                    contato_emergencia_telefone = :contato_emergencia_telefone,
+                    updated_at = NOW()
+                WHERE id = :dependente_id
+            ');
+            $stmtDependentContact->execute([
+                ':telefone_whatsapp' => (string) ($newResponsible['telefone_whatsapp'] ?? ''),
+                ':contato_emergencia_nome' => (string) ($newResponsible['contato_emergencia_nome'] ?? ''),
+                ':contato_emergencia_telefone' => (string) ($newResponsible['contato_emergencia_telefone'] ?? ''),
+                ':dependente_id' => $dependentId,
             ]);
 
             $stmtLog = $pdo->prepare('
@@ -807,6 +873,16 @@ class ProfileService
 
         if (!$ok1 && !$ok2) {
             throw new RuntimeException('Informe pelo menos um responsável com nome e CPF válidos.');
+        }
+    }
+
+    private function validarTelefoneEmergenciaDiferenteDoResponsavel(string $emergencyPhone, string $responsiblePhone): void
+    {
+        $emergencyDigits = preg_replace('/\D+/', '', $emergencyPhone) ?? '';
+        $responsibleDigits = preg_replace('/\D+/', '', $responsiblePhone) ?? '';
+
+        if ($emergencyDigits !== '' && $responsibleDigits !== '' && $emergencyDigits === $responsibleDigits) {
+            throw new RuntimeException('O telefone do contato de emergência deve ser diferente do WhatsApp do usuário responsável.');
         }
     }
 

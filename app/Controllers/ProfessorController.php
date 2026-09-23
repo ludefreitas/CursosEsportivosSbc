@@ -135,6 +135,19 @@ class ProfessorController extends Controller
         }
     }
 
+    public function personEnrollments(): void
+    {
+        $this->assertProfessorAccess();
+        try {
+            $this->jsonResponse([
+                'success' => true,
+                'enrollments' => $this->adminService->listPersonEnrollments((int) ($_GET['id'] ?? 0)),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
     public function classCopyOptions(): void
     {
         $this->assertProfessorAccess();
@@ -426,7 +439,7 @@ class ProfessorController extends Controller
             $courseEnrollmentFilterOptions = $courseEnrollmentService->enrollmentManagementFilters($courseEnrollmentSeasonId, $courseEnrollmentGroupBy, $courseEnrollmentGroupId);
             $courseEnrollmentsManagement = $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId, $professorAccountId, $courseEnrollmentSeasonId, $courseEnrollmentGroupBy, $courseEnrollmentGroupId, $courseEnrollmentSecondaryGroupId, $courseEnrollmentPage);
             $courseEnrollmentsByPerson = $courseEnrollmentService->professorEnrollmentSummariesByPerson(array_column($courseEnrollmentsManagement, 'pessoa_id'), $professorAccountId);
-            $courseEnrollmentStatusSummary = $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId, $courseEnrollmentSeasonId, $courseEnrollmentGroupBy, $courseEnrollmentGroupId, $courseEnrollmentSecondaryGroupId);
+            $courseEnrollmentStatusSummary = $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId, $courseEnrollmentSeasonId, $courseEnrollmentGroupBy, $courseEnrollmentGroupId, $courseEnrollmentSecondaryGroupId, $professorAccountId);
             $professorView = true;
             ob_start();
             require ROOT_PATH . '/app/Views/admin/partials/course_enrollment_panel.php';
@@ -520,18 +533,17 @@ class ProfessorController extends Controller
     private function buildPeopleData(): array
     {
         $peopleLimit = max(1, min(AdminService::MAX_PEOPLE_LIMIT, (int) ($_GET['people_limit'] ?? AdminService::DEFAULT_PEOPLE_LIMIT)));
-        $usersLimit = max(1, min(AdminService::MAX_PEOPLE_LIMIT, (int) ($_GET['users_limit'] ?? AdminService::DEFAULT_PEOPLE_LIMIT)));
         return [
             'people' => $this->adminService->listUsersAndDependents($peopleLimit, (string) ($_GET['people_search'] ?? '')),
-            'usersOnly' => $this->adminService->listUsersOnly($usersLimit, (string) ($_GET['users_search'] ?? '')),
+            'usersOnly' => [],
             'peopleUsersTotals' => $this->adminService->peopleAndUsersTotals(),
             'conditionValidationRows' => $this->adminService->listPeopleRequiringConditionValidation(),
             'healthCertificateValidationRows' => $this->adminService->listPeopleRequiringHealthCertificateValidation(),
             'availableRoles' => [], 'canManageRoles' => false,
-            'peopleLimit' => $peopleLimit, 'usersLimit' => $usersLimit,
+            'peopleLimit' => $peopleLimit, 'usersLimit' => $peopleLimit,
             'peopleLimitMax' => AdminService::MAX_PEOPLE_LIMIT,
             'peopleSearch' => (string) ($_GET['people_search'] ?? ''),
-            'usersSearch' => (string) ($_GET['users_search'] ?? ''),
+            'usersSearch' => '',
         ];
     }
 
@@ -571,7 +583,7 @@ class ProfessorController extends Controller
                 'courseEnrollmentFilterOptions' => $courseEnrollmentFilterOptions,
                 'courseEnrollmentsManagement' => $courseEnrollmentsManagement,
                 'courseEnrollmentsByPerson' => $courseEnrollmentService->professorEnrollmentSummariesByPerson(array_column($courseEnrollmentsManagement, 'pessoa_id'), (int) ($user['conta_id'] ?? 0)),
-                'courseEnrollmentStatusSummary' => $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId, $courseEnrollmentSeasonId, $courseEnrollmentGroupBy, $courseEnrollmentGroupId, $courseEnrollmentSecondaryGroupId),
+                'courseEnrollmentStatusSummary' => $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId, $courseEnrollmentSeasonId, $courseEnrollmentGroupBy, $courseEnrollmentGroupId, $courseEnrollmentSecondaryGroupId, (int) ($user['conta_id'] ?? 0)),
             ];
         }
         if ($sectionName === 'minhas-turmas') {

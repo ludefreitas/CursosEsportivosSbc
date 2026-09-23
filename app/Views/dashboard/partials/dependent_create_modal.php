@@ -32,7 +32,7 @@
                 </select>
                 <small class="sexo-helper muted hidden" data-sexo-warning="1">Ao não declarar o sexo, a pessoa não poderá se inscrever em turmas ou agendar treinos de modalidades específicas para determinado gênero</small>
             </label>
-            <label><span>WhatsApp</span><input type="text" name="phone_whatsapp" required></label>
+            <label><span>WhatsApp</span><input type="text" name="phone_whatsapp" value="<?php echo e((string) ($person['telefone_whatsapp'] ?? '')); ?>" required></label>
             <label><span>E-mail</span><input type="email" name="email" required></label>
             <label>
                 <span>Número do cartão SUS</span>

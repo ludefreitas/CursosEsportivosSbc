@@ -388,7 +388,7 @@
 }
 .admin-people-filter-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: end;
     gap: 16px;
 }
@@ -814,6 +814,12 @@
     border-color: var(--primary, #1976a3);
     background: rgba(23, 103, 196, 0.07);
     box-shadow: 0 0 0 2px rgba(23, 103, 196, 0.1);
+}
+.class-schedule-guidance {
+    display: block;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
 }
 .admin-modality-popup-cell {
     display: grid;
@@ -1941,4 +1947,13 @@
 .admin-space-accessibility-barriers .checkbox-line {
     align-items: flex-start;
     font-size: 0.9rem;
+}
+.admin-people-list-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.admin-person-enrollment-details-modal {
+    z-index: 2050;
 }

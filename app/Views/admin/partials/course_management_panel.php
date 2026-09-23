@@ -7,6 +7,7 @@
     <?php if (($courseManagementView ?? 'temporadas') === 'temporadas') { ?>
         <div class="section-head admin-section-head"><div><h2>Temporadas</h2><p class="muted">Configure os períodos dos cursos e os limites progressivos de inscrições de cada temporada.</p></div></div>
     <?php } else { ?>
+    <div class="hidden" data-course-space-options="<?php echo e((string) json_encode(array_map(static fn (array $space): array => ['id' => (int) ($space['id'] ?? 0), 'nome' => (string) ($space['nome'] ?? ''), 'local_treino_id' => (int) ($space['local_treino_id'] ?? 0)], $courseSpacesManagement ?? []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"></div>
         <div class="section-head admin-section-head"><div><h2><?php echo ($courseManagementView ?? 'turmas') === 'turmas-locais' ? 'Turmas por local' : 'Turmas por modalidade'; ?></h2><p class="muted">Consulte e gerencie todas as turmas cadastradas.</p></div></div>
     <?php } ?>
 

@@ -1,12 +1,26 @@
 <div id="admin-people-panel-shell">
-<article class="content-card" id="admin-people-panel">
+<?php if (empty($professorView)) { ?>
+<div class="content-card admin-people-list-selector" data-people-list-selector="1">
+    <button type="button" class="btn btn-primary" data-people-list-view="people">Pessoas - alunos</button>
+    <button type="button" class="btn btn-secondary" data-people-list-view="users">Usuários</button>
+</div>
+<?php } ?>
+<article class="content-card<?php echo empty($professorView) ? ' top-gap' : ''; ?>" id="admin-people-panel" data-people-list-panel="people" data-professor-view="<?php echo !empty($professorView) ? '1' : '0'; ?>">
     <div class="people-panel-title-row">
-        <h2>Pessoas</h2>
+        <h2>Pessoas - alunos</h2>
         <span class="people-panel-count" aria-label="Total de pessoas cadastradas"><?php echo e((string) ($peopleUsersTotals['people'] ?? 0)); ?></span>
     </div>
     <p class="muted"><?php echo !empty($professorView) ? 'Clique no nome para consultar os dados da pessoa. A lista mostra primeiro os cadastros mais recentes.' : 'Clique no nome para consultar os dados da pessoa e, se precisar, abrir a edição sem redirecionamento. A lista mostra primeiro os cadastros mais recentes.'; ?></p>
     <form method="GET" action="<?php echo e(url(!empty($professorView) ? '/professor/pessoas/lista' : '/admin/pessoas/lista')); ?>" class="stack-form admin-people-filter-form" id="admin-people-filter-form" data-manual-submit="1" data-admin-people-filter="1">
         <div class="admin-people-filter-grid admin-people-filter-row">
+            <label>
+                <span>Quantidade de nomes para listar</span>
+                <input type="number" name="people_limit" min="1" max="<?php echo e((string) $peopleLimitMax); ?>" value="<?php echo e((string) $peopleLimit); ?>" required>
+                <small class="muted">Limite máximo aplicado nesta tela: <?php echo e((string) $peopleLimitMax); ?> nomes por consulta.</small>
+            </label>
+            <div class="admin-filter-actions">
+                <button type="submit" class="btn btn-secondary">Atualizar lista</button>
+            </div>
             <label>
                 <span>Buscar por nome ou CPF</span>
                 <input
@@ -20,14 +34,6 @@
                 >
                 <small class="muted">A lista vai sendo atualizada enquanto você digita.</small>
             </label>
-            <label>
-                <span>Quantidade de nomes para listar</span>
-                <input type="number" name="people_limit" min="1" max="<?php echo e((string) $peopleLimitMax); ?>" value="<?php echo e((string) $peopleLimit); ?>" required>
-                <small class="muted">Limite máximo aplicado nesta tela: <?php echo e((string) $peopleLimitMax); ?> nomes por consulta.</small>
-            </label>
-            <div class="admin-filter-actions">
-                <button type="submit" class="btn btn-secondary">Atualizar lista</button>
-            </div>
         </div>
     </form>
     <div class="table-wrap">
@@ -41,12 +47,13 @@
                     <th>Atestado clínico</th>
                     <th>Atestado dermatológico</th>
                     <th>Responsável</th>
+                    <th>Inscrições</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($people)) { ?>
                     <tr>
-                        <td colspan="7" class="muted">Nenhuma pessoa encontrada para este filtro.</td>
+                        <td colspan="8" class="muted">Nenhuma pessoa encontrada para este filtro.</td>
                     </tr>
                 <?php } ?>
                 <?php foreach ($people as $person) { ?>
@@ -214,6 +221,9 @@
                             <?php } else { ?>
                                 <span class="muted">-</span>
                             <?php } ?>
+                        </td>
+                        <td>
+                            <button type="button" class="link-button admin-person-link" data-person-enrollments="1" data-person-id="<?php echo e((string) $person['id']); ?>" data-person-name="<?php echo e((string) $person['nome_completo']); ?>">Ver inscrições</button>
                         </td>
                     </tr>
                 <?php } ?>
@@ -437,7 +447,8 @@
     <?php } ?>
 </article>
 
-<article class="content-card top-gap" id="admin-users-panel">
+<?php if (empty($professorView)) { ?>
+<article class="content-card top-gap hidden" id="admin-users-panel" data-people-list-panel="users">
     <div class="people-panel-title-row">
         <h2>Usuários</h2>
         <span class="people-panel-count" aria-label="Total de usuários cadastrados"><?php echo e((string) ($peopleUsersTotals['users'] ?? 0)); ?></span>
@@ -445,6 +456,14 @@
     <p class="muted">Esta lista mostra apenas quem já possui conta criada. Use os links para verificar os dados do usuário ou abrir a relação de dependentes em pop-up.</p>
     <form method="GET" action="<?php echo e(url(!empty($professorView) ? '/professor/pessoas/lista' : '/admin/pessoas/lista')); ?>" class="stack-form admin-people-filter-form" id="admin-users-filter-form" data-manual-submit="1" data-admin-people-filter="1">
         <div class="admin-people-filter-grid admin-people-filter-row">
+            <label>
+                <span>Quantidade de nomes para listar</span>
+                <input type="number" name="users_limit" min="1" max="<?php echo e((string) $peopleLimitMax); ?>" value="<?php echo e((string) ($usersLimit ?? $peopleLimit)); ?>" required>
+                <small class="muted">Limite máximo aplicado nesta tela: <?php echo e((string) $peopleLimitMax); ?> nomes por consulta.</small>
+            </label>
+            <div class="admin-filter-actions">
+                <button type="submit" class="btn btn-secondary">Atualizar lista</button>
+            </div>
             <label>
                 <span>Buscar por nome ou CPF</span>
                 <input
@@ -457,14 +476,6 @@
                 >
                 <small class="muted">A lista vai sendo atualizada enquanto você digita.</small>
             </label>
-            <label>
-                <span>Quantidade de nomes para listar</span>
-                <input type="number" name="users_limit" min="1" max="<?php echo e((string) $peopleLimitMax); ?>" value="<?php echo e((string) ($usersLimit ?? $peopleLimit)); ?>" required>
-                <small class="muted">Limite máximo aplicado nesta tela: <?php echo e((string) $peopleLimitMax); ?> nomes por consulta.</small>
-            </label>
-            <div class="admin-filter-actions">
-                <button type="submit" class="btn btn-secondary">Atualizar lista</button>
-            </div>
         </div>
     </form>
     <div class="table-wrap">
@@ -532,6 +543,29 @@
         </table>
     </div>
 </article>
+<?php } ?>
+
+<div class="popup-overlay hidden" id="admin-person-enrollments-modal" aria-hidden="true">
+    <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-person-enrollments-title">
+        <div class="popup-head admin-popup-head">
+            <div><h3 id="admin-person-enrollments-title">Inscrições do aluno</h3><p class="muted" id="admin-person-enrollments-subtitle"></p></div>
+            <button type="button" class="popup-close-icon" data-close-person-enrollments="1" aria-label="Fechar inscrições">&times;</button>
+        </div>
+        <div class="popup-body admin-popup-body" id="admin-person-enrollments-content"></div>
+        <div class="popup-actions"><button type="button" class="btn btn-secondary" data-close-person-enrollments="1">Fechar</button></div>
+    </div>
+</div>
+
+<div class="popup-overlay hidden admin-person-enrollment-details-modal" id="admin-person-enrollment-details-modal" aria-hidden="true">
+    <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-person-enrollment-details-title">
+        <div class="popup-head admin-popup-head">
+            <div><h3 id="admin-person-enrollment-details-title">Detalhes da inscrição</h3></div>
+            <button type="button" class="popup-close-icon" data-close-person-enrollment-details="1" aria-label="Fechar detalhes da inscrição">&times;</button>
+        </div>
+        <div class="popup-body admin-popup-body" id="admin-person-enrollment-details-content"></div>
+        <div class="popup-actions"><button type="button" class="btn btn-secondary" data-close-person-enrollment-details="1">Fechar</button></div>
+    </div>
+</div>
 
 <?php require ROOT_PATH . '/app/Views/admin/partials/condition_validation_panel.php'; ?>
 <?php require ROOT_PATH . '/app/Views/admin/partials/health_certificate_validation_panel.php'; ?>

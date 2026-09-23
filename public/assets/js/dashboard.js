@@ -54,6 +54,34 @@
                 return $('#dashboard-health-certificates-modal-content');
             }
 
+            function addDependentFieldHelp($scope) {
+                const messages = {
+                    full_name: 'Nome completo da pessoa, sem abreviações.', cpf: 'CPF da pessoa. Este número identifica o cadastro e não pode ser duplicado.',
+                    birth_date: 'Data de nascimento usada para calcular a idade e verificar a elegibilidade.', sexo: 'Sexo usado nas regras de turmas específicas por gênero.',
+                    phone_whatsapp: 'WhatsApp de contato do dependente. O formulário inicia com o número do responsável autenticado.', email: 'E-mail para contato e comunicações sobre o cadastro.',
+                    numero_cartao_sus: 'Número opcional do Cartão Nacional de Saúde, com 15 dígitos.', eh_pcd: 'Indica Pessoa com Deficiência e exige a documentação correspondente.',
+                    eh_pvs: 'Indica Pessoa em Situação de Vulnerabilidade Social e exige documentação.', eh_plm: 'Indica Pessoa com Limitação de Mobilidade e exige documentação.',
+                    zip_code: 'CEP do endereço da pessoa.', street: 'Nome da rua, avenida ou logradouro.', address_number: 'Número do imóvel.', address_complement: 'Complemento do endereço, como bloco ou apartamento.',
+                    neighborhood: 'Bairro do endereço.', city: 'Cidade do endereço.', state: 'Sigla do estado com duas letras.',
+                    responsavel1_nome: 'Nome do primeiro responsável legal ou familiar.', responsavel1_cpf: 'CPF do primeiro responsável informado.',
+                    responsavel2_nome: 'Nome de um segundo responsável, quando houver.', responsavel2_cpf: 'CPF do segundo responsável, quando houver.',
+                    emergency_contact_name: 'Pessoa que deve ser procurada em uma emergência.', emergency_contact_phone: 'Telefone de emergência, obrigatoriamente diferente do WhatsApp do responsável autenticado.'
+                };
+                $scope.find('input[name], select[name], textarea[name], [data-help-field]').each(function () {
+                    const $field = $(this);
+                    const name = String($field.attr('name') || $field.attr('data-help-field') || '');
+                    if (!messages[name] || $field.attr('type') === 'hidden') return;
+                    const $label = $field.closest('label');
+                    const $title = $label.children('span').first();
+                    if (!$title.length || $title.find('[data-dependent-field-help]').length) return;
+                    $title.append(' ').append($('<button>', {
+                        type: 'button', class: 'field-help-button', text: '?',
+                        'aria-label': 'Ajuda sobre ' + $title.clone().children().remove().end().text().trim(),
+                        'data-dependent-field-help': '1', 'data-field-help-message': messages[name]
+                    }));
+                });
+            }
+
             function closeCourseEnrollmentDetailsModal() {
                 $('#dashboard-course-enrollment-details-modal').addClass('hidden').attr('aria-hidden', 'true');
                 $('#dashboard-course-enrollment-details-body').empty();
@@ -256,6 +284,7 @@
                 }
 
                 $content.html(String(html || ''));
+                addDependentFieldHelp($content);
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
             }
 
@@ -278,8 +307,11 @@
                     return;
                 }
 
+                addDependentFieldHelp(getDependentCreateContent());
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
             }
+
+            addDependentFieldHelp($(document));
 
             function closeDependentCreateModal() {
                 const $modal = getDependentCreateModal();

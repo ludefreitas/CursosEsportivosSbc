@@ -39,6 +39,7 @@ class ProfileController extends Controller
             'title' => 'Completar Cadastro',
             'pageClass' => 'pagina-auth',
             'person' => $person,
+            'canEditBirthDate' => $this->profileService->authenticatedAccountHasRole('teacher'),
             'registrationBlock' => $this->profileService->getRegistrationBlockForAuthenticatedPerson(),
             'dependents' => $this->profileService->listDependents(),
             'returnTo' => safe_internal_path((string) ($_GET['return_to'] ?? '/dashboard'), '/dashboard'),
@@ -523,6 +524,9 @@ class ProfileController extends Controller
     private function renderDependentModalHtml(array $dependent): string
     {
         ob_start();
+        $canEditBirthDate = $this->profileService->authenticatedAccountHasRole('teacher');
+        $authenticatedPerson = $this->profileService->getAuthenticatedPerson();
+        $responsibleWhatsapp = (string) ($authenticatedPerson['telefone_whatsapp'] ?? '');
         require ROOT_PATH . '/app/Views/dashboard/partials/dependent_modal.php';
         return (string) ob_get_clean();
     }

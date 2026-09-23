@@ -87,7 +87,17 @@ $renderEnrollmentCertificate = static function (array $enrollment, string $type,
         <?php } ?>
     </nav>
     <?php } ?>
-    <?php if ($courseEnrollmentSelectionComplete) { ?>
+    <div class="hidden" aria-hidden="true">
+        <input type="hidden" data-course-enrollment-filter="status" value="<?php echo e($courseEnrollmentStatusFilter); ?>">
+        <input type="hidden" data-course-enrollment-filter="condition" value="<?php echo e($courseEnrollmentConditionFilter); ?>">
+        <input type="hidden" data-course-enrollment-filter="class" value="<?php echo e((string) $courseEnrollmentClassId); ?>">
+        <input type="hidden" data-course-enrollment-filter="class-name" value="<?php echo e($courseEnrollmentClassName); ?>">
+        <input type="hidden" data-course-enrollment-filter="group-by" value="<?php echo e($courseEnrollmentGroupBy); ?>">
+        <input type="hidden" data-course-enrollment-filter="season" value="<?php echo e((string) $courseEnrollmentSeasonId); ?>">
+        <input type="hidden" data-course-enrollment-filter="group" value="<?php echo e((string) $courseEnrollmentGroupId); ?>">
+        <input type="hidden" data-course-enrollment-filter="secondary-group" value="<?php echo e((string) $courseEnrollmentSecondaryGroupId); ?>">
+        <input type="hidden" data-course-enrollment-filter="page" value="<?php echo e((string) $courseEnrollmentPage); ?>">
+    </div>
     <div class="section-head admin-section-head course-enrollment-summary-head">
         <div>
             <div class="course-enrollment-title-line">
@@ -105,16 +115,8 @@ $renderEnrollmentCertificate = static function (array $enrollment, string $type,
             <p class="muted">Consulte os dados, o histórico e altere a situação de cada inscrição.</p>
         </div>
     </div>
+    <?php if ($courseEnrollmentSelectionComplete) { ?>
     <div class="course-enrollment-sort" aria-label="Ordenação das inscrições">
-        <input type="hidden" data-course-enrollment-filter="status" value="<?php echo e($courseEnrollmentStatusFilter); ?>">
-        <input type="hidden" data-course-enrollment-filter="condition" value="<?php echo e($courseEnrollmentConditionFilter); ?>">
-        <input type="hidden" data-course-enrollment-filter="class" value="<?php echo e((string) $courseEnrollmentClassId); ?>">
-        <input type="hidden" data-course-enrollment-filter="class-name" value="<?php echo e($courseEnrollmentClassName); ?>">
-        <input type="hidden" data-course-enrollment-filter="group-by" value="<?php echo e($courseEnrollmentGroupBy); ?>">
-        <input type="hidden" data-course-enrollment-filter="season" value="<?php echo e((string) $courseEnrollmentSeasonId); ?>">
-        <input type="hidden" data-course-enrollment-filter="group" value="<?php echo e((string) $courseEnrollmentGroupId); ?>">
-        <input type="hidden" data-course-enrollment-filter="secondary-group" value="<?php echo e((string) $courseEnrollmentSecondaryGroupId); ?>">
-        <input type="hidden" data-course-enrollment-filter="page" value="<?php echo e((string) $courseEnrollmentPage); ?>">
         <span>Ordenar:</span>
         <label><span class="sr-only">Critério de ordenação</span><select data-course-enrollment-sort="criterion" aria-label="Ordenar inscrições por">
             <option value="alfabetica"<?php echo $courseEnrollmentSortBy === 'alfabetica' ? ' selected' : ''; ?>>Ordem alfabética</option>

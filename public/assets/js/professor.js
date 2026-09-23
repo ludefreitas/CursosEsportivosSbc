@@ -16,10 +16,11 @@
             const $controlsSource = $('[data-professor-course-controls-source="1"]');
             if ($controlsSource.length) {
                 const schedules = String($controlsSource.find('[data-course-modality-schedules]').attr('data-course-modality-schedules') || '[]');
+                const spaces = String($controlsSource.find('[data-course-space-options]').attr('data-course-space-options') || '[]');
                 const $freshControls = $controlsSource.find('#course-class-modal, #course-professor-modal, #course-class-status-modal').detach();
                 $('#course-class-modal, #course-professor-modal, #course-class-status-modal').remove();
                 $freshControls.each(function () {
-                    $(this).attr('data-course-modality-schedules', schedules).appendTo('body');
+                    $(this).attr('data-course-modality-schedules', schedules).attr('data-course-space-options', spaces).appendTo('body');
                 });
                 $('#course-class-modal [data-course-form="class"]').attr('action', '/professor/minhas-turmas/salvar');
                 $('#course-professor-modal [data-course-professor-form="1"]').attr('action', '/professor/minhas-turmas/equipe');

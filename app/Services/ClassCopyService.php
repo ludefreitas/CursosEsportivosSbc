@@ -14,13 +14,69 @@ class ClassCopyService
 
     public function prepareSchema(): void
     {
-        $this->ensureSchema();
+        // Estrutura preparada exclusivamente pelos scripts de migração.
+        // Nenhuma requisição da aplicação deve executar DDL.
+    }
+
+    public function importLegacySeason2026(): array
+    {
+        $rows = $this->legacy()->prepare('SELECT t.*, m.descmodal, a.geneativ, a.prograativ,
+                f.initidade, f.fimidade, h.horainicio, h.horatermino, h.diasemana,
+                e.idespaco AS legacy_space_id, e.nomeespaco, l.idlocal AS legacy_location_id, l.apelidolocal, l.nomelocal
+            FROM tb_turmatemporada tt
+            INNER JOIN tb_turma t ON t.idturma = tt.idturma
+            LEFT JOIN tb_modalidade m ON m.idmodal = t.idmodal
+            LEFT JOIN tb_atividade a ON a.idativ = t.idativ
+            LEFT JOIN tb_fxetaria f ON f.idfxetaria = a.idfxetaria
+            LEFT JOIN tb_horario h ON h.idhorario = t.idhorario
+            LEFT JOIN tb_espaco e ON e.idespaco = t.idespaco
+            LEFT JOIN tb_local l ON l.idlocal = e.idlocal
+            WHERE tt.idtemporada = :season_id
+            ORDER BY t.idturma');
+        $rows->execute([':season_id' => self::LEGACY_SEASON_ID]);
+        $records = $rows->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $pdo = Database::connection();
+        $upsert = $pdo->prepare('INSERT INTO turmas_externas_migracao
+            (temporada_id_externa, turma_id_externa, turma_nome, modalidade_id_externa, modalidade_nome,
+             local_id_externo, local_nome, local_apelido, espaco_id_externo, espaco_nome, dados_json, importado_em)
+            VALUES (:season_id, :class_id, :class_name, :modality_id, :modality_name,
+                    :location_id, :location_name, :location_nickname, :space_id, :space_name, :payload, NOW())
+            ON DUPLICATE KEY UPDATE turma_nome=VALUES(turma_nome), modalidade_id_externa=VALUES(modalidade_id_externa),
+                modalidade_nome=VALUES(modalidade_nome), local_id_externo=VALUES(local_id_externo),
+                local_nome=VALUES(local_nome), local_apelido=VALUES(local_apelido), espaco_id_externo=VALUES(espaco_id_externo),
+                espaco_nome=VALUES(espaco_nome), dados_json=VALUES(dados_json), importado_em=NOW()');
+        $pdo->beginTransaction();
+        try {
+            foreach ($records as $row) {
+                $upsert->execute([
+                    ':season_id' => self::LEGACY_SEASON_ID,
+                    ':class_id' => (int) ($row['idturma'] ?? 0),
+                    ':class_name' => trim((string) ($row['descturma'] ?? '')),
+                    ':modality_id' => (int) ($row['idmodal'] ?? 0),
+                    ':modality_name' => trim((string) ($row['descmodal'] ?? '')),
+                    ':location_id' => (int) ($row['legacy_location_id'] ?? 0) ?: null,
+                    ':location_name' => trim((string) ($row['nomelocal'] ?? '')) ?: null,
+                    ':location_nickname' => trim((string) ($row['apelidolocal'] ?? '')) ?: null,
+                    ':space_id' => (int) ($row['legacy_space_id'] ?? 0) ?: null,
+                    ':space_name' => trim((string) ($row['nomeespaco'] ?? '')) ?: null,
+                    ':payload' => json_encode($row, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+                ]);
+            }
+            $pdo->commit();
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $e;
+        }
+        $stored = Database::connection()->prepare('SELECT COUNT(*) FROM turmas_externas_migracao WHERE temporada_id_externa = :season_id');
+        $stored->execute([':season_id' => self::LEGACY_SEASON_ID]);
+        return ['temporada_id' => self::LEGACY_SEASON_ID, 'importadas' => count($records), 'armazenadas' => (int) $stored->fetchColumn()];
     }
 
     public function sourceSeasons(): array
     {
         $current = Database::connection()->query('SELECT id, nome FROM temporadas ORDER BY data_inicio DESC, id DESC')->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        $items = [['id' => 'legacy:' . self::LEGACY_SEASON_ID, 'nome' => '2026 — site antigo', 'legacy' => true]];
+        $legacyCount = (int) Database::connection()->query('SELECT COUNT(*) FROM turmas_externas_migracao WHERE temporada_id_externa = ' . self::LEGACY_SEASON_ID)->fetchColumn();
+        $items = $legacyCount > 0 ? [['id' => 'legacy:' . self::LEGACY_SEASON_ID, 'nome' => '2026 — site antigo (importado)', 'legacy' => true]] : [];
         foreach ($current as $season) {
             $items[] = ['id' => 'current:' . (int) $season['id'], 'nome' => (string) $season['nome'], 'legacy' => false];
         }
@@ -31,12 +87,9 @@ class ClassCopyService
     {
         [$source, $seasonId] = $this->parseSourceSeason($sourceSeason);
         if ($source === 'legacy') {
-            $stmt = $this->legacy()->prepare('SELECT DISTINCT m.idmodal AS id, m.descmodal AS nome
-                FROM tb_turmatemporada tt
-                INNER JOIN tb_turma t ON t.idturma = tt.idturma
-                INNER JOIN tb_modalidade m ON m.idmodal = t.idmodal
-                WHERE tt.idtemporada = :season_id
-                ORDER BY m.descmodal, m.idmodal');
+            $stmt = Database::connection()->prepare('SELECT DISTINCT modalidade_id_externa AS id, modalidade_nome AS nome
+                FROM turmas_externas_migracao WHERE temporada_id_externa = :season_id
+                ORDER BY modalidade_nome, modalidade_id_externa');
         } else {
             $stmt = Database::connection()->prepare('SELECT DISTINCT m.id, m.nome
                 FROM turmas t INNER JOIN modalidades m ON m.id = t.modalidade_id
@@ -51,10 +104,10 @@ class ClassCopyService
         if ($modalityId <= 0) throw new RuntimeException('Selecione uma modalidade.');
         [$source, $seasonId] = $this->parseSourceSeason($sourceSeason);
         if ($source === 'legacy') {
-            $stmt = $this->legacy()->prepare('SELECT t.idturma AS id, t.descturma AS nome
-                FROM tb_turmatemporada tt INNER JOIN tb_turma t ON t.idturma = tt.idturma
-                WHERE tt.idtemporada = :season_id AND t.idmodal = :modality_id
-                ORDER BY t.idturma, t.descturma');
+            $stmt = Database::connection()->prepare('SELECT turma_id_externa AS id, turma_nome AS nome
+                FROM turmas_externas_migracao
+                WHERE temporada_id_externa = :season_id AND modalidade_id_externa = :modality_id
+                ORDER BY turma_id_externa, turma_nome');
         } else {
             $stmt = Database::connection()->prepare('SELECT id, nome FROM turmas
                 WHERE temporada_id = :season_id AND modalidade_id = :modality_id ORDER BY id, nome');
@@ -84,14 +137,11 @@ class ClassCopyService
                     return $classes->fetchAll(PDO::FETCH_ASSOC) ?: [];
                 }
 
-                $classes = $this->legacy()->prepare('SELECT t.idturma AS id, t.descturma AS nome,
-                        l.idlocal AS legacy_location_id, l.apelidolocal, l.nomelocal
-                    FROM tb_turmatemporada tt
-                    INNER JOIN tb_turma t ON t.idturma = tt.idturma
-                    LEFT JOIN tb_espaco e ON e.idespaco = t.idespaco
-                    LEFT JOIN tb_local l ON l.idlocal = e.idlocal
-                    WHERE tt.idtemporada = :season_id AND t.idmodal = :modality_id
-                    ORDER BY t.idturma, t.descturma');
+                $classes = Database::connection()->prepare('SELECT turma_id_externa AS id, turma_nome AS nome,
+                        local_id_externo AS legacy_location_id, local_apelido AS apelidolocal, local_nome AS nomelocal
+                    FROM turmas_externas_migracao
+                    WHERE temporada_id_externa = :season_id AND modalidade_id_externa = :modality_id
+                    ORDER BY turma_id_externa, turma_nome');
                 $classes->execute([':season_id' => $seasonId, ':modality_id' => $sourceModalityId]);
                 $pdo = Database::connection();
                 return array_values(array_filter($classes->fetchAll(PDO::FETCH_ASSOC) ?: [], function (array $class) use ($pdo, $destinationLocationId): bool {
@@ -127,7 +177,6 @@ class ClassCopyService
         $sourceSeasonId = (int) ($data['copia_origem_temporada_id'] ?? 0);
         $sourceClassId = (int) ($data['copia_origem_turma_id'] ?? 0);
         if ($destinationClassId <= 0 || $destinationSeasonId <= 0 || $sourceSeasonId <= 0 || $sourceClassId <= 0 || !in_array($source, ['legacy', 'current'], true)) return;
-        $this->ensureSchema();
         $stmt = Database::connection()->prepare('INSERT INTO turmas_copias
             (origem_tipo, origem_temporada_id, origem_turma_id, destino_temporada_id, destino_turma_id, copiado_por_conta_id, copiado_em)
             VALUES (:source, :source_season, :source_class, :destination_season, :destination_class, :account_id, NOW())');
@@ -156,20 +205,11 @@ class ClassCopyService
 
     private function legacyClass(int $sourceSeasonId, int $sourceClassId, int $destinationSeasonId): array
     {
-        $stmt = $this->legacy()->prepare('SELECT t.*, m.descmodal, a.geneativ, a.prograativ,
-                f.initidade, f.fimidade, h.horainicio, h.horatermino, h.diasemana,
-                e.idespaco AS legacy_space_id, e.nomeespaco, l.idlocal AS legacy_location_id, l.apelidolocal, l.nomelocal
-            FROM tb_turmatemporada tt
-            INNER JOIN tb_turma t ON t.idturma = tt.idturma
-            LEFT JOIN tb_modalidade m ON m.idmodal = t.idmodal
-            LEFT JOIN tb_atividade a ON a.idativ = t.idativ
-            LEFT JOIN tb_fxetaria f ON f.idfxetaria = a.idfxetaria
-            LEFT JOIN tb_horario h ON h.idhorario = t.idhorario
-            LEFT JOIN tb_espaco e ON e.idespaco = t.idespaco
-            LEFT JOIN tb_local l ON l.idlocal = e.idlocal
-            WHERE tt.idtemporada = :season_id AND t.idturma = :class_id LIMIT 1');
+        $stmt = Database::connection()->prepare('SELECT dados_json FROM turmas_externas_migracao
+            WHERE temporada_id_externa = :season_id AND turma_id_externa = :class_id LIMIT 1');
         $stmt->execute([':season_id' => $sourceSeasonId, ':class_id' => $sourceClassId]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $payload = $stmt->fetchColumn();
+        $row = is_string($payload) ? json_decode($payload, true) : null;
         if (!$row) throw new RuntimeException('A turma não foi encontrada na temporada 2026 do site antigo.');
 
         $pdo = Database::connection();
@@ -202,7 +242,6 @@ class ClassCopyService
 
     private function previousCopies(string $source, int $sourceSeasonId, int $sourceClassId): array
     {
-        $this->ensureSchema();
         $stmt = Database::connection()->prepare('SELECT tc.destino_turma_id AS turma_id, te.nome AS temporada_nome
             FROM turmas_copias tc INNER JOIN temporadas te ON te.id = tc.destino_temporada_id
             WHERE tc.origem_tipo = :source AND tc.origem_temporada_id = :season_id AND tc.origem_turma_id = :class_id
@@ -296,18 +335,4 @@ class ClassCopyService
         return $this->legacyConnection;
     }
 
-    private function ensureSchema(): void
-    {
-        Database::connection()->exec("CREATE TABLE IF NOT EXISTS turmas_copias (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, origem_tipo ENUM('legacy','current') NOT NULL,
-            origem_temporada_id BIGINT UNSIGNED NOT NULL, origem_turma_id BIGINT UNSIGNED NOT NULL,
-            destino_temporada_id BIGINT UNSIGNED NOT NULL, destino_turma_id BIGINT UNSIGNED NOT NULL,
-            copiado_por_conta_id BIGINT UNSIGNED NOT NULL, copiado_em DATETIME NOT NULL,
-            INDEX idx_turma_copia_origem (origem_tipo, origem_temporada_id, origem_turma_id),
-            INDEX idx_turma_copia_destino (destino_turma_id),
-            CONSTRAINT fk_turma_copia_temporada FOREIGN KEY (destino_temporada_id) REFERENCES temporadas(id),
-            CONSTRAINT fk_turma_copia_destino FOREIGN KEY (destino_turma_id) REFERENCES turmas(id) ON DELETE CASCADE,
-            CONSTRAINT fk_turma_copia_conta FOREIGN KEY (copiado_por_conta_id) REFERENCES contas(id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-    }
 }

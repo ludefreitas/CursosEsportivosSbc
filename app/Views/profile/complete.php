@@ -48,8 +48,8 @@
         <div class="grid-three">
             <label>
                 <span>Data de nascimento</span>
-                <input type="date" value="<?php echo e((string) ($person['data_nascimento'] ?? '')); ?>" disabled>
-                <small class="muted">A data de nascimento foi confirmada na criação da conta e não pode ser alterada nesta etapa.</small>
+                <input type="date" <?php echo !empty($canEditBirthDate) ? 'name="birth_date"' : 'disabled'; ?> value="<?php echo e((string) old('birth_date', $person['data_nascimento'] ?? '')); ?>" required>
+                <small class="muted"><?php echo !empty($canEditBirthDate) ? 'Como professor autenticado, você pode corrigir sua data de nascimento.' : 'Somente administradores podem alterar a data de nascimento.'; ?></small>
             </label>
             <label>
                 <span>Sexo</span>

@@ -95,7 +95,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
     <section class="admin-section-panel" data-admin-section="usuarios-pessoas">
         <div class="section-head admin-section-head">
             <div>
-                <h2>Usuários e pessoas</h2>
+                <h2><?php echo !empty($professorView) ? 'Pessoas - alunos' : 'Pessoas - alunos e usuários'; ?></h2>
                 <p class="muted">Lista, filtro e edição de pessoas, usuários e dependentes.</p>
             </div>
         </div>

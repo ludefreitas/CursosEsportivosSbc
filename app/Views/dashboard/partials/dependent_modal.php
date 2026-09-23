@@ -40,7 +40,9 @@
 
     <div class="dashboard-dependent-panel hidden" data-dependent-modal-panel="edit">
         <div class="alert-inline dashboard-dependent-attention">
-            CPF e data de nascimento ficam bloqueados nesta edição. Se precisar corrigir esses dados, fale com o suporte antes de seguir.
+            <?php echo !empty($canEditBirthDate)
+                ? 'O CPF permanece bloqueado. Como professor autenticado, você pode corrigir a data de nascimento.'
+                : 'CPF e data de nascimento ficam bloqueados nesta edição. Somente administradores podem corrigir esses dados.'; ?>
         </div>
         <form method="POST" action="<?php echo e(url('/dependentes/atualizar')); ?>" class="stack-form dashboard-dependent-edit-form" id="dashboard-dependent-edit-form" data-manual-submit="1">
             <input type="hidden" name="person_id" value="<?php echo e((string) ($dependent['id'] ?? '0')); ?>">
@@ -58,19 +60,25 @@
                             type="text"
                             value="<?php echo e(format_cpf((string) ($dependent['cpf'] ?? ''))); ?>"
                             readonly
+                            data-help-field="cpf"
                             data-locked-support-alert="1"
                             data-locked-field-label="CPF"
                         >
                     </label>
                     <label>
                         <span>Data de nascimento</span>
+                        <?php if (!empty($canEditBirthDate)) { ?>
+                        <input type="date" name="birth_date" value="<?php echo e((string) ($dependent['data_nascimento'] ?? '')); ?>" required>
+                        <?php } else { ?>
                         <input
                             type="text"
                             value="<?php echo e(!empty($dependent['data_nascimento']) ? date('d/m/Y', strtotime((string) $dependent['data_nascimento'])) : '-'); ?>"
                             readonly
+                            data-help-field="birth_date"
                             data-locked-support-alert="1"
                             data-locked-field-label="data de nascimento"
                         >
+                        <?php } ?>
                     </label>
                     <label>
                         <span>Sexo</span>
@@ -90,7 +98,7 @@
                 <div class="dashboard-dependent-edit-grid dashboard-dependent-edit-grid-2">
                     <label>
                         <span>WhatsApp</span>
-                        <input type="text" name="phone_whatsapp" value="<?php echo e((string) ($dependent['telefone_whatsapp'] ?? '')); ?>" required>
+                        <input type="text" name="phone_whatsapp" value="<?php echo e((string) ($responsibleWhatsapp ?? $dependent['telefone_whatsapp'] ?? '')); ?>" required>
                     </label>
                     <label>
                         <span>E-mail</span>

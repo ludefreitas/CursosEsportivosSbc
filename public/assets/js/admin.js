@@ -1803,6 +1803,93 @@
 
         },
 
+        iniciarListasEInscricoesPessoas: function () {
+            function showList(name) {
+                $('[data-people-list-panel]').addClass('hidden');
+                $('[data-people-list-panel="' + name + '"]').removeClass('hidden');
+                $('[data-people-list-view]').removeClass('btn-primary').addClass('btn-secondary');
+                $('[data-people-list-view="' + name + '"]').removeClass('btn-secondary').addClass('btn-primary');
+            }
+
+            function displayValue(value) {
+                const text = String(value === null || typeof value === 'undefined' ? '' : value).trim();
+                return text || '-';
+            }
+
+            function addDetail($target, label, value) {
+                $target.append($('<p>').append($('<strong>').text(label + ': '), document.createTextNode(displayValue(value))));
+            }
+
+            $(document).on('click', '[data-people-list-view]', function () {
+                showList(String($(this).attr('data-people-list-view') || 'people'));
+            });
+
+            $(document).on('click', '[data-person-enrollments="1"]', function () {
+                const $button = $(this);
+                const personId = String($button.attr('data-person-id') || '0');
+                const personName = String($button.attr('data-person-name') || '');
+                const professorView = $('#admin-people-panel').attr('data-professor-view') === '1';
+                const $modal = $('#admin-person-enrollments-modal');
+                const $content = $('#admin-person-enrollments-content').empty().append($('<p>', { class: 'muted', text: 'Carregando inscrições...' }));
+                $('#admin-person-enrollments-subtitle').text(personName);
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+
+                $.ajax({
+                    url: App.core.buildUrl(professorView ? '/professor/pessoas/inscricoes' : '/admin/pessoas/inscricoes'),
+                    method: 'GET', dataType: 'json', data: { id: personId }
+                }).done(function (response) {
+                    $content.empty();
+                    const enrollments = response && Array.isArray(response.enrollments) ? response.enrollments : [];
+                    if (!enrollments.length) {
+                        $content.append($('<p>', { class: 'muted', text: 'Esta pessoa ainda não possui inscrições.' }));
+                        return;
+                    }
+                    const $table = $('<table>', { class: 'data-table' });
+                    $table.append($('<thead>').append($('<tr>')
+                        .append($('<th>', { text: 'Temporada' }), $('<th>', { text: 'Turma' }), $('<th>', { text: 'Local' }), $('<th>', { text: 'Ação' }))));
+                    const $body = $('<tbody>');
+                    enrollments.forEach(function (item) {
+                        const $details = $('<button>', { type: 'button', class: 'link-button admin-person-link', text: 'Detalhes', 'data-person-enrollment-details': '1' }).data('enrollment', item);
+                        $body.append($('<tr>').append(
+                            $('<td>', { text: displayValue(item.temporada_nome) }),
+                            $('<td>', { text: displayValue(item.turma_nome) }),
+                            $('<td>', { text: displayValue(item.local_apelido) }),
+                            $('<td>').append($details)
+                        ));
+                    });
+                    $content.append($('<div>', { class: 'table-wrap' }).append($table.append($body)));
+                }).fail(function (xhr) {
+                    $content.empty().append($('<p>', { class: 'alert-inline', text: App.core.extrairMensagemErroAjax(xhr).mensagem }));
+                });
+            });
+
+            $(document).on('click', '[data-person-enrollment-details="1"]', function () {
+                const item = $(this).data('enrollment') || {};
+                const $content = $('#admin-person-enrollment-details-content').empty();
+                addDetail($content, 'Temporada', item.temporada_nome);
+                addDetail($content, 'Turma', item.turma_nome);
+                addDetail($content, 'Modalidade', item.modalidade_nome);
+                addDetail($content, 'Local', item.local_apelido);
+                addDetail($content, 'Espaço', item.espaco_nome);
+                addDetail($content, 'Status', item.status_label);
+                addDetail($content, 'Dias da semana', item.dias_semana);
+                addDetail($content, 'Horário', displayValue(item.hora_inicio) + ' às ' + displayValue(item.hora_fim));
+                addDetail($content, 'Data da inscrição', item.created_at);
+                addDetail($content, 'Data da matrícula', item.data_matricula);
+                addDetail($content, 'Ordem da inscrição', item.numero_ordem);
+                addDetail($content, 'Posição na lista de espera', item.posicao_lista_espera);
+                $('#admin-person-enrollment-details-modal').removeClass('hidden').attr('aria-hidden', 'false');
+            });
+
+            $(document).on('click', '[data-close-person-enrollment-details="1"]', function () {
+                $('#admin-person-enrollment-details-modal').addClass('hidden').attr('aria-hidden', 'true');
+            });
+            $(document).on('click', '[data-close-person-enrollments="1"]', function () {
+                if (!$('#admin-person-enrollment-details-modal').hasClass('hidden')) return;
+                $('#admin-person-enrollments-modal').addClass('hidden').attr('aria-hidden', 'true');
+            });
+        },
+
         iniciarFiltroPessoasAdmin: function () {
             let peopleFilterTimer = null;
             let peopleFilterRequest = null;
@@ -1820,6 +1907,7 @@
                 const peopleSearch = String($peopleForm.find('input[name="people_search"]').val() || '');
                 const usersSearch = String($usersForm.find('input[name="users_search"]').val() || '');
                 const requestSequence = ++peopleFilterSequence;
+                const selectedList = $form.is('#admin-users-filter-form') ? 'users' : 'people';
 
                 if (peopleFilterRequest) {
                     peopleFilterRequest.abort();
@@ -1862,6 +1950,7 @@
                             }
                         } else {
                             $('#admin-people-panel-shell').replaceWith(String(response.html));
+                            $('[data-people-list-view="' + selectedList + '"]').trigger('click');
                         }
 
                         // Durante a digitação os formulários não são substituídos.
@@ -5737,13 +5826,15 @@
                 if ($form.find('[name="cronograma_modalidade_id"]').length) return;
                 let schedules = [];
                 try { schedules = JSON.parse(String($form.closest('[data-course-modality-schedules]').attr('data-course-modality-schedules') || '[]')); } catch (error) { schedules = []; }
-                const $select = $('<select>', { name: 'cronograma_modalidade_id', required: true }).append($('<option>', { value: '', text: 'Selecione a temporada e a modalidade' }));
+                const scheduleGuidance = "Selecione aqui o cronograma ou clique em um dos 'cards' abaixo.";
+                const $select = $('<select>', { name: 'cronograma_modalidade_id', required: true }).append($('<option>', { value: '', text: scheduleGuidance }));
                 schedules.forEach(function (schedule) {
                     $select.append($('<option>', { value: String(schedule.id), text: String(schedule.nome || '') })
                         .attr('data-season-id', String(schedule.temporada_id || ''))
                         .attr('data-modality-id', String(schedule.modalidade_id || '')));
                 });
                 const $label = $('<label>').append($('<span>', { text: 'Cronograma da modalidade' })).append($select)
+                    .append($('<small>', { class: 'muted class-schedule-guidance', text: scheduleGuidance }))
                     .append($('<small>', { class: 'field-error hidden', 'data-class-schedule-warning': '1' }));
                 const $catalog = $('<div>', { class: 'class-schedule-catalog hidden', 'data-class-schedule-catalog': '1' });
                 $form.find('[name="modalidade_id"]').closest('label').after($label, $catalog);
@@ -5851,6 +5942,7 @@
                     $form.find('[data-class-copy-toggle]').prop('checked', true);
                     $copy.removeClass('hidden').find('[data-class-copy-steps]').removeClass('hidden');
                     filterClassSchedules($form, record.cronograma_modalidade_id || '');
+                    filterClassSpaces($form, record.espaco_treino_id || '');
                     $form.find('[name="niveis_aceitos[]"]').each(function () { $(this).prop('checked', (record.niveis_aceitos || []).map(String).indexOf(String($(this).val())) !== -1); });
                     const ageExceptions = record.excecoes_idade && typeof record.excecoes_idade === 'object' ? record.excecoes_idade : {};
                     ['pcd', 'plm', 'pvs'].forEach(function (condition) {
@@ -6001,6 +6093,27 @@
                 $form.find('button[type="submit"]').prop('disabled', missingSchedule);
                 renderClassScheduleCatalog($form);
                 return !missingSchedule;
+            }
+
+            function filterClassSpaces($form, selectedId) {
+                const locationId = String($form.find('[name="local_treino_id"]').val() || '');
+                const $select = $form.find('[name="espaco_treino_id"]');
+                let spaces = [];
+                try {
+                    const $scope = $form.closest('[data-course-modality-schedules]');
+                    const $source = $scope.find('[data-course-space-options]').addBack('[data-course-space-options]').first();
+                    spaces = JSON.parse(String($source.attr('data-course-space-options') || '[]'));
+                } catch (error) {
+                    spaces = [];
+                }
+                $select.empty().append($('<option>', { value: '', text: locationId ? 'Selecione um espaço' : 'Selecione primeiro o local' }));
+                spaces.filter(function (space) {
+                    return locationId !== '' && String(space.local_treino_id || '') === locationId;
+                }).forEach(function (space) {
+                    $select.append($('<option>', { value: String(space.id || ''), text: String(space.nome || '') }));
+                });
+                if (selectedId) $select.val(String(selectedId));
+                if (!$select.val()) $select.val('');
             }
 
             function fillForm($form, record) {
@@ -6200,7 +6313,10 @@
                     });
                     updateClassAgeExceptionFields($form);
                 }
-                if (type === 'class') filterClassSchedules($form, record && record.cronograma_modalidade_id);
+                if (type === 'class') {
+                    filterClassSchedules($form, record && record.cronograma_modalidade_id);
+                    filterClassSpaces($form, record && record.espaco_treino_id);
+                }
                 $form.find('[name="operacao"]').val(record ? 'editar' : 'criar');
                 if (type === 'class') resetClassCopy($form, !!record);
                 if (!record && type === 'season') {
@@ -6442,6 +6558,7 @@
             $(document).on('change', '[data-course-form="class"] [name="temporada_id"], [data-course-form="class"] [name="modalidade_id"], [data-course-form="class"] [name="local_treino_id"]', function () {
                 const $form = $(this).closest('form');
                 filterClassSchedules($form, '');
+                if ($(this).is('[name="local_treino_id"]')) filterClassSpaces($form, '');
                 if ($form.find('[data-class-copy-toggle]').is(':checked')) resetClassCopy($form, false);
             });
             $(document).on('change', '[data-course-form="class"] [name="cronograma_modalidade_id"]', function () {
@@ -7330,6 +7447,7 @@
                 'iniciarEditorPessoaAdmin',
                 'iniciarConsultaUsuariosAdmin',
                 'iniciarGerenciamentoPapeisAdmin',
+                'iniciarListasEInscricoesPessoas',
                 'iniciarFiltroPessoasAdmin',
                 'iniciarEditorHorariosSemanais',
                 'iniciarEditorEventosEspeciais',

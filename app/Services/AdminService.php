@@ -273,6 +273,57 @@ class AdminService
     }
 
     /**
+     * Lista as inscrições de uma pessoa usando apenas as tabelas já existentes.
+     */
+    public function listPersonEnrollments(int $personId): array
+    {
+        if ($personId <= 0) {
+            throw new RuntimeException('Pessoa inválida para consulta de inscrições.');
+        }
+
+        $stmt = Database::connection()->prepare('
+            SELECT i.*, t.nome AS turma_nome, te.nome AS temporada_nome,
+                   m.nome AS modalidade_nome,
+                   COALESCE(l.apelido_local, l.nome_local) AS local_apelido,
+                   e.nome AS espaco_nome, t.dias_semana, t.hora_inicio, t.hora_fim,
+                   (SELECT MIN(h.criado_em)
+                      FROM inscricoes_turma_historico h
+                     WHERE h.inscricao_turma_id = i.id AND h.status_novo = "matriculada") AS data_matricula
+            FROM inscricoes_turma i
+            INNER JOIN turmas t ON t.id = i.turma_id
+            INNER JOIN temporadas te ON te.id = t.temporada_id
+            INNER JOIN modalidades m ON m.id = t.modalidade_id
+            INNER JOIN locais_treino l ON l.id = t.local_treino_id
+            INNER JOIN espacos_treino e ON e.id = t.espaco_treino_id
+            WHERE i.pessoa_id = :pessoa_id
+            ORDER BY i.created_at DESC, i.id DESC
+        ');
+        $stmt->execute([':pessoa_id' => $personId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $statusLabels = [
+            'aguardando_matricula' => 'Aguardando matrícula',
+            'matriculada' => 'Matriculada',
+            'lista_espera' => 'Lista de espera',
+            'cancelada' => 'Cancelada',
+            'excluida' => 'Excluída',
+            'excluida_por_falta' => 'Excluída por falta',
+            'desistente' => 'Desistente',
+            'suspensa' => 'Suspensa',
+        ];
+
+        foreach ($rows as &$row) {
+            $status = (string) ($row['status'] ?? '');
+            $row['status_label'] = $statusLabels[$status] ?? ucfirst(str_replace('_', ' ', $status));
+            if ($status === 'matriculada' && empty($row['data_matricula'])) {
+                $row['data_matricula'] = $row['updated_at'] ?: $row['created_at'];
+            }
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    /**
      * Busca os dados completos de uma pessoa para edição na área administrativa.
      */
     public function getPersonDetails(int $personId): array
