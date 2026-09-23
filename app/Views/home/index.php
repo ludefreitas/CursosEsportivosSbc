@@ -253,10 +253,11 @@ $suggestedCourseModalities = array_slice($suggestedCourseModalities, 0, 3);
     </div>
 </div>
 
-<div id="home-course-cpf-modal" class="popup-overlay hidden" aria-hidden="true">
-    <div class="popup-card home-course-flow-modal-card home-course-small-modal" role="dialog" aria-modal="true" aria-labelledby="home-course-cpf-title">
-        <div class="popup-head"><div><span class="eyebrow">Etapa 4 de 4</span><h3 id="home-course-cpf-title">Informar CPF</h3><p class="muted" id="home-course-cpf-subtitle"></p></div><button type="button" class="popup-close-icon" data-home-course-detail-close="1" aria-label="Fechar inscrição por CPF">&times;</button></div>
+<div id="home-course-cpf-modal" class="popup-overlay hidden" aria-hidden="true" data-cpf-enrollment-enabled="<?php echo !empty($cpfEnrollmentEnabled) ? '1' : '0'; ?>">
+    <div class="popup-card home-course-flow-modal-card" role="dialog" aria-modal="true" aria-labelledby="home-course-cpf-title">
+        <div class="popup-head"><div><span class="eyebrow" id="home-course-cpf-step">Inscrição por CPF</span><h3 id="home-course-cpf-title">Inscreva-se</h3><p class="muted" id="home-course-cpf-subtitle">Veja quais cursos estão disponíveis para inscrição, digite o CPF.</p></div><button type="button" class="popup-close-icon" data-home-cpf-close="1" aria-label="Fechar inscrição por CPF">&times;</button></div>
         <div class="popup-body" id="home-course-cpf-content"></div>
+        <div class="popup-actions"><button type="button" class="btn btn-secondary" data-home-cpf-back="1">Voltar</button><button type="submit" class="btn btn-primary hidden" id="home-cpf-lookup-submit" form="home-cpf-lookup-form">Verificar cadastro e cursos</button><button type="button" class="btn btn-secondary" data-home-cpf-close="1">Fechar</button></div>
     </div>
 </div>
 

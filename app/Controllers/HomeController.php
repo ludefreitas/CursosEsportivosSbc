@@ -10,6 +10,7 @@ use App\Services\BlogService;
 use App\Services\HomeInfoService;
 use App\Services\ProfileService;
 use App\Services\TutorialPageService;
+use App\Services\CourseEnrollmentService;
 
 class HomeController extends Controller
 {
@@ -32,6 +33,7 @@ class HomeController extends Controller
         $adminService = new AdminService();
         $blogService = new BlogService();
         $homeInfoService = new HomeInfoService();
+        $courseEnrollmentService = new CourseEnrollmentService();
         $profile = null;
         $registrationBlock = null;
         $needsProfileCompletion = false;
@@ -88,6 +90,7 @@ class HomeController extends Controller
             'agendaActionLabel' => $agendaActionLabel,
             'agendaReminderTitle' => $agendaReminderTitle,
             'courseModalities' => $agendaService->listModalities(),
+            'cpfEnrollmentEnabled' => $courseEnrollmentService->cpfEnrollmentAvailable(),
             'weeklyTrainingModalityNames' => $agendaService->activeWeeklyScheduleModalityNames(),
             'homeCoursesLocationsContent' => $homeInfoService->getCoursesLocationsContent(),
             'homeTrainingLocationsContent' => $homeInfoService->getTrainingLocationsContent(),

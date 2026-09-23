@@ -552,7 +552,6 @@
                     const $actions = $('<div>', { class: 'home-course-class-actions' });
                     if (courseClass.permite_inscricao) $actions.append($('<button>', { type: 'button', class: 'btn btn-primary', text: 'Inscrever-se', 'data-home-course-enroll': String(courseClass.id || '') }));
                     $actions.append($('<button>', { type: 'button', class: 'btn btn-secondary', text: 'Vagas', 'data-home-course-vacancies': String(courseClass.id || '') }));
-                    if (courseClass.permite_inscricao && Number(courseClass.permitir_inscricao_por_cpf || 0) === 1) $actions.append($('<button>', { type: 'button', class: 'btn btn-secondary', text: 'Inscrição por CPF', 'data-home-course-cpf': String(courseClass.id || '') }));
                     $card.append($actions);
                     $content.append($card);
                 });
@@ -603,29 +602,174 @@
             $(document).on('click', '#home-location-modalities-modal, #home-modality-locations-modal, #home-location-classes-modal', function (event) { if (event.target === this) closeFlow(); });
             $(document).on('click', '[data-home-course-enroll]', function () { classDetails(String($(this).attr('data-home-course-enroll') || ''), renderEnrollmentModal); });
             $(document).on('click', '[data-home-course-vacancies]', function () { classDetails(String($(this).attr('data-home-course-vacancies') || ''), renderVacanciesModal); });
-            $(document).on('click', '[data-home-course-cpf]', function () {
-                const classId = String($(this).attr('data-home-course-cpf') || '');
-                const courseClass = classesById[classId] || {};
-                const $form = $('<form>', { class: 'stack-form home-course-enrollment-form', method: 'POST', action: App.core.buildUrl('/cursos/inscrever'), 'data-manual-submit': '1' });
-                $form.append($('<input>', { type: 'hidden', name: 'turma_id', value: classId }));
-                $form.append($('<label>').append($('<span>', { text: 'CPF da pessoa' })).append($('<input>', { type: 'text', name: 'cpf', placeholder: '000.000.000-00', required: true })));
-                $form.append($('<label>', { class: 'checkbox-chip' }).append($('<input>', { type: 'checkbox', name: 'aceite_termos', value: '1', required: true })).append($('<span>', { text: 'Aceito os termos da inscrição' })));
-                appendEnrollmentNoticeAcceptance($form, courseClass);
-                const $verification = $('<div>', { class: 'human-verification', 'data-human-verification': '1' })
+            const cpfFlow = { stage: 'form', cpf: '', condition: 'geral', options: null, locationId: '', token: '' };
+
+            function cpfVerificationBlock() {
+                return $('<div>', { class: 'human-verification', 'data-human-verification': '1' })
                     .append($('<input>', { type: 'hidden', name: 'human_verification_id' }))
                     .append($('<input>', { type: 'text', name: 'website', value: '', class: 'hidden', tabindex: '-1', autocomplete: 'off', 'aria-hidden': 'true' }))
                     .append($('<label>', { class: 'checkbox-line' })
                         .append($('<input>', { type: 'checkbox', name: 'human_verification', value: '1', required: true }))
                         .append($('<span>', { text: 'Não sou robô' })));
-                const $submit = $('<button>', { type: 'submit', class: 'btn btn-primary', text: 'Confirmar inscrição por CPF', disabled: true });
-                $form.append($verification, $submit);
-                $('#home-course-cpf-subtitle').text(String(courseClass.nome || ''));
+            }
+
+            function setCpfStep(step, title, subtitle) {
+                $('#home-course-cpf-step').text(step);
+                $('#home-course-cpf-title').text(title);
+                $('#home-course-cpf-subtitle').text(subtitle || '');
+                $('[data-home-cpf-back="1"]').toggleClass('hidden', cpfFlow.stage === 'form' || cpfFlow.stage === 'introduction');
+                $('#home-cpf-lookup-submit').toggleClass('hidden', cpfFlow.stage !== 'form');
+            }
+
+            function renderCpfIntroduction() {
+                cpfFlow.stage = 'introduction';
+                setCpfStep('Inscrição disponível', 'Faça sua inscrição', 'Inscrição rápida por CPF.');
+                $('#home-course-cpf-content').empty().append(
+                    $('<div>', { class: 'home-course-cpf-introduction' })
+                        .append($('<p>', { text: 'Faça a sua inscrição ou de seu dependente com apenas alguns cliques, informando seu CPF ou o CPF de seu dependente, se já existe cadastro em nosso site.' }))
+                        .append($('<p>').append(document.createTextNode('Caso ainda não exista cadastro, clique no botão ')).append($('<strong>', { text: 'Cadastre-se' })).append(document.createTextNode('.')))
+                        .append($('<div>', { class: 'popup-actions' })
+                            .append($('<button>', { type: 'button', class: 'btn btn-primary', text: 'Continuar', 'data-home-cpf-start': '1' }))
+                            .append($('<button>', { type: 'button', class: 'btn btn-secondary', text: 'Cadastre-se', 'data-open-route-modal': App.core.buildUrl('/cadastro') })))
+                );
+                $('[data-home-cpf-back="1"], #home-cpf-lookup-submit').addClass('hidden');
+            }
+
+            function renderCpfStart() {
+                cpfFlow.stage = 'form'; cpfFlow.options = null; cpfFlow.locationId = ''; cpfFlow.token = '';
+                setCpfStep('Etapa 1 de 4', 'Inscreva-se', 'Veja quais cursos estão disponíveis para inscrição, digite o CPF.');
+                const $form = $('<form>', { id: 'home-cpf-lookup-form', class: 'stack-form', 'data-home-cpf-lookup-form': '1' });
+                $form.append($('<div>', { class: 'home-course-cpf-guidance' })
+                    .append($('<strong>', { text: 'Verifique se o cadastro existe' }))
+                    .append($('<p>', { text: 'Informe seu CPF se você for fazer a inscrição para você. Informe o CPF de seu dependente se você for fazer a inscrição para seu dependente.' })));
+                $form.append($('<label>').append($('<span>', { text: 'CPF da pessoa que irá se inscrever' })).append($('<input>', { type: 'text', name: 'cpf', value: cpfFlow.cpf, placeholder: '000.000.000-00', required: true, inputmode: 'numeric' })));
+                const $conditions = $('<fieldset>', { class: 'home-course-cpf-conditions' }).append($('<legend>', { text: 'Condição Física/Social' }));
+                [
+                    ['geral', 'Inscrição para vaga de ampla concorrência'],
+                    ['pcd', 'Pessoa Com Deficiência (PCD)'],
+                    ['plm', 'Pessoa Com Laudo Médico de Doença'],
+                    ['pvs', 'Pessoa em Vulnerabilidade Social']
+                ].forEach(function (item) {
+                    $conditions.append($('<label>', { class: 'checkbox-chip' })
+                        .append($('<input>', { type: 'radio', name: 'condicao_inscricao', value: item[0], required: true, checked: cpfFlow.condition === item[0] }))
+                        .append($('<span>', { text: item[1] })));
+                });
+                const $submit = $('#home-cpf-lookup-submit').prop('disabled', true).removeClass('hidden');
+                $form.append($conditions, cpfVerificationBlock());
                 $('#home-course-cpf-content').empty().append($form);
-                $('#home-course-cpf-modal').removeClass('hidden').attr('aria-hidden', 'false');
                 App.core.renovarVerificacaoHumana($form).always(function () { $submit.prop('disabled', false); });
+            }
+
+            function renderCpfNotRegistered(message) {
+                cpfFlow.stage = 'not-registered';
+                setCpfStep('Cadastro necessário', 'CPF não cadastrado', message);
+                $('#home-course-cpf-content').empty().append(
+                    $('<div>', { class: 'home-course-flow-state' })
+                        .append($('<p>', { text: message }))
+                        .append($('<div>', { class: 'popup-actions' })
+                            .append($('<button>', { type: 'button', class: 'btn btn-primary', text: 'Cadastrar-se', 'data-open-route-modal': App.core.buildUrl('/cadastro') }))
+                            .append($('<button>', { type: 'button', class: 'btn btn-secondary', text: 'Entrar', 'data-open-route-modal': App.core.buildUrl('/login?return_to=%2F') })))
+                );
+            }
+
+            function renderCpfLocations() {
+                cpfFlow.stage = 'locations';
+                const person = cpfFlow.options.person || {};
+                setCpfStep('Etapa 2 de 4', 'Escolha o local', 'Cursos compatíveis com ' + String(person.nome_completo || 'a pessoa informada') + '.');
+                const $content = $('#home-course-cpf-content').empty();
+                const records = Array.isArray(cpfFlow.options.locations) ? cpfFlow.options.locations : [];
+                if (!records.length) { $content.append($('<div>', { class: 'home-course-flow-state' }).append($('<p>', { text: 'Não há locais com turmas e vagas compatíveis com este perfil no momento.' }))); return; }
+                const $list = $('<div>', { class: 'home-modality-locations-list' });
+                records.forEach(function (location) {
+                    $list.append($('<button>', { type: 'button', class: 'home-all-location-button', 'data-home-cpf-location': String(location.id || '') })
+                        .append($('<strong>', { text: String(location.apelido_local || location.nome_local || '') }))
+                        .append($('<small>', { text: String(location.nome_local || '') })));
+                });
+                $content.append($list);
+            }
+
+            function renderCpfClasses() {
+                cpfFlow.stage = 'classes';
+                const locations = cpfFlow.options.locations || [];
+                const location = locations.find(function (item) { return String(item.id) === cpfFlow.locationId; }) || {};
+                setCpfStep('Etapa 3 de 4', 'Turmas disponíveis', 'Turmas compatíveis em ' + String(location.apelido_local || location.nome_local || 'local selecionado') + '.');
+                const classes = (cpfFlow.options.classes || []).filter(function (item) { return String(item.local_treino_id) === cpfFlow.locationId; });
+                const $content = $('#home-course-cpf-content').empty();
+                classes.forEach(function (courseClass) {
+                    const $card = $('<article>', { class: 'home-course-class-card' });
+                    $card.append($('<h4>', { text: String(courseClass.modalidade_nome || 'Modalidade') + ' - ' + String(courseClass.temporada_nome || '') }));
+                    $card.append($('<p>').append($('<strong>', { text: '[' + String(courseClass.id || '') + '] - ' + String(courseClass.nome || '') })));
+                    $card.append($('<p>').append($('<strong>', { text: 'Programa: ' })).append(document.createTextNode(String(courseClass.programa || 'Sem programa definido'))));
+                    $card.append($('<p>').append($('<strong>', { text: 'Local da aula: ' })).append(document.createTextNode(String(courseClass.local_nome || ''))));
+                    if (courseClass.dias_semana_descricao) $card.append($('<p>').append($('<strong>', { text: 'Dias e horário: ' })).append(document.createTextNode(String(courseClass.dias_semana_descricao) + ', das ' + String(courseClass.hora_inicio || '').slice(0, 5) + ' às ' + String(courseClass.hora_fim || '').slice(0, 5))));
+                    if (courseClass.periodo_dia) $card.append($('<p>').append($('<strong>', { text: 'Período: ' })).append(document.createTextNode(String(courseClass.periodo_dia))));
+                    $card.append($('<p>').append($('<strong>', { text: classAgeCriterionText(courseClass) })));
+                    appendClassAgeExceptions($card, courseClass);
+                    $card.append($('<p>').append($('<strong>', { text: 'Níveis aceitos: ' })).append(document.createTextNode(String(courseClass.niveis_aceitos_descricao || 'Sem limitação de nível'))));
+                    if (courseClass.sexo) $card.append($('<p>').append($('<strong>', { text: 'Sexo permitido: ' })).append(document.createTextNode(String(courseClass.sexo) === 'feminino' ? 'Feminino' : 'Masculino')));
+                    appendClassPublicNotices($card, courseClass);
+                    if (courseClass.cpf_aviso_excecao) $card.append($('<p>', { class: 'home-course-age-exception-notice', text: String(courseClass.cpf_aviso_excecao) }));
+                    $card.append($('<button>', { type: 'button', class: 'btn btn-primary', text: 'Inscrever-se', 'data-home-cpf-class': String(courseClass.id || '') }));
+                    $content.append($card);
+                });
+            }
+
+            function renderCpfConfirmation(details) {
+                cpfFlow.stage = 'details';
+                const courseClass = details.class || {};
+                setCpfStep('Etapa 4 de 4', 'Detalhes da turma', 'Confira os dados e confirme a inscrição de ' + String((details.person || {}).nome_completo || '') + '.');
+                const $content = $('#home-course-cpf-content').empty();
+                const $summary = $('<div>', { class: 'home-course-detail-summary' })
+                    .append($('<h4>', { text: String(courseClass.modalidade_nome || 'Modalidade') + ' - ' + String(courseClass.temporada_nome || '') }))
+                    .append($('<p>').append($('<strong>', { text: '[' + String(courseClass.id || '') + '] - ' + String(courseClass.nome || '') })))
+                    .append($('<p>').append($('<strong>', { text: 'Programa: ' })).append(document.createTextNode(String(courseClass.programa || 'Sem programa definido'))))
+                    .append($('<p>').append($('<strong>', { text: 'Local da aula: ' })).append(document.createTextNode(String(courseClass.local_nome || ''))))
+                    .append($('<p>').append($('<strong>', { text: 'Pessoa: ' })).append(document.createTextNode(String((details.person || {}).nome_completo || ''))));
+                if (courseClass.dias_semana_descricao) $summary.append($('<p>').append($('<strong>', { text: 'Dias e horário: ' })).append(document.createTextNode(String(courseClass.dias_semana_descricao) + ', das ' + String(courseClass.hora_inicio || '').slice(0, 5) + ' às ' + String(courseClass.hora_fim || '').slice(0, 5))));
+                if (courseClass.periodo_dia) $summary.append($('<p>').append($('<strong>', { text: 'Período: ' })).append(document.createTextNode(String(courseClass.periodo_dia))));
+                $summary.append($('<p>').append($('<strong>', { text: classAgeCriterionText(courseClass) })));
+                appendClassAgeExceptions($summary, courseClass);
+                $summary.append($('<p>').append($('<strong>', { text: 'Níveis aceitos: ' })).append(document.createTextNode(String(courseClass.niveis_aceitos_descricao || 'Sem limitação de nível'))));
+                if (courseClass.sexo) $summary.append($('<p>').append($('<strong>', { text: 'Sexo permitido: ' })).append(document.createTextNode(String(courseClass.sexo) === 'feminino' ? 'Feminino' : 'Masculino')));
+                appendClassPublicNotices($summary, courseClass);
+                if (courseClass.cpf_aviso_excecao) $summary.append($('<p>', { class: 'home-course-age-exception-notice', text: String(courseClass.cpf_aviso_excecao) }));
+                const $form = $('<form>', { class: 'stack-form home-course-enrollment-form', method: 'POST', action: App.core.buildUrl('/cursos/inscrever'), 'data-manual-submit': '1' });
+                $form.append($('<input>', { type: 'hidden', name: 'turma_id', value: String(courseClass.id || '') }));
+                $form.append($('<input>', { type: 'hidden', name: 'cpf', value: cpfFlow.cpf }));
+                $form.append($('<input>', { type: 'hidden', name: 'condicao_inscricao', value: cpfFlow.condition }));
+                $form.append($('<input>', { type: 'hidden', name: 'flow_token', value: cpfFlow.token }));
+                $form.append($('<label>', { class: 'checkbox-chip' }).append($('<input>', { type: 'checkbox', name: 'aceite_termos', value: '1', required: true })).append($('<span>').append(document.createTextNode('Li e aceito os termos da inscrição, disponíveis ')).append($('<button>', { type: 'button', class: 'link-button course-terms-link', 'data-enrollment-terms-open': '1', text: 'neste link' })).append(document.createTextNode('.'))));
+                appendEnrollmentNoticeAcceptance($form, courseClass);
+                const $submit = $('<button>', { type: 'submit', class: 'btn btn-primary', text: 'Confirmar inscrição', disabled: true });
+                $form.append(cpfVerificationBlock(), $submit);
+                $content.append($summary, $form);
+                App.core.renovarVerificacaoHumana($form).always(function () { $submit.prop('disabled', false); });
+            }
+
+            $(document).on('click', '[data-home-cpf-start="1"]', renderCpfStart);
+            $(document).on('submit', '[data-home-cpf-lookup-form="1"]', function (event) {
+                event.preventDefault(); const $form = $(this); const $button = $('#home-cpf-lookup-submit').prop('disabled', true);
+                cpfFlow.cpf = String($form.find('[name="cpf"]').val() || ''); cpfFlow.condition = String($form.find('[name="condicao_inscricao"]:checked').val() || 'geral');
+                $.ajax({ url: App.core.buildUrl('/cursos/inscricao-cpf/opcoes'), method: 'POST', data: new FormData($form[0]), processData: false, contentType: false, dataType: 'json', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+                    .done(function (response) { cpfFlow.options = response.options || {}; cpfFlow.token = String(cpfFlow.options.flow_token || ''); if (!cpfFlow.options.registered) renderCpfNotRegistered(String(cpfFlow.options.message || 'CPF não cadastrado.')); else renderCpfLocations(); })
+                    .fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); App.core.renovarVerificacaoHumana($form); })
+                    .always(function () { $button.prop('disabled', false); });
             });
-            $(document).on('click', '[data-home-course-detail-close="1"]', function () { $('#home-course-enrollment-modal, #home-course-cpf-modal, #home-course-vacancies-modal').addClass('hidden').attr('aria-hidden', 'true'); });
-            $(document).on('click', '#home-course-enrollment-modal, #home-course-cpf-modal, #home-course-vacancies-modal', function (event) { if (event.target === this) $(this).addClass('hidden').attr('aria-hidden', 'true'); });
+            $(document).on('click', '[data-home-cpf-location]', function () { cpfFlow.locationId = String($(this).attr('data-home-cpf-location') || ''); renderCpfClasses(); });
+            $(document).on('click', '[data-home-cpf-class]', function () {
+                $.ajax({ url: App.core.buildUrl('/cursos/inscricao-cpf/turma-detalhes'), method: 'POST', dataType: 'json', data: { turma_id: $(this).attr('data-home-cpf-class'), cpf: cpfFlow.cpf, condicao_inscricao: cpfFlow.condition, flow_token: cpfFlow.token }, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+                    .done(function (response) { renderCpfConfirmation(response.details || {}); })
+                    .fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); });
+            });
+            $(document).on('click', '[data-home-cpf-back="1"]', function () { if (cpfFlow.stage === 'details') renderCpfClasses(); else if (cpfFlow.stage === 'classes') renderCpfLocations(); else if (cpfFlow.stage === 'locations') renderCpfStart(); else renderCpfIntroduction(); });
+            $(document).on('click', '[data-home-cpf-close="1"]', function () { $('#home-course-cpf-modal').addClass('hidden').attr('aria-hidden', 'true'); });
+            $(document).on('click', '#home-course-cpf-modal', function (event) { if (event.target === this) $(this).addClass('hidden').attr('aria-hidden', 'true'); });
+            $(document).on('click', '[data-home-course-detail-close="1"]', function () { $('#home-course-enrollment-modal, #home-course-vacancies-modal').addClass('hidden').attr('aria-hidden', 'true'); });
+            $(document).on('click', '#home-course-enrollment-modal, #home-course-vacancies-modal', function (event) { if (event.target === this) $(this).addClass('hidden').attr('aria-hidden', 'true'); });
+            if ($('#home-course-cpf-modal').attr('data-cpf-enrollment-enabled') === '1') {
+                renderCpfIntroduction();
+                $('#home-course-cpf-modal').removeClass('hidden').attr('aria-hidden', 'false');
+            }
             $(document).on('change', '[data-home-course-person-choice="1"]', function () {
                 const publicValue = String($(this).attr('data-public') || 'geral');
                 $('#home-course-person-public').val(publicValue);

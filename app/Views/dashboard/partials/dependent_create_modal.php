@@ -32,7 +32,11 @@
                 </select>
                 <small class="sexo-helper muted hidden" data-sexo-warning="1">Ao não declarar o sexo, a pessoa não poderá se inscrever em turmas ou agendar treinos de modalidades específicas para determinado gênero</small>
             </label>
-            <label><span>WhatsApp</span><input type="text" name="phone_whatsapp" value="<?php echo e((string) ($person['telefone_whatsapp'] ?? '')); ?>" required></label>
+            <label>
+                <span>WhatsApp</span>
+                <input type="text" name="phone_whatsapp" value="<?php echo e((string) ($person['telefone_whatsapp'] ?? '')); ?>" readonly required data-locked-support-alert="1" data-locked-field-label="o WhatsApp" data-locked-message="O WhatsApp do dependente é preenchido automaticamente com o número do responsável autenticado e não pode ser alterado neste formulário.">
+                <small class="muted">Preenchido automaticamente com o WhatsApp do responsável autenticado.</small>
+            </label>
             <label><span>E-mail</span><input type="email" name="email" required></label>
             <label>
                 <span>Número do cartão SUS</span>
@@ -84,7 +88,11 @@
         </div>
         <div class="grid-two">
             <label><span>Contato de emergência</span><input type="text" name="emergency_contact_name" required></label>
-            <label><span>Telefone do contato de emergência</span><input type="text" name="emergency_contact_phone" required></label>
+            <label>
+                <span>Telefone do contato de emergência</span>
+                <input type="text" name="emergency_contact_phone" required>
+                <small class="muted">Deve ser diferente do WhatsApp do responsável autenticado.</small>
+            </label>
         </div>
     </form>
 </div>      

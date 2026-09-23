@@ -205,6 +205,7 @@ class ProfileService
         $cpf = normalize_cpf((string) ($data['cpf'] ?? ''));
         $birthDate = trim((string) ($data['birth_date'] ?? ''));
         $age = calculate_age($birthDate);
+        $data['phone_whatsapp'] = (string) ($responsible['telefone_whatsapp'] ?? '');
 
         if (!validar_cpf($cpf)) {
             throw new RuntimeException('Informe um CPF válido para o dependente.');
@@ -406,7 +407,7 @@ class ProfileService
             ':nome_completo' => normalize_nome_completo((string) ($data['full_name'] ?? '')),
             ':sexo' => trim((string) ($data['sexo'] ?? '')),
             ':data_nascimento' => $birthDate,
-            ':telefone_whatsapp' => trim((string) ($data['phone_whatsapp'] ?? '')),
+            ':telefone_whatsapp' => trim((string) ($responsible['telefone_whatsapp'] ?? '')),
             ':email' => trim((string) ($data['email'] ?? '')),
             ':numero_cartao_sus' => $this->normalizeNumeroCartaoSus((string) ($data['numero_cartao_sus'] ?? '')) ?: null,
             ':cep' => normalize_cep((string) ($data['zip_code'] ?? '')),

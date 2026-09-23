@@ -558,7 +558,12 @@
                 showDependentPanel('edit');
             });
 
-            $(document).on('click focus', '[data-locked-support-alert="1"]', function () {
+            $(document).on('click', '[data-locked-support-alert="1"]', function () {
+                const customMessage = String($(this).attr('data-locked-message') || '').trim();
+                if (customMessage) {
+                    App.core.abrirPopup('informacao', customMessage);
+                    return;
+                }
                 const fieldLabel = String($(this).data('lockedFieldLabel') || 'esse dado');
                 App.core.abrirPopup(
                     'erro',

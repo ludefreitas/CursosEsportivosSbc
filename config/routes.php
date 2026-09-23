@@ -25,6 +25,8 @@ return [
     ['GET', '/cursos/locais-por-modalidade', [CourseEnrollmentController::class, 'locationsByModality']],
     ['GET', '/cursos/turmas-por-local', [CourseEnrollmentController::class, 'classesByLocation']],
     ['GET', '/cursos/turma-detalhes', [CourseEnrollmentController::class, 'classDetails']],
+    ['POST', '/cursos/inscricao-cpf/opcoes', [CourseEnrollmentController::class, 'cpfOptions']],
+    ['POST', '/cursos/inscricao-cpf/turma-detalhes', [CourseEnrollmentController::class, 'cpfClassDetails']],
     ['GET', '/api/modalidades/popup', [CourseEnrollmentController::class, 'modalityPopup']],
     ['GET', '/api/locais/popup', [CourseEnrollmentController::class, 'locationPopup']],
     ['POST', '/cursos/inscrever', [CourseEnrollmentController::class, 'enroll']],

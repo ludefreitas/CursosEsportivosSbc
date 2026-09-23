@@ -76,7 +76,7 @@ class ClassCopyService
     {
         $current = Database::connection()->query('SELECT id, nome FROM temporadas ORDER BY data_inicio DESC, id DESC')->fetchAll(PDO::FETCH_ASSOC) ?: [];
         $legacyCount = (int) Database::connection()->query('SELECT COUNT(*) FROM turmas_externas_migracao WHERE temporada_id_externa = ' . self::LEGACY_SEASON_ID)->fetchColumn();
-        $items = $legacyCount > 0 ? [['id' => 'legacy:' . self::LEGACY_SEASON_ID, 'nome' => '2026 — site antigo (importado)', 'legacy' => true]] : [];
+        $items = $legacyCount > 0 ? [['id' => 'legacy:' . self::LEGACY_SEASON_ID, 'nome' => '2026 — site antigo', 'legacy' => true]] : [];
         foreach ($current as $season) {
             $items[] = ['id' => 'current:' . (int) $season['id'], 'nome' => (string) $season['nome'], 'legacy' => false];
         }

@@ -116,8 +116,16 @@ class CourseEnrollmentController extends Controller
     public function enroll(): void
     {
         try {
-            if (!Auth::check() && trim((string) ($_POST['cpf'] ?? '')) !== '') {
+            if (trim((string) ($_POST['cpf'] ?? '')) !== '') {
+                if (trim((string) ($_POST['flow_token'] ?? '')) === '') {
+                    throw new \RuntimeException('Inicie a inscrição por CPF pelo botão “Inscreva-se” da página inicial.');
+                }
                 (new HumanVerificationService())->validateRequest($_POST);
+                $this->assertCpfEnrollmentFlow(
+                    normalize_cpf((string) $_POST['cpf']),
+                    strtolower(trim((string) ($_POST['condicao_inscricao'] ?? ''))),
+                    (string) ($_POST['flow_token'] ?? '')
+                );
             }
             $result = $this->service->enroll($_POST);
             $message = 'Inscrição realizada com sucesso. Status: ' . (string) $result['status_label'] . '.';
@@ -128,9 +136,11 @@ class CourseEnrollmentController extends Controller
             }
             if ($this->isAjaxRequest()) {
                 $enrollmentId = (int) ($result['id'] ?? 0);
-                $redirect = Auth::check()
-                    ? url('/dashboard?inscricao_destaque=' . $enrollmentId . '#minhas-inscricoes-cursos')
-                    : url('/cursos');
+                $redirect = trim((string) ($_POST['flow_token'] ?? '')) !== ''
+                    ? url('/')
+                    : (Auth::check()
+                        ? url('/dashboard?inscricao_destaque=' . $enrollmentId . '#minhas-inscricoes-cursos')
+                        : url('/'));
                 $this->jsonResponse(['success' => true, 'message' => $message, 'redirect' => $redirect, 'enrollment_id' => $enrollmentId]);
             }
             flash('success', $message);
@@ -169,6 +179,45 @@ class CourseEnrollmentController extends Controller
             flash('error', $e->getMessage());
         }
         redirect('/dashboard');
+    }
+
+    public function cpfOptions(): void
+    {
+        try {
+            (new HumanVerificationService())->validateRequest($_POST);
+            $cpf = normalize_cpf((string) ($_POST['cpf'] ?? ''));
+            $condition = strtolower(trim((string) ($_POST['condicao_inscricao'] ?? '')));
+            $options = $this->service->cpfEnrollmentOptions($cpf, $condition);
+            if (!empty($options['registered'])) {
+                $token = bin2hex(random_bytes(24));
+                $_SESSION['cpf_enrollment_flow'] = [
+                    'token' => $token,
+                    'cpf' => $cpf,
+                    'condition' => $condition,
+                    'expires_at' => time() + 900,
+                ];
+                $options['flow_token'] = $token;
+            }
+            $this->jsonResponse(['success' => true, 'options' => $options]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage(), 'human_verification_refresh' => true], 422);
+        }
+    }
+
+    public function cpfClassDetails(): void
+    {
+        try {
+            $cpf = normalize_cpf((string) ($_POST['cpf'] ?? ''));
+            $condition = strtolower(trim((string) ($_POST['condicao_inscricao'] ?? '')));
+            $this->assertCpfEnrollmentFlow($cpf, $condition, (string) ($_POST['flow_token'] ?? ''));
+            $this->jsonResponse(['success' => true, 'details' => $this->service->getCpfClassEnrollmentDetails(
+                (int) ($_POST['turma_id'] ?? 0),
+                $cpf,
+                $condition
+            )]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
     }
 
     public function deletePermanentlyForProfessor(): void
@@ -211,5 +260,18 @@ class CourseEnrollmentController extends Controller
         }
 
         redirect('/dashboard');
+    }
+
+    private function assertCpfEnrollmentFlow(string $cpf, string $condition, string $token): void
+    {
+        $flow = $_SESSION['cpf_enrollment_flow'] ?? [];
+        if (!is_array($flow)
+            || (int) ($flow['expires_at'] ?? 0) < time()
+            || $token === ''
+            || !hash_equals((string) ($flow['token'] ?? ''), $token)
+            || !hash_equals((string) ($flow['cpf'] ?? ''), $cpf)
+            || !hash_equals((string) ($flow['condition'] ?? ''), $condition)) {
+            throw new \RuntimeException('A verificação do CPF expirou. Volte ao início e faça a verificação novamente.');
+        }
     }
 }

@@ -126,6 +126,74 @@ class CourseEnrollmentService
         return $items;
     }
 
+    public function cpfEnrollmentAvailable(): bool
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->query("SELECT COUNT(*) FROM temporadas WHERE status='ativa' AND permitir_inscricao_por_cpf=1");
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
+    public function cpfEnrollmentOptions(string $cpfValue, string $requestedPublic): array
+    {
+        $cpf = normalize_cpf($cpfValue);
+        if (!validar_cpf($cpf)) {
+            throw new RuntimeException('Informe um CPF válido.');
+        }
+        $requestedPublic = $this->normalizeRequestedPublic($requestedPublic);
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('SELECT * FROM pessoas WHERE cpf=:cpf LIMIT 1');
+        $stmt->execute([':cpf' => $cpf]);
+        $person = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        if (!$person) {
+            return ['registered' => false, 'message' => 'Este CPF ainda não está cadastrado no sistema.'];
+        }
+        if ((int) ($person['cadastro_completo'] ?? 0) !== 1) {
+            throw new RuntimeException('O cadastro desta pessoa precisa ser concluído antes da inscrição. Entre no sistema para completar o cadastro.');
+        }
+        $this->validateRequestedCpfPublic($pdo, $person, $requestedPublic);
+
+        $locations = [];
+        $classes = [];
+        foreach ($this->listOpenClasses() as $class) {
+            if (empty($class['permitir_inscricao_por_cpf']) || empty($class['permite_inscricao'])) { continue; }
+            $eligibility = $this->cpfClassEligibility($pdo, $person, $class, $requestedPublic);
+            if (!$eligibility['eligible']) { continue; }
+            $class['cpf_publico_alvo'] = $requestedPublic;
+            $class['cpf_excecao_idade'] = $eligibility['age_exception'];
+            $class['cpf_aviso_excecao'] = $eligibility['age_exception'] === 'plm'
+                ? 'Inscrição permitida fora da faixa etária somente com a condição Pessoa com Laudo Médico de Doença validada no perfil.'
+                : '';
+            $classes[] = $class;
+            $locationId = (int) $class['local_treino_id'];
+            $locations[$locationId] = [
+                'id' => $locationId,
+                'nome_local' => (string) ($class['nome_local'] ?? ''),
+                'apelido_local' => (string) ($class['local_nome'] ?? $class['nome_local'] ?? ''),
+            ];
+        }
+        $locations = array_values($locations);
+        usort($locations, static fn(array $a, array $b): int => strcasecmp($a['apelido_local'], $b['apelido_local']));
+        return [
+            'registered' => true,
+            'person' => ['nome_completo' => (string) $person['nome_completo'], 'idade' => calculate_age((string) $person['data_nascimento'])],
+            'publico_alvo' => $requestedPublic,
+            'locations' => $locations,
+            'classes' => $classes,
+        ];
+    }
+
+    public function getCpfClassEnrollmentDetails(int $classId, string $cpfValue, string $requestedPublic): array
+    {
+        $options = $this->cpfEnrollmentOptions($cpfValue, $requestedPublic);
+        if (empty($options['registered'])) { throw new RuntimeException((string) $options['message']); }
+        foreach ($options['classes'] as $class) {
+            if ((int) $class['id'] === $classId) {
+                return ['class' => $class, 'person' => $options['person'], 'publico_alvo' => $options['publico_alvo']];
+            }
+        }
+        throw new RuntimeException('Esta turma não possui vaga compatível com o perfil e a condição informados.');
+    }
+
     public function listForAuthenticatedAccount(): array
     {
         if (!Auth::check()) { return []; }
@@ -1301,6 +1369,8 @@ class CourseEnrollmentService
         $tokenValue = trim((string) ($data['token'] ?? ''));
         $termsAccepted = (int) ($data['aceite_termos'] ?? 0) === 1;
         $noticeAccepted = (int) ($data['aceite_edital'] ?? 0) === 1;
+        $isCpfFlow = $cpf !== '' && trim((string) ($data['flow_token'] ?? '')) !== '';
+        $requestedCpfPublic = $isCpfFlow ? $this->normalizeRequestedPublic((string) ($data['condicao_inscricao'] ?? 'geral')) : null;
 
         if ($classId <= 0 || !$termsAccepted || !$noticeAccepted) {
             throw new RuntimeException('Selecione uma turma e aceite os termos e o edital aplicável para continuar.');
@@ -1356,11 +1426,11 @@ class CourseEnrollmentService
             if (!Auth::check() && empty($season['permitir_inscricao_por_cpf'])) {
                 throw new RuntimeException('Esta temporada exige login para realizar inscrições.');
             }
-            if (!Auth::check() && calculate_age((string) $person['data_nascimento']) < 18) {
-                throw new RuntimeException('Este CPF pertence a uma pessoa menor de idade. A inscrição deve ser feita pelo responsável legal, que deverá fazer login e selecionar o dependente.');
-            }
-            if (Auth::check()) {
+            if (Auth::check() && !$isCpfFlow) {
                 $person = $this->findAuthorizedPerson($pdo, (int) $person['id']);
+            }
+            if ($isCpfFlow) {
+                $this->validateRequestedCpfPublic($pdo, $person, (string) $requestedCpfPublic);
             }
         }
 
@@ -1380,12 +1450,16 @@ class CourseEnrollmentService
             $this->validateSeasonLimit($pdo, $season, (int) $person['id'], $now, $token !== null);
             $this->validateModalityLimit($pdo, $class, (int) $person['id'], $now, $token !== null);
 
-            $conditionBlocks = $this->courseConditionCertificateBlockReasons($pdo, $person);
-            if ($conditionBlocks !== []) {
-                throw new RuntimeException((string) $conditionBlocks[0]);
+            if (!$isCpfFlow) {
+                $conditionBlocks = $this->courseConditionCertificateBlockReasons($pdo, $person);
+                if ($conditionBlocks !== []) {
+                    throw new RuntimeException((string) $conditionBlocks[0]);
+                }
             }
 
-            $validatedPublic = $this->resolvePublic($pdo, (int) $person['id']);
+            $validatedPublic = $isCpfFlow && $requestedCpfPublic !== null
+                ? $requestedCpfPublic
+                : $this->resolvePublic($pdo, (int) $person['id']);
             $ageException = $token === null ? $this->classAgeExceptionUsed($person, $class, $validatedPublic) : null;
             $publico = $ageException !== null ? 'geral' : $validatedPublic;
             if ($token !== null) { $publico = (string) $token['publico_alvo']; }
@@ -1430,6 +1504,9 @@ class CourseEnrollmentService
             'publico_alvo' => $publico,
             'excecao_condicao' => $ageException,
             'conta_id' => Auth::check() ? Auth::id() : null,
+            'origem_inscricao' => $isCpfFlow ? 'inscricao_por_cpf' : 'inscricao_logada',
+            'condicao_informada' => $isCpfFlow ? $requestedCpfPublic : null,
+            'sessao_autenticada' => Auth::check(),
         ]);
 
             $pdo->commit();
@@ -1974,6 +2051,56 @@ class CourseEnrollmentService
             ELSE 'geral' END FROM pessoas p WHERE p.id = :id");
         $stmt->execute([':id' => $personId]);
         return (string) ($stmt->fetchColumn() ?: 'geral');
+    }
+
+    private function normalizeRequestedPublic(string $value): string
+    {
+        $value = strtolower(trim($value));
+        if (!in_array($value, ['geral', 'pcd', 'plm', 'pvs'], true)) {
+            throw new RuntimeException('Selecione uma condição física/social válida.');
+        }
+        return $value;
+    }
+
+    private function validateRequestedCpfPublic(PDO $pdo, array $person, string $requestedPublic): void
+    {
+        if ($requestedPublic === 'geral') { return; }
+        $field = 'eh_' . $requestedPublic;
+        if ((int) ($person[$field] ?? 0) !== 1) {
+            throw new RuntimeException('A condição selecionada não consta no cadastro desta pessoa.');
+        }
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM certificados_pessoa cp
+            INNER JOIN tipos_certificados tc ON tc.id=cp.tipo_certificado_id
+            WHERE cp.pessoa_id=:pessoa AND tc.slug=:slug
+              AND cp.status IN ('validado','validado_parcial')
+              AND (cp.validade_certificado IS NULL OR cp.validade_certificado>=CURDATE())
+              AND EXISTS (SELECT 1 FROM documentos_certificados dc WHERE dc.certificado_pessoa_id=cp.id)");
+        $stmt->execute([':pessoa' => (int) $person['id'], ':slug' => $requestedPublic]);
+        if ((int) $stmt->fetchColumn() <= 0) {
+            throw new RuntimeException('A condição selecionada ainda não possui documentação validada e vigente no cadastro desta pessoa.');
+        }
+    }
+
+    private function cpfClassEligibility(PDO $pdo, array $person, array $class, string $requestedPublic): array
+    {
+        $requiredSex = trim((string) ($class['sexo'] ?? ''));
+        if ($requiredSex !== '' && $requiredSex !== (string) ($person['sexo'] ?? '')) {
+            return ['eligible' => false, 'age_exception' => null];
+        }
+        $ageException = $this->classAgeExceptionUsed($person, $class, $requestedPublic);
+        if (!$this->personMatchesClassAgeRule($person, $class, $requestedPublic)) {
+            return ['eligible' => false, 'age_exception' => null];
+        }
+        $duplicate = $pdo->prepare("SELECT COUNT(*) FROM inscricoes_turma WHERE turma_id=:turma AND pessoa_id=:pessoa AND status IN ('aguardando_matricula','matriculada','lista_espera')");
+        $duplicate->execute([':turma' => (int) $class['id'], ':pessoa' => (int) $person['id']]);
+        if ((int) $duplicate->fetchColumn() > 0 || $this->classLevelBlockReason($pdo, $class, (int) $person['id']) !== '') {
+            return ['eligible' => false, 'age_exception' => null];
+        }
+        $seatPublic = $ageException !== null ? 'geral' : $requestedPublic;
+        $hasCapacity = (string) $class['status'] === 'processo_inicial'
+            ? ($this->availableSeats($pdo, $class, $seatPublic) > 0 || $this->availableWaitlistSeats($pdo, $class, $seatPublic) > 0)
+            : $this->availableWaitlistSeats($pdo, $class, $seatPublic) > 0;
+        return ['eligible' => $hasCapacity, 'age_exception' => $ageException];
     }
 
     /**

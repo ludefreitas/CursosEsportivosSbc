@@ -20,15 +20,18 @@
             <?php if (!empty($class['orientacao_matricula']) || !empty($class['previsao_inicio_aulas'])) { ?><div class="home-course-class-calendar-notice"><?php if (!empty($class['orientacao_matricula'])) { ?><p><strong>Após concluir a inscrição:</strong> se houver vaga disponível, confirme a matrícula presencialmente. <?php echo e((string) $class['orientacao_matricula']); ?></p><?php } ?><?php if (!empty($class['previsao_inicio_aulas'])) { ?><p><strong>Previsão de início das aulas, após a confirmação da matrícula:</strong> <?php echo e((string) $class['previsao_inicio_aulas']); ?>.</p><?php } ?></div><?php } ?>
             <?php if (trim((string) ($class['observacao'] ?? '')) !== '') { ?><div class="home-course-class-observation"><strong>Observação importante:</strong> <?php echo nl2br(e(trim((string) $class['observacao']))); ?></div><?php } ?>
             <p><strong>Vagas disponíveis:</strong> <?php echo e((string) $class['vagas_disponiveis']); ?></p>
-            <form method="POST" action="<?php echo e(url('/cursos/inscrever')); ?>" class="stack-form" data-ajax-form="1" data-follow-redirect="1">
-                <input type="hidden" name="turma_id" value="<?php echo e((string) $class['id']); ?>">
-                <?php if ($enrollmentPeople !== []) { ?>
-                    <label><span>Pessoa</span><select name="pessoa_id"><option value="">Informar CPF</option><?php foreach ($enrollmentPeople as $person) { ?><option value="<?php echo e((string) $person['id']); ?>"><?php echo e($person['nome_completo']); ?></option><?php } ?></select></label>
-                <?php } ?>
-                <label><span>CPF da pessoa</span><input type="text" name="cpf" placeholder="000.000.000-00" <?php echo $enrollmentPeople !== [] ? '' : 'required'; ?>></label>
-                <label class="checkbox-chip"><input type="checkbox" name="aceite_termos" value="1" required><span>Aceito os termos da inscrição</span></label>
-                <button type="submit" class="btn btn-primary">Inscrever</button>
-            </form>
+            <?php if ($enrollmentPeople !== []) { ?>
+                <form method="POST" action="<?php echo e(url('/cursos/inscrever')); ?>" class="stack-form" data-ajax-form="1" data-follow-redirect="1">
+                    <input type="hidden" name="turma_id" value="<?php echo e((string) $class['id']); ?>">
+                    <label><span>Pessoa</span><select name="pessoa_id" required><option value="">Selecione</option><?php foreach ($enrollmentPeople as $person) { ?><option value="<?php echo e((string) $person['id']); ?>"><?php echo e($person['nome_completo']); ?></option><?php } ?></select></label>
+                    <label class="checkbox-chip"><input type="checkbox" name="aceite_termos" value="1" required><span>Aceito os termos da inscrição</span></label>
+                    <label class="checkbox-chip"><input type="checkbox" name="aceite_edital" value="1" required><span>Li e concordo com o edital aplicável.</span></label>
+                    <button type="submit" class="btn btn-primary">Inscrever</button>
+                </form>
+            <?php } else { ?>
+                <p class="muted">Para se inscrever, entre no sistema ou utilize o novo fluxo por CPF disponível na página inicial.</p>
+                <div class="popup-actions"><a class="btn btn-primary" href="<?php echo e(url('/')); ?>">Voltar à página inicial</a><button type="button" class="btn btn-secondary" data-open-route-modal="<?php echo e(url('/login?return_to=%2Fcursos')); ?>">Entrar</button></div>
+            <?php } ?>
         </article>
     <?php } ?>
 </section>

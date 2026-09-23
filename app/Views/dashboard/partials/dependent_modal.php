@@ -98,7 +98,8 @@
                 <div class="dashboard-dependent-edit-grid dashboard-dependent-edit-grid-2">
                     <label>
                         <span>WhatsApp</span>
-                        <input type="text" name="phone_whatsapp" value="<?php echo e((string) ($responsibleWhatsapp ?? $dependent['telefone_whatsapp'] ?? '')); ?>" required>
+                        <input type="text" name="phone_whatsapp" value="<?php echo e((string) ($responsibleWhatsapp ?? $dependent['telefone_whatsapp'] ?? '')); ?>" readonly required data-locked-support-alert="1" data-locked-field-label="o WhatsApp" data-locked-message="O WhatsApp do dependente é preenchido automaticamente com o número do responsável autenticado e não pode ser alterado neste formulário.">
+                        <small class="muted">Preenchido automaticamente com o WhatsApp do responsável autenticado.</small>
                     </label>
                     <label>
                         <span>E-mail</span>
@@ -116,6 +117,7 @@
                     <label>
                         <span>Telefone do contato de emergência</span>
                         <input type="text" name="emergency_contact_phone" value="<?php echo e((string) ($dependent['contato_emergencia_telefone'] ?? '')); ?>" required>
+                        <small class="muted">Deve ser diferente do WhatsApp do responsável autenticado.</small>
                     </label>
                 </div>
             </section>
