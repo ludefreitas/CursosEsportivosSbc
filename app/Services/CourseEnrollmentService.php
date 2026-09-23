@@ -1830,9 +1830,13 @@ class CourseEnrollmentService
 
     private function isValidNoticeUrl(string $value): bool
     {
-        if (filter_var($value, FILTER_VALIDATE_URL) === false) return false;
-        $scheme = strtolower((string) parse_url($value, PHP_URL_SCHEME));
-        return in_array($scheme, ['http', 'https'], true) && trim((string) parse_url($value, PHP_URL_HOST)) !== '';
+        $parts = parse_url($this->normalizeNoticeUrl($value));
+        if (!is_array($parts)) { return false; }
+        $scheme = strtolower(trim((string) ($parts['scheme'] ?? '')));
+        $host = trim((string) ($parts['host'] ?? ''));
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '') { return false; }
+        return preg_match('/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i', $host) === 1
+            || filter_var($host, FILTER_VALIDATE_IP) !== false;
     }
 
     private function normalizeClassAgeExceptions($value): array
