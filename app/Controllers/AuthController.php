@@ -368,6 +368,9 @@ class AuthController extends Controller
     public function logout(): void
     {
         Auth::logout();
+        if ($this->isAjaxRequest()) {
+            $this->jsonResponse(['success' => true, 'message' => 'Sessão encerrada.']);
+        }
         flash('success', 'Sessão encerrada.');
         redirect('/');
     }

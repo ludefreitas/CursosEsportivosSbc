@@ -600,9 +600,34 @@
             });
             $(document).on('click', '[data-home-course-flow-close="1"]', closeFlow);
             $(document).on('click', '#home-location-modalities-modal, #home-modality-locations-modal, #home-location-classes-modal', function (event) { if (event.target === this) closeFlow(); });
-            $(document).on('click', '[data-home-course-enroll]', function () { classDetails(String($(this).attr('data-home-course-enroll') || ''), renderEnrollmentModal); });
+            $(document).on('click', '[data-home-course-enroll]', function () {
+                const classId = String($(this).attr('data-home-course-enroll') || '');
+                const courseClass = classesById[classId] || {};
+                const cpfOnly = Number(courseClass.permitir_inscricao_por_cpf || 0) === 1
+                    && Number(courseClass.permitir_inscricao_logada || 0) !== 1;
+                if (cpfOnly) {
+                    closeFlow();
+                    renderCpfIntroduction();
+                    $('#home-course-cpf-modal').removeClass('hidden').attr('aria-hidden', 'false');
+                    return;
+                }
+                classDetails(classId, renderEnrollmentModal);
+            });
             $(document).on('click', '[data-home-course-vacancies]', function () { classDetails(String($(this).attr('data-home-course-vacancies') || ''), renderVacanciesModal); });
             const cpfFlow = { stage: 'form', cpf: '', condition: 'geral', options: null, locationId: '', token: '' };
+
+            if ($('#home-course-cpf-modal').attr('data-cpf-only-enrollment-enabled') === '1') {
+                document.addEventListener('click', function (event) {
+                    const target = event.target && event.target.closest
+                        ? event.target.closest('.home-location-suggestion[data-location-id], [data-home-location-select], [data-home-course-modality-select], [data-home-course-modalities-open="1"], #home-all-locations-open')
+                        : null;
+                    if (!target) { return; }
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    renderCpfIntroduction();
+                    $('#home-course-cpf-modal').removeClass('hidden').attr('aria-hidden', 'false');
+                }, true);
+            }
 
             function cpfVerificationBlock() {
                 return $('<div>', { class: 'human-verification', 'data-human-verification': '1' })
@@ -746,7 +771,24 @@
                 App.core.renovarVerificacaoHumana($form).always(function () { $submit.prop('disabled', false); });
             }
 
-            $(document).on('click', '[data-home-cpf-start="1"]', renderCpfStart);
+            $(document).on('click', '[data-home-cpf-start="1"]', function () {
+                if (!App.core.pageIsAuthenticated()) {
+                    renderCpfStart();
+                    return;
+                }
+                const $button = $(this).prop('disabled', true);
+                $.ajax({
+                    url: App.core.buildUrl('/logout'),
+                    method: 'POST',
+                    dataType: 'json',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                }).done(function () {
+                    window.location.href = App.core.buildUrl('/?inscricao_cpf=continuar');
+                }).fail(function (xhr) {
+                    $button.prop('disabled', false);
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem || 'Não foi possível encerrar a sessão para iniciar a inscrição rápida.');
+                });
+            });
             $(document).on('submit', '[data-home-cpf-lookup-form="1"]', function (event) {
                 event.preventDefault(); const $form = $(this); const $button = $('#home-cpf-lookup-submit').prop('disabled', true);
                 cpfFlow.cpf = String($form.find('[name="cpf"]').val() || ''); cpfFlow.condition = String($form.find('[name="condicao_inscricao"]:checked').val() || 'geral');
@@ -767,7 +809,15 @@
             $(document).on('click', '[data-home-course-detail-close="1"]', function () { $('#home-course-enrollment-modal, #home-course-vacancies-modal').addClass('hidden').attr('aria-hidden', 'true'); });
             $(document).on('click', '#home-course-enrollment-modal, #home-course-vacancies-modal', function (event) { if (event.target === this) $(this).addClass('hidden').attr('aria-hidden', 'true'); });
             if ($('#home-course-cpf-modal').attr('data-cpf-enrollment-enabled') === '1') {
-                renderCpfIntroduction();
+                const resumeCpfFlow = new URLSearchParams(window.location.search).get('inscricao_cpf') === 'continuar';
+                if (resumeCpfFlow) {
+                    renderCpfStart();
+                    const cleanUrl = new URL(window.location.href);
+                    cleanUrl.searchParams.delete('inscricao_cpf');
+                    window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+                } else {
+                    renderCpfIntroduction();
+                }
                 $('#home-course-cpf-modal').removeClass('hidden').attr('aria-hidden', 'false');
             }
             $(document).on('change', '[data-home-course-person-choice="1"]', function () {

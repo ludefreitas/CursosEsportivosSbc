@@ -253,7 +253,7 @@ $suggestedCourseModalities = array_slice($suggestedCourseModalities, 0, 3);
     </div>
 </div>
 
-<div id="home-course-cpf-modal" class="popup-overlay hidden" aria-hidden="true" data-cpf-enrollment-enabled="<?php echo !empty($cpfEnrollmentEnabled) ? '1' : '0'; ?>">
+<div id="home-course-cpf-modal" class="popup-overlay hidden" aria-hidden="true" data-cpf-enrollment-enabled="<?php echo !empty($cpfEnrollmentEnabled) ? '1' : '0'; ?>" data-cpf-only-enrollment-enabled="<?php echo !empty($cpfOnlyEnrollmentEnabled) ? '1' : '0'; ?>">
     <div class="popup-card home-course-flow-modal-card" role="dialog" aria-modal="true" aria-labelledby="home-course-cpf-title">
         <div class="popup-head"><div><span class="eyebrow" id="home-course-cpf-step">Inscrição por CPF</span><h3 id="home-course-cpf-title">Inscreva-se</h3><p class="muted" id="home-course-cpf-subtitle">Veja quais cursos estão disponíveis para inscrição, digite o CPF.</p></div><button type="button" class="popup-close-icon" data-home-cpf-close="1" aria-label="Fechar inscrição por CPF">&times;</button></div>
         <div class="popup-body" id="home-course-cpf-content"></div>

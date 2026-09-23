@@ -133,6 +133,12 @@ class CourseEnrollmentService
         return (int) $stmt->fetchColumn() > 0;
     }
 
+    public function cpfOnlyEnrollmentAvailable(): bool
+    {
+        $stmt = Database::connection()->query("SELECT COUNT(*) FROM temporadas WHERE status='ativa' AND permitir_inscricao_por_cpf=1 AND permitir_inscricao_logada=0");
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
     public function cpfEnrollmentOptions(string $cpfValue, string $requestedPublic): array
     {
         $cpf = normalize_cpf($cpfValue);
@@ -1438,7 +1444,7 @@ class CourseEnrollmentService
             throw new RuntimeException('A pessoa precisa ter o cadastro completo para se inscrever.');
         }
 
-        if (!empty($season['permitir_inscricao_logada']) === false && Auth::check()) {
+        if (!empty($season['permitir_inscricao_logada']) === false && Auth::check() && !$isCpfFlow) {
             throw new RuntimeException('Esta temporada não permite inscrições pelo sistema logado.');
         }
 

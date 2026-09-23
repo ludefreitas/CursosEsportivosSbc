@@ -91,6 +91,7 @@ class HomeController extends Controller
             'agendaReminderTitle' => $agendaReminderTitle,
             'courseModalities' => $agendaService->listModalities(),
             'cpfEnrollmentEnabled' => $courseEnrollmentService->cpfEnrollmentAvailable(),
+            'cpfOnlyEnrollmentEnabled' => $courseEnrollmentService->cpfOnlyEnrollmentAvailable(),
             'weeklyTrainingModalityNames' => $agendaService->activeWeeklyScheduleModalityNames(),
             'homeCoursesLocationsContent' => $homeInfoService->getCoursesLocationsContent(),
             'homeTrainingLocationsContent' => $homeInfoService->getTrainingLocationsContent(),
