@@ -216,6 +216,9 @@ class OfficialCommunicationService
 
     private function ensureSchema(): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         if (self::$schemaChecked) {
             return;
         }

@@ -4239,6 +4239,9 @@ class AdminService
      */
     private function ensureHealthCertificateSchema(): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         static $ensured = false;
 
         if ($ensured) {
@@ -4291,6 +4294,9 @@ class AdminService
      */
     private function ensureWeeklyScheduleAgeRuleSchema(): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         static $ensured = false;
 
         if ($ensured) {
@@ -4391,6 +4397,9 @@ class AdminService
 
     private function ensureModalityLevelSchema(): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         static $ensured = false;
         if ($ensured) { return; }
         $pdo = Database::connection();
@@ -4411,6 +4420,9 @@ class AdminService
     /** Garante que relatórios administrativos possam usar o retrato histórico. */
     private function ensureBookingSnapshotSchema(): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         static $ensured = false;
         if ($ensured) return;
         $pdo = Database::connection();
@@ -5394,6 +5406,9 @@ class AdminService
 
     private function ensureSpecialScheduleSchema(): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         static $ensured = false;
 
         if ($ensured) {

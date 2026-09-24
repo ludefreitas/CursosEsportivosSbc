@@ -34,6 +34,53 @@ class DataRecoveryService
         'certificados_pessoa' => ['table' => 'certificados_pessoa', 'action' => 'delete_bundle'],
     ];
 
+    /**
+     * Dependências conhecidas do esquema. A lista é mantida junto das migrações,
+     * evitando consultar information_schema durante uma requisição HTTP.
+     */
+    private const TABLE_DEPENDENCIES = [
+        'modalidades' => [
+            ['table' => 'certificados_nivel_modalidade', 'column' => 'modalidade_id'],
+            ['table' => 'locais_modalidades', 'column' => 'modalidade_id'],
+            ['table' => 'cronogramas_modalidade', 'column' => 'modalidade_id'],
+            ['table' => 'turmas', 'column' => 'modalidade_id'],
+            ['table' => 'avaliacoes', 'column' => 'modalidade_id'],
+            ['table' => 'horarios_semanais', 'column' => 'modalidade_id'],
+            ['table' => 'agenda_horarios_especiais', 'column' => 'modalidade_id'],
+            ['table' => 'modalidade_popups', 'column' => 'modalidade_id'],
+        ],
+        'locais_treino' => [
+            ['table' => 'locais_externos_vinculos', 'column' => 'local_treino_id'],
+            ['table' => 'espacos_treino', 'column' => 'local_treino_id'],
+            ['table' => 'locais_modalidades', 'column' => 'local_treino_id'],
+            ['table' => 'turmas', 'column' => 'local_treino_id'],
+            ['table' => 'horarios_semanais', 'column' => 'local_treino_id'],
+            ['table' => 'agenda_horarios_especiais', 'column' => 'local_treino_id'],
+            ['table' => 'modalidade_popups', 'column' => 'local_treino_id'],
+            ['table' => 'local_popups', 'column' => 'local_treino_id'],
+        ],
+        'espacos_treino' => [
+            ['table' => 'suspensoes_espaco_treino', 'column' => 'espaco_treino_id'],
+            ['table' => 'turmas', 'column' => 'espaco_treino_id'],
+            ['table' => 'horarios_semanais', 'column' => 'espaco_treino_id'],
+            ['table' => 'agenda_horarios_especiais', 'column' => 'espaco_treino_id'],
+        ],
+        'horarios_semanais' => [
+            ['table' => 'agendamentos', 'column' => 'horario_semanal_id'],
+            ['table' => 'horarios_semanais_professores', 'column' => 'horario_semanal_id'],
+            ['table' => 'horarios_semanais_estagiarios', 'column' => 'horario_semanal_id'],
+        ],
+        'agenda_horarios_especiais' => [
+            ['table' => 'agenda_horarios_especiais_inscricoes', 'column' => 'agenda_horario_especial_id'],
+        ],
+        'postagens_blog' => [
+            ['table' => 'blog_postagens_imagens', 'column' => 'postagem_blog_id'],
+        ],
+        'certificados_pessoa' => [
+            ['table' => 'documentos_certificados', 'column' => 'certificado_pessoa_id'],
+        ],
+    ];
+
     public function __construct()
     {
         $this->ensureSchema();
@@ -286,15 +333,10 @@ class DataRecoveryService
             return [];
         }
         $pdo = Database::connection();
-        $stmt = $pdo->prepare("SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME = :table AND REFERENCED_COLUMN_NAME = 'id'");
-        $stmt->execute([':table' => $table]);
         $dependencies = [];
-        foreach ($stmt->fetchAll() as $foreignKey) {
-            $childTable = (string) $foreignKey['TABLE_NAME'];
-            $childColumn = (string) $foreignKey['COLUMN_NAME'];
-            if (!preg_match('/^[a-zA-Z0-9_]+$/', $childTable . $childColumn)) {
-                continue;
-            }
+        foreach (self::TABLE_DEPENDENCIES[$table] ?? [] as $foreignKey) {
+            $childTable = (string) $foreignKey['table'];
+            $childColumn = (string) $foreignKey['column'];
             $countStmt = $pdo->prepare("SELECT COUNT(*) FROM `{$childTable}` WHERE `{$childColumn}` = :id");
             $countStmt->execute([':id' => $id]);
             $dependencies[] = ['table' => $childTable, 'column' => $childColumn, 'count' => (int) $countStmt->fetchColumn()];
@@ -417,32 +459,6 @@ class DataRecoveryService
         }
     }
 
-    private function restorePreviousSnapshot(PDO $pdo, string $table, int $id, array $snapshot): void
-    {
-        $columnStmt = $pdo->prepare('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table');
-        $columnStmt->execute([':table' => $table]);
-        $columns = array_column($columnStmt->fetchAll(), 'COLUMN_NAME');
-        $blocked = ['id', 'created_at'];
-        $values = [];
-        foreach ($snapshot as $column => $value) {
-            if (in_array($column, $columns, true) && !in_array($column, $blocked, true)) {
-                $values[$column] = $value;
-            }
-        }
-        if (!$values) {
-            throw new RuntimeException('O histórico não possui campos seguros suficientes para restaurar esta atualização.');
-        }
-        $sets = [];
-        $params = [':record_id' => $id];
-        foreach ($values as $column => $value) {
-            $placeholder = ':previous_' . $column;
-            $sets[] = "`{$column}` = {$placeholder}";
-            $params[$placeholder] = $value;
-        }
-        $stmt = $pdo->prepare("UPDATE `{$table}` SET " . implode(', ', $sets) . ' WHERE id = :record_id');
-        $stmt->execute($params);
-    }
-
     private function recordReversal(PDO $pdo, int $accountId, ?int $logId, string $type, int $targetId, string $table, string $reason, array $snapshot, ?string $quarantinePath = null): void
     {
         $stmt = $pdo->prepare('INSERT INTO reversoes_logicas (log_auditoria_id, tipo_alvo, alvo_id, tabela_alvo, motivo, estado_anterior_json, caminho_quarentena, executado_por_conta_id, ativo) VALUES (:log_id, :tipo, :alvo_id, :tabela, :motivo, :snapshot, :quarentena, :conta_id, 1)');
@@ -460,6 +476,9 @@ class DataRecoveryService
 
     private function ensureSchema(): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         Database::connection()->exec("CREATE TABLE IF NOT EXISTS reversoes_logicas (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             log_auditoria_id BIGINT UNSIGNED NULL,

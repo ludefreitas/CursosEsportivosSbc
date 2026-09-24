@@ -490,6 +490,9 @@ class HomeInfoService
 
     private function ensureContentSchema(): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         $pdo = Database::connection();
         $pdo->exec('CREATE TABLE IF NOT EXISTS home_conteudos_configurados (chave VARCHAR(60) PRIMARY KEY, conteudo_json LONGTEXT NULL, rascunho_json LONGTEXT NULL, atualizado_por_conta_id BIGINT UNSIGNED NULL, updated_at DATETIME NOT NULL, CONSTRAINT fk_home_conteudo_conta FOREIGN KEY (atualizado_por_conta_id) REFERENCES contas(id) ON DELETE SET NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         $check = $pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'home_conteudos_configurados' AND COLUMN_NAME = 'rascunho_json'");

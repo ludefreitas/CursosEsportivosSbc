@@ -434,6 +434,9 @@ class SitePopupService
 
     private function ensureActionsSchema(PDO $pdo): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         static $checked = false;
         if ($checked) { return; }
         $checked = true;

@@ -1019,6 +1019,9 @@ class BlogService
      */
     private function ensureSchema(): void
     {
+        // O esquema é preparado exclusivamente pelas migrações em database/.
+        return;
+
         if (self::$schemaChecked) {
             return;
         }

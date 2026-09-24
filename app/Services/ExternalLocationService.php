@@ -182,6 +182,9 @@ class ExternalLocationService
 
     private function ensureSchema(): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         $pdo = Database::connection();
         $pdo->exec('CREATE TABLE IF NOT EXISTS migracoes_fontes_externas (chave VARCHAR(80) PRIMARY KEY, concluida_em DATETIME NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         $pdo->exec('CREATE TABLE IF NOT EXISTS locais_externos_migracao (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, id_externo BIGINT UNSIGNED NOT NULL, apelido_local VARCHAR(100) NULL, nome_local VARCHAR(150) NOT NULL, logradouro VARCHAR(180) NULL, numero_endereco VARCHAR(20) NULL, complemento VARCHAR(120) NULL, bairro VARCHAR(120) NULL, cidade VARCHAR(120) NULL, uf CHAR(2) NULL, telefone VARCHAR(30) NULL, cep CHAR(8) NULL, ativo TINYINT(1) NOT NULL DEFAULT 1, importado_em DATETIME NOT NULL, UNIQUE KEY uk_local_externo (id_externo), INDEX idx_local_externo_nome (nome_local)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');

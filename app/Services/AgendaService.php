@@ -1463,6 +1463,9 @@ class AgendaService
      */
     private function ensureWeeklyScheduleAgeRuleSchema(): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         static $ensured = false;
 
         if ($ensured) {
@@ -1496,6 +1499,9 @@ class AgendaService
     /** Garante o retrato imutável do horário nos agendamentos. */
     private function ensureBookingSnapshotSchema(): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         static $ensured = false;
         if ($ensured) return;
 
@@ -2128,12 +2134,6 @@ class AgendaService
         }
 
         $pdo = Database::connection();
-        $tableExists = $pdo->query("SHOW TABLES LIKE 'agenda_horarios_especiais_inscricoes'")->fetchColumn();
-
-        if (!$tableExists) {
-            return [];
-        }
-
         $placeholders = implode(', ', array_fill(0, count($scheduleIds), '?'));
         $stmt = $pdo->prepare('
             SELECT agenda_horario_especial_id, publico_alvo, COUNT(*) AS total
@@ -2573,6 +2573,9 @@ class AgendaService
      */
     private function ensureSpecialScheduleSchema(): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         $pdo = Database::connection();
 
         $oldTable = $pdo->query("SHOW TABLES LIKE 'agenda_eventos_especiais'")->fetchColumn();

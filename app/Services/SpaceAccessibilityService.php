@@ -215,6 +215,9 @@ class SpaceAccessibilityService
 
     private function ensureSchema(): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         $pdo = Database::connection();
         $columns = [];
         foreach ($pdo->query('SHOW COLUMNS FROM espacos_treino')->fetchAll(PDO::FETCH_ASSOC) as $column) {

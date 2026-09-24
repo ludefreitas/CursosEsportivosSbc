@@ -7075,6 +7075,21 @@
                     showFirstInvalid('Revise as datas da temporada destacadas no formulário antes de salvar.');
                     return;
                 }
+                if ($form.is('[data-course-form="season"]')) {
+                    const $enrollmentModes = $form.find('[name="permitir_inscricao_logada"], [name="permitir_inscricao_por_cpf"]');
+                    if (!$enrollmentModes.is(':checked')) {
+                        $enrollmentModes.closest('label').addClass('field-invalid-container');
+                        App.core.abrirPopup('erro', 'Selecione pelo menos uma forma de inscrição: “Permitir inscrição logada” ou “Permitir inscrição por CPF”.', function () {
+                            const firstMode = $enrollmentModes.get(0);
+                            if (firstMode) {
+                                firstMode.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                window.setTimeout(function () { firstMode.focus({ preventScroll: true }); }, 180);
+                            }
+                        });
+                        return;
+                    }
+                    $enrollmentModes.closest('label').removeClass('field-invalid-container');
+                }
                 // validarFormularioInline já reúne as regras required, formato,
                 // limites nativos e mensagens remotas. Não chame checkValidity()
                 // novamente aqui: ele dispara o listener global de `invalid`, que

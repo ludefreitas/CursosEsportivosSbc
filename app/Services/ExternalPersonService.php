@@ -411,6 +411,9 @@ class ExternalPersonService
 
     private function ensureMigrationSchema(): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         Database::connection()->exec('CREATE TABLE IF NOT EXISTS cadastros_externos_migracao (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             id_externo BIGINT UNSIGNED NOT NULL,

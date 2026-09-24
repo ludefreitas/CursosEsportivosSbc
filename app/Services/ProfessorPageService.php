@@ -60,6 +60,9 @@ class ProfessorPageService
 
     private function ensureSchema(): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         $database = Database::connection();
         $database->exec('CREATE TABLE IF NOT EXISTS pagina_professor_config (id TINYINT UNSIGNED PRIMARY KEY, titulo VARCHAR(160) NOT NULL, comunicado TEXT NULL, texto_secundario TEXT NULL, imagem_url VARCHAR(2048) NULL, acoes_json LONGTEXT NULL, atualizado_por_conta_id BIGINT UNSIGNED NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, INDEX idx_pagina_professor_conta (atualizado_por_conta_id)) ENGINE=InnoDB');
         $column = $database->query("SHOW COLUMNS FROM pagina_professor_config LIKE 'texto_secundario'")->fetch(PDO::FETCH_ASSOC);

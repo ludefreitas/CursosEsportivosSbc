@@ -86,6 +86,9 @@ class LocationPopupService
 
     private function ensureSchema(PDO $pdo): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         $pdo->exec("CREATE TABLE IF NOT EXISTS local_popups (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, local_treino_id BIGINT UNSIGNED NOT NULL, area ENUM('cursos','agenda') NOT NULL, titulo VARCHAR(180) NOT NULL, texto_principal TEXT NOT NULL, texto_secundario TEXT NULL, imagem_url VARCHAR(255) NULL, rotulo_acao VARCHAR(90) NULL, url_acao VARCHAR(255) NULL, data_inicio DATETIME NOT NULL, data_fim DATETIME NOT NULL, status ENUM('ativo','arquivado','excluido') NOT NULL DEFAULT 'ativo', criado_por_conta_id BIGINT UNSIGNED NOT NULL, atualizado_por_conta_id BIGINT UNSIGNED NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NULL DEFAULT NULL, UNIQUE KEY uq_local_popup_area (local_treino_id,area), INDEX idx_local_popup_publico (area,status,data_inicio,data_fim), CONSTRAINT fk_local_popup_local FOREIGN KEY (local_treino_id) REFERENCES locais_treino(id), CONSTRAINT fk_local_popup_criador FOREIGN KEY (criado_por_conta_id) REFERENCES contas(id), CONSTRAINT fk_local_popup_atualizador FOREIGN KEY (atualizado_por_conta_id) REFERENCES contas(id)) ENGINE=InnoDB");
     }
 }

@@ -332,6 +332,9 @@ class ExternalHealthCertificateService
 
     private function ensureSchema(): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         Database::connection()->exec('CREATE TABLE IF NOT EXISTS atestados_saude_importados (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
             tipo_atestado ENUM("clinico", "dermatologico") NOT NULL,

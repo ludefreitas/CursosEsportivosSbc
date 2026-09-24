@@ -808,6 +808,11 @@ class CourseEnrollmentService
         $id = (int) ($data['id'] ?? 0);
         $secondRelease = trim((string) ($data['data_liberacao_segunda_inscricao'] ?? '')) ?: null;
         $additionalRelease = trim((string) ($data['data_liberacao_inscricoes_adicionais'] ?? '')) ?: null;
+        $allowLoggedEnrollment = !empty($data['permitir_inscricao_logada']);
+        $allowCpfEnrollment = !empty($data['permitir_inscricao_por_cpf']);
+        if (!$allowLoggedEnrollment && !$allowCpfEnrollment) {
+            throw new RuntimeException('Selecione pelo menos uma forma de inscrição: “Permitir inscrição logada” ou “Permitir inscrição por CPF”.');
+        }
         $weeklyCoverage = $this->normalizeWeeklyCoverage((string) ($data['abrangencia_semanal'] ?? 'segunda_sexta'));
         $enrollmentStart = trim((string) ($data['matriculas_inicio'] ?? '')) ?: null;
         $enrollmentEnd = trim((string) ($data['matriculas_fim'] ?? '')) ?: null;
@@ -822,7 +827,7 @@ class CourseEnrollmentService
         $seasonStatus = in_array($requestedStatus, ['suspensa', 'cancelada'], true)
             ? $requestedStatus
             : $this->calculatedSeasonStatus(['status' => $requestedStatus, 'data_inicio' => $start, 'data_fim' => $end]);
-        $params = [':nome' => $name, ':origem_id' => $originId, ':origem' => (string) $origin['nome'], ':abrangencia_semanal' => $weeklyCoverage, ':possui_edital' => $hasNotice ? 1 : 0, ':numero_edital' => $noticeNumber, ':link_edital' => $noticeLink, ':tipo' => $type, ':inicio' => $start, ':fim' => $end, ':status' => $seasonStatus, ':inscricoes_inicio' => trim((string) ($data['inscricoes_inicio'] ?? '')) ?: null, ':inscricoes_fim' => trim((string) ($data['inscricoes_fim'] ?? '')) ?: null, ':matriculas_inicio' => $enrollmentStart, ':matriculas_fim' => $enrollmentEnd, ':inscricao_matricula' => !empty($data['permitir_inscricao_periodo_matricula']) ? 1 : 0, ':abertas_inicio' => trim((string) ($data['inscricoes_abertas_inicio'] ?? '')) ?: null, ':abertas_fim' => trim((string) ($data['inscricoes_abertas_fim'] ?? '')) ?: null, ':aulas_inicio' => trim((string) ($data['aulas_inicio'] ?? '')) ?: null, ':aulas_fim' => trim((string) ($data['aulas_fim'] ?? '')) ?: null, ':cpf' => !empty($data['permitir_inscricao_por_cpf']) ? 1 : 0, ':logada' => !empty($data['permitir_inscricao_logada']) ? 1 : 0, ':limite' => max(1, (int) ($data['limite_inscricoes_periodo'] ?? 1)), ':segunda_liberacao' => $secondRelease, ':adicionais_liberacao' => $additionalRelease, ':limite_adicionais' => max(3, (int) ($data['limite_inscricoes_adicionais'] ?? 3))];
+        $params = [':nome' => $name, ':origem_id' => $originId, ':origem' => (string) $origin['nome'], ':abrangencia_semanal' => $weeklyCoverage, ':possui_edital' => $hasNotice ? 1 : 0, ':numero_edital' => $noticeNumber, ':link_edital' => $noticeLink, ':tipo' => $type, ':inicio' => $start, ':fim' => $end, ':status' => $seasonStatus, ':inscricoes_inicio' => trim((string) ($data['inscricoes_inicio'] ?? '')) ?: null, ':inscricoes_fim' => trim((string) ($data['inscricoes_fim'] ?? '')) ?: null, ':matriculas_inicio' => $enrollmentStart, ':matriculas_fim' => $enrollmentEnd, ':inscricao_matricula' => !empty($data['permitir_inscricao_periodo_matricula']) ? 1 : 0, ':abertas_inicio' => trim((string) ($data['inscricoes_abertas_inicio'] ?? '')) ?: null, ':abertas_fim' => trim((string) ($data['inscricoes_abertas_fim'] ?? '')) ?: null, ':aulas_inicio' => trim((string) ($data['aulas_inicio'] ?? '')) ?: null, ':aulas_fim' => trim((string) ($data['aulas_fim'] ?? '')) ?: null, ':cpf' => $allowCpfEnrollment ? 1 : 0, ':logada' => $allowLoggedEnrollment ? 1 : 0, ':limite' => max(1, (int) ($data['limite_inscricoes_periodo'] ?? 1)), ':segunda_liberacao' => $secondRelease, ':adicionais_liberacao' => $additionalRelease, ':limite_adicionais' => max(3, (int) ($data['limite_inscricoes_adicionais'] ?? 3))];
         if ($id > 0) {
             $params[':id'] = $id;
             $stmt = $pdo->prepare('UPDATE temporadas SET nome=:nome, origem_temporada_id=:origem_id, origem_temporada=:origem, abrangencia_semanal=:abrangencia_semanal, possui_edital=:possui_edital, numero_edital=:numero_edital, link_edital=:link_edital, tipo_periodicidade=:tipo, data_inicio=:inicio, data_fim=:fim, status=:status, inscricoes_inicio=:inscricoes_inicio, inscricoes_fim=:inscricoes_fim, matriculas_inicio=:matriculas_inicio, matriculas_fim=:matriculas_fim, permitir_inscricao_periodo_matricula=:inscricao_matricula, inscricoes_abertas_inicio=:abertas_inicio, inscricoes_abertas_fim=:abertas_fim, aulas_inicio=:aulas_inicio, aulas_fim=:aulas_fim, permitir_inscricao_por_cpf=:cpf, permitir_inscricao_logada=:logada, limite_inscricoes_periodo=:limite, data_liberacao_segunda_inscricao=:segunda_liberacao, data_liberacao_inscricoes_adicionais=:adicionais_liberacao, limite_inscricoes_adicionais=:limite_adicionais, permitir_multiplas_inscricoes_modalidade=:multiplas_modalidade, limite_inscricoes_modalidade=:limite_modalidade, data_liberacao_multiplas_inscricoes_modalidade=:liberacao_modalidade WHERE id=:id LIMIT 1');
@@ -2427,6 +2432,9 @@ class CourseEnrollmentService
 
     private function ensureCourseAgeCriterionSchema(PDO $pdo): void
     {
+        // O esquema é preparado exclusivamente pelas migrações em database/.
+        return;
+
         if (self::$courseAgeCriterionSchemaChecked) { return; }
         $stmt = $pdo->query("SHOW COLUMNS FROM turmas LIKE 'criterio_faixa_etaria'");
         if (!$stmt || !$stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -2499,6 +2507,9 @@ class CourseEnrollmentService
 
     private function ensureCourseSeasonSchema(PDO $pdo): void
     {
+        // O esquema é preparado exclusivamente pelas migrações em database/.
+        return;
+
         if (self::$courseSeasonSchemaChecked) { return; }
         $originTableCheck = $pdo->query("SHOW TABLES LIKE 'origens_temporada'");
         $originTableAlreadyExisted = $originTableCheck && $originTableCheck->fetchColumn();

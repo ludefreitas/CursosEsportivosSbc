@@ -82,6 +82,9 @@ class TutorialPageService
 
     private function ensureSchema(): void
     {
+        // Estrutura gerenciada somente por migrações explícitas.
+        return;
+
         Database::connection()->exec('CREATE TABLE IF NOT EXISTS pagina_tutorial_config (id TINYINT UNSIGNED PRIMARY KEY, titulo VARCHAR(180) NOT NULL, texto_introdutorio TEXT NULL, videos_json LONGTEXT NULL, atualizado_por_conta_id BIGINT UNSIGNED NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, INDEX idx_pagina_tutorial_conta (atualizado_por_conta_id)) ENGINE=InnoDB');
     }
 }
