@@ -7373,6 +7373,9 @@
                         $panel.replaceWith(String(response.panel_html));
                     }
                     App.core.abrirPopup('sucesso', String(response.message || 'Status da inscrição atualizado com sucesso.'));
+                    if (response.warning) {
+                        $('#popup-titulo').text('Atenção: capacidade excedida');
+                    }
                 }).fail(function (xhr) {
                     App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
                 }).always(function () { $submit.prop('disabled', false); });

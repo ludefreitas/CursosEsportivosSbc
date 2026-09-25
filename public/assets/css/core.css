@@ -1372,6 +1372,14 @@ body.pagina-error label span {
     background-image: linear-gradient(to bottom, #b8dfc2 0%, #d8f0de 48%, #f4fbf6 100%);
 }
 .course-enrollment-status-matriculada { background: linear-gradient(to bottom, #edf5ef 0%, #f7faf8 50%, #fff 100%); }
+.course-class-print-attendance-link,
+.course-class-print-attendance-link:visited { color: var(--accent-green); font-weight: 800; text-decoration: underline; }
+.course-class-print-attendance-link:hover,
+.course-class-print-attendance-link:focus-visible { color: #146b39; }
+.course-class-address-list-link,
+.course-class-address-list-link:visited { color: #111; font-weight: 800; text-decoration: underline; }
+.course-class-address-list-link:hover,
+.course-class-address-list-link:focus-visible { color: #000; }
 .course-enrollment-status-desistente { background: linear-gradient(to bottom, #d5d9d9 0%, #e9ebeb 52%, #f8f9f9 100%); }
 .course-enrollment-status-cancelada { background: linear-gradient(to bottom, #efc3c3 0%, #f8dddd 52%, #fff3f3 100%); }
 .course-enrollment-status-suspensa { background: linear-gradient(to bottom, #dec9eb 0%, #ecdef3 52%, #faf2f7 100%); }

@@ -19,6 +19,8 @@ use App\Services\ExternalLocationService;
 use App\Services\ExternalHealthCertificateService;
 use App\Services\SpaceAccessibilityService;
 use App\Services\CourseEnrollmentService;
+use App\Services\AttendanceListPdfService;
+use App\Services\AddressListPdfService;
 use App\Services\ModalityPopupService;
 use App\Services\LocationPopupService;
 use App\Services\TutorialPageService;
@@ -2698,6 +2700,53 @@ class AdminController extends Controller
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
+    public function updateCourseEnrollmentStatus(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $courseEnrollmentService = new CourseEnrollmentService();
+            $result = $courseEnrollmentService->changeStatus(
+                (int) ($_POST['inscricao_id'] ?? 0),
+                trim((string) ($_POST['status'] ?? '')),
+                (int) ($user['conta_id'] ?? 0),
+                trim((string) ($_POST['motivo'] ?? '')),
+                trim((string) ($_POST['suspensa_fim'] ?? '')) ?: null,
+                trim((string) ($_POST['token'] ?? '')),
+                trim((string) ($_POST['vaga_informada_em'] ?? '')) ?: null,
+                !empty($_POST['vaga_informada'])
+            );
+
+            $courseEnrollmentSortBy = trim((string) ($_POST['ordenar_por'] ?? 'ordem_inscricao'));
+            $courseEnrollmentSortDirection = trim((string) ($_POST['direcao'] ?? 'asc'));
+            $courseEnrollmentStatusFilter = trim((string) ($_POST['status_filtro'] ?? 'todos'));
+            $courseEnrollmentConditionFilter = trim((string) ($_POST['condicao_filtro'] ?? 'todas'));
+            $courseEnrollmentClassId = max(0, (int) ($_POST['turma_id'] ?? 0));
+            $courseEnrollmentClassName = trim((string) ($_POST['turma_nome'] ?? ''));
+            $courseEnrollmentGroupBy = in_array(($_POST['agrupar_por'] ?? ''), ['local', 'modalidade'], true) ? (string) $_POST['agrupar_por'] : '';
+            $courseEnrollmentSeasonId = max(0, (int) ($_POST['temporada_id'] ?? 0));
+            $courseEnrollmentGroupId = max(0, (int) ($_POST['grupo_id'] ?? 0));
+            $courseEnrollmentSecondaryGroupId = max(0, (int) ($_POST['grupo_secundario_id'] ?? 0));
+            $courseEnrollmentPage = max(1, (int) ($_POST['pagina'] ?? 1));
+            $courseEnrollmentFilterOptions = $courseEnrollmentService->enrollmentManagementFilters($courseEnrollmentSeasonId, $courseEnrollmentGroupBy, $courseEnrollmentGroupId);
+            $courseEnrollmentsManagement = $courseEnrollmentService->listForManagement($courseEnrollmentSortBy, $courseEnrollmentSortDirection, $courseEnrollmentStatusFilter, $courseEnrollmentConditionFilter, $courseEnrollmentClassId, 0, $courseEnrollmentSeasonId, $courseEnrollmentGroupBy, $courseEnrollmentGroupId, $courseEnrollmentSecondaryGroupId, $courseEnrollmentPage);
+            $courseEnrollmentsByPerson = $courseEnrollmentService->enrollmentSummariesByPerson(array_column($courseEnrollmentsManagement, 'pessoa_id'));
+            $courseEnrollmentStatusSummary = $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId, $courseEnrollmentSeasonId, $courseEnrollmentGroupBy, $courseEnrollmentGroupId, $courseEnrollmentSecondaryGroupId);
+            $professorView = false;
+            ob_start();
+            require ROOT_PATH . '/app/Views/admin/partials/course_enrollment_panel.php';
+            $this->jsonResponse([
+                'success' => true,
+                'message' => !empty($result['capacity_warning']['message'])
+                    ? (string) $result['capacity_warning']['message']
+                    : 'Status da inscrição atualizado com sucesso.',
+                'warning' => $result['capacity_warning'] ?? null,
+                'panel_html' => (string) ob_get_clean(),
+            ]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
     public function personEnrollments(): void
     {
         $this->assertAdminAccess();
@@ -2783,6 +2832,58 @@ class AdminController extends Controller
             ob_start(); require ROOT_PATH . '/app/Views/admin/partials/course_class_attendance.php'; $html = (string) ob_get_clean();
             $this->jsonResponse(['success' => true, 'html' => $html]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function printableCourseClassAttendance(): void
+    {
+        $this->assertAdminAccess();
+        $this->outputAttendanceListPdf((int) ($_GET['turma_id'] ?? 0));
+    }
+
+    public function printableCourseClassAddresses(): void
+    {
+        $this->assertAdminAccess();
+        $this->outputAddressListPdf((int) ($_GET['turma_id'] ?? 0));
+    }
+
+    private function outputAddressListPdf(int $classId): void
+    {
+        try {
+            $data = (new CourseEnrollmentService())->printableAddressList($classId);
+            $pdf = (new AddressListPdfService())->render($data['class'], $data['students']);
+            while (ob_get_level() > 0) { ob_end_clean(); }
+            header('Content-Type: application/pdf');
+            header('Content-Length: ' . strlen($pdf));
+            header('Content-Disposition: inline; filename="lista-enderecos-turma-' . $classId . '.pdf"');
+            header('X-Content-Type-Options: nosniff');
+            echo $pdf;
+            exit;
+        } catch (\Throwable $e) {
+            http_response_code(422);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo $e->getMessage();
+            exit;
+        }
+    }
+
+    private function outputAttendanceListPdf(int $classId): void
+    {
+        try {
+            $attendance = (new CourseEnrollmentService())->printableAttendanceList($classId);
+            $pdf = (new AttendanceListPdfService())->render($attendance['class'], $attendance['students']);
+            while (ob_get_level() > 0) { ob_end_clean(); }
+            header('Content-Type: application/pdf');
+            header('Content-Length: ' . strlen($pdf));
+            header('Content-Disposition: inline; filename="lista-chamada-turma-' . $classId . '.pdf"');
+            header('X-Content-Type-Options: nosniff');
+            echo $pdf;
+            exit;
+        } catch (\Throwable $e) {
+            http_response_code(422);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo $e->getMessage();
+            exit;
+        }
     }
 
     public function healthCertificateDocument(): void

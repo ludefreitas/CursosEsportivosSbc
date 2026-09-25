@@ -8,6 +8,8 @@ use App\Services\AdminService;
 use App\Services\AgendaService;
 use App\Services\ProfileService;
 use App\Services\UserService;
+use App\Services\AttendanceListPdfService;
+use App\Services\AddressListPdfService;
 use DateTimeImmutable;
 
 class ProfessorController extends Controller
@@ -245,6 +247,66 @@ class ProfessorController extends Controller
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
+    public function printableCourseClassAttendance(): void
+    {
+        $user = $this->assertProfessorAccess();
+        $classId = (int) ($_GET['turma_id'] ?? 0);
+        $service = new \App\Services\CourseEnrollmentService();
+        if (!$service->professorIsAssignedToClass((int) ($user['conta_id'] ?? 0), $classId)) {
+            http_response_code(403);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo 'Você não está atribuído a esta turma.';
+            exit;
+        }
+
+        try {
+            $attendance = $service->printableAttendanceList($classId);
+            $pdf = (new AttendanceListPdfService())->render($attendance['class'], $attendance['students']);
+            while (ob_get_level() > 0) { ob_end_clean(); }
+            header('Content-Type: application/pdf');
+            header('Content-Length: ' . strlen($pdf));
+            header('Content-Disposition: inline; filename="lista-chamada-turma-' . $classId . '.pdf"');
+            header('X-Content-Type-Options: nosniff');
+            echo $pdf;
+            exit;
+        } catch (\Throwable $e) {
+            http_response_code(422);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo $e->getMessage();
+            exit;
+        }
+    }
+
+    public function printableCourseClassAddresses(): void
+    {
+        $user = $this->assertProfessorAccess();
+        $classId = (int) ($_GET['turma_id'] ?? 0);
+        $service = new \App\Services\CourseEnrollmentService();
+        if (!$service->professorIsAssignedToClass((int) ($user['conta_id'] ?? 0), $classId)) {
+            http_response_code(403);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo 'Você não está atribuído a esta turma.';
+            exit;
+        }
+
+        try {
+            $data = $service->printableAddressList($classId);
+            $pdf = (new AddressListPdfService())->render($data['class'], $data['students']);
+            while (ob_get_level() > 0) { ob_end_clean(); }
+            header('Content-Type: application/pdf');
+            header('Content-Length: ' . strlen($pdf));
+            header('Content-Disposition: inline; filename="lista-enderecos-turma-' . $classId . '.pdf"');
+            header('X-Content-Type-Options: nosniff');
+            echo $pdf;
+            exit;
+        } catch (\Throwable $e) {
+            http_response_code(422);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo $e->getMessage();
+            exit;
+        }
+    }
+
     public function saveCourseClassAttendance(): void
     {
         $user = $this->assertProfessorAccess();
@@ -415,7 +477,7 @@ class ProfessorController extends Controller
             if (!$courseEnrollmentService->professorCanManageEnrollment($professorAccountId, $enrollmentId)) {
                 throw new \RuntimeException('Você não está atribuído a esta turma e não pode alterar esta inscrição.');
             }
-            $courseEnrollmentService->changeStatus(
+            $result = $courseEnrollmentService->changeStatus(
                 $enrollmentId,
                 trim((string) ($_POST['status'] ?? '')),
                 $professorAccountId,
@@ -445,7 +507,10 @@ class ProfessorController extends Controller
             require ROOT_PATH . '/app/Views/admin/partials/course_enrollment_panel.php';
             $this->jsonResponse([
                 'success' => true,
-                'message' => 'Status da inscrição atualizado com sucesso.',
+                'message' => !empty($result['capacity_warning']['message'])
+                    ? (string) $result['capacity_warning']['message']
+                    : 'Status da inscrição atualizado com sucesso.',
+                'warning' => $result['capacity_warning'] ?? null,
                 'panel_html' => (string) ob_get_clean(),
             ]);
         } catch (\Throwable $e) {

@@ -662,7 +662,8 @@ class CourseEnrollmentService
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         $enrollmentCounts = $this->enrollmentCountsByClass($pdo);
         foreach ($classes as &$class) {
-            $class['total_inscritos'] = $enrollmentCounts[(int) $class['id']] ?? 0;
+            $class['total_inscritos'] = $enrollmentCounts[(int) $class['id']]['total'] ?? 0;
+            $class['total_matriculados'] = $enrollmentCounts[(int) $class['id']]['matriculados'] ?? 0;
             $class = array_merge($this->findClass($pdo, (int) $class['id']), $class);
             $class['professores_ids'] = json_decode((string) ($class['professores_ids_json'] ?? '[]'), true) ?: [];
             $class['estagiarios_ids'] = json_decode((string) ($class['estagiarios_ids_json'] ?? '[]'), true) ?: [];
@@ -1108,7 +1109,8 @@ class CourseEnrollmentService
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         $enrollmentCounts = $this->enrollmentCountsByClass($pdo);
         foreach ($classes as &$class) {
-            $class['total_inscritos'] = $enrollmentCounts[(int) $class['id']] ?? 0;
+            $class['total_inscritos'] = $enrollmentCounts[(int) $class['id']]['total'] ?? 0;
+            $class['total_matriculados'] = $enrollmentCounts[(int) $class['id']]['matriculados'] ?? 0;
             $classDetails = $this->findClass($pdo, (int) $class['id']);
             $class = array_merge($classDetails, $class);
             $professorIdsStmt = $pdo->prepare('SELECT professor_conta_id FROM turmas_professores WHERE turma_id=:id ORDER BY professor_conta_id');
@@ -1136,11 +1138,67 @@ class CourseEnrollmentService
     private function enrollmentCountsByClass(PDO $pdo): array
     {
         $counts = [];
-        $stmt = $pdo->query('SELECT turma_id, COUNT(*) AS total FROM inscricoes_turma GROUP BY turma_id');
+        $stmt = $pdo->query("SELECT turma_id, COUNT(*) AS total, SUM(CASE WHEN status = 'matriculada' THEN 1 ELSE 0 END) AS matriculados FROM inscricoes_turma GROUP BY turma_id");
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
-            $counts[(int) ($row['turma_id'] ?? 0)] = (int) ($row['total'] ?? 0);
+            $counts[(int) ($row['turma_id'] ?? 0)] = [
+                'total' => (int) ($row['total'] ?? 0),
+                'matriculados' => (int) ($row['matriculados'] ?? 0),
+            ];
         }
         return $counts;
+    }
+
+    public function printableAttendanceList(int $classId): array
+    {
+        if ($classId <= 0) {
+            throw new RuntimeException('Não foi possível identificar a turma.');
+        }
+
+        $pdo = Database::connection();
+        $class = $this->findClass($pdo, $classId);
+        $metadata = $pdo->prepare('SELECT m.nome AS modalidade_nome, (SELECT p.nome_completo FROM contas c INNER JOIN pessoas p ON p.cpf = c.cpf WHERE c.id = t.professor_conta_id LIMIT 1) AS professor_principal_nome FROM turmas t INNER JOIN modalidades m ON m.id = t.modalidade_id WHERE t.id = :turma LIMIT 1');
+        $metadata->execute([':turma' => $classId]);
+        $class = array_merge($class, $metadata->fetch(PDO::FETCH_ASSOC) ?: []);
+        $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? ''));
+        $students = $pdo->prepare("SELECT p.nome_completo FROM inscricoes_turma i INNER JOIN pessoas p ON p.id = i.pessoa_id WHERE i.turma_id = :turma AND i.status = 'matriculada' ORDER BY p.nome_completo ASC");
+        $students->execute([':turma' => $classId]);
+
+        return [
+            'class' => $class,
+            'students' => $students->fetchAll(PDO::FETCH_ASSOC) ?: [],
+        ];
+    }
+
+    public function printableAddressList(int $classId): array
+    {
+        if ($classId <= 0) {
+            throw new RuntimeException('Não foi possível identificar a turma.');
+        }
+
+        $pdo = Database::connection();
+        $class = $this->findClass($pdo, $classId);
+        $metadata = $pdo->prepare('SELECT m.nome AS modalidade_nome FROM turmas t INNER JOIN modalidades m ON m.id = t.modalidade_id WHERE t.id = :turma LIMIT 1');
+        $metadata->execute([':turma' => $classId]);
+        $class = array_merge($class, $metadata->fetch(PDO::FETCH_ASSOC) ?: []);
+
+        $students = $pdo->prepare("SELECT
+                p.id AS pessoa_id, p.nome_completo, p.data_nascimento, p.email, p.cpf, i.status AS inscricao_status,
+                COALESCE(NULLIF(responsavel.nome_completo, ''), NULLIF(p.responsavel1_nome, ''), p.nome_completo) AS responsavel_nome,
+                COALESCE(NULLIF(responsavel.telefone_whatsapp, ''), p.telefone_whatsapp) AS telefone_whatsapp,
+                p.cep, p.logradouro, p.numero_endereco, p.complemento, p.bairro, p.cidade, p.uf,
+                p.contato_emergencia_nome, p.contato_emergencia_telefone
+            FROM inscricoes_turma i
+            INNER JOIN pessoas p ON p.id = i.pessoa_id
+            LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id = p.id AND vr.data_fim IS NULL
+            LEFT JOIN pessoas responsavel ON responsavel.id = vr.responsavel_pessoa_id
+            WHERE i.turma_id = :turma
+            ORDER BY p.nome_completo ASC, i.id ASC");
+        $students->execute([':turma' => $classId]);
+
+        return [
+            'class' => $class,
+            'students' => $students->fetchAll(PDO::FETCH_ASSOC) ?: [],
+        ];
     }
 
     public function professorClassBrowser(int $accountId, int $seasonId = 0, int $locationId = 0, int $modalityId = 0): array
@@ -1657,7 +1715,7 @@ class CourseEnrollmentService
         return (int) $stmt->fetchColumn() > 0;
     }
 
-    public function changeStatus(int $enrollmentId, string $status, int $accountId, string $reason = '', ?string $suspensionEnd = null, string $exceptionToken = '', ?string $vacancyNoticeAt = null, bool $vacancyNoticeConfirmed = false): void
+    public function changeStatus(int $enrollmentId, string $status, int $accountId, string $reason = '', ?string $suspensionEnd = null, string $exceptionToken = '', ?string $vacancyNoticeAt = null, bool $vacancyNoticeConfirmed = false): array
     {
         $allowedTransitions = [
             'lista_espera' => 'aguardando_matricula',
@@ -1704,9 +1762,6 @@ class CourseEnrollmentService
             $vacancyNoticeSql = date('Y-m-d H:i:s', $parsedNotice);
         }
         $token = $this->findEnrollmentToken($pdo, trim($exceptionToken), (int) $enrollment['turma_id'], normalize_cpf((string) $enrollment['cpf']));
-        if ($status === 'matriculada' && $enrollment['status'] !== 'matriculada' && $this->availableSeats($pdo, $this->findClass($pdo, (int) $enrollment['turma_id']), (string) $enrollment['publico_alvo']) <= 0 && $token === null && !$this->accountHasRole($pdo, $accountId, 'master_admin')) {
-            throw new RuntimeException('Não há vaga normal disponível para esta cota.');
-        }
         $stmt = $pdo->prepare('UPDATE inscricoes_turma SET status = :status, motivo_status = :motivo, vaga_informada_em = COALESCE(:vaga_informada_em, vaga_informada_em), updated_at = NOW() WHERE id = :id');
         $stmt->execute([':status' => $status, ':motivo' => $reason !== '' ? $reason : null, ':vaga_informada_em' => $vacancyNoticeSql, ':id' => $enrollmentId]);
         $history = $pdo->prepare('INSERT INTO inscricoes_turma_historico (inscricao_turma_id, status_anterior, status_novo, motivo, alterado_por_conta_id, vaga_informada_em) VALUES (:id, :anterior, :novo, :motivo, :conta, :vaga_informada_em)');
@@ -1719,6 +1774,28 @@ class CourseEnrollmentService
             'motivo' => $reason,
             'conta_id' => $accountId,
         ]);
+
+        $capacityWarning = null;
+        if ($status === 'matriculada' && $currentStatus !== 'matriculada') {
+            $capacityWarning = $this->matriculationCapacityWarning(
+                $pdo,
+                $this->findClass($pdo, (int) $enrollment['turma_id']),
+                (string) $enrollment['publico_alvo']
+            );
+            if ($capacityWarning !== null) {
+                AuditLogService::record('inscricao_turma.capacidade_excedida', 'inscricoes_turma', $enrollmentId, [
+                    'conta_id' => $accountId,
+                    'turma_id' => (int) $enrollment['turma_id'],
+                    'publico_alvo' => $capacityWarning['publico_alvo'],
+                    'tipo_vaga' => $capacityWarning['tipo_vaga'],
+                    'capacidade' => $capacityWarning['capacidade'],
+                    'matriculados' => $capacityWarning['matriculados'],
+                    'excedente' => $capacityWarning['excedente'],
+                ]);
+            }
+        }
+
+        return ['capacity_warning' => $capacityWarning];
     }
 
     private function findClass(PDO $pdo, int $id): array
@@ -2175,6 +2252,32 @@ class CourseEnrollmentService
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM inscricoes_turma WHERE turma_id = :turma_id AND publico_alvo = :publico AND status IN ('aguardando_matricula', 'matriculada', 'suspensa')");
         $stmt->execute([':turma_id' => (int) $class['id'], ':publico' => $public]);
         return max(0, $capacity - (int) $stmt->fetchColumn());
+    }
+
+    private function matriculationCapacityWarning(PDO $pdo, array $class, string $public): ?array
+    {
+        $public = in_array($public, ['pcd', 'plm', 'pvs'], true) ? $public : 'geral';
+        $seatKey = $public === 'geral' ? 'vagas_geral' : 'vagas_' . $public;
+        $capacity = max(0, (int) ($class[$seatKey] ?? 0));
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM inscricoes_turma WHERE turma_id = :turma_id AND publico_alvo = :publico AND status = 'matriculada'");
+        $stmt->execute([':turma_id' => (int) $class['id'], ':publico' => $public]);
+        $enrolled = (int) $stmt->fetchColumn();
+        if ($enrolled <= $capacity) {
+            return null;
+        }
+
+        $labels = ['geral' => 'vagas normais', 'pcd' => 'vagas PCD', 'pvs' => 'vagas PVS', 'plm' => 'vagas PLM'];
+        $label = $labels[$public];
+        $excess = $enrolled - $capacity;
+
+        return [
+            'publico_alvo' => $public,
+            'tipo_vaga' => $label,
+            'capacidade' => $capacity,
+            'matriculados' => $enrolled,
+            'excedente' => $excess,
+            'message' => 'A matrícula foi realizada, mas a capacidade de ' . $label . ' é insuficiente. Capacidade: ' . $capacity . '; alunos matriculados: ' . $enrolled . '; excedente: ' . $excess . '.',
+        ];
     }
 
     private function classLevelBlockReason(PDO $pdo, array $class, int $personId): string
