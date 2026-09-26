@@ -16,6 +16,36 @@
         return App.core.buildUrl(basePath + normalizedPath.replace(/^\/admin/, ''));
     };
 
+    let tokenClass = null;
+    function tokenEndpoint(action) {
+        const professor = tokenClass && tokenClass.scope === 'professor';
+        if (action === 'list') return professor ? '/professor/minhas-turmas/tokens' : '/admin/turmas/tokens';
+        if (action === 'create') return professor ? '/professor/inscricoes/token' : '/admin/turmas/tokens/gerar';
+        return professor ? '/professor/minhas-turmas/tokens/excluir' : '/admin/turmas/tokens/excluir';
+    }
+    function ensureTokenModals() {
+        if ($('#course-token-list-modal').length) return;
+        $('body').append('<div class="popup-overlay hidden" id="course-token-list-modal" aria-hidden="true"><div class="popup-card popup-admin-card"><div class="popup-head"><div><h3>Tokens da turma</h3><p class="muted" data-token-class-name></p></div><button type="button" class="popup-close-icon" data-token-close>&times;</button></div><div class="popup-body"><div class="popup-actions"><button type="button" class="btn btn-primary" data-token-create-open>Gerar token</button></div><div data-token-list></div></div></div></div><div class="popup-overlay hidden" id="course-token-create-modal" aria-hidden="true"><div class="popup-card"><div class="popup-head"><h3>Gerar token</h3><button type="button" class="popup-close-icon" data-token-create-close>&times;</button></div><form class="popup-body stack-form" data-token-create-form data-manual-submit="1"><label><span>CPF da pessoa</span><input name="cpf" inputmode="numeric" maxlength="14" required></label><label><span>Condição da vaga</span><select name="publico_alvo" required><option value="geral">Lista geral</option><option value="pcd">PCD</option><option value="plm">PLM</option><option value="pvs">PVS</option></select></label><label><span>Validade</span><select name="validade_dias" required><option value="7">7 dias</option><option value="14">14 dias</option><option value="28">28 dias</option></select></label><label><span>Motivo</span><select name="motivo" required><option value="Autorização administrativa">Autorização administrativa</option><option value="Determinação judicial">Determinação judicial</option><option value="Encaminhamento da Secretaria">Encaminhamento da Secretaria</option><option value="Correção de falha no processo de inscrição">Correção de falha no processo de inscrição</option><option value="Outro motivo">Outro motivo</option></select></label><div class="popup-actions"><button type="button" class="btn btn-secondary" data-token-create-close>Cancelar</button><button type="submit" class="btn btn-primary">Gerar token</button></div></form></div></div>');
+    }
+    function loadTokens() {
+        const $list = $('[data-token-list]').text('Carregando...');
+        $.ajax({ url: App.core.buildUrl(tokenEndpoint('list')), method: 'GET', dataType: 'json', data: { turma_id: tokenClass.id }, headers: { 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' } }).done(function (response) {
+            const rows = Array.isArray(response.tokens) ? response.tokens : [];
+            if (!rows.length) { $list.html('<p class="muted">Nenhum token foi criado para esta turma.</p>'); return; }
+            const labels = { ativo:'Ativo', usado:'Usado', cancelado:'Cancelado', expirado:'Expirado', excluido:'Excluído' };
+            const $table = $('<table>', { class: 'course-token-table' }).append('<thead><tr><th>Token</th><th>Pessoa/CPF</th><th>Condição</th><th>Validade</th><th>Motivo</th><th>Status</th><th>Ação</th></tr></thead>');
+            const $body = $('<tbody>');
+            rows.forEach(function (item) { const $tr=$('<tr>'); $tr.append($('<td>',{text:item.numero_token}),$('<td>').append($('<strong>',{text:item.nome_completo||'Não cadastrada'}),$('<br>'),$('<small>',{text:item.cpf_formatado})),$('<td>',{text:item.publico_label}),$('<td>',{text:String(item.validade||'').replace(/^(\d{4})-(\d{2})-(\d{2}).*$/,'$3/$2/$1')}),$('<td>',{text:item.motivo}),$('<td>',{text:labels[item.status]||item.status})); const $action=$('<td>'); if(item.status==='ativo') $action.append($('<button>',{type:'button',class:'link-button','data-token-exclude':item.id,text:'Excluir'})); $tr.append($action); $body.append($tr); });
+            $list.empty().append($table.append($body));
+        }).fail(function(xhr){ $list.text(App.core.extrairMensagemErroAjax(xhr).mensagem); });
+    }
+    $(document).on('click','[data-course-class-tokens]',function(){ ensureTokenModals(); tokenClass={id:$(this).attr('data-course-class-tokens'),name:$(this).attr('data-course-class-tokens-name'),scope:$(this).attr('data-course-class-tokens-scope')}; $('[data-token-class-name]').text(tokenClass.name); $('#course-token-list-modal').removeClass('hidden').attr('aria-hidden','false'); loadTokens(); });
+    $(document).on('click','[data-token-close]',function(){ $('#course-token-list-modal').addClass('hidden').attr('aria-hidden','true'); });
+    $(document).on('click','[data-token-create-open]',function(){ $('#course-token-create-modal').removeClass('hidden').attr('aria-hidden','false'); });
+    $(document).on('click','[data-token-create-close]',function(){ $('#course-token-create-modal').addClass('hidden').attr('aria-hidden','true'); });
+    $(document).on('submit','[data-token-create-form]',function(event){ event.preventDefault(); const data=$(this).serializeArray(); data.push({name:'turma_id',value:tokenClass.id}); $.ajax({url:App.core.buildUrl(tokenEndpoint('create')),method:'POST',dataType:'json',data:$.param(data),headers:{'X-Requested-With':'XMLHttpRequest',Accept:'application/json'}}).done(function(response){ $('#course-token-create-modal').addClass('hidden'); if(App.core&&App.core.showToast) App.core.showToast(response.message||'Token criado.'); loadTokens(); }).fail(function(xhr){ window.alert(App.core.extrairMensagemErroAjax(xhr).mensagem); }); });
+    $(document).on('click','[data-token-exclude]',function(){ const id=$(this).attr('data-token-exclude'); $.ajax({url:App.core.buildUrl(tokenEndpoint('exclude')),method:'POST',dataType:'json',data:{token_id:id},headers:{'X-Requested-With':'XMLHttpRequest',Accept:'application/json'}}).done(loadTokens).fail(function(xhr){window.alert(App.core.extrairMensagemErroAjax(xhr).mensagem);}); });
+
     App.admin = Object.assign(App.admin || {}, {
         iniciarSecoesAdmin: function () {
             const $buttons = $('[data-admin-nav-target]');

@@ -724,6 +724,7 @@ CREATE TABLE IF NOT EXISTS inscricoes_turma_historico (
 CREATE TABLE IF NOT EXISTS tokens_inscricao_turma (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     token CHAR(64) NOT NULL UNIQUE,
+    numero_token CHAR(4) NULL,
     turma_id BIGINT UNSIGNED NOT NULL,
     cpf CHAR(11) NOT NULL,
     publico_alvo ENUM('geral', 'pcd', 'plm', 'pvs') NOT NULL DEFAULT 'geral',
@@ -733,10 +734,18 @@ CREATE TABLE IF NOT EXISTS tokens_inscricao_turma (
     usos_realizados INT UNSIGNED NOT NULL DEFAULT 0,
     ativo TINYINT(1) NOT NULL DEFAULT 1,
     motivo VARCHAR(255) NOT NULL,
+    status ENUM('ativo','usado','cancelado','expirado','excluido') NOT NULL DEFAULT 'ativo',
+    inscricao_turma_id BIGINT UNSIGNED NULL,
+    usado_em DATETIME NULL,
+    cancelado_em DATETIME NULL,
+    excluido_em DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_token_inscricao_cpf_turma (cpf, turma_id, ativo),
+    INDEX idx_token_numero_turma_status (numero_token, turma_id, status),
+    INDEX idx_token_cpf_status (cpf, status),
     CONSTRAINT fk_token_inscricao_turma FOREIGN KEY (turma_id) REFERENCES turmas(id) ON DELETE CASCADE,
-    CONSTRAINT fk_token_inscricao_conta FOREIGN KEY (criado_por_conta_id) REFERENCES contas(id)
+    CONSTRAINT fk_token_inscricao_conta FOREIGN KEY (criado_por_conta_id) REFERENCES contas(id),
+    CONSTRAINT fk_token_inscricao_utilizada FOREIGN KEY (inscricao_turma_id) REFERENCES inscricoes_turma(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS postagens_blog (

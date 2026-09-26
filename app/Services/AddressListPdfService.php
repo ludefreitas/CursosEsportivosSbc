@@ -25,7 +25,7 @@ final class AddressListPdfService
         ['key' => 'emergencia', 'label' => 'Tel. emerg.', 'width' => 52.0],
     ];
 
-    public function render(array $class, array $students): string
+    public function render(array $class, array $students, bool $maskCpf = false): string
     {
         $pages = array_chunk($students, self::ROWS_PER_PAGE);
         if ($pages === []) {
@@ -43,7 +43,7 @@ final class AddressListPdfService
         $studentNumber = 1;
 
         foreach ($pages as $pageIndex => $pageStudents) {
-            [$content, $links] = $this->pageContent($class, $pageStudents, $studentNumber, $pageIndex + 1, count($pages));
+            [$content, $links] = $this->pageContent($class, $pageStudents, $studentNumber, $pageIndex + 1, count($pages), $maskCpf);
             $contentObject = $nextObject++;
             $objects[$contentObject] = '<< /Length ' . strlen($content) . ">>\nstream\n" . $content . "\nendstream";
 
@@ -66,7 +66,7 @@ final class AddressListPdfService
         return $this->buildDocument($objects);
     }
 
-    private function pageContent(array $class, array $students, int $firstNumber, int $page, int $totalPages): array
+    private function pageContent(array $class, array $students, int $firstNumber, int $page, int $totalPages, bool $maskCpf): array
     {
         $commands = ['0 G', '0 g', '0.45 w'];
         $links = [];
@@ -114,7 +114,7 @@ final class AddressListPdfService
 
         foreach ($students as $index => $student) {
             $rowTop = $headerBottom - self::ROW_HEIGHT * $index;
-            $values = $this->studentValues($student, $firstNumber + $index);
+            $values = $this->studentValues($student, $firstNumber + $index, $maskCpf);
             $x = $left;
             foreach (self::COLUMNS as $column) {
                 $key = $column['key'];
@@ -146,7 +146,7 @@ final class AddressListPdfService
         return [implode("\n", $commands), $links];
     }
 
-    private function studentValues(array $student, int $number): array
+    private function studentValues(array $student, int $number, bool $maskCpf): array
     {
         $responsible = trim((string) ($student['responsavel_nome'] ?? ''));
         if ($responsible === '') {
@@ -189,7 +189,7 @@ final class AddressListPdfService
             'telefone' => $phone !== '' ? $phone : '-',
             'responsavel' => $responsible !== '' ? $responsible : '-',
             'status' => $this->statusLabel((string) ($student['inscricao_status'] ?? '')),
-            'cpf' => $this->formatCpf((string) ($student['cpf'] ?? '')),
+            'cpf' => $this->formatCpf((string) ($student['cpf'] ?? ''), $maskCpf),
             'endereco' => $addressParts !== [] ? implode(' - ', $addressParts) : 'Não informado',
             'contato' => $emergency !== '' ? $emergency : '-',
             'emergencia' => $emergencyPhone !== '' ? $emergencyPhone : '-',
@@ -210,9 +210,14 @@ final class AddressListPdfService
         ][$status] ?? ($status !== '' ? str_replace('_', ' ', ucfirst($status)) : '-');
     }
 
-    private function formatCpf(string $cpf): string
+    private function formatCpf(string $cpf, bool $masked): string
     {
         $digits = preg_replace('/\D+/', '', $cpf) ?? '';
+        if ($masked) {
+            return strlen($digits) === 11
+                ? '***.' . substr($digits, 3, 3) . '.' . substr($digits, 6, 3) . '-**'
+                : '***.***.***-**';
+        }
         return strlen($digits) === 11
             ? substr($digits, 0, 3) . '.' . substr($digits, 3, 3) . '.' . substr($digits, 6, 3) . '-' . substr($digits, 9)
             : ($cpf !== '' ? $cpf : '-');

@@ -291,7 +291,7 @@ class ProfessorController extends Controller
 
         try {
             $data = $service->printableAddressList($classId);
-            $pdf = (new AddressListPdfService())->render($data['class'], $data['students']);
+            $pdf = (new AddressListPdfService())->render($data['class'], $data['students'], true);
             while (ob_get_level() > 0) { ob_end_clean(); }
             header('Content-Type: application/pdf');
             header('Content-Length: ' . strlen($pdf));
@@ -524,6 +524,24 @@ class ProfessorController extends Controller
         try {
             $token = (new \App\Services\CourseEnrollmentService())->createExceptionToken((int) $user['conta_id'], $_POST);
             $this->jsonResponse(['success' => true, 'message' => 'Token criado com sucesso.', 'token' => $token]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function enrollmentTokens(): void
+    {
+        $user = $this->assertProfessorAccess();
+        try {
+            $tokens = (new \App\Services\CourseEnrollmentService())->listEnrollmentTokens((int) ($_GET['turma_id'] ?? 0), (int) $user['conta_id']);
+            $this->jsonResponse(['success' => true, 'tokens' => $tokens]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function excludeEnrollmentToken(): void
+    {
+        $user = $this->assertProfessorAccess();
+        try {
+            (new \App\Services\CourseEnrollmentService())->excludeEnrollmentToken((int) ($_POST['token_id'] ?? 0), (int) $user['conta_id']);
+            $this->jsonResponse(['success' => true, 'message' => 'Token marcado como excluído.']);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 

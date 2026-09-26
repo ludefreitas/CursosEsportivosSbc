@@ -22,6 +22,8 @@ $nextEnrollmentStatuses = [
     'lista_espera' => ['value' => 'aguardando_matricula', 'label' => 'Aguardando matrícula', 'action' => 'Marcar como aguardando matrícula'],
     'aguardando_matricula' => ['value' => 'matriculada', 'label' => 'Matriculada', 'action' => 'Matricular'],
     'matriculada' => ['value' => 'desistente', 'label' => 'Desistente', 'action' => 'Marcar como desistente'],
+    'suspensa' => ['value' => 'matriculada', 'label' => 'Matriculada', 'action' => 'Rematricular'],
+    'excluida_por_falta' => ['value' => 'matriculada', 'label' => 'Matriculada', 'action' => 'Rematricular'],
 ];
 $certificateDocumentBase = !empty($professorView) ? '/professor/atestados/arquivo' : '/admin/atestados/arquivo';
 $renderEnrollmentCertificate = static function (array $enrollment, string $type, string $label) use ($certificateDocumentBase): void {
@@ -151,7 +153,7 @@ $renderEnrollmentCertificate = static function (array $enrollment, string $type,
                 . ' no ' . (string) $enrollment['local_nome']
                 . ($locationAddress !== [] ? ' - ' . implode(' - ', $locationAddress) : '')
                 . ', da qual você fez inscrição. Se você ainda tem interesse na vaga, responda SIM nas próximas 24 horas, que vamos passar mais informações. Se você não tiver interesse ou não responder, vamos chamar o próximo inscrito da lista de espera e você terá que fazer uma nova inscrição para esta turma.';
-            $immutableStatuses = ['cancelada', 'excluida', 'excluida_por_falta', 'desistente', 'suspensa'];
+            $immutableStatuses = ['cancelada', 'excluida', 'desistente'];
             $isImmutable = in_array((string) ($enrollment['status'] ?? ''), $immutableStatuses, true) || !empty($enrollment['temporada_encerrada']);
             $nextStatus = $isImmutable ? null : ($nextEnrollmentStatuses[(string) ($enrollment['status'] ?? '')] ?? null);
             $address = ['logradouro' => trim((string) ($enrollment['logradouro'] ?? '')), 'numero' => trim((string) ($enrollment['numero_endereco'] ?? '')), 'complemento' => trim((string) ($enrollment['complemento'] ?? '')), 'bairro' => trim((string) ($enrollment['bairro'] ?? '')), 'cidade' => trim((string) ($enrollment['cidade'] ?? '')), 'uf' => trim((string) ($enrollment['uf'] ?? '')), 'cep' => trim((string) ($enrollment['cep'] ?? '')), 'telefone' => trim((string) ($enrollment['telefone_whatsapp'] ?? '')), 'emergencia_nome' => trim((string) ($enrollment['contato_emergencia_nome'] ?? '')), 'emergencia_telefone' => trim((string) ($enrollment['contato_emergencia_telefone'] ?? ''))];

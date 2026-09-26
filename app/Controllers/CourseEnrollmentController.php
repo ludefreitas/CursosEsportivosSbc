@@ -181,6 +181,23 @@ class CourseEnrollmentController extends Controller
         redirect('/dashboard');
     }
 
+    public function pendingTokens(): void
+    {
+        if (!Auth::check()) { $this->jsonResponse(['success' => true, 'tokens' => []]); }
+        try {
+            $this->jsonResponse(['success' => true, 'tokens' => $this->service->pendingEnrollmentTokensForAccount((int) Auth::id())]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function cancelToken(): void
+    {
+        if (!Auth::check()) { $this->jsonResponse(['success' => false, 'message' => 'Faça login para cancelar o token.'], 401); }
+        try {
+            $this->service->cancelEnrollmentTokenForAccount((int) ($_POST['token_id'] ?? 0), (int) Auth::id());
+            $this->jsonResponse(['success' => true, 'message' => 'Token cancelado.']);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
     public function cpfOptions(): void
     {
         try {

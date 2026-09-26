@@ -942,8 +942,19 @@
                 App.core.hideLoading();
             });
 
+            // Garante a limpeza mesmo quando requisições sobrepostas deixam o
+            // contador visual fora de sincronia. O ajaxStop só ocorre quando
+            // não existe mais nenhuma requisição jQuery em andamento.
+            $(document).ajaxStop(function () {
+                App.core.hideLoading(true);
+            });
+
             $(window).on('pageshow', function () {
                 App.core.hideLoading(true);
+            });
+
+            $(window).on('load', function () {
+                window.setTimeout(function () { App.core.hideLoading(true); }, 0);
             });
 
             $(window).on('beforeunload', function () {

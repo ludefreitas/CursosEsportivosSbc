@@ -337,9 +337,18 @@
             }
 
             function classDetails(classId, callback) {
-                $.ajax({ url: App.core.buildUrl('/cursos/turma-detalhes'), method: 'GET', dataType: 'json', data: { turma_id: classId }, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
-                    .done(function (response) { if (response && response.details) callback(response.details); else App.core.abrirPopup('erro', 'Não foi possível carregar os detalhes da turma.'); })
-                    .fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); });
+                App.core.hideLoading(true);
+                $.ajax({ url: App.core.buildUrl('/cursos/turma-detalhes'), method: 'GET', dataType: 'json', timeout: 20000, data: { turma_id: classId }, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+                    .done(function (response) {
+                        try {
+                            if (response && response.details) callback(response.details);
+                            else App.core.abrirPopup('erro', 'Não foi possível carregar os detalhes da turma.');
+                        } finally {
+                            App.core.hideLoading(true);
+                        }
+                    })
+                    .fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); })
+                    .always(function () { App.core.hideLoading(true); });
             }
 
             function classAgeCriterionText(courseClass) {
@@ -429,7 +438,7 @@
 
             function appendEnrollmentNoticeAcceptance($form, courseClass) {
                 const season = String(courseClass.temporada_nome || String(courseClass.data_inicio || '').slice(0, 4) || new Date().getFullYear()).trim();
-                const modality = String(courseClass.modalidade_nome || selectedModality.nome || 'modalidade selecionada').trim();
+                const modality = String(courseClass.modalidade_nome || (selectedModality && selectedModality.nome) || 'modalidade selecionada').trim();
                 const specific = courseClass.edital_especifico_modalidade === true || String(courseClass.edital_especifico_modalidade) === '1';
                 const noticeLabel = String(courseClass.edital_rotulo || 'edital da temporada').trim();
                 const noticeUrl = String(courseClass.edital_link || '').trim();
@@ -447,14 +456,16 @@
                     .append($text));
             }
 
-            function renderEnrollmentModal(details) {
-                const courseClass = Object.assign({}, details.class || {}, classesById[String(details.class.id)] || {});
+            function renderEnrollmentModal(details, tokenContext) {
+                tokenContext = tokenContext || null;
+                const detailClass = details && details.class ? details.class : {};
+                const courseClass = Object.assign({}, detailClass, classesById[String(detailClass.id || '')] || {});
                 const people = Array.isArray(details.people) ? details.people : [];
                 const $content = $('#home-course-enrollment-content').empty();
                 $('#home-course-enrollment-subtitle').text('Confira os dados, selecione a pessoa que deseja inscrever, aceite os termos e clique no botão “Confirmar inscrição”.');
                 const $summary = $('<div>', { class: 'home-course-detail-summary' });
                 const seasonYear = String(courseClass.data_inicio || courseClass.temporada_inicio || '').slice(0, 4) || String(new Date().getFullYear());
-                const modalityName = String(courseClass.modalidade_nome || selectedModality.nome || 'Modalidade');
+                const modalityName = String(courseClass.modalidade_nome || (selectedModality && selectedModality.nome) || 'Modalidade');
                 $summary.append($('<h4>', { class: 'home-course-detail-main-title', text: modalityName + ' - ' + seasonYear }));
                 $summary.append($('<p>', { class: 'home-course-detail-class-name' }).append($('<strong>', { text: '[' + String(courseClass.id || '') + '] - ' + String(courseClass.nome || '') })));
                 $summary.append($('<p>').append($('<strong>', { text: 'Programa: ' })).append(document.createTextNode(String(courseClass.programa || 'Sem programa definido'))));
@@ -481,10 +492,11 @@
                     $form.append($('<p>', { class: 'home-course-person-instruction', text: 'Selecione abaixo a pessoa para inscrever' }));
                     const $personOptions = $('<div>', { class: 'home-course-person-options' });
                     people.forEach(function (person) {
-                        const blocked = !person.elegivel;
+                        const selectedByToken = tokenContext && String(person.id) === String(tokenContext.pessoa_id);
+                        const blocked = tokenContext ? !selectedByToken : !person.elegivel;
                         const $card = $('<label>', { class: 'home-course-person-card' + (blocked ? ' is-disabled' : '') });
                         const $line = $('<span>', { class: 'home-course-person-line' });
-                        $line.append($('<input>', { type: 'radio', name: 'pessoa_id', value: String(person.id || ''), required: true, disabled: blocked, 'data-home-course-person-choice': '1', 'data-public': String(person.publico_alvo || 'geral'), 'data-person-name': String(person.nome_completo || ''), 'data-birth-date': String(person.data_nascimento || '') }));
+                        $line.append($('<input>', { type: 'radio', name: 'pessoa_id', value: String(person.id || ''), required: true, disabled: blocked, checked: selectedByToken, 'data-home-course-person-choice': '1', 'data-public': String(tokenContext && selectedByToken ? tokenContext.publico_alvo : (person.publico_alvo || 'geral')), 'data-person-name': String(person.nome_completo || ''), 'data-birth-date': String(person.data_nascimento || '') }));
                         $line.append($('<span>', { class: 'home-course-person-main', text: String(person.nome_completo || '') }));
                         $card.append($line);
                         $card.append($('<small>', { class: 'muted', text: App.core.formatBirthDateWithAge(person.data_nascimento) }));
@@ -496,6 +508,9 @@
                         $personOptions.append($card);
                     });
                     $form.append($personOptions);
+                    if (tokenContext || people.some(function(person){ return !!person.possui_token_ativo; })) {
+                        $form.append($('<label>').append($('<span>', { text: 'Token de autorização (4 dígitos)' })).append($('<input>', { type: 'text', name: 'token', inputmode: 'numeric', maxlength: 4, pattern: '\\d{4}', value: tokenContext ? String(tokenContext.numero_token || '') : '', readonly: !!tokenContext, required: !!tokenContext })));
+                    }
                     const $public = $('<select>', { id: 'home-course-person-public', disabled: true })
                         .append($('<option>', { value: 'geral', text: 'Público geral' })).append($('<option>', { value: 'pcd', text: 'PCD (Pessoa Com Deficiência)' })).append($('<option>', { value: 'plm', text: 'PLM (Pessoa com Laudo Médico de Doença)' })).append($('<option>', { value: 'pvs', text: 'PVS (Pessoa em situação de Vulnerabilidade Social)' }));
                     $form.append($('<input>', { type: 'hidden', name: 'publico_alvo', id: 'home-course-person-public-value', value: 'geral' }));
@@ -504,6 +519,7 @@
                     appendEnrollmentNoticeAcceptance($form, courseClass);
                     $form.append($('<button>', { type: 'submit', class: 'btn btn-primary', text: 'Confirmar inscrição' }));
                     $content.append($form);
+                    if (tokenContext) $('[data-home-course-person-choice="1"]:checked').trigger('change');
                 }
                 $('#home-course-enrollment-modal').removeClass('hidden').attr('aria-hidden', 'false');
             }
@@ -539,7 +555,7 @@
                     classesById[String(courseClass.id)] = courseClass;
                     const $card = $('<article>', { class: 'home-course-class-card' });
                     const seasonYear = String(courseClass.data_inicio || courseClass.temporada_inicio || '').slice(0, 4) || String(new Date().getFullYear());
-                    $card.append($('<h4>', { text: String(courseClass.modalidade_nome || selectedModality.nome || 'Modalidade') + ' - ' + seasonYear }));
+                    $card.append($('<h4>', { text: String(courseClass.modalidade_nome || (selectedModality && selectedModality.nome) || 'Modalidade') + ' - ' + seasonYear }));
                     $card.append($('<p>', { class: 'home-course-class-name' }).append($('<strong>', { text: '[' + String(courseClass.id || '') + '] - ' + String(courseClass.nome || '') })));
                     $card.append($('<p>').append($('<strong>', { text: 'Local da aula: ' })).append(document.createTextNode(String(courseClass.local_nome || ''))));
                     if (courseClass.dias_semana && courseClass.hora_inicio && courseClass.hora_fim) {
@@ -614,6 +630,22 @@
                 classDetails(classId, renderEnrollmentModal);
             });
             $(document).on('click', '[data-home-course-vacancies]', function () { classDetails(String($(this).attr('data-home-course-vacancies') || ''), renderVacanciesModal); });
+            function showPendingToken(token) {
+                $('#home-course-cpf-modal').addClass('hidden').attr('aria-hidden','true');
+                $('#home-token-alert-modal').remove();
+                const schedule = String(token.dias_semana || '') + (token.hora_inicio ? ', das ' + String(token.hora_inicio).slice(0,5) + ' às ' + String(token.hora_fim).slice(0,5) : '');
+                const $modal=$('<div>',{class:'popup-overlay',id:'home-token-alert-modal','aria-hidden':'false'}); const $card=$('<div>',{class:'popup-card course-token-alert'}); const $body=$('<div>',{class:'popup-body'});
+                $card.append($('<div>',{class:'popup-head'}).append($('<span>',{'aria-hidden':'true'}),$('<button>',{type:'button',class:'popup-close-icon','data-pending-token-close':'1','aria-label':'Fechar',html:'&times;'})));
+                const $message=$('<p>').append($('<strong>',{class:'course-token-alert-attention',text:'ATENÇÃO: '})).append(document.createTextNode('Você tem um token (autorização) para fazer inscrição do(a) ')).append($('<strong>',{class:'course-token-alert-person',text:token.nome_completo})).append(document.createTextNode(' na turma abaixo. Clique no botão “Inscrever ' + token.nome_completo + '”, seguindo as instruções das etapas seguintes. Insira o token nº ' + token.numero_token + ' no campo correspondente na próxima etapa (caso não esteja inserido) e continue até finalizar a inscrição.'));
+                $body.append($message,$('<h3>',{text:String(token.modalidade_nome||'')+' - '+String(token.temporada_nome||'')}),$('<p>').append($('<strong>',{text:'['+token.turma_id+'] - '+token.turma_nome})),$('<p>',{text:schedule}),$('<p>',{text:'Local da aula: '+String(token.local_nome||'')}));
+                const $actions=$('<div>',{class:'popup-actions'}).append($('<button>',{type:'button',class:'btn btn-primary','data-pending-token-enroll':token.id,text:'Inscrever '+token.nome_completo}),$('<button>',{type:'button',class:'btn btn-danger','data-pending-token-cancel':token.id,text:'Não fazer inscrição nesta turma! (Cancelar token)'}));
+                $card.append($body.append($actions)); $('body').append($modal.append($card)); $modal.data('token',token);
+            }
+            function loadPendingTokens(){ $.ajax({url:App.core.buildUrl('/cursos/tokens/pendentes'),method:'GET',dataType:'json',suppressGlobalLoading:true,headers:{'X-Requested-With':'XMLHttpRequest',Accept:'application/json'}}).done(function(response){const tokens=Array.isArray(response.tokens)?response.tokens:[]; if(tokens.length) showPendingToken(tokens[0]);}); }
+            $(document).on('click','[data-pending-token-enroll]',function(){ const token=$('#home-token-alert-modal').data('token'); $('#home-course-cpf-modal').addClass('hidden').attr('aria-hidden','true'); $('#home-token-alert-modal').addClass('hidden').attr('aria-hidden','true'); classDetails(String(token.turma_id),function(details){ $('#home-course-cpf-modal').addClass('hidden').attr('aria-hidden','true'); renderEnrollmentModal(details,token); }); });
+            $(document).on('click','[data-pending-token-close]',function(){ $('#home-token-alert-modal').remove(); });
+            $(document).on('click','[data-pending-token-cancel]',function(){ const id=$(this).attr('data-pending-token-cancel'); $.ajax({url:App.core.buildUrl('/cursos/tokens/cancelar'),method:'POST',dataType:'json',data:{token_id:id},headers:{'X-Requested-With':'XMLHttpRequest',Accept:'application/json'}}).done(function(){ $('#home-token-alert-modal').remove(); loadPendingTokens(); }).fail(function(xhr){window.alert(App.core.extrairMensagemErroAjax(xhr).mensagem);}); });
+            loadPendingTokens();
             const cpfFlow = { stage: 'form', cpf: '', condition: 'geral', options: null, locationId: '', token: '' };
 
             if ($('#home-course-cpf-modal').attr('data-cpf-only-enrollment-enabled') === '1') {
@@ -806,7 +838,7 @@
             $(document).on('click', '[data-home-cpf-back="1"]', function () { if (cpfFlow.stage === 'details') renderCpfClasses(); else if (cpfFlow.stage === 'classes') renderCpfLocations(); else if (cpfFlow.stage === 'locations') renderCpfStart(); else renderCpfIntroduction(); });
             $(document).on('click', '[data-home-cpf-close="1"]', function () { $('#home-course-cpf-modal').addClass('hidden').attr('aria-hidden', 'true'); });
             $(document).on('click', '#home-course-cpf-modal', function (event) { if (event.target === this) $(this).addClass('hidden').attr('aria-hidden', 'true'); });
-            $(document).on('click', '[data-home-course-detail-close="1"]', function () { $('#home-course-enrollment-modal, #home-course-vacancies-modal').addClass('hidden').attr('aria-hidden', 'true'); });
+            $(document).on('click', '[data-home-course-detail-close="1"]', function () { $('#home-course-enrollment-modal, #home-course-vacancies-modal').addClass('hidden').attr('aria-hidden', 'true'); $('#home-token-alert-modal').removeClass('hidden').attr('aria-hidden', 'false'); });
             $(document).on('click', '#home-course-enrollment-modal, #home-course-vacancies-modal', function (event) { if (event.target === this) $(this).addClass('hidden').attr('aria-hidden', 'true'); });
             if ($('#home-course-cpf-modal').attr('data-cpf-enrollment-enabled') === '1') {
                 const resumeCpfFlow = new URLSearchParams(window.location.search).get('inscricao_cpf') === 'continuar';
@@ -842,6 +874,7 @@
                             return;
                         }
                         $('#home-course-enrollment-modal, #home-course-cpf-modal').addClass('hidden').attr('aria-hidden', 'true');
+                        $('#home-token-alert-modal').remove();
                         const redirect = String(response.redirect || '').trim();
                         App.core.abrirPopup('sucesso', String(response.message || 'Inscrição realizada com sucesso.'), function () {
                             if (redirect !== '') return;

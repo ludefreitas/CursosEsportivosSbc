@@ -15,7 +15,7 @@ class CourseEnrollmentService
     private static bool $courseAgeCriterionSchemaChecked = true;
     private static bool $courseSeasonSchemaChecked = true;
     private const ACTIVE_STATUSES = ['aguardando_matricula', 'matriculada'];
-    private const IMMUTABLE_STATUSES = ['cancelada', 'excluida', 'excluida_por_falta', 'desistente', 'suspensa'];
+    private const IMMUTABLE_STATUSES = ['cancelada', 'excluida', 'desistente'];
     private const STATUS_LABELS = [
         'aguardando_matricula' => 'Aguardando matrícula',
         'matriculada' => 'Matriculada',
@@ -1081,8 +1081,8 @@ class CourseEnrollmentService
         }
 
         $pdo = Database::connection();
-        $stmt = $pdo->prepare("\n            SELECT DISTINCT p.id, p.nome_completo, p.cpf, p.data_nascimento, p.sexo, p.cadastro_completo,\n                p.eh_pcd, p.eh_plm, p.eh_pvs\n            FROM contas c\n            INNER JOIN pessoas titular ON titular.cpf = c.cpf\n            INNER JOIN pessoas p ON p.id = titular.id\n                OR EXISTS (SELECT 1 FROM vinculos_responsaveis vr WHERE vr.responsavel_pessoa_id = titular.id AND vr.dependente_pessoa_id = p.id)\n            WHERE c.id = :conta_id\n            ORDER BY p.nome_completo ASC\n        ");
-        $stmt->execute([':conta_id' => Auth::id()]);
+        $stmt = $pdo->prepare("\n            SELECT p.id, p.nome_completo, p.cpf, p.data_nascimento, p.sexo, p.cadastro_completo,\n                p.eh_pcd, p.eh_plm, p.eh_pvs\n            FROM contas c\n            INNER JOIN pessoas p ON p.cpf = c.cpf\n            WHERE c.id = :conta_titular\n            UNION\n            SELECT dependente.id, dependente.nome_completo, dependente.cpf, dependente.data_nascimento, dependente.sexo, dependente.cadastro_completo,\n                dependente.eh_pcd, dependente.eh_plm, dependente.eh_pvs\n            FROM contas c\n            INNER JOIN pessoas titular ON titular.cpf = c.cpf\n            INNER JOIN vinculos_responsaveis vr ON vr.responsavel_pessoa_id = titular.id AND vr.data_fim IS NULL\n            INNER JOIN pessoas dependente ON dependente.id = vr.dependente_pessoa_id\n            WHERE c.id = :conta_dependentes\n            ORDER BY nome_completo ASC\n        ");
+        $stmt->execute([':conta_titular' => Auth::id(), ':conta_dependentes' => Auth::id()]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
@@ -1392,6 +1392,7 @@ class CourseEnrollmentService
 
         $people = [];
         if (Auth::check()) {
+            $tokenLookup = $pdo->prepare("SELECT numero_token FROM tokens_inscricao_turma WHERE turma_id=:turma AND cpf=:cpf AND status='ativo' AND validade>=NOW() ORDER BY id DESC LIMIT 1");
             foreach ($this->listPeopleForAuthenticatedAccount() as $person) {
                 $age = calculate_age((string) ($person['data_nascimento'] ?? ''));
                 $validatedPublic = $this->resolvePublic($pdo, (int) $person['id']);
@@ -1409,6 +1410,9 @@ class CourseEnrollmentService
                 $duplicate->execute([':turma' => $classId, ':pessoa' => (int) $person['id']]);
                 if ((int) $duplicate->fetchColumn() > 0) $reasons[] = 'Pessoa já inscrita nesta turma';
                 $person['idade'] = $age;
+                $tokenLookup->execute([':turma' => $classId, ':cpf' => normalize_cpf((string) ($person['cpf'] ?? ''))]);
+                $person['possui_token_ativo'] = (bool) $tokenLookup->fetchColumn();
+                if ($person['possui_token_ativo']) { $person['elegivel_por_token'] = true; }
                 $levelBlock = $this->classLevelBlockReason($pdo, $class, (int) $person['id']);
                 if ($levelBlock !== '') { $reasons[] = $levelBlock; }
                 if ($class['status'] === 'processo_inicial'
@@ -1422,6 +1426,7 @@ class CourseEnrollmentService
                         ? 'Não há vagas regulares remanescentes nem lugares na lista de espera para o público-alvo desta pessoa'
                         : 'Não há lugares disponíveis na lista de espera para o público-alvo desta pessoa';
                 }
+                if ($person['possui_token_ativo']) { $reasons = []; }
                 $person['elegivel'] = $reasons === [];
                 $person['motivo_bloqueio'] = implode('; ', $reasons);
                 $people[] = $person;
@@ -1507,7 +1512,7 @@ class CourseEnrollmentService
             throw new RuntimeException('A pessoa precisa ter o cadastro completo para se inscrever.');
         }
 
-        if (!empty($season['permitir_inscricao_logada']) === false && Auth::check() && !$isCpfFlow) {
+        if ($token === null && !empty($season['permitir_inscricao_logada']) === false && Auth::check() && !$isCpfFlow) {
             throw new RuntimeException('Esta temporada não permite inscrições pelo sistema logado.');
         }
 
@@ -1515,11 +1520,16 @@ class CourseEnrollmentService
         try {
             $lock = $pdo->prepare('SELECT id FROM turmas WHERE id=:id FOR UPDATE');
             $lock->execute([':id' => $classId]);
+            if ($token !== null) {
+                $tokenLock = $pdo->prepare("SELECT id FROM tokens_inscricao_turma WHERE id=:id AND status='ativo' AND validade>=NOW() FOR UPDATE");
+                $tokenLock->execute([':id' => (int) $token['id']]);
+                if (!$tokenLock->fetchColumn()) { throw new RuntimeException('Este token já foi utilizado, cancelado, excluído ou expirou.'); }
+            }
             $this->validateDuplicate($pdo, $classId, (int) $person['id']);
             $this->validateSeasonLimit($pdo, $season, (int) $person['id'], $now, $token !== null);
             $this->validateModalityLimit($pdo, $class, (int) $person['id'], $now, $token !== null);
 
-            if (!$isCpfFlow) {
+            if (!$isCpfFlow && $token === null) {
                 $conditionBlocks = $this->courseConditionCertificateBlockReasons($pdo, $person);
                 if ($conditionBlocks !== []) {
                     throw new RuntimeException((string) $conditionBlocks[0]);
@@ -1533,13 +1543,19 @@ class CourseEnrollmentService
             $publico = $ageException !== null ? 'geral' : $validatedPublic;
             if ($token !== null) { $publico = (string) $token['publico_alvo']; }
             $this->validateAge($person, $class, $validatedPublic, $token !== null);
-            $this->validatePublic($pdo, (int) $person['id'], $token !== null ? $publico : $validatedPublic);
+            if ($token === null) {
+                $this->validatePublic($pdo, (int) $person['id'], $validatedPublic);
+                $requiredSex = trim((string) ($class['sexo'] ?? ''));
+                if ($requiredSex !== '' && $requiredSex !== (string) ($person['sexo'] ?? '')) {
+                    throw new RuntimeException('O sexo cadastrado para esta pessoa não é permitido para esta turma.');
+                }
+            }
             $levelBlock = $this->classLevelBlockReason($pdo, $class, (int) $person['id']);
             if ($levelBlock !== '' && $token === null) { throw new RuntimeException($levelBlock); }
             $forceWaitlist = (string) $class['status'] !== 'processo_inicial';
-            $status = $forceWaitlist || $this->availableSeats($pdo, $class, $publico) <= 0
-                ? 'lista_espera'
-                : 'aguardando_matricula';
+            $status = $token !== null
+                ? ($forceWaitlist ? 'lista_espera' : 'aguardando_matricula')
+                : ($forceWaitlist || $this->availableSeats($pdo, $class, $publico) <= 0 ? 'lista_espera' : 'aguardando_matricula');
             $waitPosition = $status === 'lista_espera' ? $this->nextWaitlistPosition($pdo, $classId, $publico) : null;
             if ($status === 'lista_espera' && $this->availableWaitlistSeats($pdo, $class, $publico) <= 0 && $token === null) {
                 throw new RuntimeException((string) $class['status'] === 'periodo_matricula'
@@ -1563,7 +1579,9 @@ class CourseEnrollmentService
         ]);
         $enrollmentId = (int) $pdo->lastInsertId();
         if ($token !== null) {
-            $pdo->prepare('UPDATE tokens_inscricao_turma SET usos_realizados=usos_realizados+1, ativo=IF(usos_realizados+1>=usos_maximos,0,ativo) WHERE id=:id')->execute([':id' => (int) $token['id']]);
+            $consumeToken = $pdo->prepare("UPDATE tokens_inscricao_turma SET status='usado', ativo=0, usado_em=NOW(), inscricao_turma_id=:inscricao WHERE id=:id AND status='ativo'");
+            $consumeToken->execute([':id' => (int) $token['id'], ':inscricao' => $enrollmentId]);
+            if ($consumeToken->rowCount() !== 1) { throw new RuntimeException('Não foi possível consumir o token. Tente novamente.'); }
         }
 
         AuditLogService::record('inscricao_turma.criada', 'inscricoes_turma', $enrollmentId, [
@@ -1673,19 +1691,118 @@ class CourseEnrollmentService
         $classId = (int) ($data['turma_id'] ?? 0);
         $public = strtolower(trim((string) ($data['publico_alvo'] ?? 'geral')));
         $reason = trim((string) ($data['motivo'] ?? ''));
-        if (!validar_cpf($cpf) || $classId <= 0 || !in_array($public, ['geral', 'pcd', 'plm', 'pvs'], true) || $reason === '') { throw new RuntimeException('Informe CPF, turma, tipo de vaga e motivo para criar o token.'); }
-        $token = bin2hex(random_bytes(32));
-        $stmt = Database::connection()->prepare('INSERT INTO tokens_inscricao_turma (token, turma_id, cpf, publico_alvo, criado_por_conta_id, validade, usos_maximos, motivo) VALUES (:token, :turma, :cpf, :publico, :conta, :validade, :usos, :motivo)');
-        $stmt->execute([':token' => $token, ':turma' => $classId, ':cpf' => $cpf, ':publico' => $public, ':conta' => $accountId, ':validade' => trim((string) ($data['validade'] ?? '')) ?: null, ':usos' => max(1, (int) ($data['usos_maximos'] ?? 1)), ':motivo' => $reason]);
-        $id = (int) Database::connection()->lastInsertId();
+        $validityDays = (int) ($data['validade_dias'] ?? 0);
+        $isAdmin = !empty($data['acesso_admin']);
+        if (!validar_cpf($cpf) || $classId <= 0 || !in_array($public, ['geral', 'pcd', 'plm', 'pvs'], true) || $reason === '' || !in_array($validityDays, [7, 14, 28], true)) {
+            throw new RuntimeException('Informe CPF válido, tipo de vaga, motivo e validade de 7, 14 ou 28 dias.');
+        }
+        if (!$isAdmin && !$this->professorIsAssignedToClass($accountId, $classId)) {
+            throw new RuntimeException('Você só pode gerar tokens para turmas às quais está atribuído.');
+        }
+        $pdo = Database::connection();
+        $class = $this->findClass($pdo, $classId);
+        $class = $this->applyCalculatedClassStatus($pdo, $class);
+        $seasonStatus = $pdo->prepare('SELECT te.status FROM temporadas te INNER JOIN turmas t ON t.temporada_id=te.id WHERE t.id=:turma LIMIT 1');
+        $seasonStatus->execute([':turma' => $classId]);
+        $class['temporada_status'] = (string) ($seasonStatus->fetchColumn() ?: '');
+        if (in_array((string) ($class['status'] ?? ''), ['inscricoes_encerradas', 'cancelada'], true)
+            || in_array((string) ($class['temporada_status'] ?? ''), ['encerrada', 'cancelada'], true)) {
+            throw new RuntimeException('Não é permitido gerar token para turma cancelada ou encerrada.');
+        }
+        $existing = $pdo->prepare("SELECT status FROM inscricoes_turma i INNER JOIN pessoas p ON p.id=i.pessoa_id WHERE i.turma_id=:turma AND p.cpf=:cpf AND i.status NOT IN ('cancelada','excluida') ORDER BY FIELD(i.status,'suspensa','excluida_por_falta') DESC, i.id DESC LIMIT 1");
+        $existing->execute([':turma' => $classId, ':cpf' => $cpf]);
+        $existingStatus = (string) ($existing->fetchColumn() ?: '');
+        if (in_array($existingStatus, ['suspensa', 'excluida_por_falta'], true)) {
+            throw new RuntimeException('Esta pessoa possui inscrição ' . ($existingStatus === 'suspensa' ? 'suspensa' : 'excluída por falta') . '. Utilize a opção “Rematricular” na lista de inscrições.');
+        }
+        if ($existingStatus !== '' && !in_array($existingStatus, ['cancelada', 'excluida'], true)) {
+            throw new RuntimeException('Esta pessoa já possui uma inscrição nesta turma.');
+        }
+        $active = $pdo->prepare("SELECT COUNT(*) FROM tokens_inscricao_turma WHERE turma_id=:turma AND cpf=:cpf AND status='ativo' AND validade>=NOW()");
+        $active->execute([':turma' => $classId, ':cpf' => $cpf]);
+        if ((int) $active->fetchColumn() > 0) {
+            throw new RuntimeException('Já existe um token ativo para este CPF nesta turma.');
+        }
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare('SELECT id FROM turmas WHERE id=:id FOR UPDATE')->execute([':id' => $classId]);
+            $number = '';
+            $check = $pdo->prepare("SELECT COUNT(*) FROM tokens_inscricao_turma WHERE turma_id=:turma AND numero_token=:numero AND status='ativo' AND validade>=NOW()");
+            for ($attempt = 0; $attempt < 100; $attempt++) {
+                $candidate = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+                $check->execute([':turma' => $classId, ':numero' => $candidate]);
+                if ((int) $check->fetchColumn() === 0) { $number = $candidate; break; }
+            }
+            if ($number === '') { throw new RuntimeException('Não foi possível gerar um número de token disponível para esta turma.'); }
+            $secret = bin2hex(random_bytes(32));
+            $validity = (new DateTimeImmutable('now'))->modify('+' . $validityDays . ' days')->format('Y-m-d H:i:s');
+            $stmt = $pdo->prepare("INSERT INTO tokens_inscricao_turma (token, numero_token, turma_id, cpf, publico_alvo, criado_por_conta_id, validade, usos_maximos, motivo, status) VALUES (:token, :numero, :turma, :cpf, :publico, :conta, :validade, 1, :motivo, 'ativo')");
+            $stmt->execute([':token' => $secret, ':numero' => $number, ':turma' => $classId, ':cpf' => $cpf, ':publico' => $public, ':conta' => $accountId, ':validade' => $validity, ':motivo' => $reason]);
+            $id = (int) $pdo->lastInsertId();
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+            throw $e;
+        }
         AuditLogService::record('inscricao_turma.token_criado', 'tokens_inscricao_turma', $id, ['conta_id' => $accountId, 'turma_id' => $classId, 'cpf' => $cpf, 'publico_alvo' => $public]);
-        return $token;
+        return $number;
+    }
+
+    public function listEnrollmentTokens(int $classId, int $accountId, bool $isAdmin = false): array
+    {
+        if ($classId <= 0 || (!$isAdmin && !$this->professorIsAssignedToClass($accountId, $classId))) {
+            throw new RuntimeException('Você não possui acesso aos tokens desta turma.');
+        }
+        $pdo = Database::connection();
+        $pdo->prepare("UPDATE tokens_inscricao_turma SET status='expirado', ativo=0 WHERE turma_id=:turma AND status='ativo' AND validade<NOW()")->execute([':turma' => $classId]);
+        $stmt = $pdo->prepare("SELECT tk.id, tk.numero_token, tk.cpf, tk.publico_alvo, tk.validade, tk.motivo, tk.status, tk.created_at, p.nome_completo, autor.nome_completo AS criado_por FROM tokens_inscricao_turma tk LEFT JOIN pessoas p ON p.cpf=tk.cpf LEFT JOIN contas c ON c.id=tk.criado_por_conta_id LEFT JOIN pessoas autor ON autor.cpf=c.cpf WHERE tk.turma_id=:turma ORDER BY tk.id DESC");
+        $stmt->execute([':turma' => $classId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        foreach ($rows as &$row) {
+            $row['cpf_formatado'] = $isAdmin ? format_cpf((string) $row['cpf']) : format_cpf_professor((string) $row['cpf']);
+            $row['publico_label'] = strtoupper((string) $row['publico_alvo']);
+        }
+        unset($row);
+        return $rows;
+    }
+
+    public function excludeEnrollmentToken(int $tokenId, int $accountId, bool $isAdmin = false): void
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('SELECT id, turma_id, status FROM tokens_inscricao_turma WHERE id=:id LIMIT 1');
+        $stmt->execute([':id' => $tokenId]);
+        $token = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$token || (!$isAdmin && !$this->professorIsAssignedToClass($accountId, (int) $token['turma_id']))) {
+            throw new RuntimeException('Token não encontrado ou sem permissão de acesso.');
+        }
+        if ((string) $token['status'] !== 'ativo') { throw new RuntimeException('Somente tokens ativos podem ser excluídos.'); }
+        $pdo->prepare("UPDATE tokens_inscricao_turma SET status='excluido', ativo=0, excluido_em=NOW() WHERE id=:id")->execute([':id' => $tokenId]);
+        AuditLogService::record('inscricao_turma.token_excluido', 'tokens_inscricao_turma', $tokenId, ['conta_id' => $accountId]);
+    }
+
+    public function pendingEnrollmentTokensForAccount(int $accountId): array
+    {
+        if ($accountId <= 0) { return []; }
+        $pdo = Database::connection();
+        $pdo->exec("UPDATE tokens_inscricao_turma SET status='expirado', ativo=0 WHERE status='ativo' AND validade<NOW()");
+        $stmt = $pdo->prepare("SELECT tk.id, tk.numero_token, tk.cpf, tk.publico_alvo, tk.validade, p.id AS pessoa_id, p.nome_completo, p.cadastro_completo, t.id AS turma_id, t.nome AS turma_nome, t.programa, t.dias_semana, t.hora_inicio, t.hora_fim, te.nome AS temporada_nome, m.nome AS modalidade_nome, COALESCE(l.apelido_local,l.nome_local) AS local_nome FROM tokens_inscricao_turma tk INNER JOIN pessoas p ON p.cpf=tk.cpf INNER JOIN turmas t ON t.id=tk.turma_id INNER JOIN temporadas te ON te.id=t.temporada_id INNER JOIN modalidades m ON m.id=t.modalidade_id INNER JOIN locais_treino l ON l.id=t.local_treino_id INNER JOIN contas conta ON conta.id=:conta INNER JOIN pessoas titular ON titular.cpf=conta.cpf LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id=p.id AND vr.data_fim IS NULL WHERE tk.status='ativo' AND tk.validade>=NOW() AND p.cadastro_completo=1 AND (p.id=titular.id OR vr.responsavel_pessoa_id=titular.id) ORDER BY tk.id");
+        $stmt->execute([':conta' => $accountId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function cancelEnrollmentTokenForAccount(int $tokenId, int $accountId): void
+    {
+        $pending = array_column($this->pendingEnrollmentTokensForAccount($accountId), null, 'id');
+        if (!isset($pending[$tokenId])) { throw new RuntimeException('Token não encontrado ou não pertence às pessoas sob sua responsabilidade.'); }
+        Database::connection()->prepare("UPDATE tokens_inscricao_turma SET status='cancelado', ativo=0, cancelado_em=NOW() WHERE id=:id AND status='ativo'")->execute([':id' => $tokenId]);
+        AuditLogService::record('inscricao_turma.token_cancelado', 'tokens_inscricao_turma', $tokenId, ['conta_id' => $accountId]);
     }
 
     private function findEnrollmentToken(PDO $pdo, string $token, int $classId, string $cpf): ?array
     {
         if ($token === '') { return null; }
-        $stmt = $pdo->prepare('SELECT * FROM tokens_inscricao_turma WHERE token = :token AND turma_id = :turma AND cpf = :cpf AND ativo = 1 AND usos_realizados < usos_maximos AND (validade IS NULL OR validade >= NOW()) LIMIT 1');
+        if (!preg_match('/^\d{4}$/', $token)) { throw new RuntimeException('O token deve conter quatro dígitos.'); }
+        $stmt = $pdo->prepare("SELECT * FROM tokens_inscricao_turma WHERE numero_token = :token AND turma_id = :turma AND cpf = :cpf AND status='ativo' AND validade >= NOW() LIMIT 1");
         $stmt->execute([':token' => $token, ':turma' => $classId, ':cpf' => $cpf]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) { throw new RuntimeException('Token inválido, expirado ou não autorizado para este CPF e turma.'); }
@@ -1721,6 +1838,8 @@ class CourseEnrollmentService
             'lista_espera' => 'aguardando_matricula',
             'aguardando_matricula' => 'matriculada',
             'matriculada' => 'desistente',
+            'suspensa' => 'matriculada',
+            'excluida_por_falta' => 'matriculada',
         ];
         $reason = trim($reason);
 
@@ -2093,7 +2212,7 @@ class CourseEnrollmentService
 
     private function validateDuplicate(PDO $pdo, int $classId, int $personId): void
     {
-        $stmt = $pdo->prepare("SELECT id FROM inscricoes_turma WHERE turma_id = :turma_id AND pessoa_id = :pessoa_id AND status IN ('aguardando_matricula', 'matriculada', 'lista_espera') LIMIT 1");
+        $stmt = $pdo->prepare("SELECT id FROM inscricoes_turma WHERE turma_id = :turma_id AND pessoa_id = :pessoa_id AND status NOT IN ('cancelada', 'excluida') LIMIT 1");
         $stmt->execute([':turma_id' => $classId, ':pessoa_id' => $personId]);
         if ($stmt->fetchColumn()) { throw new RuntimeException('Esta pessoa já está inscrita nesta turma.'); }
     }
@@ -2397,7 +2516,7 @@ class CourseEnrollmentService
 
     private function synchronizeCalculatedClassStatuses(PDO $pdo, ?int $classId = null): void
     {
-        $sql = 'SELECT t.id, t.status, t.ativo, cm.inscricoes_inicio AS cronograma_inscricoes_inicio,
+        $sql = 'SELECT t.id, t.status, t.ativo, t.inscricoes_abertas, cm.inscricoes_inicio AS cronograma_inscricoes_inicio,
                        cm.inscricoes_fim AS cronograma_inscricoes_fim,
                        cm.matriculas_inicio AS cronograma_matriculas_inicio,
                        cm.matriculas_fim AS cronograma_matriculas_fim,
@@ -2414,7 +2533,10 @@ class CourseEnrollmentService
             $status = empty($class['ativo']) ? 'inscricoes_suspensas' : $this->calculatedClassStatus($class);
             $accepts = $status === 'processo_inicial' || $status === 'inscricoes_abertas'
                 || ($status === 'periodo_matricula' && !empty($class['permitir_inscricao_periodo_matricula']));
-            $update->execute([':status' => $status, ':abertas' => $accepts ? 1 : 0, ':id' => (int) $class['id']]);
+            $acceptsValue = $accepts ? 1 : 0;
+            if ($status !== (string) $class['status'] || $acceptsValue !== (int) $class['inscricoes_abertas']) {
+                $update->execute([':status' => $status, ':abertas' => $acceptsValue, ':id' => (int) $class['id']]);
+            }
         }
     }
 

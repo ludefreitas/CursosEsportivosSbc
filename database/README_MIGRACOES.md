@@ -16,6 +16,7 @@ As requisições HTTP da aplicação não podem criar, alterar ou inspecionar a 
 - Blog: `migracao_expandir_blog_postagens.sql` e `migracao_criar_blog_postagens_imagens.sql`.
 - Turmas, temporadas e inscrições: `migracao_sistema_inscricoes_turmas.sql`, `migracao_status_turmas_e_ordem_inscricoes.sql`, `migracao_adicionar_criterio_faixa_etaria_horarios_semanais.sql`, `migracao_multiplos_professores_turma.sql`, `migracao_observacao_turmas.sql`, `migracao_excecoes_idade_turmas.sql`, `migracao_limite_inscricoes_por_modalidade.sql` e `migracao_abrangencia_semanal_matriculas.sql`.
 - Chamada de turmas: `migracao_chamada_turmas.sql`.
+- Tokens de autorização para inscrição: `migracao_tokens_inscricao_fluxo_completo.sql`.
 - Agenda e horários especiais: `migracao_agenda_janelas_e_horarios_especiais.sql`, `migracao_renomear_agenda_horarios_especiais.sql` e migrações de snapshot e critérios dos horários semanais.
 - Conteúdo da página inicial: `migracao_criar_home_conteudos_configurados.sql` e `migracao_adicionar_links_home_quadros_informativos.sql`.
 - Pop-ups e comunicações: migrações com os prefixos `migracao_criar_site_popups`, `migracao_popups_locais`, `migracao_popups_modalidades`, `migracao_multiplos_botoes_site_popups` e `migracao_adicionar_rascunho_comunicacao_blog`.

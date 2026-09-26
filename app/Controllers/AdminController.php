@@ -2846,6 +2846,35 @@ class AdminController extends Controller
         $this->outputAddressListPdf((int) ($_GET['turma_id'] ?? 0));
     }
 
+    public function enrollmentTokens(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $tokens = (new CourseEnrollmentService())->listEnrollmentTokens((int) ($_GET['turma_id'] ?? 0), (int) $user['conta_id'], true);
+            $this->jsonResponse(['success' => true, 'tokens' => $tokens]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function createEnrollmentToken(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $data = $_POST;
+            $data['acesso_admin'] = 1;
+            $token = (new CourseEnrollmentService())->createExceptionToken((int) $user['conta_id'], $data);
+            $this->jsonResponse(['success' => true, 'message' => 'Token criado com sucesso.', 'token' => $token]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function excludeEnrollmentToken(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            (new CourseEnrollmentService())->excludeEnrollmentToken((int) ($_POST['token_id'] ?? 0), (int) $user['conta_id'], true);
+            $this->jsonResponse(['success' => true, 'message' => 'Token marcado como excluído.']);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
     private function outputAddressListPdf(int $classId): void
     {
         try {

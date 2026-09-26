@@ -1380,6 +1380,13 @@ body.pagina-error label span {
 .course-class-address-list-link:visited { color: #111; font-weight: 800; text-decoration: underline; }
 .course-class-address-list-link:hover,
 .course-class-address-list-link:focus-visible { color: #000; }
+.course-class-tokens-link,
+.course-class-tokens-link:visited { color: var(--accent-orange); font-weight: 800; text-decoration: underline; }
+.course-token-table { width: 100%; border-collapse: collapse; }
+.course-token-table th, .course-token-table td { padding: .55rem; border-bottom: 1px solid var(--border-color, #ddd); text-align: left; }
+.course-token-alert { border: 3px solid #1674b8; padding: 1rem; }
+.course-token-alert-attention { color: var(--accent-orange); }
+.course-token-alert-person { color: #0645d9; }
 .course-enrollment-status-desistente { background: linear-gradient(to bottom, #d5d9d9 0%, #e9ebeb 52%, #f8f9f9 100%); }
 .course-enrollment-status-cancelada { background: linear-gradient(to bottom, #efc3c3 0%, #f8dddd 52%, #fff3f3 100%); }
 .course-enrollment-status-suspensa { background: linear-gradient(to bottom, #dec9eb 0%, #ecdef3 52%, #faf2f7 100%); }
