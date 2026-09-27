@@ -113,7 +113,7 @@
                 const message = String($(this).attr('data-field-help-message') || '').trim();
                 if (!message) return;
                 App.core.abrirPopup('sucesso', message);
-                $('#popup-titulo').text('Ajuda sobre o campo');
+                $('#popup-titulo').text(String($(this).attr('data-field-help-title') || 'Ajuda sobre o campo'));
             });
         },
 

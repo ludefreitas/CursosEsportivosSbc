@@ -1957,3 +1957,10 @@
 .admin-person-enrollment-details-modal {
     z-index: 2050;
 }
+
+.tutorial-video-order-button {
+    min-width: 48px;
+    padding-inline: 14px;
+    font-size: 1.35rem;
+    line-height: 1;
+}

@@ -7453,8 +7453,8 @@
                     .append($('<label>').append($('<span>').text('Título do vídeo'), $('<input>', { type: 'text', name: 'video_titulo[]', maxlength: 180, placeholder: 'Ex.: Como realizar meu cadastro' })))
                     .append($('<label>').append($('<span>').text('URL do YouTube'), $('<input>', { type: 'url', name: 'video_url[]', maxlength: 2048, placeholder: 'https://youtu.be/...' })))
                     .append($('<div>', { class: 'tutorial-admin-video-actions' })
-                        .append($('<button>', { type: 'button', class: 'btn btn-secondary', 'data-tutorial-video-up': '1', 'aria-label': 'Mover vídeo para cima', text: 'Subir' }))
-                        .append($('<button>', { type: 'button', class: 'btn btn-secondary', 'data-tutorial-video-down': '1', 'aria-label': 'Mover vídeo para baixo', text: 'Descer' }))
+                        .append($('<button>', { type: 'button', class: 'btn btn-secondary tutorial-video-order-button', 'data-tutorial-video-up': '1', 'aria-label': 'Mover vídeo para cima', title: 'Mover vídeo para cima', text: '↑' }))
+                        .append($('<button>', { type: 'button', class: 'btn btn-secondary tutorial-video-order-button', 'data-tutorial-video-down': '1', 'aria-label': 'Mover vídeo para baixo', title: 'Mover vídeo para baixo', text: '↓' }))
                         .append($('<button>', { type: 'button', class: 'btn btn-danger', 'data-tutorial-video-remove': '1', text: 'Remover' })));
             }
 
@@ -7469,8 +7469,12 @@
             });
             $(document).on('click', '[data-tutorial-video-remove]', function () {
                 const $list = $(this).closest('[data-tutorial-videos-list]');
+                const $rows = $list.find('[data-tutorial-video-row]');
+                if ($rows.length === 1) {
+                    $rows.first().find('input').val('').first().trigger('focus');
+                    return;
+                }
                 $(this).closest('[data-tutorial-video-row]').remove();
-                if (!$list.find('[data-tutorial-video-row]').length) $list.append(videoRow());
             });
             $(document).on('click', '[data-tutorial-video-up], [data-tutorial-video-down]', function () {
                 const $row = $(this).closest('[data-tutorial-video-row]');
