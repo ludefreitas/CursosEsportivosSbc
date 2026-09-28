@@ -456,6 +456,14 @@
                     .append($text));
             }
 
+            function classSeasonLabel(courseClass) {
+                return String(
+                    courseClass.temporada_nome
+                    || String(courseClass.temporada_inicio || courseClass.data_inicio || '').slice(0, 4)
+                    || new Date().getFullYear()
+                ).trim();
+            }
+
             function renderEnrollmentModal(details, tokenContext) {
                 tokenContext = tokenContext || null;
                 const detailClass = details && details.class ? details.class : {};
@@ -464,9 +472,9 @@
                 const $content = $('#home-course-enrollment-content').empty();
                 $('#home-course-enrollment-subtitle').text('Confira os dados, selecione a pessoa que deseja inscrever, aceite os termos e clique no botão “Confirmar inscrição”.');
                 const $summary = $('<div>', { class: 'home-course-detail-summary' });
-                const seasonYear = String(courseClass.data_inicio || courseClass.temporada_inicio || '').slice(0, 4) || String(new Date().getFullYear());
+                const seasonLabel = classSeasonLabel(courseClass);
                 const modalityName = String(courseClass.modalidade_nome || (selectedModality && selectedModality.nome) || 'Modalidade');
-                $summary.append($('<h4>', { class: 'home-course-detail-main-title', text: modalityName + ' - ' + seasonYear }));
+                $summary.append($('<h4>', { class: 'home-course-detail-main-title', text: modalityName + ' - ' + seasonLabel }));
                 $summary.append($('<p>', { class: 'home-course-detail-class-name' }).append($('<strong>', { text: '[' + String(courseClass.id || '') + '] - ' + String(courseClass.nome || '') })));
                 $summary.append($('<p>').append($('<strong>', { text: 'Programa: ' })).append(document.createTextNode(String(courseClass.programa || 'Sem programa definido'))));
                 $summary.append($('<p>').append($('<strong>', { text: 'Local da aula: ' })).append(document.createTextNode(String(courseClass.local_nome || ''))));
@@ -526,6 +534,7 @@
 
             function renderVacanciesModal(details) {
                 const record = details.class;
+                const courseClass = Object.assign({}, record, classesById[String(record.id)] || {});
                 const $grid = $('<div>', { class: 'home-course-vacancies-grid' });
                 const registrationsAreOpen = String(record.status || '') === 'inscricoes_abertas';
                 [['Público geral', 'vagas_geral_disponiveis', 'espera_geral_disponivel'], ['PCD (Pessoa Com Deficiência)', 'vagas_pcd_disponiveis', 'espera_pcd_disponivel'], ['PLM (Pessoa com Laudo Médico de Doença)', 'vagas_plm_disponiveis', 'espera_plm_disponivel'], ['PVS (Pessoa em situação de Vulnerabilidade Social)', 'vagas_pvs_disponiveis', 'espera_pvs_disponivel']].forEach(function (item) {
@@ -539,7 +548,11 @@
                         : String(displayedVacancies) + (displayedVacancies === 1 ? ' vaga' : ' vagas') + (registrationsAreOpen ? ' na lista de espera' : '');
                     $grid.append($('<article>').append($('<strong>', { text: item[0] })).append($('<span>', { text: vacanciesLabel })));
                 });
-                $('#home-course-vacancies-subtitle').text(String((classesById[String(record.id)] || record).nome || ''));
+                $('#home-course-vacancies-subtitle').text(
+                    '[' + String(courseClass.id || '') + '] '
+                    + String(courseClass.nome || '')
+                    + ' - ' + classSeasonLabel(courseClass)
+                );
                 $('#home-course-vacancies-content').empty().append($grid);
                 $('#home-course-vacancies-modal').removeClass('hidden').attr('aria-hidden', 'false');
             }
@@ -554,8 +567,8 @@
                 classes.forEach(function (courseClass) {
                     classesById[String(courseClass.id)] = courseClass;
                     const $card = $('<article>', { class: 'home-course-class-card' });
-                    const seasonYear = String(courseClass.data_inicio || courseClass.temporada_inicio || '').slice(0, 4) || String(new Date().getFullYear());
-                    $card.append($('<h4>', { text: String(courseClass.modalidade_nome || (selectedModality && selectedModality.nome) || 'Modalidade') + ' - ' + seasonYear }));
+                    const seasonLabel = classSeasonLabel(courseClass);
+                    $card.append($('<h4>', { text: String(courseClass.modalidade_nome || (selectedModality && selectedModality.nome) || 'Modalidade') + ' - ' + seasonLabel }));
                     $card.append($('<p>', { class: 'home-course-class-name' }).append($('<strong>', { text: '[' + String(courseClass.id || '') + '] - ' + String(courseClass.nome || '') })));
                     $card.append($('<p>').append($('<strong>', { text: 'Local da aula: ' })).append(document.createTextNode(String(courseClass.local_nome || ''))));
                     if (courseClass.dias_semana && courseClass.hora_inicio && courseClass.hora_fim) {
