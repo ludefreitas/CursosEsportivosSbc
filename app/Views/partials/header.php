@@ -23,6 +23,7 @@
     data-profile-completion-required="<?php echo !empty($profileCompletionRequired) ? '1' : '0'; ?>"
     data-admin-access-allowed="<?php echo !empty($headerAdminAccessAllowed) ? '1' : '0'; ?>"
     data-professor-access-allowed="<?php echo !empty($headerProfessorAccessAllowed) ? '1' : '0'; ?>"
+    data-intern-access-allowed="<?php echo !empty($headerInternAccessAllowed) ? '1' : '0'; ?>"
     data-profile-completion-message="<?php echo e($profileCompletionBlockMessage ?: 'Antes de acessar esta área, você precisa completar seu cadastro.'); ?>"
 >
     <?php $isAuthenticated = \App\Core\Auth::check(); ?>
@@ -83,6 +84,9 @@
                     <?php } ?>
                     <?php if (!empty($headerProfessorAccessAllowed)) { ?>
                         <a href="<?php echo e(url('/professor')); ?>" class="nav-color-green">Professor</a>
+                    <?php } ?>
+                    <?php if (!empty($headerInternAccessAllowed)) { ?>
+                        <a href="<?php echo e(url('/estagiario')); ?>" class="nav-color-green">Estagiário</a>
                     <?php } ?>
                     <form method="POST" action="<?php echo e(url('/logout')); ?>" class="inline-form">
                         <button type="submit" class="link-button nav-color-green">Sair</button>

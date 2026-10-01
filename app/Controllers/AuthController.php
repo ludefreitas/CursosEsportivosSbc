@@ -101,6 +101,7 @@ class AuthController extends Controller
 
             $adminAccessAllowed = false;
             $professorAccessAllowed = false;
+            $internAccessAllowed = false;
 
             if ($registrationBlock === null && $person && (int) ($person['cadastro_completo'] ?? 0) === 1) {
                 $authenticatedUser = (new \App\Services\UserService())->currentAccountWithRoles();
@@ -115,6 +116,9 @@ class AuthController extends Controller
                 if (has_role($authenticatedUser['roles'] ?? [], 'teacher')) {
                     $professorAccessAllowed = true;
                 }
+                if (has_role($authenticatedUser['roles'] ?? [], 'intern') && !has_role($authenticatedUser['roles'] ?? [], 'teacher')) {
+                    $internAccessAllowed = true;
+                }
             }
 
             if ($this->isAjaxRequest()) {
@@ -124,6 +128,7 @@ class AuthController extends Controller
                     'redirect' => $redirectUrl,
                     'admin_access_allowed' => $adminAccessAllowed,
                     'professor_access_allowed' => $professorAccessAllowed,
+                    'intern_access_allowed' => $internAccessAllowed,
                     'header_certificate_alerts_html' => $this->renderHeaderCertificateAlertsHtml(),
                     'header_notifications_html' => $this->renderHeaderNotificationsHtml(),
                 ]);

@@ -26,7 +26,8 @@ class ProfessorController extends Controller
     public function index(): void
     {
         $user = $this->assertProfessorAccess();
-        $this->view('professor/index', ['title' => 'Área do professor', 'user' => $user, 'pageClass' => 'professor-page', 'professorPageConfig' => (new \App\Services\ProfessorPageService())->get()]);
+        $internView = has_role($user['roles'] ?? [], 'intern') && !has_role($user['roles'] ?? [], 'teacher');
+        $this->view('professor/index', ['title' => $internView ? 'Área do estagiário' : 'Área do professor', 'user' => $user, 'pageClass' => 'professor-page', 'professorPageConfig' => (new \App\Services\ProfessorPageService())->get(), 'internView' => $internView]);
     }
 
     public function section(): void
@@ -40,6 +41,7 @@ class ProfessorController extends Controller
 
         try {
             $data = $this->buildSectionData($sectionName, $user);
+            $data['internView'] = has_role($user['roles'] ?? [], 'intern') && !has_role($user['roles'] ?? [], 'teacher');
             ob_start();
             extract($data, EXTR_SKIP);
             require ROOT_PATH . '/app/Views/admin/partials/section_content.php';
@@ -125,6 +127,7 @@ class ProfessorController extends Controller
             if (($result['stage'] ?? '') === 'classes') {
                 $courseClasses = (array) ($result['classes'] ?? []);
                 $courseManagementView = 'professor-turmas';
+                $internView = has_role($user['roles'] ?? [], 'intern') && !has_role($user['roles'] ?? [], 'teacher');
                 ob_start();
                 require ROOT_PATH . '/app/Views/admin/partials/course_class_card_list.php';
                 $result['html'] = (string) ob_get_clean();
@@ -195,14 +198,25 @@ class ProfessorController extends Controller
     {
         $user = $this->assertProfessorAccess();
         try {
+            if (!has_role($user['roles'] ?? [], 'teacher')) throw new \RuntimeException('Estagiários não podem alterar equipes.');
             $service = new \App\Services\CourseEnrollmentService();
             $classId = (int) ($_POST['turma_id'] ?? 0);
             if (!$service->professorIsAssignedToClass((int) $user['conta_id'], $classId)) {
                 throw new \RuntimeException('Você não possui acesso a esta turma ou não está mais atribuído a ela.');
             }
-            $service->assignClassTeam($classId, (int) ($_POST['professor_principal_conta_id'] ?? 0), (array) ($_POST['professor_auxiliar_conta_ids'] ?? []), (array) ($_POST['estagiario_conta_ids'] ?? []), (int) $user['conta_id']);
+            $service->assignAuxiliaryClassTeam($classId, (array) ($_POST['professor_auxiliar_conta_ids'] ?? []), (array) ($_POST['estagiario_conta_ids'] ?? []), (int) $user['conta_id']);
             $stillAssigned = $service->professorIsAssignedToClass((int) $user['conta_id'], $classId);
             $this->jsonResponse(['success' => true, 'message' => 'Equipe da turma atualizada com sucesso.', 'professor_class_refresh' => true, 'remove_class_id' => $stillAssigned ? 0 : $classId]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function saveWeeklyScheduleTeam(): void
+    {
+        $user = $this->assertProfessorAccess();
+        try {
+            if (!has_role($user['roles'] ?? [], 'teacher')) throw new \RuntimeException('Estagiários não podem alterar equipes.');
+            $schedule = $this->adminService->assignWeeklyScheduleAuxiliaryTeam((int) ($_POST['horario_semanal_id'] ?? 0), $_POST, (int) $user['conta_id']);
+            $this->jsonResponse(['success' => true, 'message' => 'Equipe do horário atualizada com sucesso.', 'schedule' => $schedule]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
@@ -684,10 +698,13 @@ class ProfessorController extends Controller
         $dailyDate = trim((string) ($_GET['data_agendamento'] ?? date('Y-m-d')));
         $dailyLocationId = (int) ($_GET['agendamento_local_treino_id'] ?? 0);
         $dailySpaceId = (int) ($_GET['agendamento_espaco_treino_id'] ?? 0);
+        $courseService = new \App\Services\CourseEnrollmentService();
         return [
             'sectionName' => 'agenda', 'professorView' => true,
             'trainingSpaces' => $this->adminService->listTrainingSpacesForManagement(),
             'modalities' => $this->adminService->listModalitiesForManagement(),
+            'courseProfessors' => $courseService->listProfessors(),
+            'courseInterns' => $courseService->listInterns(),
             'scheduleFilterOptions' => (new AgendaService())->activeWeeklyScheduleFilterOptions(true),
             'selectedDailyDate' => $dailyDate, 'selectedDailyLocationId' => $dailyLocationId, 'selectedDailySpaceId' => $dailySpaceId,
             'weeklySchedules' => $this->adminService->listWeeklySchedulesForManagement($locationId, $modalityId, (int) ($user['conta_id'] ?? 0)),
@@ -745,7 +762,7 @@ class ProfessorController extends Controller
             redirect_to_profile_completion_modal('/professor');
         }
         $user = $this->userService->currentAccountWithRoles();
-        if ($user && has_role($user['roles'] ?? [], 'teacher')) { return $user; }
+        if ($user && (has_role($user['roles'] ?? [], 'teacher') || has_role($user['roles'] ?? [], 'intern'))) { return $user; }
         if ($this->isAjaxRequest()) { $this->jsonResponse(['success' => false, 'message' => 'Seu nível de acesso não permite abrir a área do professor.', 'redirect' => url('/')], 403); }
         redirect('/');
     }

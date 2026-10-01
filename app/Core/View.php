@@ -99,6 +99,18 @@ class View
             }
         }
 
+        if (!array_key_exists('headerInternAccessAllowed', $data)) {
+            $data['headerInternAccessAllowed'] = false;
+            if (Auth::check() && empty($data['profileCompletionRequired'])) {
+                try {
+                    $account = (new UserService())->currentAccountWithRoles();
+                    $data['headerInternAccessAllowed'] = $account && has_role($account['roles'] ?? [], 'intern') && !has_role($account['roles'] ?? [], 'teacher');
+                } catch (\Throwable $e) {
+                    $data['headerInternAccessAllowed'] = false;
+                }
+            }
+        }
+
         extract($data, EXTR_SKIP);
         $viewFile = ROOT_PATH . '/app/Views/' . $view . '.php';
 

@@ -119,6 +119,65 @@ class NotificationService
         return $row;
     }
 
+    public function archiveRead(int $accountId, int $recipientId): void
+    {
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('SELECT notificacao_id, pessoa_id, visualizada_em FROM notificacoes_destinatarios WHERE id=:id AND destinatario_conta_id=:conta AND arquivada_em IS NULL LIMIT 1');
+        $stmt->execute([':id' => $recipientId, ':conta' => $accountId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) throw new RuntimeException('Notificação não encontrada.');
+        if (empty($row['visualizada_em'])) throw new RuntimeException('Somente notificações já lidas podem ser excluídas.');
+        $pdo->prepare('UPDATE notificacoes_destinatarios SET arquivada_em=NOW() WHERE id=:id AND destinatario_conta_id=:conta AND visualizada_em IS NOT NULL AND arquivada_em IS NULL')->execute([':id' => $recipientId, ':conta' => $accountId]);
+        AuditLogService::record('notificacao.arquivada_destinatario', 'notificacoes', (int) $row['notificacao_id'], ['destinatario_id' => $recipientId, 'pessoa_id' => (int) $row['pessoa_id']]);
+    }
+
+    public function sentHistory(int $actorAccountId, array $roles, array $input): array
+    {
+        $this->assertStaff($roles);
+        $isAdmin = $this->isAdmin($roles);
+        $page = max(1, (int) ($input['pagina'] ?? 1));
+        $perPage = 15;
+        $search = mb_substr(trim((string) ($input['busca'] ?? '')), 0, 120, 'UTF-8');
+        $type = trim((string) ($input['tipo'] ?? ''));
+        $authorId = $isAdmin ? max(0, (int) ($input['autor_id'] ?? 0)) : $actorAccountId;
+        $dateFrom = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($input['data_inicio'] ?? '')) ? (string) $input['data_inicio'] : '';
+        $dateTo = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($input['data_fim'] ?? '')) ? (string) $input['data_fim'] : '';
+        $allowedTypes = ['pessoa', 'condicao', 'atestado', 'inscricao', 'agendamento', 'turma_lote'];
+        if (!in_array($type, $allowedTypes, true)) $type = '';
+
+        $where = [];
+        $params = [];
+        if (!$isAdmin || $authorId > 0) { $where[] = 'n.autor_conta_id=:autor'; $params[':autor'] = $authorId; }
+        if ($type !== '') { $where[] = 'n.tipo=:tipo'; $params[':tipo'] = $type; }
+        if ($dateFrom !== '') { $where[] = 'n.created_at>=:inicio'; $params[':inicio'] = $dateFrom . ' 00:00:00'; }
+        if ($dateTo !== '') { $where[] = 'n.created_at<=:fim'; $params[':fim'] = $dateTo . ' 23:59:59'; }
+        if ($search !== '') {
+            $where[] = "CONCAT_WS(' ', n.assunto, n.mensagem, autor.nome_completo, COALESCE((SELECT GROUP_CONCAT(busca_p.nome_completo SEPARATOR ' ') FROM notificacoes_destinatarios busca_nd INNER JOIN pessoas busca_p ON busca_p.id=busca_nd.pessoa_id WHERE busca_nd.notificacao_id=n.id), '')) LIKE :busca";
+            $params[':busca'] = '%' . $search . '%';
+        }
+        $whereSql = $where === [] ? '' : ' WHERE ' . implode(' AND ', $where);
+        $fromSql = ' FROM notificacoes n INNER JOIN contas ac ON ac.id=n.autor_conta_id INNER JOIN pessoas autor ON autor.cpf=ac.cpf';
+        $pdo = Database::connection();
+        $count = $pdo->prepare('SELECT COUNT(*)' . $fromSql . $whereSql);
+        $count->execute($params);
+        $total = (int) $count->fetchColumn();
+        $pages = max(1, (int) ceil($total / $perPage));
+        $page = min($page, $pages);
+        $offset = ($page - 1) * $perPage;
+        $sql = 'SELECT n.id, n.tipo, n.assunto, n.mensagem, n.created_at, n.autor_conta_id, autor.nome_completo AS autor_nome, COUNT(nd.id) AS total_destinatarios, SUM(nd.visualizada_em IS NOT NULL) AS total_lidas, SUM(nd.arquivada_em IS NOT NULL) AS total_arquivadas, GROUP_CONCAT(DISTINCT aluno.nome_completo ORDER BY aluno.nome_completo SEPARATOR \'||\') AS alunos' . $fromSql . ' LEFT JOIN notificacoes_destinatarios nd ON nd.notificacao_id=n.id LEFT JOIN pessoas aluno ON aluno.id=nd.pessoa_id' . $whereSql . ' GROUP BY n.id, n.tipo, n.assunto, n.mensagem, n.created_at, n.autor_conta_id, autor.nome_completo ORDER BY n.created_at DESC, n.id DESC LIMIT ' . $perPage . ' OFFSET ' . $offset;
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        foreach ($rows as &$row) $row['alunos'] = array_values(array_filter(explode('||', (string) ($row['alunos'] ?? ''))));
+        unset($row);
+        $authors = [];
+        if ($isAdmin) {
+            $authorStmt = $pdo->query('SELECT DISTINCT n.autor_conta_id AS id, p.nome_completo AS nome FROM notificacoes n INNER JOIN contas c ON c.id=n.autor_conta_id INNER JOIN pessoas p ON p.cpf=c.cpf ORDER BY p.nome_completo');
+            $authors = $authorStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        }
+        return ['items' => $rows, 'pagination' => ['pagina' => $page, 'paginas' => $pages, 'total' => $total, 'por_pagina' => $perPage], 'authors' => $authors, 'is_admin' => $isAdmin];
+    }
+
     private function prepareClassBatch(int $actorAccountId, array $roles, int $classId): array
     {
         $this->assertClassAccess($actorAccountId, $roles, $classId);
@@ -307,7 +366,7 @@ class NotificationService
 
     private function assertStaff(array $roles): void
     {
-        foreach ($roles as $role) if (in_array((string) ($role['slug'] ?? ''), array_merge(self::ADMIN_ROLES, ['teacher']), true)) return;
+        foreach ($roles as $role) if (in_array((string) ($role['slug'] ?? ''), array_merge(self::ADMIN_ROLES, ['teacher', 'intern']), true)) return;
         throw new RuntimeException('Você não possui permissão para enviar notificações.');
     }
 
@@ -327,8 +386,8 @@ class NotificationService
     private function assertScheduleAccess(int $accountId, array $roles, int $scheduleId): void
     {
         if ($this->isAdmin($roles)) return;
-        $stmt=Database::connection()->prepare('SELECT COUNT(*) FROM horarios_semanais hs WHERE hs.id=:id AND (hs.professor_conta_id=:principal OR EXISTS (SELECT 1 FROM horarios_semanais_professores hsp WHERE hsp.horario_semanal_id=hs.id AND hsp.professor_conta_id=:auxiliar))');
-        $stmt->execute([':id'=>$scheduleId,':principal'=>$accountId,':auxiliar'=>$accountId]);
+        $stmt=Database::connection()->prepare('SELECT COUNT(*) FROM horarios_semanais hs WHERE hs.id=:id AND (hs.professor_conta_id=:principal OR EXISTS (SELECT 1 FROM horarios_semanais_professores hsp WHERE hsp.horario_semanal_id=hs.id AND hsp.professor_conta_id=:auxiliar) OR EXISTS (SELECT 1 FROM horarios_semanais_estagiarios hse WHERE hse.horario_semanal_id=hs.id AND hse.estagiario_conta_id=:estagiario))');
+        $stmt->execute([':id'=>$scheduleId,':principal'=>$accountId,':auxiliar'=>$accountId,':estagiario'=>$accountId]);
         if ((int)$stmt->fetchColumn()<=0) throw new RuntimeException('Você não possui acesso a este agendamento.');
     }
 }

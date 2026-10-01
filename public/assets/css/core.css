@@ -1422,7 +1422,9 @@ body.pagina-error label span {
 .site-header-notifications-more { flex:0 0 auto; }
 .user-notifications-card { width:min(760px, calc(100vw - 24px)); }
 .user-notifications-list { display:grid; gap:10px; }
+.user-notification-row { position:relative; display:grid; gap:6px; }
 .user-notification-item { display:grid; gap:5px; padding:12px; border:1px solid #d7e2e9; border-radius:12px; background:#fff; text-align:left; }
+.user-notification-delete { justify-self:end; color:var(--red-700); }
 .user-notification-item.is-unread { border-left:5px solid #147fbd; background:#f3faff; }
 .user-notification-item-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
 .user-notification-detail { display:grid; gap:10px; }

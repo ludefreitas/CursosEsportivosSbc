@@ -70,7 +70,7 @@
             return true;
         },
 
-        sincronizarCabecalhoAutenticado: function (adminAccessAllowed, professorAccessAllowed) {
+        sincronizarCabecalhoAutenticado: function (adminAccessAllowed, professorAccessAllowed, internAccessAllowed) {
             const $nav = $('.site-nav').first();
             const profileCompletionRequired = App.core.pageRequiresProfileCompletion() ? '1' : '0';
             const canAccessAdmin = typeof adminAccessAllowed === 'boolean'
@@ -79,6 +79,9 @@
             const canAccessProfessor = typeof professorAccessAllowed === 'boolean'
                 ? professorAccessAllowed
                 : String($('body').attr('data-professor-access-allowed') || '') === '1';
+            const canAccessIntern = typeof internAccessAllowed === 'boolean'
+                ? internAccessAllowed
+                : String($('body').attr('data-intern-access-allowed') || '') === '1';
 
             if ($nav.length === 0) {
                 return;
@@ -100,6 +103,9 @@
             if (canAccessProfessor && profileCompletionRequired !== '1') {
                 navItems.push('<a href="' + App.core.buildUrl('/professor') + '" class="nav-color-green" data-profile-completion-link="' + profileCompletionRequired + '">Professor</a>');
             }
+            if (canAccessIntern && profileCompletionRequired !== '1') {
+                navItems.push('<a href="' + App.core.buildUrl('/estagiario') + '" class="nav-color-green" data-profile-completion-link="' + profileCompletionRequired + '">Estagiário</a>');
+            }
 
             navItems.push('<form method="POST" action="' + App.core.buildUrl('/logout') + '" class="inline-form">');
             navItems.push('<button type="submit" class="link-button nav-color-green">Sair</button>');
@@ -109,6 +115,7 @@
 
             $('body').attr('data-admin-access-allowed', canAccessAdmin ? '1' : '0');
             $('body').attr('data-professor-access-allowed', canAccessProfessor ? '1' : '0');
+            $('body').attr('data-intern-access-allowed', canAccessIntern ? '1' : '0');
 
             const $heroPrimaryButton = $('.hero-actions .btn-primary').first();
 
@@ -440,7 +447,8 @@
                         $('body').attr('data-profile-completion-required', authenticationNeedsProfileCompletion ? '1' : '0');
                         App.auth.sincronizarCabecalhoAutenticado(
                             !!response.admin_access_allowed,
-                            !!response.professor_access_allowed
+                            !!response.professor_access_allowed,
+                            !!response.intern_access_allowed
                         );
                         $('#site-header-certificate-alerts-region').html(String(response.header_certificate_alerts_html || ''));
                         $('#site-header-notifications-region, #user-notifications-modal').remove();

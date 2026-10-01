@@ -2457,9 +2457,10 @@ class AdminService
         }
 
         if ($creatorAccountId > 0) {
-            $conditions[] = '(hs.professor_conta_id = :professor_principal_id OR EXISTS (SELECT 1 FROM horarios_semanais_professores hsp WHERE hsp.horario_semanal_id = hs.id AND hsp.professor_conta_id = :professor_auxiliar_id))';
+            $conditions[] = '(hs.professor_conta_id = :professor_principal_id OR EXISTS (SELECT 1 FROM horarios_semanais_professores hsp WHERE hsp.horario_semanal_id = hs.id AND hsp.professor_conta_id = :professor_auxiliar_id) OR EXISTS (SELECT 1 FROM horarios_semanais_estagiarios hse WHERE hse.horario_semanal_id = hs.id AND hse.estagiario_conta_id = :estagiario_id))';
             $params[':professor_principal_id'] = $creatorAccountId;
             $params[':professor_auxiliar_id'] = $creatorAccountId;
+            $params[':estagiario_id'] = $creatorAccountId;
         }
 
         if ($conditions !== []) {
@@ -2832,9 +2833,10 @@ class AdminService
         ';
         $params = [':id' => $scheduleId];
         if ($creatorAccountId > 0) {
-            $sql .= ' AND (hs.professor_conta_id = :professor_principal_id OR EXISTS (SELECT 1 FROM horarios_semanais_professores hsp WHERE hsp.horario_semanal_id = hs.id AND hsp.professor_conta_id = :professor_auxiliar_id))';
+            $sql .= ' AND (hs.professor_conta_id = :professor_principal_id OR EXISTS (SELECT 1 FROM horarios_semanais_professores hsp WHERE hsp.horario_semanal_id = hs.id AND hsp.professor_conta_id = :professor_auxiliar_id) OR EXISTS (SELECT 1 FROM horarios_semanais_estagiarios hse WHERE hse.horario_semanal_id = hs.id AND hse.estagiario_conta_id = :estagiario_id))';
             $params[':professor_principal_id'] = $creatorAccountId;
             $params[':professor_auxiliar_id'] = $creatorAccountId;
+            $params[':estagiario_id'] = $creatorAccountId;
         }
         $sql .= ' LIMIT 1';
         $stmt = $pdo->prepare($sql);
@@ -3394,6 +3396,18 @@ class AdminService
         }
         AuditLogService::record('admin.horario_semanal_equipe_atribuida', 'horarios_semanais', $scheduleId, ['conta_id' => $accountId, 'professor_principal_conta_id' => $team['principal_id'], 'professores_auxiliares_ids' => $team['auxiliares_ids'], 'estagiarios_ids' => $team['estagiarios_ids']]);
         return $this->getWeeklyScheduleDetails($scheduleId);
+    }
+
+    public function assignWeeklyScheduleAuxiliaryTeam(int $scheduleId, array $data, int $accountId): array
+    {
+        $pdo = Database::connection();
+        if (!$this->weeklyScheduleIsAssignedToProfessor($pdo, $scheduleId, $accountId)) throw new RuntimeException('Você não possui acesso a este horário semanal.');
+        $stmt = $pdo->prepare('SELECT professor_conta_id FROM horarios_semanais WHERE id=:id LIMIT 1');
+        $stmt->execute([':id' => $scheduleId]);
+        $mainId = (int) $stmt->fetchColumn();
+        if ($mainId <= 0) throw new RuntimeException('O horário não possui professor principal definido.');
+        $data['professor_principal_conta_id'] = $mainId;
+        return $this->assignWeeklyScheduleTeam($scheduleId, $data, $accountId);
     }
 
     /**
@@ -4408,8 +4422,8 @@ class AdminService
 
     private function weeklyScheduleIsAssignedToProfessor(PDO $pdo, int $scheduleId, int $accountId): bool
     {
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM horarios_semanais hs WHERE hs.id=:horario AND (hs.professor_conta_id=:principal OR EXISTS (SELECT 1 FROM horarios_semanais_professores hsp WHERE hsp.horario_semanal_id=hs.id AND hsp.professor_conta_id=:auxiliar))');
-        $stmt->execute([':horario' => $scheduleId, ':principal' => $accountId, ':auxiliar' => $accountId]);
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM horarios_semanais hs WHERE hs.id=:horario AND (hs.professor_conta_id=:principal OR EXISTS (SELECT 1 FROM horarios_semanais_professores hsp WHERE hsp.horario_semanal_id=hs.id AND hsp.professor_conta_id=:auxiliar) OR EXISTS (SELECT 1 FROM horarios_semanais_estagiarios hse WHERE hse.horario_semanal_id=hs.id AND hse.estagiario_conta_id=:estagiario))');
+        $stmt->execute([':horario' => $scheduleId, ':principal' => $accountId, ':auxiliar' => $accountId, ':estagiario' => $accountId]);
         return (int) $stmt->fetchColumn() > 0;
     }
 

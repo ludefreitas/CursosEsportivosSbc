@@ -58,6 +58,27 @@ class NotificationController extends Controller
         }
     }
 
+    public function archive(): void
+    {
+        try {
+            if (!Auth::check()) throw new \RuntimeException('Faça login para excluir notificações.');
+            $this->service->archiveRead((int) Auth::id(), (int) ($_POST['destinatario_id'] ?? 0));
+            $this->jsonResponse(['success' => true, 'message' => 'Notificação excluída da sua lista.', 'summary' => $this->service->headerSummary((int) Auth::id())]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], Auth::check() ? 422 : 401);
+        }
+    }
+
+    public function sent(): void
+    {
+        try {
+            $account = $this->authenticatedAccount();
+            $this->jsonResponse(array_merge(['success' => true], $this->service->sentHistory((int) $account['conta_id'], (array) $account['roles'], $_GET)));
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], Auth::check() ? 422 : 401);
+        }
+    }
+
     private function authenticatedAccount(): array
     {
         if (!Auth::check()) throw new \RuntimeException('Faça login para continuar.');

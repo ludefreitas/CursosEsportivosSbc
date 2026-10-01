@@ -273,6 +273,7 @@ class CourseEnrollmentService
         $params = [
             ':management_primary_professor_id' => $professorAccountId,
             ':management_auxiliary_professor_id' => $professorAccountId,
+            ':management_intern_id' => $professorAccountId,
         ];
         if ($statusFilter !== 'todos') {
             $where[] = 'i.status = :status_filter';
@@ -306,7 +307,7 @@ class CourseEnrollmentService
         $whereSql = $where === [] ? '' : ' WHERE ' . implode(' AND ', $where);
         $stmt = $pdo->prepare("SELECT
                 i.id, i.turma_id, i.pessoa_id, i.numero_ordem, i.publico_alvo, i.excecao_condicao, i.status, i.created_at, i.updated_at, i.motivo_status,
-                (t.professor_conta_id = :management_primary_professor_id OR EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id = i.turma_id AND tp.professor_conta_id = :management_auxiliary_professor_id)) AS professor_pode_gerenciar,
+                (t.professor_conta_id = :management_primary_professor_id OR EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id = i.turma_id AND tp.professor_conta_id = :management_auxiliary_professor_id) OR EXISTS (SELECT 1 FROM turmas_estagiarios ti WHERE ti.turma_id = i.turma_id AND ti.estagiario_conta_id = :management_intern_id)) AS professor_pode_gerenciar,
                 p.nome_completo, p.cpf, p.data_nascimento, p.email, p.telefone_whatsapp,
                 p.cep, p.logradouro, p.numero_endereco, p.complemento, p.bairro, p.cidade, p.uf,
                 p.contato_emergencia_nome, p.contato_emergencia_telefone,
@@ -465,8 +466,9 @@ class CourseEnrollmentService
             }
         }
         if ($professorAccountId > 0) {
-            $where[] = 'EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id = t.id AND tp.professor_conta_id = :professor_account_id)';
+            $where[] = '(EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id = t.id AND tp.professor_conta_id = :professor_account_id) OR EXISTS (SELECT 1 FROM turmas_estagiarios ti WHERE ti.turma_id = t.id AND ti.estagiario_conta_id = :intern_account_id))';
             $params[':professor_account_id'] = $professorAccountId;
+            $params[':intern_account_id'] = $professorAccountId;
         }
         $whereSql = ' WHERE ' . implode(' AND ', $where);
         $stmt = $pdo->prepare('SELECT i.status, COUNT(*) AS quantidade FROM inscricoes_turma i' . $joins . $whereSql . ' GROUP BY i.status ORDER BY i.status');
@@ -1103,8 +1105,8 @@ class CourseEnrollmentService
         $this->ensureCourseSeasonSchema($pdo);
         $this->ensureCourseAgeCriterionSchema($pdo);
         $this->synchronizeCalculatedClassStatuses($pdo);
-        $stmt = $pdo->prepare("SELECT t.*, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio, m.nome AS modalidade_nome, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome, (SELECT p.nome_completo FROM contas c INNER JOIN pessoas p ON p.cpf=c.cpf WHERE c.id=t.professor_conta_id LIMIT 1) AS professor_principal_nome, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_professores tp2 INNER JOIN contas c ON c.id=tp2.professor_conta_id INNER JOIN pessoas p ON p.cpf=c.cpf WHERE tp2.turma_id=t.id AND tp2.professor_conta_id<>t.professor_conta_id) AS professores_auxiliares_nomes, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_estagiarios teq INNER JOIN contas c ON c.id=teq.estagiario_conta_id INNER JOIN pessoas p ON p.cpf=c.cpf WHERE teq.turma_id=t.id) AS estagiarios_nomes FROM turmas t INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id INNER JOIN locais_treino l ON l.id = t.local_treino_id INNER JOIN espacos_treino e ON e.id = t.espaco_treino_id WHERE EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id = t.id AND tp.professor_conta_id = :professor_id) ORDER BY te.data_inicio DESC, t.nome ASC");
-        $stmt->execute([':professor_id' => $accountId]);
+        $stmt = $pdo->prepare("SELECT t.*, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio, m.nome AS modalidade_nome, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome, (SELECT p.nome_completo FROM contas c INNER JOIN pessoas p ON p.cpf=c.cpf WHERE c.id=t.professor_conta_id LIMIT 1) AS professor_principal_nome, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_professores tp2 INNER JOIN contas c ON c.id=tp2.professor_conta_id INNER JOIN pessoas p ON p.cpf=c.cpf WHERE tp2.turma_id=t.id AND tp2.professor_conta_id<>t.professor_conta_id) AS professores_auxiliares_nomes, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_estagiarios teq INNER JOIN contas c ON c.id=teq.estagiario_conta_id INNER JOIN pessoas p ON p.cpf=c.cpf WHERE teq.turma_id=t.id) AS estagiarios_nomes FROM turmas t INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id INNER JOIN locais_treino l ON l.id = t.local_treino_id INNER JOIN espacos_treino e ON e.id = t.espaco_treino_id WHERE EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id=t.id AND tp.professor_conta_id=:equipe_professor) OR EXISTS (SELECT 1 FROM turmas_estagiarios ti WHERE ti.turma_id=t.id AND ti.estagiario_conta_id=:equipe_estagiario) ORDER BY te.data_inicio DESC, t.nome ASC");
+        $stmt->execute([':equipe_professor' => $accountId, ':equipe_estagiario' => $accountId]);
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         $enrollmentCounts = $this->enrollmentCountsByClass($pdo);
         foreach ($classes as &$class) {
@@ -1235,16 +1237,16 @@ class CourseEnrollmentService
     public function professorIsAssignedToClass(int $accountId, int $classId): bool
     {
         if ($accountId <= 0 || $classId <= 0) { return false; }
-        $stmt = Database::connection()->prepare('SELECT 1 FROM turmas_professores WHERE turma_id=:turma AND professor_conta_id=:professor LIMIT 1');
-        $stmt->execute([':turma' => $classId, ':professor' => $accountId]);
+        $stmt = Database::connection()->prepare('SELECT 1 FROM turmas t WHERE t.id=:turma AND (EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id=t.id AND tp.professor_conta_id=:professor) OR EXISTS (SELECT 1 FROM turmas_estagiarios ti WHERE ti.turma_id=t.id AND ti.estagiario_conta_id=:estagiario)) LIMIT 1');
+        $stmt->execute([':turma' => $classId, ':professor' => $accountId, ':estagiario' => $accountId]);
         return (bool) $stmt->fetchColumn();
     }
 
     public function professorCanManageEnrollment(int $accountId, int $enrollmentId): bool
     {
         if ($accountId <= 0 || $enrollmentId <= 0) { return false; }
-        $stmt = Database::connection()->prepare('SELECT 1 FROM inscricoes_turma i INNER JOIN turmas t ON t.id = i.turma_id WHERE i.id = :inscricao AND (t.professor_conta_id = :professor_principal OR EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id = t.id AND tp.professor_conta_id = :professor_auxiliar)) LIMIT 1');
-        $stmt->execute([':inscricao' => $enrollmentId, ':professor_principal' => $accountId, ':professor_auxiliar' => $accountId]);
+        $stmt = Database::connection()->prepare('SELECT 1 FROM inscricoes_turma i INNER JOIN turmas t ON t.id=i.turma_id WHERE i.id=:inscricao AND (EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id=t.id AND tp.professor_conta_id=:professor) OR EXISTS (SELECT 1 FROM turmas_estagiarios ti WHERE ti.turma_id=t.id AND ti.estagiario_conta_id=:estagiario)) LIMIT 1');
+        $stmt->execute([':inscricao' => $enrollmentId, ':professor' => $accountId, ':estagiario' => $accountId]);
         return (bool) $stmt->fetchColumn();
     }
 
@@ -1365,6 +1367,16 @@ class CourseEnrollmentService
             throw $e;
         }
         AuditLogService::record('turma.equipe_atribuida', 'turmas', $classId, ['conta_id' => $accountId, 'professores_conta_ids' => $ids, 'estagiarios_conta_ids' => $internIds]);
+    }
+
+    public function assignAuxiliaryClassTeam(int $classId, array $assistantIds, array $internIds, int $accountId): void
+    {
+        if (!$this->professorIsAssignedToClass($accountId, $classId)) throw new RuntimeException('Você não possui acesso a esta turma.');
+        $stmt = Database::connection()->prepare('SELECT professor_conta_id FROM turmas WHERE id=:id LIMIT 1');
+        $stmt->execute([':id' => $classId]);
+        $mainId = (int) $stmt->fetchColumn();
+        if ($mainId <= 0) throw new RuntimeException('A turma não possui professor principal definido.');
+        $this->assignClassTeam($classId, $mainId, $assistantIds, $internIds, $accountId);
     }
 
     public function getClassEnrollmentDetails(int $classId): array

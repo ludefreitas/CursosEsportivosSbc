@@ -383,9 +383,9 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                             <th>Pessoa</th>
                                             <th>Chamada</th>
                                             <th>Status</th>
-                                            <th>Fez a chamada</th>
                                             <th>Motivo da justificativa</th>
                                             <th>Ação</th>
+                                            <th>Fez a chamada</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -395,28 +395,28 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                             $bookingStatus = (string) ($booking['status'] ?? 'agendado');
                                             ?>
                                             <tr data-booking-row="<?php echo e((string) $booking['id']); ?>">
-                                                <td>
+                                                <td data-label="Horário">
                                                     <strong><?php echo e(date('H:i', strtotime((string) $booking['data_agendada']))); ?></strong><br>
                                                     <small><?php echo e($booking['modalidade_nome'] . ' - ' . ucfirst((string) $booking['tipo_horario'])); ?></small>
-                                                    <small>Nível na modalidade: <?php echo e((string) ($booking['nivel_atual_nome'] ?? 'Sem certificado de nível')); ?></small>
                                                 </td>
-                                                <td class="admin-booking-person-inline">
-                                                    <strong><?php echo e((string) ($booking['nome_completo'] ?? '')); ?></strong>
-                                                    <span>CPF: <?php echo e(!empty($professorView) ? format_cpf_professor((string) ($booking['cpf'] ?? '')) : format_cpf((string) ($booking['cpf'] ?? ''))); ?></span>
-                                                    <span><?php echo e($booking['idade'] === null ? 'Idade não informada' : (string) $booking['idade'] . ' anos'); ?></span>
-                                                    <?php if (trim((string) ($booking['condicoes'] ?? '')) !== '') { ?><span><?php echo e((string) $booking['condicoes']); ?></span><?php } ?>
-                                                    <?php if (trim((string) ($booking['telefone_whatsapp'] ?? '')) !== '') { ?><a href="<?php echo e((string) $booking['whatsapp_url']); ?>" target="_blank" rel="noopener noreferrer">WhatsApp: <?php echo e((string) $booking['telefone_whatsapp']); ?></a><?php } ?>
-                                                    <?php if (trim((string) ($booking['email'] ?? '')) !== '') { ?><span><?php echo e((string) $booking['email']); ?></span><?php } ?>
+                                                <td data-label="Pessoa" class="admin-booking-person-inline">
+                                                    <div class="admin-booking-person-details">
+                                                        <strong><?php echo e((string) ($booking['nome_completo'] ?? '')); ?></strong>
+                                                        <span>CPF: <?php echo e(!empty($professorView) ? format_cpf_professor((string) ($booking['cpf'] ?? '')) : format_cpf((string) ($booking['cpf'] ?? ''))); ?></span>
+                                                        <span><?php echo e($booking['idade'] === null ? 'Idade não informada' : (string) $booking['idade'] . ' anos'); ?></span>
+                                                        <?php if (trim((string) ($booking['condicoes'] ?? '')) !== '') { ?><span><?php echo e((string) $booking['condicoes']); ?></span><?php } ?>
+                                                        <?php if (trim((string) ($booking['telefone_whatsapp'] ?? '')) !== '') { ?><a href="<?php echo e((string) $booking['whatsapp_url']); ?>" target="_blank" rel="noopener noreferrer">WhatsApp: <?php echo e((string) $booking['telefone_whatsapp']); ?></a><?php } ?>
+                                                        <?php if (trim((string) ($booking['email'] ?? '')) !== '') { ?><span><?php echo e((string) $booking['email']); ?></span><?php } ?>
+                                                    </div>
                                                 </td>
-                                                <td data-booking-short-status="1"><strong><?php echo e((string) ($booking['status_sigla'] ?? '-')); ?></strong></td>
-                                                <td data-booking-status-cell="1">
+                                                <td data-label="Chamada" data-booking-short-status="1"><strong><?php echo e((string) ($booking['status_sigla'] ?? '-')); ?></strong></td>
+                                                <td data-label="Status" data-booking-status-cell="1">
                                                     <span class="chip admin-booking-status-chip admin-booking-status-<?php echo e($bookingStatus); ?>" data-booking-status-chip="1">
                                                         <?php echo e($formatarStatusAgendamentoAdmin($bookingStatus)); ?>
                                                     </span>
                                                 </td>
-                                                <td data-booking-caller-cell="1"><?php echo e(trim((string) ($booking['chamada_por_nome'] ?? '')) !== '' ? (string) $booking['chamada_por_nome'] : '-'); ?></td>
-                                                <td data-booking-justification-cell="1"><?php if (trim((string) ($booking['justificativa_motivo'] ?? '')) !== '') { echo e((string) $booking['justificativa_motivo']); } ?></td>
-                                                <td>
+                                                <td data-label="Motivo da justificativa" data-booking-justification-cell="1"><?php if (trim((string) ($booking['justificativa_motivo'] ?? '')) !== '') { echo e((string) $booking['justificativa_motivo']); } ?></td>
+                                                <td data-label="Ação">
                                                     <?php if ($bookingStatus !== 'cancelado') { ?>
                                                         <div class="admin-booking-status-actions<?php echo !$canManageAttendance ? ' is-disabled' : ''; ?>" data-booking-status-group="<?php echo e((string) $booking['id']); ?>" data-current-status="<?php echo e($bookingStatus); ?>">
                                                             <label class="admin-booking-status-option admin-booking-status-option-presente">
@@ -449,6 +449,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                         <?php } ?>
                                                     <?php } ?>
                                                 </td>
+                                                <td data-label="Fez a chamada" data-booking-caller-cell="1"><?php echo e(trim((string) ($booking['chamada_por_nome'] ?? '')) !== '' ? (string) $booking['chamada_por_nome'] : '-'); ?></td>
                                             </tr>
                                         <?php } ?>
                                     </tbody>
@@ -819,7 +820,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                     </td>
                                                     <td>
                                                         <div class="admin-weekly-schedule-actions">
-                                                            <?php if (empty($professorView)) { ?><button type="button" class="btn btn-secondary btn-compact" data-weekly-schedule-team="1" data-weekly-schedule-id="<?php echo e((string) $schedule['id']); ?>" data-weekly-schedule-main-professor="<?php echo e((string) ($schedule['professor_conta_id'] ?? '')); ?>" data-weekly-schedule-professors='<?php echo e((string) json_encode($schedule['professores_ids'] ?? [], JSON_UNESCAPED_UNICODE)); ?>' data-weekly-schedule-interns='<?php echo e((string) json_encode($schedule['estagiarios_ids'] ?? [], JSON_UNESCAPED_UNICODE)); ?>'>Equipe</button><?php } ?>
+                                                            <?php if (empty($internView)) { ?><button type="button" class="btn btn-secondary btn-compact" data-weekly-schedule-team="1" data-weekly-schedule-id="<?php echo e((string) $schedule['id']); ?>" data-weekly-schedule-main-professor="<?php echo e((string) ($schedule['professor_conta_id'] ?? '')); ?>" data-weekly-schedule-professors='<?php echo e((string) json_encode($schedule['professores_ids'] ?? [], JSON_UNESCAPED_UNICODE)); ?>' data-weekly-schedule-interns='<?php echo e((string) json_encode($schedule['estagiarios_ids'] ?? [], JSON_UNESCAPED_UNICODE)); ?>'>Equipe</button><?php } ?>
                                                             <button
                                                                 type="button"
                                                                 class="btn btn-primary btn-compact"
@@ -1047,8 +1048,8 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             </div>
         </div>
 
-        <?php if (empty($professorView)) { ?>
-        <div id="weekly-schedule-team-modal" class="popup-overlay hidden" aria-hidden="true"><div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="weekly-schedule-team-title"><div class="popup-head"><div><h3 id="weekly-schedule-team-title">Atribuir equipe ao horário</h3><p class="muted">Eleja um professor principal e adicione professores auxiliares e estagiários.</p></div><button type="button" class="popup-close-icon" data-weekly-schedule-team-close="1" aria-label="Fechar">&times;</button></div><div class="popup-body"><form method="POST" action="<?php echo e(url('/admin/horarios-semanais/equipe')); ?>" class="stack-form" data-weekly-schedule-team-form="1"><input type="hidden" name="horario_semanal_id"><fieldset class="course-team-field"><legend>Professor principal</legend><input type="search" class="course-team-search" data-course-team-search="1" placeholder="Pesquisar professor principal"><div class="course-team-options" data-course-team-options="1"><?php foreach (($courseProfessors ?? []) as $professor) { ?><label class="checkbox-chip"><input type="radio" name="professor_principal_conta_id" value="<?php echo e((string) $professor['id']); ?>" required><span><?php echo e($professor['nome_completo']); ?></span></label><?php } ?></div></fieldset><fieldset class="course-team-field"><legend>Professores auxiliares</legend><input type="search" class="course-team-search" data-course-team-search="1" placeholder="Pesquisar professor auxiliar"><div class="course-team-options" data-course-team-options="1"><?php foreach (($courseProfessors ?? []) as $professor) { ?><label class="checkbox-chip"><input type="checkbox" name="professor_auxiliar_conta_ids[]" value="<?php echo e((string) $professor['id']); ?>"><span><?php echo e($professor['nome_completo']); ?></span></label><?php } ?></div></fieldset><fieldset class="course-team-field"><legend>Equipe de estagiários</legend><input type="search" class="course-team-search" data-course-team-search="1" placeholder="Pesquisar estagiário"><div class="course-team-options" data-course-team-options="1"><?php foreach (($courseInterns ?? []) as $intern) { ?><label class="checkbox-chip"><input type="checkbox" name="estagiario_conta_ids[]" value="<?php echo e((string) $intern['id']); ?>"><span><?php echo e($intern['nome_completo']); ?></span></label><?php } ?></div></fieldset><div class="popup-actions"><button type="button" class="btn btn-secondary" data-weekly-schedule-team-close="1">Cancelar</button><button type="submit" class="btn btn-primary">Salvar equipe</button></div></form></div></div></div>
+        <?php if (empty($internView)) { ?>
+        <div id="weekly-schedule-team-modal" class="popup-overlay hidden" aria-hidden="true"><div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="weekly-schedule-team-title"><div class="popup-head"><div><h3 id="weekly-schedule-team-title">Atribuir equipe ao horário</h3><p class="muted"><?php echo !empty($professorView) ? 'Selecione professores auxiliares e estagiários. O professor principal não pode ser alterado nesta área.' : 'Eleja um professor principal e adicione professores auxiliares e estagiários.'; ?></p></div><button type="button" class="popup-close-icon" data-weekly-schedule-team-close="1" aria-label="Fechar">&times;</button></div><div class="popup-body"><form method="POST" action="<?php echo e(url(!empty($professorView) ? '/professor/horarios-semanais/equipe' : '/admin/horarios-semanais/equipe')); ?>" class="stack-form" data-weekly-schedule-team-form="1"><input type="hidden" name="horario_semanal_id"><?php if (empty($professorView)) { ?><fieldset class="course-team-field"><legend>Professor principal</legend><input type="search" class="course-team-search" data-course-team-search="1" placeholder="Pesquisar professor principal"><div class="course-team-options" data-course-team-options="1"><?php foreach (($courseProfessors ?? []) as $professor) { ?><label class="checkbox-chip"><input type="radio" name="professor_principal_conta_id" value="<?php echo e((string) $professor['id']); ?>" required><span><?php echo e($professor['nome_completo']); ?></span></label><?php } ?></div></fieldset><?php } ?><fieldset class="course-team-field"><legend>Professores auxiliares</legend><input type="search" class="course-team-search" data-course-team-search="1" placeholder="Pesquisar professor auxiliar"><div class="course-team-options" data-course-team-options="1"><?php foreach (($courseProfessors ?? []) as $professor) { ?><label class="checkbox-chip"><input type="checkbox" name="professor_auxiliar_conta_ids[]" value="<?php echo e((string) $professor['id']); ?>"><span><?php echo e($professor['nome_completo']); ?></span></label><?php } ?></div></fieldset><fieldset class="course-team-field"><legend>Equipe de estagiários</legend><input type="search" class="course-team-search" data-course-team-search="1" placeholder="Pesquisar estagiário"><div class="course-team-options" data-course-team-options="1"><?php foreach (($courseInterns ?? []) as $intern) { ?><label class="checkbox-chip"><input type="checkbox" name="estagiario_conta_ids[]" value="<?php echo e((string) $intern['id']); ?>"><span><?php echo e($intern['nome_completo']); ?></span></label><?php } ?></div></fieldset><div class="popup-actions"><button type="button" class="btn btn-secondary" data-weekly-schedule-team-close="1">Cancelar</button><button type="submit" class="btn btn-primary">Salvar equipe</button></div></form></div></div></div>
         <?php } ?>
 
         <div id="admin-special-schedule-create-modal" class="popup-overlay hidden" aria-hidden="true">

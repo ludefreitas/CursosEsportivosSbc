@@ -17,7 +17,7 @@
         </div>
         <div class="course-row-actions admin-class-card-actions">
             <button type="button" class="btn btn-primary" data-professor-class-edit="<?php echo e((string) $class['id']); ?>">Editar</button>
-            <button type="button" class="btn btn-secondary" data-professor-class-team="<?php echo e((string) $class['id']); ?>">Equipe</button>
+            <?php if (empty($internView)) { ?><button type="button" class="btn btn-secondary" data-course-assign-professor="<?php echo e((string) $class['id']); ?>" data-course-main-professor="<?php echo e((string) ($class['professor_conta_id'] ?? '')); ?>" data-course-current-professors="<?php echo e((string) json_encode($class['professores_ids'] ?? [], JSON_UNESCAPED_UNICODE)); ?>" data-course-current-interns="<?php echo e((string) json_encode($class['estagiarios_ids'] ?? [], JSON_UNESCAPED_UNICODE)); ?>">Equipe</button><?php } ?>
             <button type="button" class="btn btn-secondary" data-professor-class-status="<?php echo e((string) $class['id']); ?>">Alterar status</button>
         </div>
     </article>

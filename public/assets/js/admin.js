@@ -162,6 +162,58 @@
         $.post(App.core.buildUrl('/notificacoes/enviar'), $.param(payload), function(response){ if(!response||response.success===false){App.core.abrirPopup('erro',String((response&&response.message)||'Não foi possível enviar.'));return;} $modal.addClass('hidden').attr('aria-hidden','true'); App.core.abrirPopup('sucesso',String(response.message||'Notificação enviada.')); },'json').fail(function(xhr){App.core.abrirPopup('erro',App.core.extrairMensagemErroAjax(xhr).mensagem);}).always(function(){$submit.prop('disabled',false);});
     });
 
+    function ensureSentNotificationsModal() {
+        if ($('#sent-notifications-modal').length) return $('#sent-notifications-modal');
+        const typeOptions = '<option value="">Todos os tipos</option><option value="pessoa">Pessoa</option><option value="agendamento">Agendamento</option><option value="inscricao">Inscrição</option><option value="turma_lote">Turma</option><option value="atestado">Atestado</option><option value="condicao">Condição</option>';
+        const html = '<div class="popup-overlay hidden" id="sent-notifications-modal" aria-hidden="true"><div class="popup-card popup-admin-card sent-notifications-card" role="dialog" aria-modal="true" aria-labelledby="sent-notifications-title"><div class="popup-head"><div><h3 id="sent-notifications-title">Notificações enviadas</h3><p class="muted" data-sent-notifications-scope></p></div><button type="button" class="popup-close-icon" data-sent-notifications-close="1" aria-label="Fechar">&times;</button></div><div class="popup-body"><form class="sent-notifications-filters" data-sent-notifications-filters="1"><label><span>Busca</span><input name="busca" maxlength="120" placeholder="Assunto, mensagem, autor ou aluno"></label><label><span>Tipo</span><select name="tipo">' + typeOptions + '</select></label><label class="hidden" data-sent-author-filter><span>Autor</span><select name="autor_id"><option value="0">Todos os autores</option></select></label><label><span>De</span><input type="date" name="data_inicio"></label><label><span>Até</span><input type="date" name="data_fim"></label><div class="sent-notifications-filter-actions"><button type="submit" class="btn btn-primary">Filtrar</button><button type="button" class="btn btn-secondary" data-sent-notifications-clear="1">Limpar</button></div></form><div data-sent-notifications-results><p class="muted">Carregando...</p></div><div class="sent-notifications-pagination" data-sent-notifications-pagination></div></div><div class="popup-actions"><button type="button" class="btn btn-secondary" data-sent-notifications-close="1">Fechar</button></div></div></div>';
+        $('body').append(html);
+        return $('#sent-notifications-modal');
+    }
+
+    function loadSentNotifications(page) {
+        const $modal = ensureSentNotificationsModal();
+        const data = {};
+        $modal.find('[data-sent-notifications-filters]').serializeArray().forEach(function (field) { data[field.name] = field.value; });
+        data.pagina = page || 1;
+        const $results = $modal.find('[data-sent-notifications-results]').html('<p class="muted">Carregando...</p>');
+        $.getJSON(App.core.buildUrl('/notificacoes/enviadas'), data).done(function (response) {
+            if (!response || response.success === false) { $results.html($('<p>', { class: 'alert-inline', text: String((response && response.message) || 'Não foi possível carregar o histórico.') })); return; }
+            $modal.find('[data-sent-notifications-scope]').text(response.is_admin ? 'Visão administrativa de todas as notificações enviadas.' : 'Somente as notificações enviadas por você.');
+            const $authorWrap = $modal.find('[data-sent-author-filter]').toggleClass('hidden', !response.is_admin);
+            const $author = $authorWrap.find('select');
+            if (response.is_admin && $author.find('option').length === 1) (response.authors || []).forEach(function (item) { $author.append($('<option>', { value: item.id, text: item.nome })); });
+            const items = Array.isArray(response.items) ? response.items : [];
+            if (!items.length) $results.html('<p class="muted">Nenhuma notificação corresponde aos filtros.</p>');
+            else {
+                const $list = $('<div>', { class: 'sent-notifications-list' });
+                items.forEach(function (item) {
+                    const recipients = Array.isArray(item.alunos) ? item.alunos : [];
+                    const meta = String(item.total_destinatarios || 0) + ' destinatário(s) · ' + String(item.total_lidas || 0) + ' lida(s)';
+                    const $card = $('<article>', { class: 'sent-notification-item' })
+                        .append($('<div>', { class: 'sent-notification-head' }).append($('<div>').append($('<strong>', { text: String(item.assunto || '') }), $('<small>', { text: String(item.created_at || '') })), $('<span>', { class: 'chip', text: String(item.tipo || '') })))
+                        .append($('<p>', { text: String(item.mensagem || '') }))
+                        .append($('<p>', { class: 'muted', text: 'Enviada por: ' + String(item.autor_nome || '-') + ' · ' + meta }))
+                        .append($('<details>').append($('<summary>', { text: 'Destinatários (' + String(recipients.length) + ')' }), $('<p>', { text: recipients.join(' · ') || 'Nenhum destinatário.' })));
+                    $list.append($card);
+                });
+                $results.empty().append($list);
+            }
+            const pagination = response.pagination || {};
+            const current = Number(pagination.pagina || 1), pages = Number(pagination.paginas || 1);
+            $modal.find('[data-sent-notifications-pagination]').empty().append(
+                $('<button>', { type: 'button', class: 'btn btn-secondary', 'data-sent-page': current - 1, disabled: current <= 1, text: 'Anterior' }),
+                $('<span>', { text: 'Página ' + current + ' de ' + pages + ' · ' + String(pagination.total || 0) + ' registro(s)' }),
+                $('<button>', { type: 'button', class: 'btn btn-secondary', 'data-sent-page': current + 1, disabled: current >= pages, text: 'Próxima' })
+            );
+        }).fail(function (xhr) { $results.html($('<p>', { class: 'alert-inline', text: App.core.extrairMensagemErroAjax(xhr).mensagem })); });
+    }
+
+    $(document).on('click', '[data-staff-notifications-open="1"]', function () { ensureSentNotificationsModal().removeClass('hidden').attr('aria-hidden', 'false'); loadSentNotifications(1); });
+    $(document).on('click', '[data-sent-notifications-close="1"]', function () { $('#sent-notifications-modal').addClass('hidden').attr('aria-hidden', 'true'); });
+    $(document).on('submit', '[data-sent-notifications-filters="1"]', function (event) { event.preventDefault(); loadSentNotifications(1); });
+    $(document).on('click', '[data-sent-notifications-clear="1"]', function () { $(this).closest('form').get(0).reset(); loadSentNotifications(1); });
+    $(document).on('click', '[data-sent-page]', function () { if (!$(this).prop('disabled')) loadSentNotifications(Number($(this).attr('data-sent-page') || 1)); });
+
     App.admin = Object.assign(App.admin || {}, {
         iniciarSecoesAdmin: function () {
             const $buttons = $('[data-admin-nav-target]');
@@ -659,8 +711,8 @@
                 $group.find('.admin-booking-status-checkbox').prop('disabled', Boolean(disabled));
             }
 
-            const adultAbsenceReasons = ['Acompanhamento de familiar', 'Afastamento temporário', 'Atividade ou compromisso oficial', 'Compromisso de trabalho', 'Compromisso escolar ou acadêmico', 'Condições climáticas', 'Consulta médica ou odontológica', 'Exame médico', 'Falecimento ou emergência familiar', 'Outro motivo', 'Problema de saúde', 'Problema de transporte', 'Tratamento ou fisioterapia', 'Viagem'];
-            const minorAbsenceReasons = ['Afastamento temporário', 'Compromisso escolar', 'Condições climáticas', 'Consulta médica ou odontológica', 'Emergência familiar', 'Exame, tratamento ou terapia', 'Falta de acompanhante responsável', 'Falecimento na família', 'Guarda ou convivência familiar', 'Orientação dos pais ou responsáveis', 'Outro motivo', 'Passeio ou evento escolar', 'Problema de saúde do menor', 'Problema de transporte', 'Prova ou atividade extracurricular', 'Responsável impossibilitado de levar ou buscar', 'Viagem familiar'];
+            const adultAbsenceReasons = ['Problema de saúde', 'Consulta médica ou odontológica', 'Exame médico', 'Tratamento ou fisioterapia', 'Afastamento temporário', 'Acompanhamento de familiar', 'Atividade ou compromisso oficial', 'Compromisso de trabalho', 'Compromisso escolar ou acadêmico', 'Condições climáticas', 'Falecimento ou emergência familiar', 'Problema de transporte', 'Viagem', 'Outro motivo'];
+            const minorAbsenceReasons = ['Problema de saúde do menor', 'Consulta médica ou odontológica', 'Exame, tratamento ou terapia', 'Afastamento temporário', 'Compromisso escolar', 'Condições climáticas', 'Emergência familiar', 'Falta de acompanhante responsável', 'Falecimento na família', 'Guarda ou convivência familiar', 'Orientação dos pais ou responsáveis', 'Passeio ou evento escolar', 'Problema de transporte', 'Prova ou atividade extracurricular', 'Responsável impossibilitado de levar ou buscar', 'Viagem familiar', 'Outro motivo'];
 
             function isMinorOnDate(birthDate, referenceDate) {
                 const birth = new Date(String(birthDate || '') + 'T12:00:00');
@@ -2569,8 +2621,9 @@
             $(document).on('submit', '[data-weekly-schedule-team-form="1"]', function (event) {
                 event.preventDefault();
                 const $form = $(this), $button = $form.find('button[type="submit"]').prop('disabled', true);
-                if (!$form.find('[name="professor_principal_conta_id"]:checked').length) { App.core.abrirPopup('erro', 'Eleja o professor principal do horário.'); $button.prop('disabled', false); return; }
-                const mainName = $.trim($form.find('[name="professor_principal_conta_id"]:checked').closest('label').find('span').text());
+                const $mainFields = $form.find('[name="professor_principal_conta_id"]');
+                if ($mainFields.length && !$mainFields.filter(':checked').length) { App.core.abrirPopup('erro', 'Eleja o professor principal do horário.'); $button.prop('disabled', false); return; }
+                const mainName = $.trim($mainFields.filter(':checked').closest('label').find('span').text());
                 const assistantNames = $form.find('[name="professor_auxiliar_conta_ids[]"]:checked').map(function () { return $.trim($(this).closest('label').find('span').text()); }).get();
                 const internNames = $form.find('[name="estagiario_conta_ids[]"]:checked').map(function () { return $.trim($(this).closest('label').find('span').text()); }).get();
                 $.ajax({ url: $form.attr('action'), method: 'POST', dataType: 'json', data: $form.serialize() })
@@ -2579,7 +2632,7 @@
                         const schedule = response.schedule || {}, id = String(schedule.id || $form.find('[name="horario_semanal_id"]').val() || '');
                         $('[data-weekly-schedule-team="1"][data-weekly-schedule-id="' + id + '"]').attr('data-weekly-schedule-main-professor', String(schedule.professor_conta_id || '')).attr('data-weekly-schedule-professors', JSON.stringify(schedule.professores_ids || [])).attr('data-weekly-schedule-interns', JSON.stringify(schedule.estagiarios_ids || []));
                         const $row = $('[data-weekly-schedule-row="1"][data-weekly-schedule-id="' + id + '"]');
-                        $row.find('[data-weekly-main-name]').text(mainName || 'Não atribuído');
+                        if (mainName) { $row.find('[data-weekly-main-name]').text(mainName); }
                         $row.find('[data-weekly-assistants-names]').text(assistantNames.join(', '));
                         $row.find('[data-weekly-assistants-line]').toggleClass('hidden', assistantNames.length === 0);
                         $row.find('[data-weekly-interns-names]').text(internNames.join(', '));
@@ -6765,13 +6818,14 @@
             $(document).on('submit', '[data-course-professor-form="1"]', function (event) {
                 event.preventDefault();
                 const $form = $(this);
-                if ($form.find('[name="professor_principal_conta_id"]:checked').length === 0) {
+                const $mainProfessorFields = $form.find('[name="professor_principal_conta_id"]');
+                if ($mainProfessorFields.length && $mainProfessorFields.filter(':checked').length === 0) {
                     App.core.abrirPopup('erro', 'Eleja o professor principal da turma.');
                     return;
                 }
                 const $button = $form.find('button[type="submit"]').prop('disabled', true);
                 const classId = String($form.find('[name="turma_id"]').val() || '');
-                const $mainProfessor = $form.find('[name="professor_principal_conta_id"]:checked');
+                const $mainProfessor = $mainProfessorFields.filter(':checked');
                 const mainProfessorId = String($mainProfessor.val() || '');
                 const mainProfessorName = $.trim($mainProfessor.closest('label').find('span').text());
                 const auxiliaryProfessorIds = [];
@@ -6789,19 +6843,21 @@
                 $.ajax({ url: $form.attr('action'), method: 'POST', dataType: 'json', data: $form.serialize() })
                     .done(function (response) {
                         if (!response || !response.success) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atribuir o professor.')); return; }
-                        const professorIds = [mainProfessorId].concat(auxiliaryProfessorIds).filter(Boolean);
+                        const currentMainProfessorId = String($('[data-course-class-card="' + classId + '"]').first().find('[data-course-assign-professor]').first().attr('data-course-main-professor') || '');
+                        const effectiveMainProfessorId = mainProfessorId || currentMainProfessorId;
+                        const professorIds = [effectiveMainProfessorId].concat(auxiliaryProfessorIds).filter(Boolean);
                         const $card = $('[data-course-class-card="' + classId + '"]').first();
-                        $card.find('[data-course-class-main-professor-name]').text(mainProfessorName || 'Sem professor principal');
+                        if (mainProfessorName) { $card.find('[data-course-class-main-professor-name]').text(mainProfessorName); }
                         const $teamButton = $card.find('[data-course-assign-professor]').first()
-                            .attr('data-course-main-professor', mainProfessorId)
+                            .attr('data-course-main-professor', effectiveMainProfessorId)
                             .attr('data-course-current-professors', JSON.stringify(professorIds))
                             .attr('data-course-current-interns', JSON.stringify(internIds));
                         $card.find('[data-course-class-details], [data-course-edit="class"]').each(function () {
                             const attribute = $(this).is('[data-course-class-details]') ? 'data-course-class-details' : 'data-course-record';
                             let record = {};
                             try { record = JSON.parse(String($(this).attr(attribute) || '{}')); } catch (error) { record = {}; }
-                            record.professor_conta_id = mainProfessorId;
-                            record.professor_principal_nome = mainProfessorName;
+                            record.professor_conta_id = effectiveMainProfessorId;
+                            if (mainProfessorName) { record.professor_principal_nome = mainProfessorName; }
                             record.professores_ids = professorIds;
                             record.professores_auxiliares_nomes = auxiliaryProfessorNames.join(', ');
                             record.estagiarios_ids = internIds;
@@ -6993,8 +7049,8 @@
                 return modals;
             }
 
-            const classAttendanceAdultAbsenceReasons = ['Acompanhamento de familiar', 'Afastamento temporário', 'Atividade ou compromisso oficial', 'Compromisso de trabalho', 'Compromisso escolar ou acadêmico', 'Condições climáticas', 'Consulta médica ou odontológica', 'Exame médico', 'Falecimento ou emergência familiar', 'Outro motivo', 'Problema de saúde', 'Problema de transporte', 'Tratamento ou fisioterapia', 'Viagem'];
-            const classAttendanceMinorAbsenceReasons = ['Afastamento temporário', 'Compromisso escolar', 'Condições climáticas', 'Consulta médica ou odontológica', 'Emergência familiar', 'Exame, tratamento ou terapia', 'Falta de acompanhante responsável', 'Falecimento na família', 'Guarda ou convivência familiar', 'Orientação dos pais ou responsáveis', 'Outro motivo', 'Passeio ou evento escolar', 'Problema de saúde do menor', 'Problema de transporte', 'Prova ou atividade extracurricular', 'Responsável impossibilitado de levar ou buscar', 'Viagem familiar'];
+            const classAttendanceAdultAbsenceReasons = ['Problema de saúde', 'Consulta médica ou odontológica', 'Exame médico', 'Tratamento ou fisioterapia', 'Afastamento temporário', 'Acompanhamento de familiar', 'Atividade ou compromisso oficial', 'Compromisso de trabalho', 'Compromisso escolar ou acadêmico', 'Condições climáticas', 'Falecimento ou emergência familiar', 'Problema de transporte', 'Viagem', 'Outro motivo'];
+            const classAttendanceMinorAbsenceReasons = ['Problema de saúde do menor', 'Consulta médica ou odontológica', 'Exame, tratamento ou terapia', 'Afastamento temporário', 'Compromisso escolar', 'Condições climáticas', 'Emergência familiar', 'Falta de acompanhante responsável', 'Falecimento na família', 'Guarda ou convivência familiar', 'Orientação dos pais ou responsáveis', 'Passeio ou evento escolar', 'Problema de transporte', 'Prova ou atividade extracurricular', 'Responsável impossibilitado de levar ou buscar', 'Viagem familiar', 'Outro motivo'];
 
             function isClassAttendanceMinor(birthDate, referenceDate) {
                 const birth = new Date(String(birthDate || '') + 'T12:00:00');

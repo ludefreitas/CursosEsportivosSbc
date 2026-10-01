@@ -44,7 +44,6 @@ $currentAdminName = (string) ($currentAdminName ?? '');
                                 <span>CPF: <?php echo e(!empty($professorView) ? format_cpf_professor((string) ($booking['cpf'] ?? '')) : format_cpf((string) ($booking['cpf'] ?? ''))); ?></span>
                                 <span><?php echo e($booking['idade'] === null ? 'Idade não informada' : (string) $booking['idade'] . ' anos'); ?></span>
                                 <?php if (trim((string) ($booking['condicoes'] ?? '')) !== '') { ?><span><?php echo e((string) $booking['condicoes']); ?></span><?php } ?>
-                                <span>Nível na modalidade: <?php echo e((string) ($booking['nivel_atual_nome'] ?? 'Sem certificado de nível')); ?></span>
                                 <?php if (trim((string) ($booking['telefone_whatsapp'] ?? '')) !== '') { ?><a href="<?php echo e((string) $booking['whatsapp_url']); ?>" target="_blank" rel="noopener noreferrer">WhatsApp: <?php echo e((string) $booking['telefone_whatsapp']); ?></a><?php } ?>
                                 <?php if (trim((string) ($booking['email'] ?? '')) !== '') { ?><span><?php echo e((string) $booking['email']); ?></span><?php } ?>
                                 <button type="button" class="link-button" data-notification-send="agendamento" data-booking-id="<?php echo e((string) $booking['id']); ?>">Notificar responsável</button>

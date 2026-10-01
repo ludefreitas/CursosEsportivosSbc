@@ -2192,10 +2192,13 @@
                     const $list = $('<div>', { class: 'user-notifications-list' });
                     records.forEach(function (item) {
                         const preview = String(item.mensagem || '').replace(/\s+/g, ' ').trim();
-                        $list.append($('<button>', { type: 'button', class: 'user-notification-item' + (item.visualizada_em ? '' : ' is-unread'), 'data-user-notification-read': String(item.destinatario_id || '') })
+                        const $row = $('<article>', { class: 'user-notification-row' });
+                        $row.append($('<button>', { type: 'button', class: 'user-notification-item' + (item.visualizada_em ? '' : ' is-unread'), 'data-user-notification-read': String(item.destinatario_id || '') })
                             .append($('<span>', { class: 'user-notification-item-head' }).append($('<strong>', { text: String(item.assunto || '') }), $('<small>', { text: formatDate(item.created_at) })))
                             .append($('<span>', { text: String(item.aluno_nome || '') }))
                             .append($('<span>', { class: 'muted', text: preview.length > 180 ? preview.slice(0, 177) + '...' : preview })));
+                        if (item.visualizada_em) $row.append($('<button>', { type: 'button', class: 'link-button user-notification-delete', 'data-user-notification-delete': String(item.destinatario_id || ''), text: 'Excluir' }));
+                        $list.append($row);
                     });
                     $content.empty().append($list);
                 }).fail(function (xhr) { $content.html($('<p>', { class: 'alert-inline', text: App.core.extrairMensagemErroAjax(xhr).mensagem })); });
@@ -2219,7 +2222,8 @@
                         .append($('<p>').append($('<strong>', { text: 'Aluno: ' }), document.createTextNode(String(item.aluno_nome || ''))))
                         .append($('<p>').append($('<strong>', { text: 'Enviada por: ' }), document.createTextNode(String(item.autor_nome || ''))))
                         .append($('<p>', { class: 'muted', text: formatDate(item.created_at) }))
-                        .append($('<p>', { class: 'user-notification-message', text: String(item.mensagem || '') }));
+                        .append($('<p>', { class: 'user-notification-message', text: String(item.mensagem || '') }))
+                        .append($('<button>', { type: 'button', class: 'btn btn-danger', 'data-user-notification-delete': String(item.id || ''), text: 'Excluir notificação' }));
                     if (item.orientacao_texto) {
                         const $guidance = $('<p>', { class: 'alert-inline', text: String(item.orientacao_texto) });
                         if (item.orientacao_url) $guidance.append(document.createTextNode(' '), $('<a>', { href: String(item.orientacao_url), target: '_blank', rel: 'noopener noreferrer', text: 'Abrir WhatsApp' }));
@@ -2227,6 +2231,15 @@
                     }
                     $content.empty().append($detail);
                 }, 'json').fail(function (xhr) { $content.html($('<p>', { class: 'alert-inline', text: App.core.extrairMensagemErroAjax(xhr).mensagem })); });
+            });
+            $(document).on('click', '[data-user-notification-delete]', function () {
+                const id = String($(this).attr('data-user-notification-delete') || '0');
+                if (!window.confirm('Excluir esta notificação já lida da sua lista?')) return;
+                $.post(App.core.buildUrl('/notificacoes/excluir'), { destinatario_id: id }, function (response) {
+                    if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível excluir a notificação.')); return; }
+                    updateSummary(response.summary);
+                    loadList();
+                }, 'json').fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); });
             });
             $(document).on('click', '[data-user-notifications-back="1"]', loadList);
         },

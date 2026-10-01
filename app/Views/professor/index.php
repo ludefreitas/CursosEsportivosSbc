@@ -2,7 +2,7 @@
     <div class="section-head">
         <div>
             <span class="eyebrow">Acompanhamento esportivo</span>
-            <h1><?php echo e((string) ($professorPageConfig['titulo'] ?? 'Área do professor')); ?></h1>
+            <h1><?php echo !empty($internView) ? 'Área do estagiário' : e((string) ($professorPageConfig['titulo'] ?? 'Área do professor')); ?></h1>
             <?php if (!empty($professorPageConfig['comunicado'])) { ?><p class="muted"><?php echo nl2br(e((string) $professorPageConfig['comunicado'])); ?></p><?php } ?>
             <?php if (!empty($professorPageConfig['texto_secundario'])) { ?><p class="professor-page-secondary-text"><?php echo nl2br(e((string) $professorPageConfig['texto_secundario'])); ?></p><?php } ?>
             <?php if (!empty($professorPageConfig['imagem_url'])) { ?><div class="professor-page-image"><img src="<?php echo e((string) $professorPageConfig['imagem_url']); ?>" alt="Imagem do quadro Acompanhamento esportivo" loading="lazy"></div><?php } ?>
@@ -12,11 +12,12 @@
 </section>
 
 <div class="admin-sections-shell">
-    <nav class="content-card admin-nav-card" aria-label="Menu da área do professor">
+    <nav class="content-card admin-nav-card" aria-label="Menu da área do <?php echo !empty($internView) ? 'estagiário' : 'professor'; ?>">
         <div class="admin-nav">
             <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Início</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-pessoas">Pessoas - alunos</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="inscricoes">Inscrições em cursos</button>
+            <button type="button" class="admin-nav-button" data-staff-notifications-open="1">Minhas notificações</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="minhas-turmas">Minhas turmas</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="agenda">Agenda</button>
         </div>
