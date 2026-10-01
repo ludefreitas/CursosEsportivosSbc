@@ -27,8 +27,8 @@ $currentAdminName = (string) ($currentAdminName ?? '');
                     <th>Chamada</th>
                     <th>Status</th>
                     <th>Motivo da justificativa</th>
-                    <th>Fez a chamada</th>
                     <th>Ação</th>
+                    <th>Fez a chamada</th>
                 </tr>
             </thead>
             <tbody>
@@ -57,7 +57,6 @@ $currentAdminName = (string) ($currentAdminName ?? '');
                             </span>
                         </td>
                         <td data-label="Motivo da justificativa" data-booking-justification-cell="1"><?php if (trim((string) ($booking['justificativa_motivo'] ?? '')) !== '') { echo e((string) $booking['justificativa_motivo']); } ?></td>
-                        <td data-label="Fez a chamada" data-booking-caller-cell="1"><?php echo e(trim((string) ($booking['chamada_por_nome'] ?? '')) !== '' ? (string) $booking['chamada_por_nome'] : '-'); ?></td>
                         <td data-label="Ação">
                             <?php if ($bookingStatus !== 'cancelado') { ?>
                                 <div class="admin-booking-status-actions<?php echo !$canManageAttendance ? ' is-disabled' : ''; ?>" data-booking-status-group="<?php echo e((string) $booking['id']); ?>" data-current-status="<?php echo e($bookingStatus); ?>">
@@ -91,6 +90,7 @@ $currentAdminName = (string) ($currentAdminName ?? '');
                                 <?php } ?>
                             <?php } ?>
                         </td>
+                        <td data-label="Fez a chamada" data-booking-caller-cell="1"><?php echo e(trim((string) ($booking['chamada_por_nome'] ?? '')) !== '' ? (string) $booking['chamada_por_nome'] : '-'); ?></td>
                     </tr>
                 <?php } ?>
             </tbody>
