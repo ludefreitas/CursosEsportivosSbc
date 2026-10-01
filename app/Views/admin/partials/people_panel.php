@@ -224,6 +224,7 @@
                         </td>
                         <td>
                             <button type="button" class="link-button admin-person-link" data-person-enrollments="1" data-person-id="<?php echo e((string) $person['id']); ?>" data-person-name="<?php echo e((string) $person['nome_completo']); ?>">Ver inscrições</button>
+                            <button type="button" class="link-button" data-notification-send="pessoa" data-person-id="<?php echo e((string) $person['id']); ?>">Notificar responsável</button>
                         </td>
                     </tr>
                 <?php } ?>

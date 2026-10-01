@@ -8,6 +8,8 @@ use App\Services\AccountAccessService;
 use App\Services\AuthService;
 use App\Services\ProfileService;
 use App\Services\HumanVerificationService;
+use App\Services\NotificationService;
+use App\Services\UserService;
 
 class AuthController extends Controller
 {
@@ -122,6 +124,8 @@ class AuthController extends Controller
                     'redirect' => $redirectUrl,
                     'admin_access_allowed' => $adminAccessAllowed,
                     'professor_access_allowed' => $professorAccessAllowed,
+                    'header_certificate_alerts_html' => $this->renderHeaderCertificateAlertsHtml(),
+                    'header_notifications_html' => $this->renderHeaderNotificationsHtml(),
                 ]);
             }
 
@@ -141,6 +145,36 @@ class AuthController extends Controller
 
             flash('error', $e->getMessage());
             redirect_to_login_modal($returnTo);
+        }
+    }
+
+    private function renderHeaderCertificateAlertsHtml(): string
+    {
+        try {
+            ob_start();
+            $headerCertificateAlerts = (new UserService())->authenticatedCertificateAlerts();
+            require ROOT_PATH . '/app/Views/partials/header_certificate_alerts.php';
+            return (string) ob_get_clean();
+        } catch (\Throwable $e) {
+            if (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            return '';
+        }
+    }
+
+    private function renderHeaderNotificationsHtml(): string
+    {
+        try {
+            ob_start();
+            $headerNotificationSummary = (new NotificationService())->headerSummary((int) Auth::id());
+            require ROOT_PATH . '/app/Views/partials/header_notifications.php';
+            return (string) ob_get_clean();
+        } catch (\Throwable $e) {
+            if (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+            return '';
         }
     }
 

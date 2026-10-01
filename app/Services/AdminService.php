@@ -380,7 +380,9 @@ class AdminService
                 p.id AS pessoa_id,
                 p.nome_completo,
                 p.email,
-                p.telefone_whatsapp,
+                CASE WHEN EXISTS (SELECT 1 FROM vinculos_responsaveis vr_ativo WHERE vr_ativo.dependente_pessoa_id=p.id AND vr_ativo.data_fim IS NULL)
+                    THEN (SELECT responsavel.telefone_whatsapp FROM vinculos_responsaveis vr INNER JOIN pessoas responsavel ON responsavel.id=vr.responsavel_pessoa_id WHERE vr.dependente_pessoa_id=p.id AND vr.data_fim IS NULL ORDER BY vr.id DESC LIMIT 1)
+                    ELSE p.telefone_whatsapp END AS telefone_whatsapp,
                 p.sexo,
                 p.data_nascimento,
                 p.cadastro_completo
@@ -753,7 +755,9 @@ class AdminService
                 p.nome_completo,
                 p.cpf,
                 p.data_nascimento,
-                p.telefone_whatsapp,
+                CASE WHEN EXISTS (SELECT 1 FROM vinculos_responsaveis vr_ativo WHERE vr_ativo.dependente_pessoa_id=p.id AND vr_ativo.data_fim IS NULL)
+                    THEN (SELECT responsavel.telefone_whatsapp FROM vinculos_responsaveis vr INNER JOIN pessoas responsavel ON responsavel.id=vr.responsavel_pessoa_id WHERE vr.dependente_pessoa_id=p.id AND vr.data_fim IS NULL ORDER BY vr.id DESC LIMIT 1)
+                    ELSE p.telefone_whatsapp END AS telefone_whatsapp,
                 p.created_at,
                 p.eh_pcd,
                 p.eh_pvs,
@@ -762,7 +766,7 @@ class AdminService
                     SELECT responsavel.nome_completo
                     FROM vinculos_responsaveis vr
                     INNER JOIN pessoas responsavel ON responsavel.id = vr.responsavel_pessoa_id
-                    WHERE vr.dependente_pessoa_id = p.id
+                    WHERE vr.dependente_pessoa_id = p.id AND vr.data_fim IS NULL
                     ORDER BY vr.id DESC
                     LIMIT 1
                 ) AS nome_responsavel
@@ -956,7 +960,9 @@ class AdminService
                 p.nome_completo,
                 p.cpf,
                 p.data_nascimento,
-                p.telefone_whatsapp,
+                CASE WHEN EXISTS (SELECT 1 FROM vinculos_responsaveis vr_ativo WHERE vr_ativo.dependente_pessoa_id=p.id AND vr_ativo.data_fim IS NULL)
+                    THEN (SELECT responsavel.telefone_whatsapp FROM vinculos_responsaveis vr INNER JOIN pessoas responsavel ON responsavel.id=vr.responsavel_pessoa_id WHERE vr.dependente_pessoa_id=p.id AND vr.data_fim IS NULL ORDER BY vr.id DESC LIMIT 1)
+                    ELSE p.telefone_whatsapp END AS telefone_whatsapp,
                 p.eh_pcd,
                 p.eh_pvs,
                 p.eh_plm,
@@ -964,7 +970,7 @@ class AdminService
                     SELECT responsavel.nome_completo
                     FROM vinculos_responsaveis vr
                     INNER JOIN pessoas responsavel ON responsavel.id = vr.responsavel_pessoa_id
-                    WHERE vr.dependente_pessoa_id = p.id
+                    WHERE vr.dependente_pessoa_id = p.id AND vr.data_fim IS NULL
                     ORDER BY vr.id DESC
                     LIMIT 1
                 ) AS nome_responsavel
@@ -1115,12 +1121,14 @@ class AdminService
                 p.nome_completo,
                 p.cpf,
                 p.data_nascimento,
-                p.telefone_whatsapp,
+                CASE WHEN EXISTS (SELECT 1 FROM vinculos_responsaveis vr_ativo WHERE vr_ativo.dependente_pessoa_id=p.id AND vr_ativo.data_fim IS NULL)
+                    THEN (SELECT responsavel.telefone_whatsapp FROM vinculos_responsaveis vr INNER JOIN pessoas responsavel ON responsavel.id=vr.responsavel_pessoa_id WHERE vr.dependente_pessoa_id=p.id AND vr.data_fim IS NULL ORDER BY vr.id DESC LIMIT 1)
+                    ELSE p.telefone_whatsapp END AS telefone_whatsapp,
                 (
                     SELECT responsavel.nome_completo
                     FROM vinculos_responsaveis vr
                     INNER JOIN pessoas responsavel ON responsavel.id = vr.responsavel_pessoa_id
-                    WHERE vr.dependente_pessoa_id = p.id
+                    WHERE vr.dependente_pessoa_id = p.id AND vr.data_fim IS NULL
                     ORDER BY vr.id DESC
                     LIMIT 1
                 ) AS nome_responsavel
@@ -1157,12 +1165,14 @@ class AdminService
                 p.nome_completo,
                 p.cpf,
                 p.data_nascimento,
-                p.telefone_whatsapp,
+                CASE WHEN EXISTS (SELECT 1 FROM vinculos_responsaveis vr_ativo WHERE vr_ativo.dependente_pessoa_id=p.id AND vr_ativo.data_fim IS NULL)
+                    THEN (SELECT responsavel.telefone_whatsapp FROM vinculos_responsaveis vr INNER JOIN pessoas responsavel ON responsavel.id=vr.responsavel_pessoa_id WHERE vr.dependente_pessoa_id=p.id AND vr.data_fim IS NULL ORDER BY vr.id DESC LIMIT 1)
+                    ELSE p.telefone_whatsapp END AS telefone_whatsapp,
                 (
                     SELECT responsavel.nome_completo
                     FROM vinculos_responsaveis vr
                     INNER JOIN pessoas responsavel ON responsavel.id = vr.responsavel_pessoa_id
-                    WHERE vr.dependente_pessoa_id = p.id
+                    WHERE vr.dependente_pessoa_id = p.id AND vr.data_fim IS NULL
                     ORDER BY vr.id DESC
                     LIMIT 1
                 ) AS nome_responsavel
@@ -2600,6 +2610,8 @@ class AdminService
                 p.cpf,
                 p.email,
                 p.telefone_whatsapp,
+                vr.id AS vinculo_responsavel_id,
+                responsavel.telefone_whatsapp AS responsavel_whatsapp,
                 p.data_nascimento,
                 p.eh_pcd,
                 p.eh_pvs,
@@ -2616,6 +2628,8 @@ class AdminService
                 chamada_pessoa.nome_completo AS chamada_por_nome
             FROM agendamentos a
             INNER JOIN pessoas p ON p.id = a.pessoa_id
+            LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id=p.id AND vr.data_fim IS NULL
+            LEFT JOIN pessoas responsavel ON responsavel.id=vr.responsavel_pessoa_id
             INNER JOIN horarios_semanais hs ON hs.id = a.horario_semanal_id
             INNER JOIN locais_treino lt ON lt.id = hs.local_treino_id
             INNER JOIN espacos_treino et ON et.id = hs.espaco_treino_id
@@ -2685,6 +2699,8 @@ class AdminService
                 p.cpf,
                 p.email,
                 p.telefone_whatsapp,
+                vr.id AS vinculo_responsavel_id,
+                responsavel.telefone_whatsapp AS responsavel_whatsapp,
                 p.data_nascimento,
                 p.eh_pcd,
                 p.eh_pvs,
@@ -2706,6 +2722,8 @@ class AdminService
                 chamada_pessoa.nome_completo AS chamada_por_nome
             FROM agendamentos a
             INNER JOIN pessoas p ON p.id = a.pessoa_id
+            LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id=p.id AND vr.data_fim IS NULL
+            LEFT JOIN pessoas responsavel ON responsavel.id=vr.responsavel_pessoa_id
             INNER JOIN horarios_semanais hs ON hs.id = a.horario_semanal_id
             INNER JOIN locais_treino lt ON lt.id = hs.local_treino_id
             INNER JOIN espacos_treino et ON et.id = hs.espaco_treino_id
@@ -4985,7 +5003,8 @@ class AdminService
             $currentLevel = $levelStmt->fetch(PDO::FETCH_ASSOC) ?: null;
             $row['nivel_atual_slug'] = (string) ($currentLevel['slug'] ?? '');
             $row['nivel_atual_nome'] = (string) ($currentLevel['nome'] ?? 'Sem certificado de nível');
-            $phoneDigits = preg_replace('/\D+/', '', (string) ($row['telefone_whatsapp'] ?? '')) ?: '';
+            $row['telefone_whatsapp'] = (string) (!empty($row['vinculo_responsavel_id']) ? ($row['responsavel_whatsapp'] ?? '') : ($row['telefone_whatsapp'] ?? ''));
+            $phoneDigits = preg_replace('/\D+/', '', (string) $row['telefone_whatsapp']) ?: '';
             if ($phoneDigits !== '' && !str_starts_with($phoneDigits, '55')) {
                 $phoneDigits = '55' . $phoneDigits;
             }

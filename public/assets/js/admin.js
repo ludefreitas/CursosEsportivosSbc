@@ -46,6 +46,122 @@
     $(document).on('submit','[data-token-create-form]',function(event){ event.preventDefault(); const data=$(this).serializeArray(); data.push({name:'turma_id',value:tokenClass.id}); $.ajax({url:App.core.buildUrl(tokenEndpoint('create')),method:'POST',dataType:'json',data:$.param(data),headers:{'X-Requested-With':'XMLHttpRequest',Accept:'application/json'}}).done(function(response){ $('#course-token-create-modal').addClass('hidden'); if(App.core&&App.core.showToast) App.core.showToast(response.message||'Token criado.'); loadTokens(); }).fail(function(xhr){ window.alert(App.core.extrairMensagemErroAjax(xhr).mensagem); }); });
     $(document).on('click','[data-token-exclude]',function(){ const id=$(this).attr('data-token-exclude'); $.ajax({url:App.core.buildUrl(tokenEndpoint('exclude')),method:'POST',dataType:'json',data:{token_id:id},headers:{'X-Requested-With':'XMLHttpRequest',Accept:'application/json'}}).done(loadTokens).fail(function(xhr){window.alert(App.core.extrairMensagemErroAjax(xhr).mensagem);}); });
 
+    function ensureNotificationSendModal() {
+        if ($('#staff-notification-modal').length) return $('#staff-notification-modal');
+        const $header = $('<div>', { class: 'popup-head' }).append(
+            $('<div>').append(
+                $('<h3>', { id: 'staff-notification-title', text: 'Notificar responsável' }),
+                $('<p>', { class: 'muted', 'data-notification-context': '1' })
+            ),
+            $('<button>', { type: 'button', class: 'popup-close-icon', 'data-notification-close': '1', 'aria-label': 'Fechar', text: '×' })
+        );
+        const $form = $('<form>', { class: 'popup-body stack-form', 'data-notification-form': '1', 'data-manual-submit': '1' })
+            .append($('<div>', { 'data-notification-target': '1' }))
+            .append($('<div>', { 'data-notification-batch': '1' }))
+            .append($('<label>').append($('<span>', { text: 'Assunto' }), $('<input>', { name: 'assunto', maxlength: 160, required: true })))
+            .append($('<label>').append($('<span>', { text: 'Mensagem' }), $('<textarea>', { name: 'mensagem', rows: 6, maxlength: 3000, required: true })))
+            .append($('<p>', { class: 'muted', 'data-notification-guidance': '1' }))
+            .append($('<div>', { class: 'popup-actions' }).append(
+                $('<button>', { type: 'button', class: 'btn btn-secondary', 'data-notification-close': '1', text: 'Cancelar' }),
+                $('<button>', { type: 'submit', class: 'btn btn-primary', text: 'Enviar notificação' })
+            ));
+        const $modal = $('<div>', { id: 'staff-notification-modal', class: 'popup-overlay hidden', 'aria-hidden': 'true' })
+            .append($('<div>', { class: 'popup-card popup-admin-card staff-notification-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'staff-notification-title' }).append($header, $form));
+        $('body').append($modal); return $modal;
+    }
+
+    function notificationRequestData($button) {
+        return {
+            tipo: String($button.attr('data-notification-send') || ''),
+            pessoa_id: String($button.attr('data-person-id') || '0'),
+            inscricao_id: String($button.attr('data-enrollment-id') || '0'),
+            agendamento_id: String($button.attr('data-booking-id') || '0'),
+            turma_id: String($button.attr('data-class-id') || '0'),
+            condicao_slug: String($button.attr('data-condition-slug') || ''),
+            atestado_tipo: String($button.attr('data-certificate-type') || '')
+        };
+    }
+
+    function renderNotificationBatch($modal, data) {
+        const records = Array.isArray(data.inscricoes) ? data.inscricoes : [];
+        const $batch = $modal.find('[data-notification-batch="1"]').empty();
+        const $statuses = $('<fieldset>', { class: 'staff-notification-statuses' }).append($('<legend>', { text: 'Status das inscrições' }));
+        (data.status || []).forEach(function (status) {
+            $statuses.append($('<label>', { class: 'checkbox-chip' }).append($('<input>', { type: 'checkbox', name: 'status_selecionados[]', value: String(status.status || ''), 'data-notification-status': String(status.status || ''), checked: !!status.selecionado }), $('<span>', { text: String(status.label || '') + ': ' + String(status.quantidade || 0) })));
+        });
+        const $list = $('<div>', { class: 'staff-notification-recipients', 'data-notification-recipients': '1' });
+        records.forEach(function (item) {
+            const $input = $('<input>', { type: 'checkbox', name: 'inscricao_ids[]', value: String(item.inscricao_id || ''), 'data-recipient-status': String(item.status || ''), 'data-recipient-responsible': String(item.responsavel_chave || ''), disabled: !item.disponivel });
+            const latest = item.ultima_notificacao || null;
+            const latestText = latest ? ' · Última notificação: ' + (latest.visualizada_em ? 'visualizada em ' + String(latest.visualizada_em) : 'não visualizada') : '';
+            $list.append($('<label>', { class: 'staff-notification-recipient', 'data-recipient-row': '1' }).append($input, $('<span>').append($('<strong>', { text: String(item.nome || '') }), $('<small>', { text: String(item.status_label || '') + ' · Responsável: ' + String(item.responsavel || '-') + (item.disponivel ? '' : ' · ' + String(item.erro || 'Indisponível')) + latestText }))));
+        });
+        $batch.append($statuses, $('<p>', { class: 'muted', text: 'Revise e desmarque as inscrições que não devem receber a mensagem.' }), $list, $('<p>', { class: 'alert-inline', 'data-notification-selection-summary': '1' }));
+        function refresh(changedStatus, selectChangedStatus) {
+            const active = {};
+            $statuses.find('[data-notification-status]:checked').each(function () { active[String($(this).attr('data-notification-status'))] = true; });
+            $list.find('[data-recipient-row]').each(function () {
+                const $row = $(this), $input = $row.find('input'); const visible = !!active[String($input.attr('data-recipient-status'))];
+                const rowStatus = String($input.attr('data-recipient-status'));
+                $row.toggleClass('hidden', !visible);
+                if (!visible) $input.prop('checked', false);
+                else if ((changedStatus === null || rowStatus === changedStatus) && selectChangedStatus && !$input.prop('disabled')) $input.prop('checked', true);
+            });
+            const $selected = $list.find('input:checked'); const responsible = {};
+            $selected.each(function () { responsible[String($(this).attr('data-recipient-responsible') || '')] = true; });
+            $batch.find('[data-notification-selection-summary]').text(String($selected.length) + ' inscrição(ões) selecionada(s) para ' + String(Object.keys(responsible).length) + ' responsável(is).');
+            $modal.find('[type="submit"]').prop('disabled', $selected.length === 0);
+        }
+        $statuses.on('change', 'input', function () {
+            refresh(String($(this).attr('data-notification-status') || ''), $(this).is(':checked'));
+        });
+        $list.on('change', 'input', function () { refresh('', false); });
+        refresh(null, true);
+    }
+
+    $(document).on('click', '[data-notification-send]', function () {
+        const request = notificationRequestData($(this)); const $modal = ensureNotificationSendModal();
+        $modal.data('notificationRequest', request).removeClass('hidden').attr('aria-hidden', 'false');
+        $modal.find('[data-notification-target]').html('<p class="muted">Carregando destinatário...</p>');
+        $modal.find('[data-notification-batch]').empty(); $modal.find('[name="assunto"], [name="mensagem"]').val(''); $modal.find('[type="submit"]').prop('disabled', true);
+        $.getJSON(App.core.buildUrl('/notificacoes/preparar'), request).done(function (response) {
+            if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível preparar a notificação.')); $modal.addClass('hidden'); return; }
+            const data = response.data || {}; $modal.data('notificationData', data);
+            $modal.find('#staff-notification-title').text(String(data.titulo || 'Notificar responsável'));
+            $modal.find('[data-notification-context]').text(String(data.contexto || ''));
+            $modal.find('[data-notification-guidance]').text(String(data.orientacao || ''));
+            if (data.tipo === 'turma_lote') { $modal.find('[data-notification-target]').empty(); renderNotificationBatch($modal, data); }
+            else {
+                const $target = $modal.find('[data-notification-target]').empty().append($('<p>').append($('<strong>', { text: 'Aluno: ' }), document.createTextNode(String(data.aluno || ''))), $('<p>').append($('<strong>', { text: 'Responsável: ' }), document.createTextNode(String(data.responsavel || '-'))));
+                const history = Array.isArray(data.historico) ? data.historico : [];
+                if (history.length) {
+                    const $history = $('<details>', { class: 'staff-notification-history' }).append($('<summary>', { text: 'Histórico de notificações' }));
+                    history.forEach(function(item){
+                        const historyMeta = 'Aluno: ' + String(item.aluno_nome || '-')
+                            + ' · Responsável: ' + String(item.destinatario_nome || '-')
+                            + ' · Autor: ' + String(item.autor_nome || '-')
+                            + ' · Enviada em ' + String(item.created_at || '')
+                            + ' · ' + (item.visualizada_em ? 'Visualizada em ' + String(item.visualizada_em) : 'Não visualizada');
+                        const $historyItem = $('<div>', { class: 'staff-notification-history-item' })
+                            .append($('<p>').append($('<strong>', { text: String(item.assunto || '') })))
+                            .append($('<p>', { text: String(item.mensagem || '') }))
+                            .append($('<small>', { text: historyMeta }));
+                        $history.append($historyItem);
+                    });
+                    $target.append($history);
+                }
+                if (!data.destinatario_disponivel) $modal.find('[data-notification-target]').append($('<p>', { class: 'alert-inline', text: String(data.destinatario_erro || 'Destinatário indisponível.') }));
+                $modal.find('[type="submit"]').prop('disabled', !data.destinatario_disponivel);
+            }
+        }).fail(function (xhr) { $modal.addClass('hidden'); App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); });
+    });
+    $(document).on('click', '[data-notification-close="1"]', function () { $('#staff-notification-modal').addClass('hidden').attr('aria-hidden', 'true'); });
+    $(document).on('submit', '[data-notification-form="1"]', function (event) {
+        event.preventDefault(); const $form=$(this), $modal=$form.closest('#staff-notification-modal'); const payload=$form.serializeArray(); const request=$modal.data('notificationRequest')||{};
+        Object.keys(request).forEach(function(key){payload.push({name:key,value:request[key]});}); const $submit=$form.find('[type="submit"]').prop('disabled',true);
+        $.post(App.core.buildUrl('/notificacoes/enviar'), $.param(payload), function(response){ if(!response||response.success===false){App.core.abrirPopup('erro',String((response&&response.message)||'Não foi possível enviar.'));return;} $modal.addClass('hidden').attr('aria-hidden','true'); App.core.abrirPopup('sucesso',String(response.message||'Notificação enviada.')); },'json').fail(function(xhr){App.core.abrirPopup('erro',App.core.extrairMensagemErroAjax(xhr).mensagem);}).always(function(){$submit.prop('disabled',false);});
+    });
+
     App.admin = Object.assign(App.admin || {}, {
         iniciarSecoesAdmin: function () {
             const $buttons = $('[data-admin-nav-target]');
@@ -82,9 +198,34 @@
                 });
             }
 
-            function updateHash(target) {
+            const courseEnrollmentUrlKeys = [
+                'ordenar_por', 'direcao', 'status', 'condicao', 'turma_id', 'turma_nome',
+                'agrupar_por', 'temporada_id', 'grupo_id', 'grupo_secundario_id', 'pagina'
+            ];
+
+            function courseEnrollmentParamsFromUrl() {
+                const params = {};
+                const search = new URLSearchParams(window.location.search || '');
+                courseEnrollmentUrlKeys.forEach(function (key) {
+                    if (search.has(key)) params[key] = String(search.get(key) || '');
+                });
+                return params;
+            }
+
+            function updateHash(target, sectionParams) {
                 if (window.history && typeof window.history.replaceState === 'function') {
-                    window.history.replaceState({}, document.title, '#admin-' + target);
+                    const currentUrl = new URL(window.location.href);
+                    courseEnrollmentUrlKeys.forEach(function (key) { currentUrl.searchParams.delete(key); });
+                    if (String(target || '') === 'inscricoes') {
+                        const params = sectionParams || {};
+                        courseEnrollmentUrlKeys.forEach(function (key) {
+                            if (Object.prototype.hasOwnProperty.call(params, key) && String(params[key] || '') !== '') {
+                                currentUrl.searchParams.set(key, String(params[key]));
+                            }
+                        });
+                    }
+                    currentUrl.hash = 'admin-' + target;
+                    window.history.replaceState({}, document.title, currentUrl.pathname + currentUrl.search + currentUrl.hash);
                 }
             }
 
@@ -667,7 +808,7 @@
 
                         $host.html(String(response.html || ''));
                         hydrateDynamicSection();
-                        updateHash(normalizedTarget);
+                        updateHash(normalizedTarget, requestData);
 
                         if (normalizedTarget === 'migracao-atestados' && App.state.healthMigrationFocus) {
                             const focusState = App.state.healthMigrationFocus;
@@ -1060,7 +1201,7 @@
             const hash = String(window.location.hash || '').replace(/^#admin-/, '').trim();
 
             if (hash !== '') {
-                activateSection(hash);
+                activateSection(hash, hash === 'inscricoes' ? courseEnrollmentParamsFromUrl() : undefined);
                 return;
             }
 
@@ -6048,14 +6189,6 @@
                 });
             }
 
-            function ensureClassOpenEnrollmentField($form) {
-                if ($form.find('[name="inscricoes_abertas"]').length) return;
-                const $field = $('<label>', { class: 'checkbox-chip' })
-                    .append($('<input>', { type: 'checkbox', name: 'inscricoes_abertas', value: '1' }))
-                    .append($('<span>', { text: 'Inscrições abertas nesta turma' }));
-                $form.find('button[type="submit"]').before($field);
-            }
-
             function ensureClassFieldHelp($form) {
                 const help = {
                     temporada_id: 'Selecione a temporada à qual a turma pertencerá. A temporada serve de referência para publicação, inscrições e matrículas.',
@@ -6078,8 +6211,7 @@
                     vagas_espera_pcd: 'Informe o limite da lista de espera destinado a Pessoas com Deficiência (PCD).',
                     vagas_espera_plm: 'Informe o limite da lista de espera destinado a Pessoas com Laudo Médico de Doença.',
                     vagas_espera_pvs: 'Informe o limite da lista de espera destinado a Pessoas em Vulnerabilidade Social.',
-                    vagas_totais: 'Confira o total de vagas da turma. O valor deve corresponder à soma das vagas distribuídas entre os públicos.',
-                    inscricoes_abertas: 'Indica se a turma está habilitada para receber inscrições, sempre respeitando o status da turma e o cronograma selecionado.'
+                    vagas_totais: 'Confira o total de vagas da turma. O valor deve corresponder à soma das vagas distribuídas entre os públicos.'
                 };
                 Object.keys(help).forEach(function (name) {
                     const $field = $form.find('[name="' + name + '"]').first();
@@ -6326,7 +6458,7 @@
                 if ($form.find('[name="operacao"]').length === 0) {
                     $form.append($('<input>', { type: 'hidden', name: 'operacao' }));
                 }
-                if (type === 'class') { ensureClassScheduleField($form); ensureClassCopyFields($form); ensureClassProgramField($form); ensureClassAgeCriterionField($form); ensureClassAgeExceptionFields($form); ensureClassLevelFields($form); ensureClassOpenEnrollmentField($form); ensureClassFieldHelp($form); }
+                if (type === 'class') { ensureClassScheduleField($form); ensureClassCopyFields($form); ensureClassProgramField($form); ensureClassAgeCriterionField($form); ensureClassAgeExceptionFields($form); ensureClassLevelFields($form); ensureClassFieldHelp($form); }
                 if (type === 'season') { ensureSeasonNoticeFields($form); ensureSeasonWeeklyCoverageField($form); ensureSeasonFieldHelp($form); }
                 fillForm($form, record || {});
                 if (type === 'class') {

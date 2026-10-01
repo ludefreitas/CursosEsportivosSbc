@@ -49,6 +49,7 @@ $healthCertificateValidationRows = $healthCertificateValidationRows ?? [];
                                 data-person-id="<?php echo e((string) ($row['pessoa_id'] ?? '0')); ?>"
                                 data-certificate-type="<?php echo e((string) ($row['tipo_atestado'] ?? '')); ?>"
                             >Validar atestado</button>
+                            <button type="button" class="link-button" data-notification-send="atestado" data-person-id="<?php echo e((string) ($row['pessoa_id'] ?? '0')); ?>" data-certificate-type="<?php echo e((string) ($row['tipo_atestado'] ?? '')); ?>">Notificar responsável</button>
                         </td>
                     </tr>
                 <?php } ?>

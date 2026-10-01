@@ -1,0 +1,43 @@
+CREATE TABLE IF NOT EXISTS notificacoes (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    autor_conta_id BIGINT UNSIGNED NOT NULL,
+    tipo VARCHAR(40) NOT NULL,
+    assunto VARCHAR(160) NOT NULL,
+    mensagem TEXT NOT NULL,
+    orientacao_tipo VARCHAR(40) NOT NULL DEFAULT 'geral',
+    orientacao_texto TEXT NULL,
+    orientacao_url VARCHAR(500) NULL,
+    turma_id BIGINT UNSIGNED NULL,
+    atestado_id BIGINT UNSIGNED NULL,
+    condicao_slug VARCHAR(80) NULL,
+    contexto_json JSON NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_notificacoes_autor_data (autor_conta_id, created_at),
+    INDEX idx_notificacoes_turma (turma_id, created_at),
+    CONSTRAINT fk_notificacoes_autor FOREIGN KEY (autor_conta_id) REFERENCES contas(id),
+    CONSTRAINT fk_notificacoes_turma FOREIGN KEY (turma_id) REFERENCES turmas(id) ON DELETE SET NULL,
+    CONSTRAINT fk_notificacoes_atestado FOREIGN KEY (atestado_id) REFERENCES atestados_saude(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS notificacoes_destinatarios (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    notificacao_id BIGINT UNSIGNED NOT NULL,
+    pessoa_id BIGINT UNSIGNED NOT NULL,
+    inscricao_id BIGINT UNSIGNED NULL,
+    agendamento_id BIGINT UNSIGNED NULL,
+    status_inscricao_envio VARCHAR(40) NULL,
+    destinatario_conta_id BIGINT UNSIGNED NOT NULL,
+    visualizada_em DATETIME NULL,
+    arquivada_em DATETIME NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_notificacao_destinatario_data (destinatario_conta_id, created_at),
+    INDEX idx_notificacao_destinatario_leitura (destinatario_conta_id, visualizada_em),
+    INDEX idx_notificacao_pessoa (pessoa_id, created_at),
+    INDEX idx_notificacao_inscricao (inscricao_id),
+    INDEX idx_notificacao_agendamento (agendamento_id),
+    CONSTRAINT fk_notificacao_destinatario_notificacao FOREIGN KEY (notificacao_id) REFERENCES notificacoes(id) ON DELETE CASCADE,
+    CONSTRAINT fk_notificacao_destinatario_pessoa FOREIGN KEY (pessoa_id) REFERENCES pessoas(id),
+    CONSTRAINT fk_notificacao_destinatario_inscricao FOREIGN KEY (inscricao_id) REFERENCES inscricoes_turma(id) ON DELETE SET NULL,
+    CONSTRAINT fk_notificacao_destinatario_agendamento FOREIGN KEY (agendamento_id) REFERENCES agendamentos(id) ON DELETE SET NULL,
+    CONSTRAINT fk_notificacao_destinatario_conta FOREIGN KEY (destinatario_conta_id) REFERENCES contas(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

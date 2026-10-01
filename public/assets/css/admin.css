@@ -1826,19 +1826,77 @@
 .recovery-modal-card pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #eef5f8; padding: 12px; border-radius: 10px; }
 
 @media (max-width: 720px) { .recovery-filter { grid-template-columns: 1fr; } }
-.admin-booking-person-inline {
+.admin-booking-person-details {
     white-space: nowrap;
 }
 
-.admin-booking-person-inline > * + *::before {
-    content: " · ";
+.admin-booking-person-details > * + *::before {
+    content: " - ";
     color: #667085;
     text-decoration: none;
 }
 
-.admin-booking-person-inline a {
+.admin-booking-person-details a {
     color: #128c4a;
     font-weight: 700;
+}
+
+@media (max-width: 1000px) {
+    .admin-booking-person-details {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .admin-booking-person-details > * + *::before {
+        content: none;
+    }
+
+    .admin-booking-person-details .link-button {
+        justify-self: start;
+        text-align: left;
+    }
+}
+
+@media (max-width: 560px) {
+    .admin-booking-occurrence-table tbody td {
+        display: block;
+        padding: 5px 0;
+    }
+
+    .admin-booking-occurrence-table tbody td::before {
+        content: none;
+    }
+
+    .admin-booking-person-details {
+        display: grid;
+        gap: 3px;
+        align-items: start;
+    }
+
+    .admin-booking-person-details > * {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .admin-booking-person-details > * + *::before {
+        content: "- ";
+        color: #667085;
+        text-decoration: none;
+    }
+
+    .admin-booking-person-details .link-button {
+        display: inline;
+        justify-self: auto;
+    }
+
+    .admin-booking-occurrence-table [data-booking-caller-cell="1"] {
+        margin-top: 3px;
+        padding-top: 8px;
+        border-top: 1px dashed rgba(221, 212, 198, 0.9);
+    }
 }
 .course-weekdays-field {
     margin: 0;
@@ -1964,3 +2022,13 @@
     font-size: 1.35rem;
     line-height: 1;
 }
+.staff-notification-card { width:min(820px, calc(100vw - 24px)); }
+.staff-notification-statuses { display:flex; flex-wrap:wrap; gap:8px; }
+.staff-notification-statuses legend { width:100%; font-weight:800; margin-bottom:6px; }
+.staff-notification-recipients { display:grid; gap:7px; max-height:300px; overflow:auto; padding:4px; }
+.staff-notification-recipient { display:flex; gap:9px; align-items:flex-start; padding:9px; border:1px solid #d7e2e9; border-radius:9px; }
+.staff-notification-recipient span { display:grid; gap:2px; }
+.staff-notification-history { margin:10px 0; padding:9px; border:1px solid #d7e2e9; border-radius:9px; }
+.staff-notification-history p { margin:7px 0 0; }
+.staff-notification-history-item { padding:8px 0; border-top:1px solid #e4ebef; }
+.staff-notification-history-item:first-of-type { margin-top:8px; }

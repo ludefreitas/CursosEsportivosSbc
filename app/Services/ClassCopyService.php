@@ -191,7 +191,7 @@ class ClassCopyService
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) throw new RuntimeException('A turma selecionada não pertence à temporada de origem.');
         $record = $row;
-        unset($record['id'], $record['professor_conta_id'], $record['status'], $record['ativo'], $record['created_at'], $record['updated_at']);
+        unset($record['id'], $record['professor_conta_id'], $record['status'], $record['ativo'], $record['inscricoes_abertas'], $record['created_at'], $record['updated_at']);
         $record['temporada_id'] = $destinationSeasonId;
         $record['cronograma_modalidade_id'] = $this->destinationSchedule($destinationSeasonId, (int) $row['modalidade_id']);
         $record['niveis_aceitos'] = json_decode((string) ($row['niveis_aceitos_json'] ?? '[]'), true) ?: [];
@@ -233,7 +233,7 @@ class ClassCopyService
             'vagas_totais' => $general + $pcd + $plm + $pvs, 'vagas_geral' => $general,
             'vagas_pcd' => $pcd, 'vagas_plm' => $plm, 'vagas_pvs' => $pvs,
             'vagas_espera_geral' => 0, 'vagas_espera_pcd' => 0, 'vagas_espera_plm' => 0, 'vagas_espera_pvs' => 0,
-            'inscricoes_abertas' => 0, 'copia_origem_tipo' => 'legacy',
+            'copia_origem_tipo' => 'legacy',
             'copia_origem_temporada_id' => $sourceSeasonId, 'copia_origem_turma_id' => $sourceClassId,
         ];
         $record['campos_obrigatorios_pendentes'] = $this->requiredMissing($record);

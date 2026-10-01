@@ -442,6 +442,9 @@
                             !!response.admin_access_allowed,
                             !!response.professor_access_allowed
                         );
+                        $('#site-header-certificate-alerts-region').html(String(response.header_certificate_alerts_html || ''));
+                        $('#site-header-notifications-region, #user-notifications-modal').remove();
+                        $('#site-header-certificate-alerts-region').after(String(response.header_notifications_html || ''));
                         try {
                             window.localStorage.setItem('cursos_sbc_auth_event', JSON.stringify({ action: 'login', time: Date.now() }));
                         } catch (error) {

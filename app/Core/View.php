@@ -7,6 +7,7 @@ use App\Services\ProfileService;
 use App\Services\SitePopupService;
 use App\Services\UserService;
 use App\Services\HomeInfoService;
+use App\Services\NotificationService;
 
 class View
 {
@@ -53,6 +54,14 @@ class View
                 } catch (\Throwable $e) {
                     $data['headerCertificateAlerts'] = [];
                 }
+            }
+        }
+
+        if (!array_key_exists('headerNotificationSummary', $data)) {
+            $data['headerNotificationSummary'] = ['total_nao_lidas' => 0, 'ultima' => '', 'possui_notificacoes' => false];
+            if (Auth::check()) {
+                try { $data['headerNotificationSummary'] = (new NotificationService())->headerSummary((int) Auth::id()); }
+                catch (\Throwable $e) { $data['headerNotificationSummary'] = ['total_nao_lidas' => 0, 'ultima' => '', 'possui_notificacoes' => false]; }
             }
         }
 

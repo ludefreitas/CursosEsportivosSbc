@@ -12,6 +12,7 @@ use App\Controllers\HomeController;
 use App\Controllers\ProfileController;
 use App\Controllers\DataRecoveryController;
 use App\Controllers\ProfessorController;
+use App\Controllers\NotificationController;
 
 return [
     ['GET', '/', [HomeController::class, 'index']],
@@ -49,6 +50,10 @@ return [
     ['GET', '/api/pessoas-externas/registros', [ProfileController::class, 'externalPersonRecords']],
     ['GET', '/api/pessoas-externas/registro', [ProfileController::class, 'externalPersonSelected']],
     ['GET', '/dashboard', [DashboardController::class, 'index']],
+    ['GET', '/notificacoes', [NotificationController::class, 'index']],
+    ['POST', '/notificacoes/ler', [NotificationController::class, 'read']],
+    ['GET', '/notificacoes/preparar', [NotificationController::class, 'prepare']],
+    ['POST', '/notificacoes/enviar', [NotificationController::class, 'send']],
     ['GET', '/perfil/certificados/modal', [ProfileController::class, 'certificateModal']],
     ['GET', '/perfil/certificados/arquivo', [ProfileController::class, 'certificateDocument']],
     ['POST', '/perfil/certificados/salvar', [ProfileController::class, 'saveCertificateDocuments']],

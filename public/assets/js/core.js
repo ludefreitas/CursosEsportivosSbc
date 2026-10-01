@@ -2167,6 +2167,70 @@
             observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'aria-hidden'] });
         },
 
+        iniciarNotificacoesUsuario: function () {
+            function formatDate(value) {
+                if (!value) return '';
+                const date = new Date(String(value).replace(' ', 'T'));
+                return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+            }
+
+            function updateSummary(summary) {
+                summary = summary || {};
+                const count = Number(summary.total_nao_lidas || 0);
+                $('[data-user-notifications-count]').text(String(count)).toggleClass('hidden', count <= 0);
+                $('[data-user-notifications-preview]').text(String(summary.ultima || '')).toggleClass('hidden', !summary.possui_notificacoes);
+                $('[data-user-notifications-more]').toggleClass('hidden', !summary.possui_notificacoes);
+            }
+
+            function loadList() {
+                const $content = $('#user-notifications-content').html('<p class="muted">Carregando...</p>');
+                $.getJSON(App.core.buildUrl('/notificacoes')).done(function (response) {
+                    if (!response || response.success === false) { $content.html($('<p>', { class: 'alert-inline', text: String((response && response.message) || 'Não foi possível carregar as notificações.') })); return; }
+                    updateSummary(response.summary);
+                    const records = Array.isArray(response.notifications) ? response.notifications : [];
+                    if (!records.length) { $content.html($('<p>', { class: 'muted', text: 'Você ainda não recebeu notificações.' })); return; }
+                    const $list = $('<div>', { class: 'user-notifications-list' });
+                    records.forEach(function (item) {
+                        const preview = String(item.mensagem || '').replace(/\s+/g, ' ').trim();
+                        $list.append($('<button>', { type: 'button', class: 'user-notification-item' + (item.visualizada_em ? '' : ' is-unread'), 'data-user-notification-read': String(item.destinatario_id || '') })
+                            .append($('<span>', { class: 'user-notification-item-head' }).append($('<strong>', { text: String(item.assunto || '') }), $('<small>', { text: formatDate(item.created_at) })))
+                            .append($('<span>', { text: String(item.aluno_nome || '') }))
+                            .append($('<span>', { class: 'muted', text: preview.length > 180 ? preview.slice(0, 177) + '...' : preview })));
+                    });
+                    $content.empty().append($list);
+                }).fail(function (xhr) { $content.html($('<p>', { class: 'alert-inline', text: App.core.extrairMensagemErroAjax(xhr).mensagem })); });
+            }
+
+            $(document).on('click', '[data-user-notifications-open="1"]', function () {
+                $('#user-notifications-modal').removeClass('hidden').attr('aria-hidden', 'false');
+                loadList();
+            });
+            $(document).on('click', '[data-user-notifications-close="1"]', function () { $('#user-notifications-modal').addClass('hidden').attr('aria-hidden', 'true'); });
+            $(document).on('click', '[data-user-notification-read]', function () {
+                const id = String($(this).attr('data-user-notification-read') || '0');
+                const $content = $('#user-notifications-content').html('<p class="muted">Carregando...</p>');
+                $.post(App.core.buildUrl('/notificacoes/ler'), { destinatario_id: id }, function (response) {
+                    if (!response || response.success === false) { $content.html($('<p>', { class: 'alert-inline', text: String((response && response.message) || 'Não foi possível abrir a notificação.') })); return; }
+                    updateSummary(response.summary);
+                    const item = response.notification || {};
+                    const $detail = $('<div>', { class: 'user-notification-detail' })
+                        .append($('<button>', { type: 'button', class: 'link-button', 'data-user-notifications-back': '1', text: '← Voltar às notificações' }))
+                        .append($('<h4>', { text: String(item.assunto || '') }))
+                        .append($('<p>').append($('<strong>', { text: 'Aluno: ' }), document.createTextNode(String(item.aluno_nome || ''))))
+                        .append($('<p>').append($('<strong>', { text: 'Enviada por: ' }), document.createTextNode(String(item.autor_nome || ''))))
+                        .append($('<p>', { class: 'muted', text: formatDate(item.created_at) }))
+                        .append($('<p>', { class: 'user-notification-message', text: String(item.mensagem || '') }));
+                    if (item.orientacao_texto) {
+                        const $guidance = $('<p>', { class: 'alert-inline', text: String(item.orientacao_texto) });
+                        if (item.orientacao_url) $guidance.append(document.createTextNode(' '), $('<a>', { href: String(item.orientacao_url), target: '_blank', rel: 'noopener noreferrer', text: 'Abrir WhatsApp' }));
+                        $detail.append($guidance);
+                    }
+                    $content.empty().append($detail);
+                }, 'json').fail(function (xhr) { $content.html($('<p>', { class: 'alert-inline', text: App.core.extrairMensagemErroAjax(xhr).mensagem })); });
+            });
+            $(document).on('click', '[data-user-notifications-back="1"]', loadList);
+        },
+
         init: function () {
             App.core.iniciarValidacaoFormularios();
             App.core.iniciarBalaoCpfLoginHeader();
@@ -2189,6 +2253,7 @@
             App.core.iniciarImportacaoPessoaExterna();
             App.core.iniciarProtecaoFormulariosModal();
             App.core.iniciarAjudaContextualCampos();
+            App.core.iniciarNotificacoesUsuario();
         }
     });
 

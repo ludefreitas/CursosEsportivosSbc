@@ -88,6 +88,7 @@ $buildWhatsappLink = static function (?string $phone): ?string {
                                 data-person-id="<?php echo e((string) ($row['person_id'] ?? '0')); ?>"
                                 data-condition-slug="<?php echo e((string) ($row['condicao_slug'] ?? '')); ?>"
                             >Validar certificado</button>
+                            <button type="button" class="link-button" data-notification-send="condicao" data-person-id="<?php echo e((string) ($row['person_id'] ?? '0')); ?>" data-condition-slug="<?php echo e((string) ($row['condicao_slug'] ?? '')); ?>">Notificar responsável</button>
                         </td>
                     </tr>
                 <?php } ?>

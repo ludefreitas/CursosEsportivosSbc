@@ -102,5 +102,6 @@
         <div id="site-header-certificate-alerts-region">
             <?php require ROOT_PATH . '/app/Views/partials/header_certificate_alerts.php'; ?>
         </div>
+        <?php if ($isAuthenticated) { require ROOT_PATH . '/app/Views/partials/header_notifications.php'; } ?>
         <main class="page-content">
             <?php require ROOT_PATH . '/app/Views/partials/flash.php'; ?>

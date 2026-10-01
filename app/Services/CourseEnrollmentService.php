@@ -953,7 +953,6 @@ class CourseEnrollmentService
             throw new RuntimeException('O período de matrícula deste cronograma não coincide com nenhum dia de aula da turma. Ajuste os dias da turma ou selecione/crie outro cronograma com um período de matrícula compatível.');
         }
         $params[':sexo'] = in_array((string) ($data['sexo'] ?? ''), ['masculino', 'feminino'], true) ? (string) $data['sexo'] : null;
-        $params[':inscricoes_abertas'] = !empty($data['inscricoes_abertas']) ? 1 : 0;
         $params[':niveis_aceitos'] = json_encode(normalize_modality_levels($data['niveis_aceitos'] ?? []), JSON_UNESCAPED_UNICODE);
         $currentProfessorId = $id > 0 ? $this->classProfessorId($pdo, $id) : 0;
         $assignCreatorAsProfessor = !empty($data['_atribuir_criador_como_professor']);
@@ -965,11 +964,11 @@ class CourseEnrollmentService
         }
         if ($id > 0) {
             $params[':id'] = $id;
-            $stmt = $pdo->prepare('UPDATE turmas SET temporada_id=:temporada, modalidade_id=:modalidade, cronograma_modalidade_id=:cronograma, local_treino_id=:local, espaco_treino_id=:espaco, nivel_modalidade_id=:nivel, niveis_aceitos_json=:niveis_aceitos, professor_conta_id=:professor, nome=:nome, programa=:programa, observacao=:observacao, excecoes_idade_json=:excecoes_idade, dias_semana=:dias_semana, hora_inicio=:hora_inicio, hora_fim=:hora_fim, idade_minima=:idade_minima, idade_maxima=:idade_maxima, criterio_faixa_etaria=:criterio_faixa_etaria, sexo=:sexo, vagas_totais=:vagas_totais, vagas_geral=:vagas_geral, vagas_pcd=:vagas_pcd, vagas_plm=:vagas_plm, vagas_pvs=:vagas_pvs, vagas_espera_geral=:espera_geral, vagas_espera_pcd=:espera_pcd, vagas_espera_plm=:espera_plm, vagas_espera_pvs=:espera_pvs, inscricoes_abertas=:inscricoes_abertas WHERE id=:id LIMIT 1');
+            $stmt = $pdo->prepare('UPDATE turmas SET temporada_id=:temporada, modalidade_id=:modalidade, cronograma_modalidade_id=:cronograma, local_treino_id=:local, espaco_treino_id=:espaco, nivel_modalidade_id=:nivel, niveis_aceitos_json=:niveis_aceitos, professor_conta_id=:professor, nome=:nome, programa=:programa, observacao=:observacao, excecoes_idade_json=:excecoes_idade, dias_semana=:dias_semana, hora_inicio=:hora_inicio, hora_fim=:hora_fim, idade_minima=:idade_minima, idade_maxima=:idade_maxima, criterio_faixa_etaria=:criterio_faixa_etaria, sexo=:sexo, vagas_totais=:vagas_totais, vagas_geral=:vagas_geral, vagas_pcd=:vagas_pcd, vagas_plm=:vagas_plm, vagas_pvs=:vagas_pvs, vagas_espera_geral=:espera_geral, vagas_espera_pcd=:espera_pcd, vagas_espera_plm=:espera_plm, vagas_espera_pvs=:espera_pvs WHERE id=:id LIMIT 1');
             $stmt->execute($params);
             AuditLogService::record('turma.atualizada', 'turmas', $id, ['conta_id' => $accountId]);
         } else {
-            $stmt = $pdo->prepare('INSERT INTO turmas (temporada_id, modalidade_id, cronograma_modalidade_id, local_treino_id, espaco_treino_id, nivel_modalidade_id, niveis_aceitos_json, professor_conta_id, nome, programa, observacao, excecoes_idade_json, dias_semana, hora_inicio, hora_fim, idade_minima, idade_maxima, criterio_faixa_etaria, sexo, vagas_totais, vagas_geral, vagas_pcd, vagas_plm, vagas_pvs, vagas_espera_geral, vagas_espera_pcd, vagas_espera_plm, vagas_espera_pvs, ativo, inscricoes_abertas) VALUES (:temporada, :modalidade, :cronograma, :local, :espaco, :nivel, :niveis_aceitos, :professor, :nome, :programa, :observacao, :excecoes_idade, :dias_semana, :hora_inicio, :hora_fim, :idade_minima, :idade_maxima, :criterio_faixa_etaria, :sexo, :vagas_totais, :vagas_geral, :vagas_pcd, :vagas_plm, :vagas_pvs, :espera_geral, :espera_pcd, :espera_plm, :espera_pvs, 1, :inscricoes_abertas)');
+            $stmt = $pdo->prepare('INSERT INTO turmas (temporada_id, modalidade_id, cronograma_modalidade_id, local_treino_id, espaco_treino_id, nivel_modalidade_id, niveis_aceitos_json, professor_conta_id, nome, programa, observacao, excecoes_idade_json, dias_semana, hora_inicio, hora_fim, idade_minima, idade_maxima, criterio_faixa_etaria, sexo, vagas_totais, vagas_geral, vagas_pcd, vagas_plm, vagas_pvs, vagas_espera_geral, vagas_espera_pcd, vagas_espera_plm, vagas_espera_pvs, ativo) VALUES (:temporada, :modalidade, :cronograma, :local, :espaco, :nivel, :niveis_aceitos, :professor, :nome, :programa, :observacao, :excecoes_idade, :dias_semana, :hora_inicio, :hora_fim, :idade_minima, :idade_maxima, :criterio_faixa_etaria, :sexo, :vagas_totais, :vagas_geral, :vagas_pcd, :vagas_plm, :vagas_pvs, :espera_geral, :espera_pcd, :espera_plm, :espera_pvs, 1)');
             $stmt->execute($params);
             $id = (int) $pdo->lastInsertId();
             if ((int) ($params[':professor'] ?? 0) > 0) {
@@ -1184,7 +1183,7 @@ class CourseEnrollmentService
         $students = $pdo->prepare("SELECT
                 p.id AS pessoa_id, p.nome_completo, p.data_nascimento, p.email, p.cpf, i.status AS inscricao_status,
                 COALESCE(NULLIF(responsavel.nome_completo, ''), NULLIF(p.responsavel1_nome, ''), p.nome_completo) AS responsavel_nome,
-                COALESCE(NULLIF(responsavel.telefone_whatsapp, ''), p.telefone_whatsapp) AS telefone_whatsapp,
+                CASE WHEN vr.id IS NOT NULL THEN responsavel.telefone_whatsapp ELSE p.telefone_whatsapp END AS telefone_whatsapp,
                 p.cep, p.logradouro, p.numero_endereco, p.complemento, p.bairro, p.cidade, p.uf,
                 p.contato_emergencia_nome, p.contato_emergencia_telefone
             FROM inscricoes_turma i
