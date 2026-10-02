@@ -10,6 +10,7 @@
                 <p id="popup-texto"></p>
             </div>
             <div class="popup-actions">
+                <button type="button" class="btn btn-secondary hidden" id="popup-fazer-login">Fazer login</button>
                 <button type="button" class="btn btn-primary" id="popup-fechar">Fechar</button>
             </div>
         </div>

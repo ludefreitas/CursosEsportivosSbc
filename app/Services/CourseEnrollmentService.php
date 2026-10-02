@@ -1276,7 +1276,9 @@ class CourseEnrollmentService
             LEFT JOIN atestados_saude_importados aic ON ac.id IS NULL AND aic.id=(SELECT ai.id FROM atestados_saude_importados ai WHERE ai.cpf=p.cpf AND ai.tipo_atestado='clinico' AND ai.status_importacao='ativo' ORDER BY ai.data_atualizacao_origem DESC, ai.id_externo DESC LIMIT 1)
             LEFT JOIN atestados_saude_importados aid ON ad.id IS NULL AND aid.id=(SELECT ai.id FROM atestados_saude_importados ai WHERE ai.cpf=p.cpf AND ai.tipo_atestado='dermatologico' AND ai.status_importacao='ativo' ORDER BY ai.data_atualizacao_origem DESC, ai.id_externo DESC LIMIT 1)
             WHERE i.turma_id=:turma AND i.status IN ('matriculada','suspensa','excluida_por_falta')
-            ORDER BY CASE i.status WHEN 'matriculada' THEN 1 WHEN 'suspensa' THEN 2 ELSE 3 END, p.nome_completo");
+            ORDER BY CASE i.status WHEN 'matriculada' THEN 1 WHEN 'suspensa' THEN 2 ELSE 3 END,
+                CASE WHEN i.status='matriculada' THEN CASE ch.status WHEN 'ausente' THEN 1 WHEN 'presente' THEN 2 WHEN 'justificado' THEN 3 ELSE 0 END ELSE 0 END,
+                p.nome_completo");
         $stmt->execute([':data' => $date, ':turma' => $classId]);
         return ['class' => $class, 'date' => $date, 'students' => $stmt->fetchAll(PDO::FETCH_ASSOC) ?: []];
     }

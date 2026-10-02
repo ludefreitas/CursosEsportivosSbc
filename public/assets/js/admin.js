@@ -7014,13 +7014,41 @@
                 $('#course-class-attendance-roster-modal').addClass('hidden').attr('aria-hidden', 'true').find('[data-class-attendance-roster]').empty();
             }
 
+            function sortClassAttendanceRoster() {
+                const $modal = $('#course-class-attendance-roster-modal');
+                const $card = $modal.find('.popup-card').first();
+                const $list = $modal.find('.class-attendance-list').first();
+                if (!$list.length) return;
+                const modalScroll = $modal.scrollTop();
+                const cardScroll = $card.scrollTop();
+                const weights = { ausente: 1, presente: 2, justificado: 3 };
+                const rows = $list.children('.class-attendance-student').get();
+                rows.sort(function (left, right) {
+                    const $left = $(left), $right = $(right);
+                    const leftStatus = String($left.find('[data-class-attendance-status]:checked').attr('data-class-attendance-status') || '');
+                    const rightStatus = String($right.find('[data-class-attendance-status]:checked').attr('data-class-attendance-status') || '');
+                    const weightDifference = Number(weights[leftStatus] || 0) - Number(weights[rightStatus] || 0);
+                    if (weightDifference !== 0) return weightDifference;
+                    const leftName = String($left.find('[data-person-name]').first().attr('data-person-name') || $left.find('.class-attendance-student-head strong').text() || '').trim();
+                    const rightName = String($right.find('[data-person-name]').first().attr('data-person-name') || $right.find('.class-attendance-student-head strong').text() || '').trim();
+                    return leftName.localeCompare(rightName, 'pt-BR', { sensitivity: 'base' });
+                });
+                rows.forEach(function (row) { $list.append(row); });
+                $modal.scrollTop(modalScroll);
+                $card.scrollTop(cardScroll);
+            }
+
             function loadClassAttendanceRoster(classId, date) {
                 const $rosterModal = $('#course-class-attendance-roster-modal').attr('data-class-id', classId).removeClass('hidden').attr('aria-hidden', 'false').scrollTop(0);
                 $rosterModal.find('.popup-card').scrollTop(0);
                 const $roster = $rosterModal.find('[data-class-attendance-roster]').html('<p class="muted">Carregando lista de chamada...</p>');
                 $.ajax({ url: classAttendanceEndpoint(), method: 'GET', dataType: 'json', data: { turma_id: classId, data: date }, suppressGlobalLoading: true })
-                    .done(function (response) { if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar a chamada.')); return; } $roster.html(String(response.html || '')); })
-                    .fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); });
+                    .done(function (response) { if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível carregar a chamada.')); return; } $roster.html(String(response.html || '')); sortClassAttendanceRoster(); })
+                    .fail(function (xhr) {
+                        const error = App.core.extrairMensagemErroAjax(xhr);
+                        const retry = Number(xhr.status || 0) === 401 ? function () { loadClassAttendanceRoster(classId, date); } : null;
+                        App.core.abrirPopup('erro', error.mensagem, null, '', retry);
+                    });
             }
 
             function placeClassAttendanceModal(selector, $context) {
@@ -7128,7 +7156,7 @@
                 $input.prop('checked', true).attr('data-current-justification', justification || '');
                 $row.find('[data-class-attendance-status]').prop('disabled', true);
                 $.ajax({ url: classAttendanceEndpoint(), method: 'POST', dataType: 'json', data: { turma_id: $('#course-class-attendance-roster-modal').attr('data-class-id'), inscricao_id: $input.attr('data-enrollment-id'), data: $row.closest('[data-class-attendance-roster]').find('[data-class-attendance-date]').attr('data-class-attendance-date'), status: status, justificativa: justification || '' }, suppressGlobalLoading: true })
-                    .done(function () { const marks={presente:'✓',ausente:'×',justificado:'J'}; $row.find('[data-class-attendance-mark]').attr('class','class-attendance-mark is-'+status).text(marks[status] || '−'); })
+                    .done(function () { const marks={presente:'✓',ausente:'×',justificado:'J'}; $row.find('[data-class-attendance-mark]').attr('class','class-attendance-mark is-'+status).text(marks[status] || '−'); sortClassAttendanceRoster(); })
                     .fail(function (xhr) { $input.prop('checked', false); App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); })
                     .always(function () { $row.find('[data-class-attendance-status]').prop('disabled', false); });
             }

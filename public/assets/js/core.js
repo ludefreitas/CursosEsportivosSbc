@@ -40,7 +40,19 @@
                 .replace(/'/g, '&#39;');
         },
 
-        abrirPopup: function (tipo, mensagem, onClose, redirectOnClose) {
+        mensagemSolicitaLogin: function (mensagem) {
+            const texto = String(mensagem || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+            return /\b(faça|faca|fazer)\s+(o\s+)?login\b/i.test(texto)
+                || /\b(login|autentica[cç][aã]o)\b.*\b(necess\w*|exig\w*|obrigat\w*|precis\w*)/i.test(texto)
+                || /\b(necess\w*|exig\w*|obrigat\w*|precis\w*)\b.*\b(login|autentica[cç][aã]o)\b/i.test(texto)
+                || /\bn[aã]o\s+autenticad[oa]\b/i.test(texto);
+        },
+
+        atualizarAcaoLoginPopup: function (tipo, mensagem) {
+            $('#popup-fazer-login').toggleClass('hidden', tipo !== 'erro' || !App.core.mensagemSolicitaLogin(mensagem));
+        },
+
+        abrirPopup: function (tipo, mensagem, onClose, redirectOnClose, loginRetry) {
             const $popup = $('#popup-mensagem');
             const $titulo = $('#popup-titulo');
             const $texto = $('#popup-texto');
@@ -48,11 +60,13 @@
 
             App.state.popupCloseCallback = typeof onClose === 'function' ? onClose : null;
             App.state.popupCloseRedirect = String(redirectOnClose || '').trim();
+            App.state.popupLoginRetry = typeof loginRetry === 'function' ? loginRetry : null;
 
             $popup.removeClass('popup-erro popup-sucesso hidden').addClass(tipo === 'erro' ? 'popup-erro' : 'popup-sucesso');
             $popup.attr('aria-hidden', 'false');
             $titulo.text(titulo);
             $texto.text(mensagem || 'Operacao concluída.');
+            App.core.atualizarAcaoLoginPopup(tipo, mensagem);
         },
 
         abrirPopupHtml: function (tipo, html, onClose) {
@@ -68,6 +82,7 @@
             $popup.attr('aria-hidden', 'false');
             $titulo.text(titulo);
             $texto.html(String(html || 'Operacao concluída.'));
+            App.core.atualizarAcaoLoginPopup(tipo, html);
         },
 
         abrirPopupCustomizado: function (selector) {
@@ -80,7 +95,9 @@
 
             App.state.popupCloseCallback = null;
             App.state.popupCloseRedirect = '';
+            App.state.popupLoginRetry = null;
             $('#popup-mensagem').addClass('hidden').attr('aria-hidden', 'true');
+            $('#popup-fazer-login').addClass('hidden');
 
             if (callback) {
                 callback();
@@ -253,10 +270,12 @@
             App.core.abrirPopupCustomizado('#popup-profile-completion-confirm');
         },
 
-        abrirModalDeRota: function (url) {
+        abrirModalDeRota: function (url, options) {
             const $popup = $('#popup-route-modal');
             const $content = $('#popup-route-content');
             let finalUrl = String(url || '');
+            let isLoginRoute = false;
+            const forceLogin = !!(options && options.forceLogin);
 
             if ($popup.length === 0 || $content.length === 0 || !App.core.isModalRouteUrl(finalUrl)) {
                 window.location.href = finalUrl || App.core.buildUrl('/');
@@ -268,7 +287,8 @@
                 const normalizedPath = parsed.pathname.replace(/\/+$/, '') || '/';
 
                 if (normalizedPath === App.core.buildUrl('/login').replace(/\/+$/, '')) {
-                    if (App.core.pageIsAuthenticated()) {
+                    isLoginRoute = true;
+                    if (App.core.pageIsAuthenticated() && !forceLogin) {
                         if (App.core.pageRequiresProfileCompletion()) {
                             App.core.abrirConfirmacaoCompletarCadastro(parsed.searchParams.get('return_to') || '/dashboard');
                             return;
@@ -288,6 +308,7 @@
                 finalUrl = String(url || '');
             }
 
+            $popup.toggleClass('popup-route-auth-modal', isLoginRoute);
             $content.html('<p class="muted">Carregando formulário...</p>');
             App.core.abrirPopupCustomizado('#popup-route-modal');
 

@@ -1335,6 +1335,9 @@ body.pagina-error label span {
 .popup-overlay#popup-route-modal {
     z-index: 2100;
 }
+.popup-overlay#popup-route-modal.popup-route-auth-modal {
+    z-index: 2147482900;
+}
 #home-modality-notice-modal,
 #agenda-modality-notice-modal {
     z-index: 2250;

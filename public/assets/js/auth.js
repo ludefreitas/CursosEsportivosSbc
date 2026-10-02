@@ -54,7 +54,28 @@
             };
             App.core.hideLoading(true);
             App.core.fecharPopup();
-            App.core.abrirModalDeRota(App.core.buildUrl('/login?return_to=' + encodeURIComponent(destination)));
+            App.core.abrirModalDeRota(
+                App.core.buildUrl('/login?return_to=' + encodeURIComponent(destination)),
+                { forceLogin: true }
+            );
+        },
+
+        guardarModalDeRotaAtual: function () {
+            const $modal = $('#popup-route-modal');
+            const $content = $('#popup-route-content');
+            if ($modal.length && !$modal.hasClass('hidden') && $content.length) {
+                App.state.loginReturnRouteModalContent = $content.children().detach();
+            }
+        },
+
+        restaurarModalDeRotaAnterior: function () {
+            const $savedContent = App.state.loginReturnRouteModalContent;
+            if (!$savedContent || !$savedContent.length) return false;
+            App.state.loginReturnRouteModalContent = null;
+            $('#popup-route-content').empty().append($savedContent);
+            $('#popup-route-modal').removeClass('popup-route-auth-modal');
+            App.core.abrirPopupCustomizado('#popup-route-modal');
+            return true;
         },
 
         tratarFalhaDeAcesso: function (xhr, retry, returnTo) {
@@ -243,8 +264,18 @@
                 App.core.fecharPopup();
             });
 
+            $(document).on('click', '#popup-fazer-login', function () {
+                const retry = typeof App.state.popupLoginRetry === 'function' ? App.state.popupLoginRetry : null;
+                App.state.popupCloseCallback = null;
+                App.state.popupCloseRedirect = '';
+                App.auth.guardarModalDeRotaAtual();
+                App.auth.solicitarAutenticacaoNaPaginaAtual(App.auth.obterPaginaProtegidaAtual(), retry);
+            });
+
             $(document).on('click', '[data-close-popup]', function () {
-                App.core.fecharPopupCustomizado(String($(this).data('closePopup') || ''));
+                const selector = String($(this).data('closePopup') || '');
+                if (selector === '#popup-route-modal' && App.auth.restaurarModalDeRotaAnterior()) return;
+                App.core.fecharPopupCustomizado(selector);
             });
 
             $(document).on('click', '#popup-preview-site-close, #popup-preview-site-close-footer', function () {
@@ -500,7 +531,7 @@
                         }
                     }
 
-                    if (isInsideRouteModal) {
+                    if (isInsideRouteModal && !App.auth.restaurarModalDeRotaAnterior()) {
                         App.core.fecharPopupCustomizado('#popup-route-modal');
                     }
 
