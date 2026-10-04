@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="<?php echo e(asset_url('css/home.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/blog.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/style.css')); ?>">
+    <?php if (current_path() === '/grades-de-horario') { ?><link rel="stylesheet" href="<?php echo e(asset_url('css/schedule-grid.css')); ?>"><?php } ?>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales-all.global.min.js"></script>
@@ -72,6 +73,7 @@
             </button>
             <nav class="site-nav" id="site-header-navigation">
                 <a href="<?php echo e(url('/tutorial')); ?>" class="nav-color-blue">Ajuda</a>
+                <a href="<?php echo e(url('/grades-de-horario')); ?>" class="nav-color-blue">Grades de horário</a>
                 <a href="<?php echo e(url('/blog')); ?>" class="nav-color-red">Blog</a>
                 <?php if ($isAuthenticated) { ?>
                     <a

@@ -14,10 +14,12 @@ use App\Controllers\DataRecoveryController;
 use App\Controllers\ProfessorController;
 use App\Controllers\NotificationController;
 use App\Controllers\RematriculationController;
+use App\Controllers\ScheduleGridController;
 
 return [
     ['GET', '/', [HomeController::class, 'index']],
     ['GET', '/tutorial', [HomeController::class, 'tutorial']],
+    ['GET', '/grades-de-horario', [ScheduleGridController::class, 'index']],
     ['GET', '/teste-erros', [ErrorController::class, 'testCenter']],
     ['GET', '/teste_erros', [ErrorController::class, 'testCenter']],
     ['GET', '/blog', [BlogController::class, 'index']],

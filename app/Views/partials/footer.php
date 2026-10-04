@@ -139,5 +139,6 @@
     <script src="<?php echo e(asset_url('js/dashboard.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/home.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/app.js')); ?>"></script>
+    <?php if (current_path() === '/grades-de-horario') { ?><script src="<?php echo e(asset_url('js/schedule-grid.js')); ?>"></script><?php } ?>
 </body>
 </html>

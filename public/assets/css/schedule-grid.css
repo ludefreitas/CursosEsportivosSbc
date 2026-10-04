@@ -1,0 +1,53 @@
+.schedule-grid-filters { display:flex; flex-wrap:wrap; align-items:end; gap:16px; }
+.schedule-grid-filters label { flex:1 1 190px; display:flex; flex-direction:column; gap:6px; }
+.schedule-grid-filters select { width:100%; }
+.schedule-grid-warning { color:#873a05; }
+.schedule-grid-field-options { display:flex; flex-wrap:wrap; gap:10px 22px; margin:18px 0 0; border:1px solid #ccc; border-radius:8px; padding:12px; }
+.schedule-grid-field-options legend { padding:0 6px; font-weight:600; }
+.schedule-grid-field-options label { display:flex; align-items:center; gap:7px; cursor:pointer; }
+.schedule-grid-field-options input { width:auto; }
+.schedule-grid-sheet [hidden] { display:none !important; }
+.schedule-grid-results { display:grid; gap:24px; }
+.schedule-grid-preview { overflow:auto; padding:12px; background:#e4e7ea; border-radius:8px; }
+.schedule-grid-sheet, .schedule-grid-sheet * { box-sizing:border-box; }
+.schedule-grid-sheet { width:281mm; height:192mm; padding:3mm 3mm 2mm; margin:0 auto; background:#fff; color:#000; font-family:Arial,sans-serif; display:flex; flex-direction:column; border-radius:0; box-shadow:0 2px 10px #0002; }
+.schedule-grid-heading { display:flex; align-items:center; height:31mm; flex:none; gap:3mm; }
+.schedule-grid-heading-text { flex:1; min-width:0; text-align:center; }
+.schedule-grid-sheet .schedule-grid-space-name { margin:0 0 1.3mm; font-family:"Times New Roman",serif; font-size:10pt; }
+.schedule-grid-sheet h2 { font-size:18pt; line-height:1.1; font-weight:900; margin:0 0 2mm; }
+.schedule-grid-sheet .schedule-grid-address { font-size:8pt; line-height:1.2; margin:0 0 2.4mm; }
+.schedule-grid-sheet h3 { font-size:15pt; font-weight:900; line-height:1.1; margin:0; }
+.schedule-grid-brand { width:60mm; flex:none; text-align:center; }
+.schedule-grid-brand > img { width:56mm; height:14.4mm; object-fit:contain; }
+.schedule-grid-programs { display:flex; align-items:center; justify-content:center; height:10mm; gap:1mm; }
+.schedule-grid-programs img { max-width:19mm; height:9mm; object-fit:contain; }
+.schedule-grid-periods { flex:1; min-height:0; display:grid; grid-template-rows:repeat(3,minmax(0,1fr)); gap:1.5mm; padding-top:1mm; }
+.schedule-grid-period { display:flex; min-height:0; gap:2mm; }
+.schedule-grid-period-name { width:6mm; flex:none; display:flex; flex-direction:column; justify-content:center; align-items:center; font-size:12pt; line-height:1.05; font-weight:900; gap:1mm; padding-top:5mm; }
+.schedule-grid-table { display:grid; grid-template-rows:5.4mm repeat(var(--grid-row-count),minmax(0,1fr)); border:.25mm solid #000; border-spacing:0; width:100%; height:100%; margin:0; color:#000; font-size:calc(26.4pt / var(--grid-row-count)); }
+.schedule-grid-table thead, .schedule-grid-table tbody { display:contents; }
+.schedule-grid-table tr { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); min-height:0; }
+.schedule-grid-table th { background:#d9d9d9; font-size:8pt; font-weight:bold; height:5.4mm; padding:0 .5mm; white-space:nowrap; }
+.schedule-grid-table th, .schedule-grid-table td { border:0; border-right:.25mm solid #000; border-bottom:.25mm solid #000; text-align:center; }
+.schedule-grid-table th:last-child, .schedule-grid-table td:last-child { border-right:0; }
+.schedule-grid-table tbody tr:last-child td { border-bottom:0; }
+.schedule-grid-table td { padding:.5mm; min-height:0; display:flex; align-items:center; justify-content:center; }
+.schedule-grid-event { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--grid-event-gap,.7mm); line-height:1.12; overflow-wrap:anywhere; }
+.schedule-grid-event-name { font-weight:400; }
+.schedule-grid-event strong { font-weight:700; }
+.schedule-grid-sheet-footer { height:5mm; flex:none; display:flex; justify-content:space-between; align-items:end; font-family:"Times New Roman",serif; font-size:8pt; padding-left:8mm; }
+.schedule-grid-sheet-footer span { flex:1; }
+.schedule-grid-sheet-footer span:nth-child(2) { text-align:center; }
+.schedule-grid-sheet-footer span:last-child { text-align:right; }
+@page { size:A4 landscape; margin:8mm; }
+@media print {
+    html, body.pagina-grades-horario { margin:0 !important; padding:0 !important; background:#fff !important; }
+    .pagina-grades-horario .page-shell, .pagina-grades-horario .page-content { display:block !important; width:auto !important; max-width:none !important; margin:0 !important; padding:0 !important; }
+    .pagina-grades-horario .site-header, .pagina-grades-horario .site-header-register-invite,
+    .pagina-grades-horario #site-header-certificate-alerts-region, .pagina-grades-horario .schedule-grid-controls,
+    .pagina-grades-horario .page-shell ~ *, .pagina-grades-horario .site-header-notifications { display:none !important; }
+    .schedule-grid-results { display:block; }
+    .schedule-grid-preview { padding:0; margin:0; background:none; overflow:visible; border-radius:0; break-after:page; page-break-after:always; }
+    .schedule-grid-preview:last-child { break-after:auto; page-break-after:auto; }
+    .schedule-grid-sheet { margin:0; box-shadow:none; break-inside:avoid; page-break-inside:avoid; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+}
