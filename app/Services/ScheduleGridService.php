@@ -8,8 +8,19 @@ use InvalidArgumentException;
 
 class ScheduleGridService
 {
-    public function search(int $seasonId, int $locationId, int $spaceId): array
+    public const STATUS_OPTIONS = [
+        'planejada' => 'Planejada',
+        'processo_inicial' => 'Em processo inicial de inscrição',
+        'periodo_matricula' => 'Período de matrícula',
+        'inscricoes_abertas' => 'Inscrições abertas',
+        'inscricoes_suspensas' => 'Inscrições suspensas',
+        'inscricoes_encerradas' => 'Inscrições encerradas',
+    ];
+
+    public function search(int $seasonId, int $locationId, int $spaceId, ?array $statuses = null): array
     {
+        $statusOptions = self::STATUS_OPTIONS;
+        $selectedStatuses = $statuses === null ? array_keys($statusOptions) : array_values(array_unique(array_intersect(array_keys($statusOptions), $statuses)));
         $pdo = Database::connection();
         $seasons = $pdo->query("SELECT id,nome,status FROM temporadas ORDER BY (status='ativa') DESC,data_inicio DESC,id DESC")->fetchAll(PDO::FETCH_ASSOC);
         if ($seasonId === 0 && $seasons !== []) $seasonId = (int) $seasons[0]['id'];
@@ -26,16 +37,27 @@ class ScheduleGridService
             $stmt->execute([':local' => $locationId]);
             $spaces = $stmt->fetchAll(PDO::FETCH_ASSOC);
             if ($spaceId !== 0 && !$this->option($spaces, $spaceId)) throw new InvalidArgumentException('O espaço selecionado não pertence a este local.');
-            $stmt = $pdo->prepare("SELECT t.id,t.nome,t.espaco_treino_id,t.dias_semana,t.hora_inicio,t.hora_fim,t.programa,t.idade_minima,t.idade_maxima,t.criterio_faixa_etaria,m.nome AS modalidade,
+            $params = [':season' => $seasonId, ':local' => $locationId];
+            $statusPlaceholders = [];
+            foreach ($selectedStatuses as $index => $status) {
+                $placeholder = ':status' . $index;
+                $statusPlaceholders[] = $placeholder;
+                $params[$placeholder] = $status;
+            }
+            $statusFilter = $statusPlaceholders ? 't.status IN (' . implode(',', $statusPlaceholders) . ')' : '1=0';
+            $stmt = $pdo->prepare("SELECT t.id,t.nome,t.status,t.espaco_treino_id,t.dias_semana,t.hora_inicio,t.hora_fim,t.programa,t.idade_minima,t.idade_maxima,t.criterio_faixa_etaria,m.nome AS modalidade,
+                (SELECT p.nome_completo FROM contas c INNER JOIN pessoas p ON p.cpf=c.cpf WHERE c.id=t.professor_conta_id LIMIT 1) AS professor,
                 (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ' / ')
-                 FROM contas c INNER JOIN pessoas p ON p.cpf=c.cpf
-                 WHERE c.id=t.professor_conta_id OR EXISTS
-                    (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id=t.id AND tp.professor_conta_id=c.id)) AS professores
+                 FROM turmas_professores tp INNER JOIN contas c ON c.id=tp.professor_conta_id INNER JOIN pessoas p ON p.cpf=c.cpf
+                 WHERE tp.turma_id=t.id AND (t.professor_conta_id IS NULL OR tp.professor_conta_id<>t.professor_conta_id)) AS professores_auxiliares,
+                (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ' / ')
+                 FROM turmas_estagiarios ti INNER JOIN contas c ON c.id=ti.estagiario_conta_id INNER JOIN pessoas p ON p.cpf=c.cpf
+                 WHERE ti.turma_id=t.id) AS estagiarios
                 FROM turmas t INNER JOIN modalidades m ON m.id=t.modalidade_id
                 INNER JOIN espacos_treino e ON e.id=t.espaco_treino_id AND e.local_treino_id=t.local_treino_id
-                WHERE t.temporada_id=:season AND t.local_treino_id=:local AND t.ativo=1 AND e.ativo=1
+                WHERE t.temporada_id=:season AND t.local_treino_id=:local AND t.ativo=1 AND e.ativo=1 AND $statusFilter
                 ORDER BY t.hora_inicio,t.nome,t.id");
-            $stmt->execute([':season' => $seasonId, ':local' => $locationId]);
+            $stmt->execute($params);
             $classes = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($spaces as $space) {
                 if ($spaceId !== 0 && (int) $space['id'] !== $spaceId) continue;
@@ -45,7 +67,7 @@ class ScheduleGridService
                 $sheets[] = ['espaco' => $space, 'periodos' => $grid['periodos'], 'total' => count($items)];
             }
         }
-        return compact('seasons', 'seasonId', 'season', 'locations', 'locationId', 'location', 'spaces', 'spaceId', 'sheets', 'unscheduled');
+        return compact('seasons', 'seasonId', 'season', 'locations', 'locationId', 'location', 'spaces', 'spaceId', 'sheets', 'unscheduled', 'statusOptions', 'selectedStatuses');
     }
 
     /** Mantém início, meio e fim do período mesmo quando há uma única aula. */

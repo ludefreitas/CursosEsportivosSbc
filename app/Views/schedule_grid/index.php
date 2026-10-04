@@ -11,11 +11,17 @@
         <?php if ($sheets) { ?><button type="button" class="btn btn-secondary" data-grid-print>Imprimir / Salvar PDF</button><?php } ?>
     </div>
     <fieldset class="schedule-grid-field-options">
+        <legend>Status das turmas incluídas</legend>
+        <input type="hidden" name="status_configurados" value="1">
+        <?php foreach ($statusOptions as $key => $label) { ?><label><input type="checkbox" name="status_turmas[]" value="<?php echo e($key); ?>" <?php echo in_array($key, $selectedStatuses, true) ? 'checked' : ''; ?>><span><?php echo e($label); ?></span></label><?php } ?>
+    </fieldset>
+    <fieldset class="schedule-grid-field-options">
         <legend>Dados que aparecem na grade</legend>
         <input type="hidden" name="campos_configurados" value="1">
         <?php foreach ($fieldOptions as $key => $label) { ?><label><input type="checkbox" name="campos[]" value="<?php echo e($key); ?>" data-grid-field="<?php echo e($key); ?>" <?php echo in_array($key, $fields, true) ? 'checked' : ''; ?>><span><?php echo e($label); ?></span></label><?php } ?>
     </fieldset>
     </form>
+    <?php if ($selectedStatuses === []) { ?><p class="schedule-grid-warning" role="status">Selecione pelo menos um status e clique em “Buscar grade” para exibir as turmas.</p><?php } ?>
     <?php if ($unscheduled > 0) { ?><p class="schedule-grid-warning" role="status"><?php echo (int) $unscheduled; ?> turma(s) sem dias ou horários completos não aparecem na grade. Complete esses dados no cadastro da turma.</p><?php } ?>
     <?php if (!$location) { ?><p class="muted">Selecione o local e clique em “Buscar grade” para carregar seus espaços.</p><?php } elseif (!$spaces) { ?><p class="muted">Este local não possui espaços ativos cadastrados.</p><?php } ?>
 </section>
@@ -55,8 +61,12 @@ $address = $location ? implode(' — ', array_filter([
                     <thead><tr><?php foreach ($weekdays as $day) { ?><th scope="col"><?php echo e($day); ?></th><?php } ?></tr></thead>
                     <tbody><?php foreach ($period['linhas'] as $row) { ?><tr><?php foreach ($row as $event) { ?><td><?php if ($event) { ?><div class="schedule-grid-event">
                         <span class="schedule-grid-event-name" data-grid-content="turma" <?php echo !in_array('turma', $fields, true) ? 'hidden' : ''; ?>><?php echo e(mb_strtoupper($event['nome'], 'UTF-8')); ?></span>
+                        <span data-grid-content="turma_id" <?php echo !in_array('turma_id', $fields, true) ? 'hidden' : ''; ?>>Turma #<?php echo (int) $event['id']; ?></span>
+                        <?php if (!empty($event['status'])) { ?><span data-grid-content="status" <?php echo !in_array('status', $fields, true) ? 'hidden' : ''; ?>><?php echo e($statusOptions[$event['status']] ?? $event['status']); ?></span><?php } ?>
                         <?php if (!empty($event['modalidade'])) { ?><span data-grid-content="modalidade" <?php echo !in_array('modalidade', $fields, true) ? 'hidden' : ''; ?>><?php echo e($event['modalidade']); ?></span><?php } ?>
-                        <?php if (!empty($event['professores'])) { ?><span class="schedule-grid-event-teacher" data-grid-content="professor" <?php echo !in_array('professor', $fields, true) ? 'hidden' : ''; ?>>Prof. <?php echo e($event['professores']); ?></span><?php } ?>
+                        <?php if (!empty($event['professor'])) { ?><span class="schedule-grid-event-teacher" data-grid-content="professor" <?php echo !in_array('professor', $fields, true) ? 'hidden' : ''; ?>>Prof. <?php echo e($event['professor']); ?></span><?php } ?>
+                        <?php if (!empty($event['professores_auxiliares'])) { ?><span data-grid-content="professores_auxiliares" <?php echo !in_array('professores_auxiliares', $fields, true) ? 'hidden' : ''; ?>>Aux. <?php echo e($event['professores_auxiliares']); ?></span><?php } ?>
+                        <?php if (!empty($event['estagiarios'])) { ?><span data-grid-content="estagiarios" <?php echo !in_array('estagiarios', $fields, true) ? 'hidden' : ''; ?>>Estag. <?php echo e($event['estagiarios']); ?></span><?php } ?>
                         <strong data-grid-content="horario" <?php echo !in_array('horario', $fields, true) ? 'hidden' : ''; ?>><?php echo e(str_replace(':', 'h', substr($event['hora_inicio'], 0, 5)) . ' às ' . str_replace(':', 'h', substr($event['hora_fim'], 0, 5))); ?></strong>
                         <?php if (isset($event['idade_minima'], $event['idade_maxima'])) { ?><span data-grid-content="idade" <?php echo !in_array('idade', $fields, true) ? 'hidden' : ''; ?>><?php echo e((int) $event['idade_minima'] . ' a ' . (int) $event['idade_maxima'] . ' anos' . (($event['criterio_faixa_etaria'] ?? '') === 'ano_nascimento' ? ' (no ano)' : '')); ?></span><?php } ?>
                         <?php if (!empty($event['programa'])) { ?><span data-grid-content="programa" <?php echo !in_array('programa', $fields, true) ? 'hidden' : ''; ?>><?php echo e($event['programa']); ?></span><?php } ?>
