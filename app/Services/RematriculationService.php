@@ -289,7 +289,9 @@ class RematriculationService
 
     private function legacyEnrolled(int $classId): array
     {
-        $stmt=$this->legacy()->prepare('SELECT DISTINCT p.idpess AS source_person_id,p.nomepess AS nome,REPLACE(REPLACE(REPLACE(p.numcpf,".",""),"-","")," ","") AS cpf,p.dtnasc AS data_nascimento FROM tb_turmatemporada tt INNER JOIN tb_cartsturmas ct ON ct.idturma=tt.idturma AND ct.dtremoved IS NULL INNER JOIN tb_carts c ON c.idcart=ct.idcart INNER JOIN tb_pessoa p ON p.idpess=c.idpess WHERE tt.idtemporada=:season AND tt.idturma=:class ORDER BY p.nomepess');
+        // Os carrinhos não identificam a temporada nem o status da matrícula.
+        // A inscrição é a fonte do vínculo efetivo com a turma de origem.
+        $stmt=$this->legacy()->prepare('SELECT DISTINCT p.idpess AS source_person_id,p.nomepess AS nome,REPLACE(REPLACE(REPLACE(p.numcpf,".",""),"-","")," ","") AS cpf,p.dtnasc AS data_nascimento FROM tb_insc i INNER JOIN tb_pessoa p ON p.idpess=i.idpessoa WHERE i.idtemporada=:season AND i.idturma=:class AND i.idinscstatus=1 ORDER BY p.nomepess');
         $stmt->execute([':season'=>self::LEGACY_SEASON_ID,':class'=>$classId]);$rows=$stmt->fetchAll(PDO::FETCH_ASSOC)?:[];
         return array_values(array_filter($rows,static fn(array $r):bool=>strlen(preg_replace('/\D+/','',(string)($r['cpf']??'')))===11));
     }
