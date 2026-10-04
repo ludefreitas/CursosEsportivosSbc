@@ -2243,15 +2243,43 @@
                         .append($('<p>').append($('<strong>', { text: 'Aluno: ' }), document.createTextNode(String(item.aluno_nome || ''))))
                         .append($('<p>').append($('<strong>', { text: 'Enviada por: ' }), document.createTextNode(String(item.autor_nome || ''))))
                         .append($('<p>', { class: 'muted', text: formatDate(item.created_at) }))
-                        .append($('<p>', { class: 'user-notification-message', text: String(item.mensagem || '') }))
-                        .append($('<button>', { type: 'button', class: 'btn btn-danger', 'data-user-notification-delete': String(item.id || ''), text: 'Excluir notificação' }));
+                        .append($('<p>', { class: 'user-notification-message', text: String(item.mensagem || '') }));
                     if (item.orientacao_texto) {
                         const $guidance = $('<p>', { class: 'alert-inline', text: String(item.orientacao_texto) });
                         if (item.orientacao_url) $guidance.append(document.createTextNode(' '), $('<a>', { href: String(item.orientacao_url), target: '_blank', rel: 'noopener noreferrer', text: 'Abrir WhatsApp' }));
                         $detail.append($guidance);
                     }
+                    const rematriculation = item.tipo === 'rematricula' ? (item.contexto || {}) : null;
+                    if (rematriculation && rematriculation.rematricula_convite_id) {
+                        const destination = rematriculation.destino || {};
+                        $detail.append($('<div>', { class: 'user-notification-rematriculation' })
+                            .append($('<h5>', { text: 'Turma para rematrícula' }))
+                            .append($('<p>', { text: '[' + String(destination.turma_id || '') + '] ' + String(destination.turma || '') }))
+                            .append($('<p>', { text: [destination.temporada, destination.modalidade, destination.local, destination.dias, destination.horario].filter(Boolean).join(' · ') }))
+                            .append($('<p>').append($('<strong>', { text: 'Prazo: ' }), document.createTextNode(formatDate(rematriculation.prazo_final))))
+                            .append($('<div>', { class: 'popup-actions' })
+                                .append($('<button>', { type: 'button', class: 'btn btn-primary', 'data-rematriculation-answer': 'sim', 'data-rematriculation-invite': String(rematriculation.rematricula_convite_id), text: 'SIM — tenho interesse' }))
+                                .append($('<button>', { type: 'button', class: 'btn btn-danger', 'data-rematriculation-answer': 'nao', 'data-rematriculation-invite': String(rematriculation.rematricula_convite_id), text: 'Não tenho interesse' }))));
+                    }
+                    $detail.append($('<div>', { class: 'user-notification-delete-area' })
+                        .append($('<button>', { type: 'button', class: 'link-button user-notification-delete-discreet', 'data-user-notification-delete': String(item.id || ''), text: 'Excluir notificação' })));
                     $content.empty().append($detail);
                 }, 'json').fail(function (xhr) { $content.html($('<p>', { class: 'alert-inline', text: App.core.extrairMensagemErroAjax(xhr).mensagem })); });
+            });
+            $(document).on('click', '[data-rematriculation-answer]', function () {
+                const answer = String($(this).attr('data-rematriculation-answer') || '');
+                if (answer === 'nao' && !window.confirm('Tem certeza de que não deseja fazer a rematrícula? Esta resposta será informada ao professor.')) return;
+                const $button = $(this).prop('disabled', true);
+                $.post(App.core.buildUrl('/rematriculas/responder'), { convite_id: $(this).attr('data-rematriculation-invite'), resposta: answer }, function (response) {
+                    if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível registrar a resposta.')); return; }
+                    App.core.abrirPopup('sucesso', String(response.message || 'Resposta registrada.'));
+                    if (response.token_id && window.App && window.App.home && typeof window.App.home.openEnrollmentToken === 'function') {
+                        $('#user-notifications-modal').addClass('hidden').attr('aria-hidden', 'true');
+                        window.App.home.openEnrollmentToken(String(response.token_id));
+                    } else if (response.token_id) {
+                        window.location.href = App.core.buildUrl('/?token_inscricao=' + encodeURIComponent(String(response.token_id)));
+                    } else loadList();
+                }, 'json').fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); }).always(function () { $button.prop('disabled', false); });
             });
             $(document).on('click', '[data-user-notification-delete]', function () {
                 const id = String($(this).attr('data-user-notification-delete') || '0');

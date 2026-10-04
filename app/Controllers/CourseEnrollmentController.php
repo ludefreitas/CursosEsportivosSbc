@@ -21,12 +21,7 @@ class CourseEnrollmentController extends Controller
 
     public function index(): void
     {
-        $this->view('courses/index', [
-            'title' => 'Inscrições em cursos',
-            'pageClass' => 'courses-page',
-            'classes' => $this->service->listOpenClasses(),
-            'enrollmentPeople' => Auth::check() ? $this->service->listPeopleForAuthenticatedAccount() : [],
-        ]);
+        redirect('/');
     }
 
     public function modalitiesByLocation(): void
@@ -150,16 +145,16 @@ class CourseEnrollmentController extends Controller
             }
             flash('error', $e->getMessage());
         }
-        redirect('/cursos');
+        redirect('/');
     }
 
     public function cancel(): void
     {
         if (!Auth::check()) {
             if ($this->isAjaxRequest()) {
-                $this->jsonResponse(['success' => false, 'message' => 'Faça login para cancelar a inscrição.', 'redirect' => login_modal_url('/cursos')], 401);
+                $this->jsonResponse(['success' => false, 'message' => 'Faça login para cancelar a inscrição.', 'redirect' => login_modal_url('/dashboard')], 401);
             }
-            redirect_to_login_modal('/cursos');
+            redirect_to_login_modal('/dashboard');
         }
         try {
             $this->service->cancel((int) ($_POST['inscricao_id'] ?? 0));

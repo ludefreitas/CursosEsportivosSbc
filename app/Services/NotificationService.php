@@ -107,7 +107,7 @@ class NotificationService
     public function read(int $accountId, int $recipientId): array
     {
         $pdo = Database::connection();
-        $stmt = $pdo->prepare('SELECT nd.id, nd.visualizada_em, nd.pessoa_id, n.id AS notificacao_id, n.assunto, n.mensagem, n.orientacao_texto, n.orientacao_url, n.created_at, autor.nome_completo AS autor_nome, aluno.nome_completo AS aluno_nome FROM notificacoes_destinatarios nd INNER JOIN notificacoes n ON n.id=nd.notificacao_id INNER JOIN contas ac ON ac.id=n.autor_conta_id INNER JOIN pessoas autor ON autor.cpf=ac.cpf INNER JOIN pessoas aluno ON aluno.id=nd.pessoa_id WHERE nd.id=:id AND nd.destinatario_conta_id=:conta AND nd.arquivada_em IS NULL LIMIT 1');
+        $stmt = $pdo->prepare('SELECT nd.id, nd.visualizada_em, nd.pessoa_id, n.id AS notificacao_id, n.tipo, n.assunto, n.mensagem, n.orientacao_texto, n.orientacao_url, n.contexto_json, n.created_at, autor.nome_completo AS autor_nome, aluno.nome_completo AS aluno_nome FROM notificacoes_destinatarios nd INNER JOIN notificacoes n ON n.id=nd.notificacao_id INNER JOIN contas ac ON ac.id=n.autor_conta_id INNER JOIN pessoas autor ON autor.cpf=ac.cpf INNER JOIN pessoas aluno ON aluno.id=nd.pessoa_id WHERE nd.id=:id AND nd.destinatario_conta_id=:conta AND nd.arquivada_em IS NULL LIMIT 1');
         $stmt->execute([':id' => $recipientId, ':conta' => $accountId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) throw new RuntimeException('Notificação não encontrada.');
@@ -116,6 +116,8 @@ class NotificationService
             $row['visualizada_em'] = date('Y-m-d H:i:s');
             AuditLogService::record('notificacao.visualizada', 'notificacoes', (int) $row['notificacao_id'], ['destinatario_id' => $recipientId, 'pessoa_id' => (int) $row['pessoa_id']]);
         }
+        $row['contexto'] = json_decode((string) ($row['contexto_json'] ?? ''), true) ?: [];
+        unset($row['contexto_json']);
         return $row;
     }
 

@@ -663,9 +663,11 @@ class CourseEnrollmentService
         $stmt = $pdo->query("SELECT t.*, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio, te.data_fim AS temporada_fim, m.nome AS modalidade_nome, cm.nome AS cronograma_nome, cm.inscricoes_inicio AS cronograma_inscricoes_inicio, cm.inscricoes_fim AS cronograma_inscricoes_fim, cm.matriculas_inicio AS cronograma_matriculas_inicio, cm.matriculas_fim AS cronograma_matriculas_fim, cm.inscricoes_abertas_inicio AS cronograma_inscricoes_abertas_inicio, cm.inscricoes_abertas_fim AS cronograma_inscricoes_abertas_fim, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome, nm.nome AS nivel_nome, (SELECT p.nome_completo FROM contas c INNER JOIN pessoas p ON p.cpf = c.cpf WHERE c.id = t.professor_conta_id LIMIT 1) AS professor_principal_nome, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_professores tp INNER JOIN contas c ON c.id = tp.professor_conta_id INNER JOIN pessoas p ON p.cpf = c.cpf WHERE tp.turma_id = t.id AND tp.professor_conta_id <> t.professor_conta_id) AS professores_auxiliares_nomes, (SELECT CONCAT('[', GROUP_CONCAT(tp.professor_conta_id ORDER BY tp.professor_conta_id SEPARATOR ','), ']') FROM turmas_professores tp WHERE tp.turma_id = t.id) AS professores_ids_json, (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ', ') FROM turmas_estagiarios teq INNER JOIN contas c ON c.id = teq.estagiario_conta_id INNER JOIN pessoas p ON p.cpf = c.cpf WHERE teq.turma_id = t.id) AS estagiarios_nomes, (SELECT CONCAT('[', GROUP_CONCAT(teq.estagiario_conta_id ORDER BY teq.estagiario_conta_id SEPARATOR ','), ']') FROM turmas_estagiarios teq WHERE teq.turma_id = t.id) AS estagiarios_ids_json FROM turmas t INNER JOIN temporadas te ON te.id = t.temporada_id INNER JOIN modalidades m ON m.id = t.modalidade_id LEFT JOIN cronogramas_modalidade cm ON cm.id = t.cronograma_modalidade_id INNER JOIN locais_treino l ON l.id = t.local_treino_id INNER JOIN espacos_treino e ON e.id = t.espaco_treino_id LEFT JOIN niveis_modalidade nm ON nm.id = t.nivel_modalidade_id ORDER BY te.data_inicio DESC, t.nome ASC");
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         $enrollmentCounts = $this->enrollmentCountsByClass($pdo);
+        $activeRematriculations = array_fill_keys(array_map('intval', $pdo->query("SELECT DISTINCT destino_turma_id FROM rematriculas WHERE status='ativa' AND prazo_final>=NOW()")->fetchAll(PDO::FETCH_COLUMN) ?: []), true);
         foreach ($classes as &$class) {
             $class['total_inscritos'] = $enrollmentCounts[(int) $class['id']]['total'] ?? 0;
             $class['total_matriculados'] = $enrollmentCounts[(int) $class['id']]['matriculados'] ?? 0;
+            $class['rematricula_ativa'] = isset($activeRematriculations[(int) $class['id']]);
             $class = array_merge($this->findClass($pdo, (int) $class['id']), $class);
             $class['professores_ids'] = json_decode((string) ($class['professores_ids_json'] ?? '[]'), true) ?: [];
             $class['estagiarios_ids'] = json_decode((string) ($class['estagiarios_ids_json'] ?? '[]'), true) ?: [];
@@ -1109,9 +1111,11 @@ class CourseEnrollmentService
         $stmt->execute([':equipe_professor' => $accountId, ':equipe_estagiario' => $accountId]);
         $classes = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         $enrollmentCounts = $this->enrollmentCountsByClass($pdo);
+        $activeRematriculations = array_fill_keys(array_map('intval', $pdo->query("SELECT DISTINCT destino_turma_id FROM rematriculas WHERE status='ativa' AND prazo_final>=NOW()")->fetchAll(PDO::FETCH_COLUMN) ?: []), true);
         foreach ($classes as &$class) {
             $class['total_inscritos'] = $enrollmentCounts[(int) $class['id']]['total'] ?? 0;
             $class['total_matriculados'] = $enrollmentCounts[(int) $class['id']]['matriculados'] ?? 0;
+            $class['rematricula_ativa'] = isset($activeRematriculations[(int) $class['id']]);
             $classDetails = $this->findClass($pdo, (int) $class['id']);
             $class = array_merge($classDetails, $class);
             $professorIdsStmt = $pdo->prepare('SELECT professor_conta_id FROM turmas_professores WHERE turma_id=:id ORDER BY professor_conta_id');

@@ -13,6 +13,7 @@ use App\Controllers\ProfileController;
 use App\Controllers\DataRecoveryController;
 use App\Controllers\ProfessorController;
 use App\Controllers\NotificationController;
+use App\Controllers\RematriculationController;
 
 return [
     ['GET', '/', [HomeController::class, 'index']],
@@ -56,6 +57,19 @@ return [
     ['GET', '/notificacoes/enviadas', [NotificationController::class, 'sent']],
     ['GET', '/notificacoes/preparar', [NotificationController::class, 'prepare']],
     ['POST', '/notificacoes/enviar', [NotificationController::class, 'send']],
+    ['GET', '/rematriculas/inicial', [RematriculationController::class, 'initial']],
+    ['GET', '/rematriculas/locais', [RematriculationController::class, 'locations']],
+    ['GET', '/rematriculas/modalidades', [RematriculationController::class, 'modalities']],
+    ['GET', '/rematriculas/turmas', [RematriculationController::class, 'classes']],
+    ['GET', '/rematriculas/detalhe', [RematriculationController::class, 'show']],
+    ['POST', '/rematriculas/legado/atualizar', [RematriculationController::class, 'refreshLegacy']],
+    ['POST', '/rematriculas/criar', [RematriculationController::class, 'create']],
+    ['POST', '/rematriculas/prazo', [RematriculationController::class, 'deadline']],
+    ['POST', '/rematriculas/enviar', [RematriculationController::class, 'send']],
+    ['POST', '/rematriculas/reenviar', [RematriculationController::class, 'resend']],
+    ['POST', '/rematriculas/notificacoes/remover', [RematriculationController::class, 'removeNotifications']],
+    ['POST', '/rematriculas/cancelar', [RematriculationController::class, 'cancelCampaign']],
+    ['POST', '/rematriculas/responder', [RematriculationController::class, 'respond']],
     ['GET', '/perfil/certificados/modal', [ProfileController::class, 'certificateModal']],
     ['GET', '/perfil/certificados/arquivo', [ProfileController::class, 'certificateDocument']],
     ['POST', '/perfil/certificados/salvar', [ProfileController::class, 'saveCertificateDocuments']],

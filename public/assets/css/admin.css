@@ -2178,3 +2178,35 @@
 .sent-notifications-pagination { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:12px; margin-top:16px; }
 @media (max-width:900px) { .sent-notifications-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:560px) { .sent-notifications-filters { grid-template-columns:1fr; } .sent-notifications-filter-actions { justify-content:stretch; } .sent-notifications-filter-actions .btn { flex:1; } .sent-notification-head { align-items:stretch; flex-direction:column; } }
+.course-class-rematriculation-link { color:#17252b; font-weight:700; }
+.course-class-rematriculation-link.is-active { color:#087a39; }
+.rematriculation-card { width:min(1050px,calc(100vw - 24px)); height:auto; max-height:calc(100dvh - 24px); display:flex; flex-direction:column; overflow:hidden; }
+.rematriculation-card > .popup-head,.rematriculation-card > .rematriculation-footer { flex:0 0 auto; }
+.rematriculation-card .popup-body { flex:1 1 auto; min-height:0; overflow:auto; overscroll-behavior:contain; }
+.rematriculation-footer { background:#fff; border-top:1px solid #e2e7ea; z-index:2; display:flex; justify-content:flex-end; gap:10px; padding:12px 16px; }
+.rematriculation-footer .btn,.rematriculation-list-actions .btn { flex:0 0 auto !important; width:auto; min-height:42px; height:auto !important; padding:10px 18px; }
+.rematriculation-summary { padding:12px; border:1px solid #d5e1e6; border-radius:12px; background:#f8fbfc; }
+.rematriculation-summary p { margin:4px 0; }
+.rematriculation-deadline-form { display:flex; flex-wrap:wrap; gap:12px; align-items:end; margin:14px 0; }
+.rematriculation-deadline-form label { min-width:210px; }
+.rematriculation-select-all { display:inline-flex; gap:8px; align-items:center; justify-content:flex-start; padding:10px 0; font-weight:700; }
+.rematriculation-select-all input { flex:0 0 auto; margin:0; }
+.rematriculation-select-all span { white-space:normal; }
+.rematriculation-list { display:grid; gap:8px; }
+.rematriculation-person { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:10px; align-items:center; padding:12px; border:1px solid #d8e0e3; border-radius:10px; background:#fff; }
+.rematriculation-person > span { min-width:0; }
+.rematriculation-person small { display:block; margin-top:3px; color:#52636b; }
+.rematriculation-person.status-aguardando_resposta,.rematriculation-person.status-token_gerado { background:#fff8dc; }
+.rematriculation-person.status-recusada { background:#fff0f0; color:#b21f2d; text-decoration:line-through; }
+.rematriculation-person.status-recusada button { text-decoration:none; }
+.rematriculation-person.status-inscrita { background:#e1f4e5; color:#075d2d; }
+.rematriculation-person.status-sem_responsavel { background:#f2f2f2; color:#6a6a6a; }
+.rematriculation-pending-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:flex-end; }
+.rematriculation-list-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:flex-end; }
+.rematriculation-warning { margin-bottom:14px; }
+.user-notification-rematriculation { margin-top:12px; padding:12px; border:1px solid #bed8c5; border-radius:12px; background:#f2fbf4; }
+.user-notification-rematriculation p { margin:5px 0; }
+.user-notification-delete-area { display:flex; justify-content:flex-end; margin-top:18px; padding-top:12px; border-top:1px solid #e1e6e9; }
+.user-notification-delete-discreet { color:#66757c; font-size:.86rem; font-weight:500; opacity:.82; }
+.user-notification-delete-discreet:hover,.user-notification-delete-discreet:focus { color:#a12b32; opacity:1; }
+@media (max-width:640px) { .rematriculation-card { width:calc(100vw - 12px); max-height:calc(100dvh - 12px); } .rematriculation-card .popup-body { padding:12px 16px; } .rematriculation-person { grid-template-columns:auto minmax(0,1fr); padding:10px; } .rematriculation-person > :last-child { grid-column:2; justify-self:start; } .rematriculation-deadline-form > * { width:100%; } .rematriculation-list-actions { align-items:stretch; flex-direction:column; padding:12px 0 0; } .rematriculation-list-actions .btn { width:100%; min-height:44px; } .rematriculation-footer { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:center; padding:10px 16px; } .rematriculation-footer .btn { width:100%; min-width:0; min-height:42px; padding:9px 8px; } .rematriculation-footer .btn:only-child { grid-column:2; } }

@@ -655,10 +655,20 @@
                 $card.append($body.append($actions)); $('body').append($modal.append($card)); $modal.data('token',token);
             }
             function loadPendingTokens(){ $.ajax({url:App.core.buildUrl('/cursos/tokens/pendentes'),method:'GET',dataType:'json',suppressGlobalLoading:true,headers:{'X-Requested-With':'XMLHttpRequest',Accept:'application/json'}}).done(function(response){const tokens=Array.isArray(response.tokens)?response.tokens:[]; if(tokens.length) showPendingToken(tokens[0]);}); }
+            function openEnrollmentToken(tokenId){
+                $.ajax({url:App.core.buildUrl('/cursos/tokens/pendentes'),method:'GET',dataType:'json',headers:{'X-Requested-With':'XMLHttpRequest',Accept:'application/json'}}).done(function(response){
+                    const tokens=Array.isArray(response.tokens)?response.tokens:[], token=tokens.find(function(item){return String(item.id)===String(tokenId);});
+                    if(!token){App.core.abrirPopup('erro','O token de inscrição não foi encontrado ou não está mais ativo.');return;}
+                    $('#user-notifications-modal, #home-token-alert-modal, #home-course-cpf-modal').addClass('hidden').attr('aria-hidden','true');
+                    classDetails(String(token.turma_id),function(details){renderEnrollmentModal(details,token);});
+                }).fail(function(xhr){App.core.abrirPopup('erro',App.core.extrairMensagemErroAjax(xhr).mensagem);});
+            }
+            App.home.openEnrollmentToken=openEnrollmentToken;
             $(document).on('click','[data-pending-token-enroll]',function(){ const token=$('#home-token-alert-modal').data('token'); $('#home-course-cpf-modal').addClass('hidden').attr('aria-hidden','true'); $('#home-token-alert-modal').addClass('hidden').attr('aria-hidden','true'); classDetails(String(token.turma_id),function(details){ $('#home-course-cpf-modal').addClass('hidden').attr('aria-hidden','true'); renderEnrollmentModal(details,token); }); });
             $(document).on('click','[data-pending-token-close]',function(){ $('#home-token-alert-modal').remove(); });
             $(document).on('click','[data-pending-token-cancel]',function(){ const id=$(this).attr('data-pending-token-cancel'); $.ajax({url:App.core.buildUrl('/cursos/tokens/cancelar'),method:'POST',dataType:'json',data:{token_id:id},headers:{'X-Requested-With':'XMLHttpRequest',Accept:'application/json'}}).done(function(){ $('#home-token-alert-modal').remove(); loadPendingTokens(); }).fail(function(xhr){window.alert(App.core.extrairMensagemErroAjax(xhr).mensagem);}); });
-            loadPendingTokens();
+            const requestedEnrollmentToken=(new URLSearchParams(window.location.search)).get('token_inscricao');
+            if(requestedEnrollmentToken){openEnrollmentToken(requestedEnrollmentToken);window.history.replaceState({},document.title,window.location.pathname+window.location.hash);}else loadPendingTokens();
             const cpfFlow = { stage: 'form', cpf: '', condition: 'geral', options: null, locationId: '', token: '' };
 
             if ($('#home-course-cpf-modal').attr('data-cpf-only-enrollment-enabled') === '1') {
