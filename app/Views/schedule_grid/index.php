@@ -13,15 +13,30 @@
     <fieldset class="schedule-grid-field-options">
         <legend>Status das turmas incluídas</legend>
         <input type="hidden" name="status_configurados" value="1">
-        <?php foreach ($statusOptions as $key => $label) { ?><label><input type="checkbox" name="status_turmas[]" value="<?php echo e($key); ?>" <?php echo in_array($key, $selectedStatuses, true) ? 'checked' : ''; ?>><span><?php echo e($label); ?></span></label><?php } ?>
+        <?php foreach ($statusOptions as $key => $label) { ?><label><input type="checkbox" name="status_turmas[]" value="<?php echo e($key); ?>" data-grid-status <?php echo in_array($key, $selectedStatuses, true) ? 'checked' : ''; ?>><span><?php echo e($label); ?></span></label><?php } ?>
     </fieldset>
+    <div data-grid-excluded-inputs>
+        <?php foreach ($excludedClasses as $excludedId) { ?><input type="hidden" name="turmas_excluidas[]" value="<?php echo (int) $excludedId; ?>"><?php } ?>
+    </div>
+    <?php if ($location) { ?>
+    <fieldset class="schedule-grid-field-options schedule-grid-class-options">
+        <legend>Turmas que aparecem na grade</legend>
+        <p>Desmarque as turmas que não deseja mostrar. A seleção também vale para a impressão.</p>
+        <?php if (!$classOptions) { ?><p class="muted">Nenhuma turma encontrada para o espaço e os status selecionados.</p><?php } ?>
+        <?php foreach ($classOptions as $classOption) { ?>
+        <label><input type="checkbox" data-grid-class="<?php echo (int) $classOption['id']; ?>" <?php echo !in_array((int) $classOption['id'], $excludedClasses, true) ? 'checked' : ''; ?>>
+            <span>[<?php echo (int) $classOption['id']; ?>] <?php echo e($classOption['nome']); ?></span>
+        </label>
+        <?php } ?>
+    </fieldset>
+    <?php } ?>
     <fieldset class="schedule-grid-field-options">
         <legend>Dados que aparecem na grade</legend>
         <input type="hidden" name="campos_configurados" value="1">
         <?php foreach ($fieldOptions as $key => $label) { ?><label><input type="checkbox" name="campos[]" value="<?php echo e($key); ?>" data-grid-field="<?php echo e($key); ?>" <?php echo in_array($key, $fields, true) ? 'checked' : ''; ?>><span><?php echo e($label); ?></span></label><?php } ?>
     </fieldset>
     </form>
-    <?php if ($selectedStatuses === []) { ?><p class="schedule-grid-warning" role="status">Selecione pelo menos um status e clique em “Buscar grade” para exibir as turmas.</p><?php } ?>
+    <?php if ($selectedStatuses === []) { ?><p class="schedule-grid-warning" role="status">Selecione pelo menos um status para exibir as turmas.</p><?php } ?>
     <?php if ($unscheduled > 0) { ?><p class="schedule-grid-warning" role="status"><?php echo (int) $unscheduled; ?> turma(s) sem dias ou horários completos não aparecem na grade. Complete esses dados no cadastro da turma.</p><?php } ?>
     <?php if (!$location) { ?><p class="muted">Selecione o local e clique em “Buscar grade” para carregar seus espaços.</p><?php } elseif (!$spaces) { ?><p class="muted">Este local não possui espaços ativos cadastrados.</p><?php } ?>
 </section>
@@ -75,7 +90,7 @@ $address = $location ? implode(' — ', array_filter([
             </section>
         <?php } ?>
         </div>
-        <footer class="schedule-grid-sheet-footer"><span><span data-grid-content="temporada" <?php echo !in_array('temporada', $fields, true) ? 'hidden' : ''; ?>><?php echo e($season['nome'] ?? ''); ?></span></span><span>Página <?php echo $sheetIndex + 1; ?></span><span><?php echo $sheet['total'] === 0 ? 'Sem turmas ativas neste espaço' : ''; ?></span></footer>
+        <footer class="schedule-grid-sheet-footer"><span><span data-grid-content="temporada" <?php echo !in_array('temporada', $fields, true) ? 'hidden' : ''; ?>><?php echo e($season['nome'] ?? ''); ?></span></span><span>Página <?php echo $sheetIndex + 1; ?></span><span><?php echo $sheet['total'] === 0 ? 'Nenhuma turma incluída neste espaço' : ''; ?></span></footer>
     </article>
     </div>
 <?php } ?>

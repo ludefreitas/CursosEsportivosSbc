@@ -10,7 +10,27 @@
             location.form.requestSubmit();
         });
     }
+    if (space) space.addEventListener('change', function () { space.form.requestSubmit(); });
+    document.querySelectorAll('[data-grid-class]').forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            const inputs = checkbox.form.querySelector('[data-grid-excluded-inputs]');
+            const id = checkbox.dataset.gridClass;
+            const existing = Array.from(inputs.querySelectorAll('input')).find(function (input) { return input.value === id; });
+            if (checkbox.checked && existing) existing.remove();
+            if (!checkbox.checked && !existing) {
+                const input = document.createElement('input');
+                input.type = 'hidden'; input.name = 'turmas_excluidas[]'; input.value = id;
+                inputs.appendChild(input);
+            }
+            checkbox.form.requestSubmit();
+        });
+    });
     const printButton = document.querySelector('[data-grid-print]');
+    document.querySelectorAll('[data-grid-status]').forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            if (location && location.value) checkbox.form.requestSubmit();
+        });
+    });
     document.querySelectorAll('[data-grid-field]').forEach(function (checkbox) {
         checkbox.addEventListener('change', function () {
             document.querySelectorAll('[data-grid-content="' + checkbox.dataset.gridField + '"]').forEach(function (element) {

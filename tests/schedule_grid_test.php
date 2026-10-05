@@ -5,6 +5,11 @@ function check(bool $ok, string $message): void { if (!$ok) throw new RuntimeExc
 function lesson(int $id, string $start, string $end, string $days = '1'): array {
     return ['id' => $id, 'nome' => 'Turma ' . $id, 'hora_inicio' => $start, 'hora_fim' => $end, 'dias_semana' => $days];
 }
+$candidates = [lesson(1, '10:00', '11:00'), lesson(2, '10:00', '11:00')];
+$filtered = $service->excludeClasses($candidates, [1]);
+check(count($filtered) === 1 && $filtered[0]['id'] === 2, 'Desmarcar uma turma não pode remover outra de mesmo horário.');
+check($service->excludeClasses($candidates, [1, 2]) === [], 'Deve ser possível desmarcar todas as turmas.');
+check($service->excludeClasses($candidates, [999]) === $candidates, 'Um ID fora do espaço não pode alterar sua grade.');
 $empty = $service->buildGrid([]);
 foreach ($empty['periodos'] as $period) check(count($period['linhas']) === 3, 'Período vazio precisa de três blocos.');
 $late = $service->buildGrid([lesson(1, '11:00:00', '11:50:00')]);

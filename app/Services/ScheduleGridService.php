@@ -17,10 +17,11 @@ class ScheduleGridService
         'inscricoes_encerradas' => 'Inscrições encerradas',
     ];
 
-    public function search(int $seasonId, int $locationId, int $spaceId, ?array $statuses = null): array
+    public function search(int $seasonId, int $locationId, int $spaceId, ?array $statuses = null, array $excludedClasses = []): array
     {
         $statusOptions = self::STATUS_OPTIONS;
         $selectedStatuses = $statuses === null ? array_keys($statusOptions) : array_values(array_unique(array_intersect(array_keys($statusOptions), $statuses)));
+        $excludedClasses = array_values(array_unique(array_filter(array_map('intval', $excludedClasses), static fn(int $id): bool => $id > 0)));
         $pdo = Database::connection();
         $seasons = $pdo->query("SELECT id,nome,status FROM temporadas ORDER BY (status='ativa') DESC,data_inicio DESC,id DESC")->fetchAll(PDO::FETCH_ASSOC);
         if ($seasonId === 0 && $seasons !== []) $seasonId = (int) $seasons[0]['id'];
@@ -32,6 +33,7 @@ class ScheduleGridService
         $spaces = [];
         $sheets = [];
         $unscheduled = 0;
+        $classOptions = [];
         if ($location) {
             $stmt = $pdo->prepare('SELECT id,nome FROM espacos_treino WHERE local_treino_id=:local AND ativo=1 ORDER BY nome');
             $stmt->execute([':local' => $locationId]);
@@ -62,12 +64,19 @@ class ScheduleGridService
             foreach ($spaces as $space) {
                 if ($spaceId !== 0 && (int) $space['id'] !== $spaceId) continue;
                 $items = array_values(array_filter($classes, static fn(array $class): bool => (int) $class['espaco_treino_id'] === (int) $space['id']));
+                foreach ($items as $item) $classOptions[] = $item + ['espaco_nome' => $space['nome']];
+                $items = $this->excludeClasses($items, $excludedClasses);
                 $grid = $this->buildGrid($items);
                 $unscheduled += $grid['sem_horario'];
                 $sheets[] = ['espaco' => $space, 'periodos' => $grid['periodos'], 'total' => count($items)];
             }
         }
-        return compact('seasons', 'seasonId', 'season', 'locations', 'locationId', 'location', 'spaces', 'spaceId', 'sheets', 'unscheduled', 'statusOptions', 'selectedStatuses');
+        return compact('seasons', 'seasonId', 'season', 'locations', 'locationId', 'location', 'spaces', 'spaceId', 'sheets', 'unscheduled', 'statusOptions', 'selectedStatuses', 'classOptions', 'excludedClasses');
+    }
+
+    public function excludeClasses(array $classes, array $excludedIds): array
+    {
+        return array_values(array_filter($classes, static fn(array $class): bool => !in_array((int) $class['id'], $excludedIds, true)));
     }
 
     /** Mantém início, meio e fim do período mesmo quando há uma única aula. */

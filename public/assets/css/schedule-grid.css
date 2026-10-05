@@ -6,6 +6,7 @@
 .schedule-grid-field-options legend { padding:0 6px; font-weight:600; }
 .schedule-grid-field-options label { display:flex; align-items:center; gap:7px; cursor:pointer; }
 .schedule-grid-field-options input { width:auto; }
+.schedule-grid-class-options p { flex-basis:100%; margin:0; }
 .schedule-grid-sheet [hidden] { display:none !important; }
 .schedule-grid-results { display:grid; gap:24px; }
 .schedule-grid-preview { overflow:auto; padding:12px; background:#e4e7ea; border-radius:8px; }
