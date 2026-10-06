@@ -27,6 +27,8 @@ return [
     ['GET', '/blog/post', [BlogController::class, 'post']],
     ['GET', '/cursos', [CourseEnrollmentController::class, 'index']],
     ['GET', '/cursos/declaracao.pdf', [EnrollmentDeclarationController::class, 'declaration']],
+    ['GET', '/cursos/declaracao/emitir', [EnrollmentDeclarationController::class, 'issue']],
+    ['GET', '/cursos/declaracao', [EnrollmentDeclarationController::class, 'page']],
     ['GET', '/cursos/frequencia', [EnrollmentDeclarationController::class, 'frequency']],
     ['GET', '/cursos/modalidades-por-local', [CourseEnrollmentController::class, 'modalitiesByLocation']],
     ['GET', '/cursos/locais-por-modalidade', [CourseEnrollmentController::class, 'locationsByModality']],

@@ -112,8 +112,16 @@ O botão verde Declaração aparece em todos os status nos painéis do aluno/res
 
 O PDF segue o modelo institucional do site antigo, com brasão, dados do curso, links MM/YYYY somente para meses com chamada registrada e observação (*) destacada. As consultas usam um código aleatório de 256 bits vinculado à inscrição, sem CPF na URL, e exibem somente nome, turma e estados da frequência; textos privados de justificativas não são publicados. Qualquer pessoa com o link do documento pode consultar a frequência.
 
-Aplicar database/migracao_declaracoes_inscricao.sql separadamente antes da publicação (já aplicada no banco local). Em instalação nova, a tabela faz parte de database/schema.sql. A configuração public_url deve indicar a origem pública canônica; o padrão é https://saobernardo.cursosesportivossbc.com.
+Aplicar database/migracao_declaracoes_inscricao.sql separadamente antes da publicação (já aplicada no banco local). Em instalação nova, a tabela faz parte de database/schema.sql. Os endereços completos são obtidos automaticamente do domínio, protocolo e caminho de acesso atuais; não existe domínio fixo para a declaração ou seus links de frequência.
 
 O calendário e a gravação da chamada usam aulas_inicio e aulas_fim do cronograma da modalidade, sem substituir essas datas pelo período de publicação. Cronograma sem período de aulas completo bloqueia a chamada.
 
 Verificação: php tests/course_attendance_period_test.php; php tests/enrollment_declaration_pdf_test.php; php tests/enrollment_declaration_integration_test.php (banco local, alterações revertidas por transação).
+
+### Declaração pública e compartilhamento
+
+Ao clicar em Declaração, um aviso orienta a conferir os dados, imprimir ou copiar o link e entregá-lo a quem possa interessar. A emissão inicial continua autorizada pela conta; o botão abre /cursos/declaracao/emitir, que encaminha para /cursos/declaracao?codigo=... . A página pública, o PDF e a frequência mensal são consultados sem sessão autenticada por quem possui o código de consulta.
+
+A página oferece o endereço completo, obtido automaticamente do endereço de acesso, além de Copiar link, Imprimir e Abrir PDF. O PDF também usa a origem atual nos links. O código de consulta permanece o mesmo ao mudar o domínio; não há nova migração nesta etapa. Links anteriormente distribuídos com um domínio antigo dependem de redirecionamento ou da preservação desse domínio.
+
+Verificação adicional: php tests/declaration_url_test.php e consultas reais no servidor local sem login, incluindo cópia de link e abertura do PDF.

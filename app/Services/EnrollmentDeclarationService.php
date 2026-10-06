@@ -49,6 +49,21 @@ final class EnrollmentDeclarationService
         return ['enrollment' => $this->enrollment($pdo, $id), 'months' => $months, 'month' => $month, 'code' => $code, 'attendance' => $query->fetchAll(PDO::FETCH_ASSOC) ?: []];
     }
 
+    public function publicDeclaration(string $code): array
+    {
+        if (!preg_match('/^[a-f0-9]{64}$/D', $code)) {
+            throw new RuntimeException('Declaração não encontrada.');
+        }
+        $pdo = Database::connection();
+        $query = $pdo->prepare('SELECT inscricao_turma_id FROM declaracoes_inscricao WHERE codigo_consulta=:codigo');
+        $query->execute([':codigo' => $code]);
+        $id = (int) $query->fetchColumn();
+        if ($id <= 0) { throw new RuntimeException('Declaração não encontrada.'); }
+        $months = $this->months($pdo, $id);
+        if ($months === []) { throw new RuntimeException('Não existe frequência, para gerar ou imprimir declaração para esta inscrição.'); }
+        return ['enrollment' => $this->enrollment($pdo, $id), 'code' => $code, 'months' => $months];
+    }
+
     private function months(PDO $pdo, int $id): array
     {
         $query = $pdo->prepare("SELECT DISTINCT DATE_FORMAT(data_aula, '%Y-%m') AS mes FROM turmas_chamadas WHERE inscricao_turma_id=:id AND status IN ('presente','ausente','justificado') ORDER BY mes");

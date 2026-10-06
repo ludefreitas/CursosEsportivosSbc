@@ -2323,8 +2323,14 @@
 }(window, window.jQuery));
 
 (function (window, $) {
-    $(document).on('click', '.enrollment-declaration-button[data-declaration-has-frequency="0"]', function (event) {
+    $(document).on('click', '.enrollment-declaration-button', function (event) {
         event.preventDefault();
-        window.App.core.abrirPopup('aviso', 'Não existe frequência, para gerar ou imprimir declaração para esta inscrição.');
+        if ($(this).attr('data-declaration-has-frequency') === '0') {
+            window.App.core.abrirPopup('aviso', 'Não existe frequência, para gerar ou imprimir declaração para esta inscrição.');
+            return;
+        }
+        const $message = $('<div>').append($('<p>', { text: 'Confira os dados da declaração a seguir, imprima ou copie o link desta página, se preferir, e entregue a quem possa interessar.' }));
+        $message.append($('<a>', { class: 'btn btn-primary', href: this.href, target: '_blank', rel: 'noopener', text: 'Abrir declaração' }));
+        window.App.core.abrirPopupHtml('aviso', $message.html());
     });
 }(window, window.jQuery));

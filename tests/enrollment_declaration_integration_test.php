@@ -32,6 +32,11 @@ try {
         try { $service->frequency($code,$month); throw new LogicException('Consulta indevida aceita.'); } catch (RuntimeException $e) { }
     }
     $_SESSION['account_id'] = null;
+    $public = $service->publicDeclaration($result['code']);
+    if ($public['enrollment']['id'] != $id || $public['months'] !== ['2025-12','2026-02','2026-10']) { throw new RuntimeException('Declaração pública não disponível sem sessão.'); }
+    $publicFrequency = $service->frequency($result['code'], '2026-10');
+    if ($publicFrequency['attendance'][0]['status'] !== 'justificado') { throw new RuntimeException('Frequência pública não disponível sem sessão.'); }
+    try { $service->publicDeclaration(str_repeat('0',64)); throw new LogicException('Código público inválido aceito.'); } catch (RuntimeException $e) { }
     try { $service->issue($id, ['conta_id'=>0,'roles'=>[]]); throw new LogicException('Acesso indevido aceito.'); } catch (RuntimeException $e) { }
     echo "Declaração: status, ausência de frequência, autorização e consulta mensal verificados.\n";
 } finally { $pdo->rollBack(); }
