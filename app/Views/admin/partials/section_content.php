@@ -385,7 +385,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                             <th>Status</th>
                                             <th>Motivo da justificativa</th>
                                             <th>Ação</th>
-                                            <th>Fez a chamada</th>
+                                            <?php if (empty($internView)) { ?><th>Fez a chamada</th><?php } ?>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -449,7 +449,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                         <?php } ?>
                                                     <?php } ?>
                                                 </td>
-                                                <td data-label="Fez a chamada" data-booking-caller-cell="1"><?php echo e(trim((string) ($booking['chamada_por_nome'] ?? '')) !== '' ? (string) $booking['chamada_por_nome'] : '-'); ?></td>
+                                                <?php if (empty($internView)) { ?><td data-label="Fez a chamada" data-booking-caller-cell="1"><?php echo e(trim((string) ($booking['chamada_por_nome'] ?? '')) !== '' ? (string) $booking['chamada_por_nome'] : '-'); ?></td><?php } ?>
                                             </tr>
                                         <?php } ?>
                                     </tbody>
@@ -788,8 +788,8 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                         <strong><?php echo e($schedule['local_nome']); ?></strong><br>
                                                         <small><?php echo e($schedule['espaco_nome'] . ' - ' . $schedule['modalidade_nome'] . ' (' . ucfirst((string) $schedule['tipo_horario']) . ')'); ?></small><br><small>Níveis: <?php echo e(describe_modality_levels($schedule['niveis_aceitos_json'] ?? null)); ?></small>
                                                         <br><small><strong>Professor:</strong> <span data-weekly-main-name><?php echo e($schedule['professor_principal_nome'] ?? 'Não atribuído'); ?></span></small>
-                                                        <br><small data-weekly-assistants-line class="<?php echo empty($schedule['professores_auxiliares_nomes']) ? 'hidden' : ''; ?>"><strong>Auxiliares:</strong> <span data-weekly-assistants-names><?php echo e($schedule['professores_auxiliares_nomes'] ?? ''); ?></span></small>
-                                                        <br><small data-weekly-interns-line class="<?php echo empty($schedule['estagiarios_nomes']) ? 'hidden' : ''; ?>"><strong>Estagiários:</strong> <span data-weekly-interns-names><?php echo e($schedule['estagiarios_nomes'] ?? ''); ?></span></small>
+                                                        <?php if (empty($internView)) { ?><br><small data-weekly-assistants-line class="<?php echo empty($schedule['professores_auxiliares_nomes']) ? 'hidden' : ''; ?>"><strong>Auxiliares:</strong> <span data-weekly-assistants-names><?php echo e($schedule['professores_auxiliares_nomes'] ?? ''); ?></span></small><?php } ?>
+                                                        <?php if (empty($internView)) { ?><br><small data-weekly-interns-line class="<?php echo empty($schedule['estagiarios_nomes']) ? 'hidden' : ''; ?>"><strong>Estagiários:</strong> <span data-weekly-interns-names><?php echo e($schedule['estagiarios_nomes'] ?? ''); ?></span></small><?php } ?>
                                                     </td>
                                                     <td>
                                                         <?php
@@ -819,7 +819,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                         <?php } ?>
                                                     </td>
                                                     <td>
-                                                        <div class="admin-weekly-schedule-actions">
+                                                        <?php if (empty($internView)) { ?><div class="admin-weekly-schedule-actions">
                                                             <?php if (empty($internView)) { ?><button type="button" class="btn btn-secondary btn-compact" data-weekly-schedule-team="1" data-weekly-schedule-id="<?php echo e((string) $schedule['id']); ?>" data-weekly-schedule-main-professor="<?php echo e((string) ($schedule['professor_conta_id'] ?? '')); ?>" data-weekly-schedule-professors='<?php echo e((string) json_encode($schedule['professores_ids'] ?? [], JSON_UNESCAPED_UNICODE)); ?>' data-weekly-schedule-interns='<?php echo e((string) json_encode($schedule['estagiarios_ids'] ?? [], JSON_UNESCAPED_UNICODE)); ?>'>Equipe</button><?php } ?>
                                                             <button
                                                                 type="button"
@@ -839,7 +839,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                                 <button type="submit" class="btn btn-secondary btn-compact">Ativar</button>
                                                             </form>
                                                             <?php } ?>
-                                                        </div>
+                                                        </div><?php } ?>
                                                     </td>
                                                 </tr>
                                             <?php } ?>
