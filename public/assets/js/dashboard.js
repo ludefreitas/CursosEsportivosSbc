@@ -115,6 +115,7 @@
                 $details.append(enrollmentDetailLine('Espaço', details.espaco));
                 $details.append(enrollmentDetailLine('Dias', details.dias));
                 $details.append(enrollmentDetailLine('Horário', details.horario));
+                $details.append(enrollmentDetailLine('Tipo de inscrição', details.tipo_inscricao));
                 $details.append(enrollmentDetailLine('Inscrição realizada em', details.inscrita_em));
                 $details.append(enrollmentDetailLine('Público da inscrição', details.publico_alvo));
                 if (details.excecao_condicao) $details.append(enrollmentDetailLine('Exceção etária autorizada por', details.excecao_condicao));

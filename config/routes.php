@@ -4,6 +4,7 @@ use App\Controllers\AdminController;
 use App\Controllers\AgendaController;
 use App\Controllers\BlogController;
 use App\Controllers\CourseEnrollmentController;
+use App\Controllers\EnrollmentDeclarationController;
 use App\Controllers\CepController;
 use App\Controllers\AuthController;
 use App\Controllers\DashboardController;
@@ -25,6 +26,8 @@ return [
     ['GET', '/blog', [BlogController::class, 'index']],
     ['GET', '/blog/post', [BlogController::class, 'post']],
     ['GET', '/cursos', [CourseEnrollmentController::class, 'index']],
+    ['GET', '/cursos/declaracao.pdf', [EnrollmentDeclarationController::class, 'declaration']],
+    ['GET', '/cursos/frequencia', [EnrollmentDeclarationController::class, 'frequency']],
     ['GET', '/cursos/modalidades-por-local', [CourseEnrollmentController::class, 'modalitiesByLocation']],
     ['GET', '/cursos/locais-por-modalidade', [CourseEnrollmentController::class, 'locationsByModality']],
     ['GET', '/cursos/turmas-por-local', [CourseEnrollmentController::class, 'classesByLocation']],

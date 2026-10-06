@@ -2321,3 +2321,10 @@
 
     window.App = App;
 }(window, window.jQuery));
+
+(function (window, $) {
+    $(document).on('click', '.enrollment-declaration-button[data-declaration-has-frequency="0"]', function (event) {
+        event.preventDefault();
+        window.App.core.abrirPopup('aviso', 'Não existe frequência, para gerar ou imprimir declaração para esta inscrição.');
+    });
+}(window, window.jQuery));

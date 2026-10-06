@@ -689,6 +689,7 @@ CREATE TABLE IF NOT EXISTS inscricoes_turma (
     pessoa_id BIGINT UNSIGNED NOT NULL,
     publico_alvo ENUM('geral', 'pcd', 'plm', 'pvs') NOT NULL DEFAULT 'geral',
     excecao_condicao VARCHAR(10) NULL,
+    tipo_inscricao ENUM('rematricula', 'token', 'conta', 'cpf') NULL,
     status ENUM('aguardando_matricula', 'matriculada', 'lista_espera', 'cancelada', 'excluida', 'excluida_por_falta', 'desistente', 'suspensa') NOT NULL DEFAULT 'aguardando_matricula',
     inscrito_por_conta_id BIGINT UNSIGNED NULL,
     cancelado_por_conta_id BIGINT UNSIGNED NULL,
@@ -1056,4 +1057,12 @@ CREATE TABLE IF NOT EXISTS reversoes_logicas (
     INDEX idx_reversao_logica_alvo (tipo_alvo, alvo_id, ativo),
     CONSTRAINT fk_reversao_logica_log FOREIGN KEY (log_auditoria_id) REFERENCES logs_auditoria(id) ON DELETE SET NULL,
     CONSTRAINT fk_reversao_logica_conta FOREIGN KEY (executado_por_conta_id) REFERENCES contas(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS declaracoes_inscricao (
+    inscricao_turma_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+    codigo_consulta CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_declaracao_inscricao FOREIGN KEY (inscricao_turma_id)
+        REFERENCES inscricoes_turma(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

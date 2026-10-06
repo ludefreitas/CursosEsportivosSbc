@@ -2350,3 +2350,8 @@ body.pagina-error label span {
     outline: 2px solid rgba(44, 129, 152, .25);
     outline-offset: 2px;
 }
+
+/* Declaração de matrícula: botão compartilhado pelos painéis. */
+.enrollment-declaration-button{background:#218838!important;border:1px solid #218838!important;color:#fff!important;text-decoration:none!important}.enrollment-declaration-button:hover,.enrollment-declaration-button:focus-visible{background:#176b2b!important;border-color:#176b2b!important}
+
+.enrollment-declaration-button{display:inline-flex!important;align-items:center;justify-content:center;white-space:nowrap!important;word-break:normal!important;overflow-wrap:normal!important;min-width:126px;box-sizing:border-box;padding:12px 16px!important}

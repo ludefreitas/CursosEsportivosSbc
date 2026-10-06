@@ -99,3 +99,21 @@
 Criar campo sexo no horário da agenda
 selecionar pessoa em check-box
 mostar somente pessoas habilitadas e desabilitar pessoas que não podem agendar, para o horário devido as suas características.
+
+### Tipo de inscrição
+
+O campo inscricoes_turma.tipo_inscricao registra Rematrícula (rematricula), Token (token), Conta (conta) ou Por CPF (cpf). Rematrícula é identificada pelo vínculo do token com rematricula_convites; os demais tokens são classificados como Token. Tokens exigem inscrição pela conta autenticada. A classificação aparece nas listas e detalhes da administração, professor e painel do responsável, além da auditoria e resposta de criação. Mudanças de status não alteram a origem da inscrição.
+
+Antes de publicar esta alteração em banco existente, executar separadamente database/migracao_tipo_inscricao.sql uma única vez. A migração recupera dados antigos pelos tokens e auditoria; registros sem evidência ficam como Não identificado. Não são realizadas migrações durante requisições HTTP.
+
+### Declaração de inscrição e consulta de frequência
+
+O botão verde Declaração aparece em todos os status nos painéis do aluno/responsável, professor e administração. Sem registros de presença, ausência ou justificativa, a aplicação exibe: “Não existe frequência, para gerar ou imprimir declaração para esta inscrição.” A emissão também é bloqueada no servidor. Para outros status, o PDF informa a situação atual sem afirmar matrícula ativa.
+
+O PDF segue o modelo institucional do site antigo, com brasão, dados do curso, links MM/YYYY somente para meses com chamada registrada e observação (*) destacada. As consultas usam um código aleatório de 256 bits vinculado à inscrição, sem CPF na URL, e exibem somente nome, turma e estados da frequência; textos privados de justificativas não são publicados. Qualquer pessoa com o link do documento pode consultar a frequência.
+
+Aplicar database/migracao_declaracoes_inscricao.sql separadamente antes da publicação (já aplicada no banco local). Em instalação nova, a tabela faz parte de database/schema.sql. A configuração public_url deve indicar a origem pública canônica; o padrão é https://saobernardo.cursosesportivossbc.com.
+
+O calendário e a gravação da chamada usam aulas_inicio e aulas_fim do cronograma da modalidade, sem substituir essas datas pelo período de publicação. Cronograma sem período de aulas completo bloqueia a chamada.
+
+Verificação: php tests/course_attendance_period_test.php; php tests/enrollment_declaration_pdf_test.php; php tests/enrollment_declaration_integration_test.php (banco local, alterações revertidas por transação).
