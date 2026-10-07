@@ -16,10 +16,13 @@
         return App.core.buildUrl(basePath + normalizedPath.replace(/^\/admin/, ''));
     };
 
+    const internRestricted = function () { return $('body').attr('data-intern-restricted') === '1'; };
     let tokenClass = null;
     function tokenEndpoint(action) {
         const professor = tokenClass && tokenClass.scope === 'professor';
         if (action === 'list') return professor ? '/professor/minhas-turmas/tokens' : '/admin/turmas/tokens';
+        if (action === 'create' && internRestricted()) return null;
+        if (action === 'exclude' && internRestricted()) return null;
         if (action === 'create') return professor ? '/professor/inscricoes/token' : '/admin/turmas/tokens/gerar';
         return professor ? '/professor/minhas-turmas/tokens/excluir' : '/admin/turmas/tokens/excluir';
     }
@@ -35,16 +38,16 @@
             const labels = { ativo:'Ativo', usado:'Usado', cancelado:'Cancelado', expirado:'Expirado', excluido:'Excluído' };
             const $table = $('<table>', { class: 'course-token-table' }).append('<thead><tr><th>Token</th><th>Pessoa/CPF</th><th>Condição</th><th>Validade</th><th>Motivo</th><th>Status</th><th>Ação</th></tr></thead>');
             const $body = $('<tbody>');
-            rows.forEach(function (item) { const $tr=$('<tr>'); $tr.append($('<td>',{text:item.numero_token}),$('<td>').append($('<strong>',{text:item.nome_completo||'Não cadastrada'}),$('<br>'),$('<small>',{text:item.cpf_formatado})),$('<td>',{text:item.publico_label}),$('<td>',{text:String(item.validade||'').replace(/^(\d{4})-(\d{2})-(\d{2}).*$/,'$3/$2/$1')}),$('<td>',{text:item.motivo}),$('<td>',{text:labels[item.status]||item.status})); const $action=$('<td>'); if(item.status==='ativo') $action.append($('<button>',{type:'button',class:'link-button','data-token-exclude':item.id,text:'Excluir'})); $tr.append($action); $body.append($tr); });
+            rows.forEach(function (item) { const $tr=$('<tr>'); $tr.append($('<td>',{text:item.numero_token}),$('<td>').append($('<strong>',{text:item.nome_completo||'Não cadastrada'}),$('<br>'),$('<small>',{text:item.cpf_formatado})),$('<td>',{text:item.publico_label}),$('<td>',{text:String(item.validade||'').replace(/^(\d{4})-(\d{2})-(\d{2}).*$/,'$3/$2/$1')}),$('<td>',{text:item.motivo}),$('<td>',{text:labels[item.status]||item.status})); const $action=$('<td>'); if(item.status==='ativo' && !internRestricted()) $action.append($('<button>',{type:'button',class:'link-button','data-token-exclude':item.id,text:'Excluir'})); $tr.append($action); $body.append($tr); });
             $list.empty().append($table.append($body));
         }).fail(function(xhr){ $list.text(App.core.extrairMensagemErroAjax(xhr).mensagem); });
     }
-    $(document).on('click','[data-course-class-tokens]',function(){ ensureTokenModals(); tokenClass={id:$(this).attr('data-course-class-tokens'),name:$(this).attr('data-course-class-tokens-name'),scope:$(this).attr('data-course-class-tokens-scope')}; $('[data-token-class-name]').text(tokenClass.name); $('#course-token-list-modal').removeClass('hidden').attr('aria-hidden','false'); loadTokens(); });
+    $(document).on('click','[data-course-class-tokens]',function(){ ensureTokenModals(); $('[data-token-create-open]').toggle(!internRestricted()); tokenClass={id:$(this).attr('data-course-class-tokens'),name:$(this).attr('data-course-class-tokens-name'),scope:$(this).attr('data-course-class-tokens-scope')}; $('[data-token-class-name]').text(tokenClass.name); $('#course-token-list-modal').removeClass('hidden').attr('aria-hidden','false'); loadTokens(); });
     $(document).on('click','[data-token-close]',function(){ $('#course-token-list-modal').addClass('hidden').attr('aria-hidden','true'); });
-    $(document).on('click','[data-token-create-open]',function(){ $('#course-token-create-modal').removeClass('hidden').attr('aria-hidden','false'); });
+    $(document).on('click','[data-token-create-open]',function(){ if (internRestricted()) return; $('#course-token-create-modal').removeClass('hidden').attr('aria-hidden','false'); });
     $(document).on('click','[data-token-create-close]',function(){ $('#course-token-create-modal').addClass('hidden').attr('aria-hidden','true'); });
-    $(document).on('submit','[data-token-create-form]',function(event){ event.preventDefault(); const data=$(this).serializeArray(); data.push({name:'turma_id',value:tokenClass.id}); $.ajax({url:App.core.buildUrl(tokenEndpoint('create')),method:'POST',dataType:'json',data:$.param(data),headers:{'X-Requested-With':'XMLHttpRequest',Accept:'application/json'}}).done(function(response){ $('#course-token-create-modal').addClass('hidden'); if(App.core&&App.core.showToast) App.core.showToast(response.message||'Token criado.'); loadTokens(); }).fail(function(xhr){ window.alert(App.core.extrairMensagemErroAjax(xhr).mensagem); }); });
-    $(document).on('click','[data-token-exclude]',function(){ const id=$(this).attr('data-token-exclude'); $.ajax({url:App.core.buildUrl(tokenEndpoint('exclude')),method:'POST',dataType:'json',data:{token_id:id},headers:{'X-Requested-With':'XMLHttpRequest',Accept:'application/json'}}).done(loadTokens).fail(function(xhr){window.alert(App.core.extrairMensagemErroAjax(xhr).mensagem);}); });
+    $(document).on('submit','[data-token-create-form]',function(event){ event.preventDefault(); if (internRestricted()) return; const data=$(this).serializeArray(); data.push({name:'turma_id',value:tokenClass.id}); $.ajax({url:App.core.buildUrl(tokenEndpoint('create')),method:'POST',dataType:'json',data:$.param(data),headers:{'X-Requested-With':'XMLHttpRequest',Accept:'application/json'}}).done(function(response){ $('#course-token-create-modal').addClass('hidden'); if(App.core&&App.core.showToast) App.core.showToast(response.message||'Token criado.'); loadTokens(); }).fail(function(xhr){ window.alert(App.core.extrairMensagemErroAjax(xhr).mensagem); }); });
+    $(document).on('click','[data-token-exclude]',function(){ if (internRestricted()) return; const id=$(this).attr('data-token-exclude'); $.ajax({url:App.core.buildUrl(tokenEndpoint('exclude')),method:'POST',dataType:'json',data:{token_id:id},headers:{'X-Requested-With':'XMLHttpRequest',Accept:'application/json'}}).done(loadTokens).fail(function(xhr){window.alert(App.core.extrairMensagemErroAjax(xhr).mensagem);}); });
 
     function ensureNotificationSendModal() {
         if ($('#staff-notification-modal').length) return $('#staff-notification-modal');

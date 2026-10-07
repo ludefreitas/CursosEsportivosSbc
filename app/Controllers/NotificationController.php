@@ -20,6 +20,7 @@ class NotificationController extends Controller
     {
         try {
             $account = $this->authenticatedAccount();
+            $this->assertMutationAccess($account);
             $this->jsonResponse(['success' => true, 'data' => $this->service->prepare((int) $account['conta_id'], (array) $account['roles'], $_GET)]);
         } catch (\Throwable $e) {
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], Auth::check() ? 422 : 401);
@@ -30,6 +31,7 @@ class NotificationController extends Controller
     {
         try {
             $account = $this->authenticatedAccount();
+            $this->assertMutationAccess($account);
             $result = $this->service->send((int) $account['conta_id'], (array) $account['roles'], $_POST);
             $this->jsonResponse(array_merge(['success' => true], $result));
         } catch (\Throwable $e) {
@@ -51,8 +53,9 @@ class NotificationController extends Controller
     {
         try {
             if (!Auth::check()) throw new \RuntimeException('Faça login para consultar suas notificações.');
-            $notification = $this->service->read((int) Auth::id(), (int) ($_POST['destinatario_id'] ?? 0));
-            $this->jsonResponse(['success' => true, 'notification' => $notification, 'summary' => $this->service->headerSummary((int) Auth::id())]);
+            $readOnly = \App\Services\InternPermissionService::isRestricted($this->authenticatedAccount()['roles'] ?? []);
+            $notification = $this->service->read((int) Auth::id(), (int) ($_POST['destinatario_id'] ?? 0), !$readOnly);
+            $this->jsonResponse(['success' => true, 'notification' => $notification, 'read_only' => $readOnly, 'summary' => $this->service->headerSummary((int) Auth::id())]);
         } catch (\Throwable $e) {
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], Auth::check() ? 422 : 401);
         }
@@ -62,6 +65,7 @@ class NotificationController extends Controller
     {
         try {
             if (!Auth::check()) throw new \RuntimeException('Faça login para excluir notificações.');
+            $this->assertMutationAccess($this->authenticatedAccount());
             $this->service->archiveRead((int) Auth::id(), (int) ($_POST['destinatario_id'] ?? 0));
             $this->jsonResponse(['success' => true, 'message' => 'Notificação excluída da sua lista.', 'summary' => $this->service->headerSummary((int) Auth::id())]);
         } catch (\Throwable $e) {
@@ -79,6 +83,13 @@ class NotificationController extends Controller
         }
     }
 
+    private function assertMutationAccess(array $account): void
+    {
+        if (\App\Services\InternPermissionService::isRestricted($account['roles'] ?? [])) {
+            $this->jsonResponse(['success' => false, 'message' => 'Esta ação não está disponível para estagiários.'], 403);
+            exit;
+        }
+    }
     private function authenticatedAccount(): array
     {
         if (!Auth::check()) throw new \RuntimeException('Faça login para continuar.');

@@ -21,7 +21,7 @@ foreach ($selectedDisabilityTypes as $selectedType) {
 ?>
 <div class="popup-head admin-popup-head">
     <div>
-        <h3 id="admin-condition-validation-title">Validar condição especial</h3>
+        <h3 id="admin-condition-validation-title"><?php echo !empty($internView) ? 'Consultar condição especial' : 'Validar condição especial'; ?></h3>
         <p class="muted">Analise a documentação de <?php echo e((string) ($person['nome_completo'] ?? '')); ?> sem sair desta página.</p>
     </div>
     <button type="button" class="popup-close-icon" id="admin-condition-validation-close" aria-label="Fechar validação">&times;</button>
@@ -77,6 +77,7 @@ foreach ($selectedDisabilityTypes as $selectedType) {
     </div>
 
     <form method="POST" action="<?php echo e(url(!empty($professorView) ? '/professor/certificados/validacao/salvar' : '/admin/certificados/validacao/salvar')); ?>" class="stack-form" id="admin-condition-validation-form" data-manual-submit="1">
+        <?php if (!empty($internView)) { ?><fieldset disabled><?php } ?>
         <input type="hidden" name="person_id" value="<?php echo e((string) ($person['id'] ?? '0')); ?>">
         <input type="hidden" name="condition_slug" value="<?php echo e((string) ($condition['slug'] ?? '')); ?>">
 
@@ -119,9 +120,10 @@ foreach ($selectedDisabilityTypes as $selectedType) {
             <p class="muted">Enquanto não houver PDF enviado para esta condição, não há como concluir a validação administrativa.</p>
         <?php } ?>
 
+        <?php if (!empty($internView)) { ?></fieldset><?php } ?>
         <div class="popup-builder-actions">
             <button type="button" class="btn btn-secondary" id="admin-condition-validation-cancel">Fechar/Cancelar</button>
-            <button type="submit" class="btn btn-primary" <?php echo $documents === [] ? 'disabled' : ''; ?>>Salvar validação</button>
+            <?php if (empty($internView)) { ?><button type="submit" class="btn btn-primary" <?php echo $documents === [] ? 'disabled' : ''; ?>>Salvar validação</button><?php } ?>
         </div>
     </form>
 </div>

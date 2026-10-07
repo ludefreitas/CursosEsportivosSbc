@@ -2218,7 +2218,7 @@
                             .append($('<span>', { class: 'user-notification-item-head' }).append($('<strong>', { text: String(item.assunto || '') }), $('<small>', { text: formatDate(item.created_at) })))
                             .append($('<span>', { text: String(item.aluno_nome || '') }))
                             .append($('<span>', { class: 'muted', text: preview.length > 180 ? preview.slice(0, 177) + '...' : preview })));
-                        if (item.visualizada_em) $row.append($('<button>', { type: 'button', class: 'link-button user-notification-delete', 'data-user-notification-delete': String(item.destinatario_id || ''), text: 'Excluir' }));
+                        if (item.visualizada_em && $('body').attr('data-intern-restricted') !== '1') $row.append($('<button>', { type: 'button', class: 'link-button user-notification-delete', 'data-user-notification-delete': String(item.destinatario_id || ''), text: 'Excluir' }));
                         $list.append($row);
                     });
                     $content.empty().append($list);
@@ -2261,7 +2261,7 @@
                                 .append($('<button>', { type: 'button', class: 'btn btn-primary', 'data-rematriculation-answer': 'sim', 'data-rematriculation-invite': String(rematriculation.rematricula_convite_id), text: 'SIM — tenho interesse' }))
                                 .append($('<button>', { type: 'button', class: 'btn btn-danger', 'data-rematriculation-answer': 'nao', 'data-rematriculation-invite': String(rematriculation.rematricula_convite_id), text: 'Não tenho interesse' }))));
                     }
-                    $detail.append($('<div>', { class: 'user-notification-delete-area' })
+                    if (!response.read_only) $detail.append($('<div>', { class: 'user-notification-delete-area' })
                         .append($('<button>', { type: 'button', class: 'link-button user-notification-delete-discreet', 'data-user-notification-delete': String(item.id || ''), text: 'Excluir notificação' })));
                     $content.empty().append($detail);
                 }, 'json').fail(function (xhr) { $content.html($('<p>', { class: 'alert-inline', text: App.core.extrairMensagemErroAjax(xhr).mensagem })); });

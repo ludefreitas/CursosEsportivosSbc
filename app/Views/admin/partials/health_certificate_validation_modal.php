@@ -12,7 +12,7 @@ $currentValidationNote = (string) ($certificate['observacao_validacao'] ?? '');
 ?>
 <div class="popup-head admin-popup-head">
     <div>
-        <h3 id="admin-health-certificate-validation-title">Validar atestado de saúde</h3>
+        <h3 id="admin-health-certificate-validation-title"><?php echo !empty($internView) ? 'Consultar atestado de saúde' : 'Validar atestado de saúde'; ?></h3>
         <p class="muted">Analise o <?php echo e(strtolower((string) ($certificateType['label'] ?? 'atestado'))); ?> de <?php echo e((string) ($person['nome_completo'] ?? '')); ?> sem sair desta página.</p>
     </div>
     <button type="button" class="popup-close-icon" id="admin-health-certificate-validation-close" aria-label="Fechar validação do atestado">&times;</button>
@@ -45,6 +45,7 @@ $currentValidationNote = (string) ($certificate['observacao_validacao'] ?? '');
     </div>
 
     <form method="POST" action="<?php echo e(url(!empty($professorView) ? '/professor/atestados/validacao/salvar' : '/admin/atestados/validacao/salvar')); ?>" class="stack-form" id="admin-health-certificate-validation-form" data-manual-submit="1">
+        <?php if (!empty($internView)) { ?><fieldset disabled><?php } ?>
         <input type="hidden" name="person_id" value="<?php echo e((string) ($person['id'] ?? '0')); ?>">
         <input type="hidden" name="certificate_type" value="<?php echo e((string) ($certificateType['slug'] ?? '')); ?>">
 
@@ -83,9 +84,10 @@ $currentValidationNote = (string) ($certificate['observacao_validacao'] ?? '');
             <small class="muted">Ao reprovar um atestado, informe o motivo para orientar o novo envio.</small>
         </label>
 
+        <?php if (!empty($internView)) { ?></fieldset><?php } ?>
         <div class="popup-builder-actions">
             <button type="button" class="btn btn-secondary" id="admin-health-certificate-validation-cancel">Fechar/Cancelar</button>
-            <button type="submit" class="btn btn-primary">Salvar validação</button>
+            <?php if (empty($internView)) { ?><button type="submit" class="btn btn-primary">Salvar validação</button><?php } ?>
         </div>
     </form>
 </div>

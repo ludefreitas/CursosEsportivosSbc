@@ -104,14 +104,14 @@ class NotificationService
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function read(int $accountId, int $recipientId): array
+    public function read(int $accountId, int $recipientId, bool $markAsRead = true): array
     {
         $pdo = Database::connection();
         $stmt = $pdo->prepare('SELECT nd.id, nd.visualizada_em, nd.pessoa_id, n.id AS notificacao_id, n.tipo, n.assunto, n.mensagem, n.orientacao_texto, n.orientacao_url, n.contexto_json, n.created_at, autor.nome_completo AS autor_nome, aluno.nome_completo AS aluno_nome FROM notificacoes_destinatarios nd INNER JOIN notificacoes n ON n.id=nd.notificacao_id INNER JOIN contas ac ON ac.id=n.autor_conta_id INNER JOIN pessoas autor ON autor.cpf=ac.cpf INNER JOIN pessoas aluno ON aluno.id=nd.pessoa_id WHERE nd.id=:id AND nd.destinatario_conta_id=:conta AND nd.arquivada_em IS NULL LIMIT 1');
         $stmt->execute([':id' => $recipientId, ':conta' => $accountId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) throw new RuntimeException('Notificação não encontrada.');
-        if (empty($row['visualizada_em'])) {
+        if ($markAsRead && empty($row['visualizada_em'])) {
             $pdo->prepare('UPDATE notificacoes_destinatarios SET visualizada_em=NOW() WHERE id=:id AND destinatario_conta_id=:conta AND visualizada_em IS NULL')->execute([':id' => $recipientId, ':conta' => $accountId]);
             $row['visualizada_em'] = date('Y-m-d H:i:s');
             AuditLogService::record('notificacao.visualizada', 'notificacoes', (int) $row['notificacao_id'], ['destinatario_id' => $recipientId, 'pessoa_id' => (int) $row['pessoa_id']]);

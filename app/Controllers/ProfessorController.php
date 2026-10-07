@@ -155,7 +155,7 @@ class ProfessorController extends Controller
 
     public function classCopyOptions(): void
     {
-        $this->assertProfessorAccess();
+        $this->assertProfessorMutationAccess();
         try {
             $service = new \App\Services\ClassCopyService();
             $stage = trim((string) ($_GET['etapa'] ?? 'temporadas'));
@@ -178,7 +178,7 @@ class ProfessorController extends Controller
 
     public function saveAssignedClass(): void
     {
-        $user = $this->assertProfessorAccess();
+        $user = $this->assertProfessorMutationAccess();
         try {
             $service = new \App\Services\CourseEnrollmentService();
             $classId = (int) ($_POST['id'] ?? 0);
@@ -222,7 +222,7 @@ class ProfessorController extends Controller
 
     public function changeAssignedClassStatus(): void
     {
-        $user = $this->assertProfessorAccess();
+        $user = $this->assertProfessorMutationAccess();
         try {
             $service = new \App\Services\CourseEnrollmentService();
             $classId = (int) ($_POST['turma_id'] ?? 0);
@@ -236,7 +236,7 @@ class ProfessorController extends Controller
 
     public function deleteAssignedClass(): void
     {
-        $user = $this->assertProfessorAccess();
+        $user = $this->assertProfessorMutationAccess();
         try {
             $service = new \App\Services\CourseEnrollmentService();
             $classId = (int) ($_POST['turma_id'] ?? 0);
@@ -343,7 +343,7 @@ class ProfessorController extends Controller
      */
     public function storeWeeklySchedule(): void
     {
-        $user = $this->assertProfessorAccess();
+        $user = $this->assertProfessorMutationAccess();
 
         try {
             $this->adminService->createWeeklySchedule((int) ($user['conta_id'] ?? 0), $_POST);
@@ -386,7 +386,7 @@ class ProfessorController extends Controller
 
     public function updateWeeklySchedule(): void
     {
-        $user = $this->assertProfessorAccess();
+        $user = $this->assertProfessorMutationAccess();
 
         try {
             $schedule = $this->adminService->updateWeeklySchedule(
@@ -407,7 +407,7 @@ class ProfessorController extends Controller
 
     public function deactivateWeeklySchedule(): void
     {
-        $user = $this->assertProfessorAccess();
+        $user = $this->assertProfessorMutationAccess();
 
         try {
             $this->adminService->deactivateWeeklySchedule((int) ($_POST['horario_semanal_id'] ?? 0), (int) ($user['conta_id'] ?? 0));
@@ -419,7 +419,7 @@ class ProfessorController extends Controller
 
     public function activateWeeklySchedule(): void
     {
-        $user = $this->assertProfessorAccess();
+        $user = $this->assertProfessorMutationAccess();
 
         try {
             $this->adminService->activateWeeklySchedule((int) ($_POST['horario_semanal_id'] ?? 0), (int) ($user['conta_id'] ?? 0));
@@ -483,7 +483,7 @@ class ProfessorController extends Controller
 
     public function updateEnrollmentStatus(): void
     {
-        $user = $this->assertProfessorAccess();
+        $user = $this->assertProfessorMutationAccess();
         try {
             $courseEnrollmentService = new \App\Services\CourseEnrollmentService();
             $enrollmentId = (int) ($_POST['inscricao_id'] ?? 0);
@@ -534,7 +534,7 @@ class ProfessorController extends Controller
 
     public function createEnrollmentToken(): void
     {
-        $user = $this->assertProfessorAccess();
+        $user = $this->assertProfessorMutationAccess();
         try {
             $token = (new \App\Services\CourseEnrollmentService())->createExceptionToken((int) $user['conta_id'], $_POST);
             $this->jsonResponse(['success' => true, 'message' => 'Token criado com sucesso.', 'token' => $token]);
@@ -552,7 +552,7 @@ class ProfessorController extends Controller
 
     public function excludeEnrollmentToken(): void
     {
-        $user = $this->assertProfessorAccess();
+        $user = $this->assertProfessorMutationAccess();
         try {
             (new \App\Services\CourseEnrollmentService())->excludeEnrollmentToken((int) ($_POST['token_id'] ?? 0), (int) $user['conta_id']);
             $this->jsonResponse(['success' => true, 'message' => 'Token marcado como excluído.']);
@@ -568,7 +568,7 @@ class ProfessorController extends Controller
 
     public function saveConditionValidation(): void
     {
-        $this->assertProfessorAccess();
+        $this->assertProfessorMutationAccess();
         try {
             $data = $this->adminService->updateConditionValidation((int) ($_POST['person_id'] ?? 0), (string) ($_POST['condition_slug'] ?? ''), (int) Auth::id(), $_POST);
             $this->jsonResponse(['success' => true, 'message' => 'Validação do certificado atualizada com sucesso.', 'html' => $this->renderValidationHtml('condition', $data), 'panel_html' => $this->renderPanel('condition')]);
@@ -584,7 +584,7 @@ class ProfessorController extends Controller
 
     public function saveHealthCertificateValidation(): void
     {
-        $this->assertProfessorAccess();
+        $this->assertProfessorMutationAccess();
         try {
             $data = $this->adminService->updateHealthCertificateValidation((int) ($_POST['person_id'] ?? 0), (string) ($_POST['certificate_type'] ?? ''), (int) Auth::id(), $_POST);
             $this->jsonResponse(['success' => true, 'message' => 'Validação do atestado atualizada com sucesso.', 'html' => $this->renderValidationHtml('health', $data), 'panel_html' => $this->renderPanel('health')]);
@@ -727,6 +727,7 @@ class ProfessorController extends Controller
     {
         ob_start();
         $professorView = true;
+        $internView = \App\Services\InternPermissionService::isRestricted($this->userService->currentAccountWithRoles()['roles'] ?? []);
         extract($data, EXTR_SKIP);
         require ROOT_PATH . '/app/Views/admin/partials/' . ($type === 'condition' ? 'condition_validation_modal.php' : 'health_certificate_validation_modal.php');
         return (string) ob_get_clean();
@@ -750,6 +751,15 @@ class ProfessorController extends Controller
         return $data;
     }
 
+    private function assertProfessorMutationAccess(): array
+    {
+        $user = $this->assertProfessorAccess();
+        if (\App\Services\InternPermissionService::isRestricted($user['roles'] ?? [])) {
+            $this->jsonResponse(['success' => false, 'message' => 'Esta ação não está disponível para estagiários.'], 403);
+            exit;
+        }
+        return $user;
+    }
     private function assertProfessorAccess(): array
     {
         if (!Auth::check()) {

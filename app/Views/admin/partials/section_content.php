@@ -720,7 +720,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <h2>Horários semanais cadastrados</h2>
                         <p class="muted">Consulte os horários existentes ou crie um novo horário semanal.</p>
                     </div>
-                    <button type="button" class="btn btn-primary" id="admin-weekly-schedule-create-open">Criar horário semanal</button>
+                    <?php if (empty($internView)) { ?><button type="button" class="btn btn-primary" id="admin-weekly-schedule-create-open">Criar horário semanal</button><?php } ?>
                 </div>
                 <form class="stack-form admin-agenda-filter-form" id="admin-agenda-filter-form" data-admin-section-filter="agenda" data-manual-submit="1">
                     <div class="admin-agenda-filter-row">
