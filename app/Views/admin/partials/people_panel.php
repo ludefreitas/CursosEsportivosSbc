@@ -43,17 +43,17 @@
                     <th>Nome</th>
                     <th>CPF</th>
                     <th>Cadastro</th>
-                    <th>Condição</th>
+<?php if (empty($internView)) { ?>                    <th>Condição</th>
                     <th>Atestado clínico</th>
                     <th>Atestado dermatológico</th>
-                    <th>Responsável</th>
-                    <th>Inscrições</th>
+<?php } ?>                    <th>Responsável</th>
+                    <?php if (empty($internView)) { ?><th>Inscrições</th><?php } ?>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($people)) { ?>
                     <tr>
-                        <td colspan="8" class="muted">Nenhuma pessoa encontrada para este filtro.</td>
+                        <td colspan="<?php echo !empty($internView) ? '4' : '8'; ?>" class="muted">Nenhuma pessoa encontrada para este filtro.</td>
                     </tr>
                 <?php } ?>
                 <?php foreach ($people as $person) { ?>
@@ -69,7 +69,7 @@
                         </td>
                         <td><?php echo e(!empty($professorView) ? format_cpf_professor((string) $person['cpf']) : format_cpf($person['cpf'])); ?></td>
                         <td data-person-cadastro><?php echo (int) $person['cadastro_completo'] === 1 ? 'Completo' : 'Pendente'; ?></td>
-                        <td>
+                        <?php if (empty($internView)) { ?><td>
                             <?php if (empty($person['condition_indicators'])) { ?>
                                 <span class="muted">Nenhuma</span>
                             <?php } else { ?>
@@ -212,7 +212,7 @@
                                 </div>
                             <?php } ?>
                         </td>
-                        <td>
+                        <?php } ?><td>
                             <?php if (!empty($person['nome_responsavel'])) { ?>
                                 <span><?php echo e((string) $person['nome_responsavel']); ?></span>
                                 <?php if (!empty($person['cpf_responsavel'])) { ?>
@@ -222,10 +222,10 @@
                                 <span class="muted">-</span>
                             <?php } ?>
                         </td>
-                        <td>
+                        <?php if (empty($internView)) { ?><td>
                             <button type="button" class="link-button admin-person-link" data-person-enrollments="1" data-person-id="<?php echo e((string) $person['id']); ?>" data-person-name="<?php echo e((string) $person['nome_completo']); ?>">Ver inscrições</button>
                             <button type="button" class="link-button" data-notification-send="pessoa" data-person-id="<?php echo e((string) $person['id']); ?>">Notificar responsável</button>
-                        </td>
+                        </td><?php } ?>
                     </tr>
                 <?php } ?>
             </tbody>
@@ -249,9 +249,9 @@
                     <p><strong>Sexo:</strong> <span id="admin-person-details-sex">-</span></p>
                     <p><strong>Data de nascimento:</strong> <span id="admin-person-details-birth-date">-</span></p>
                     <p><strong>Cadastro:</strong> <span id="admin-person-details-registration">-</span></p>
-                    <p><strong>Conta:</strong> <span id="admin-person-details-account">-</span></p>
+                    <?php if (empty($internView)) { ?><p><strong>Conta:</strong> <span id="admin-person-details-account">-</span></p><?php } ?>
                     <p><strong>Condições declaradas:</strong> <span id="admin-person-details-conditions">-</span></p>
-                    <p><strong>Situação dos certificados:</strong> <span id="admin-person-details-certificates">-</span></p>
+                    <?php if (empty($internView)) { ?><p><strong>Situação dos certificados:</strong> <span id="admin-person-details-certificates">-</span></p><?php } ?>
                     <p><strong>Responsável atual:</strong> <span id="admin-person-details-responsible">-</span></p>
                     <p><strong>WhatsApp:</strong> <span id="admin-person-details-phone">-</span></p>
                     <p><strong>E-mail:</strong> <span id="admin-person-details-email">-</span></p>
@@ -264,7 +264,7 @@
 
                 <div class="popup-actions">
                     <button type="button" class="btn btn-secondary" id="admin-person-details-dismiss">Fechar</button>
-                    <button type="button" class="btn btn-primary" id="admin-person-details-edit">Editar</button>
+                    <?php if (empty($professorView)) { ?><button type="button" class="btn btn-primary" id="admin-person-details-edit">Editar</button><?php } ?>
                 </div>
             </div>
         </div>
@@ -546,6 +546,7 @@
 </article>
 <?php } ?>
 
+<?php if (empty($internView)) { ?>
 <div class="popup-overlay hidden" id="admin-person-enrollments-modal" aria-hidden="true">
     <div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="admin-person-enrollments-title">
         <div class="popup-head admin-popup-head">
@@ -688,4 +689,5 @@
         </div>
     </div>
 </div><?php } ?>
+<?php } ?>
 </div>

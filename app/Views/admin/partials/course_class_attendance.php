@@ -1,4 +1,8 @@
 <?php
+if (!empty($internView)) {
+    require __DIR__ . '/intern_class_attendance.php';
+    return;
+}
 $class = (array) ($attendance['class'] ?? []); $students = (array) ($attendance['students'] ?? []);
 $activeStudents = array_values(array_filter($students, static fn(array $r): bool => ($r['matricula_status'] ?? '') === 'matriculada'));
 $suspendedStudents = array_values(array_filter($students, static fn(array $r): bool => ($r['matricula_status'] ?? '') === 'suspensa'));

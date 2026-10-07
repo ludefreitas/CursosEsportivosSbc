@@ -28,7 +28,7 @@ $currentAdminName = (string) ($currentAdminName ?? '');
                     <th>Status</th>
                     <th>Motivo da justificativa</th>
                     <th>Ação</th>
-                    <th>Fez a chamada</th>
+                    <?php if (empty($internView)) { ?><th>Fez a chamada</th><?php } ?>
                 </tr>
             </thead>
             <tbody>
@@ -44,9 +44,9 @@ $currentAdminName = (string) ($currentAdminName ?? '');
                                 <span>CPF: <?php echo e(!empty($professorView) ? format_cpf_professor((string) ($booking['cpf'] ?? '')) : format_cpf((string) ($booking['cpf'] ?? ''))); ?></span>
                                 <span><?php echo e($booking['idade'] === null ? 'Idade não informada' : (string) $booking['idade'] . ' anos'); ?></span>
                                 <?php if (trim((string) ($booking['condicoes'] ?? '')) !== '') { ?><span><?php echo e((string) $booking['condicoes']); ?></span><?php } ?>
-                                <?php if (trim((string) ($booking['telefone_whatsapp'] ?? '')) !== '') { ?><a href="<?php echo e((string) $booking['whatsapp_url']); ?>" target="_blank" rel="noopener noreferrer">WhatsApp: <?php echo e((string) $booking['telefone_whatsapp']); ?></a><?php } ?>
+                                <?php if (trim((string) ($booking['telefone_whatsapp'] ?? '')) !== '') { ?><?php if (!empty($internView)) { ?><span>WhatsApp: <?php echo e((string) $booking['telefone_whatsapp']); ?></span><?php } else { ?><a href="<?php echo e((string) $booking['whatsapp_url']); ?>" target="_blank" rel="noopener noreferrer">WhatsApp: <?php echo e((string) $booking['telefone_whatsapp']); ?></a><?php } ?><?php } ?>
                                 <?php if (trim((string) ($booking['email'] ?? '')) !== '') { ?><span><?php echo e((string) $booking['email']); ?></span><?php } ?>
-                                <button type="button" class="link-button" data-notification-send="agendamento" data-booking-id="<?php echo e((string) $booking['id']); ?>">Notificar responsável</button>
+                                <?php if (empty($internView)) { ?><button type="button" class="link-button" data-notification-send="agendamento" data-booking-id="<?php echo e((string) $booking['id']); ?>">Notificar responsável</button><?php } ?>
                             </div>
                         </td>
                         <td data-label="Chamada" data-booking-short-status="1"><strong><?php echo e((string) ($booking['status_sigla'] ?? '-')); ?></strong></td>
@@ -89,7 +89,7 @@ $currentAdminName = (string) ($currentAdminName ?? '');
                                 <?php } ?>
                             <?php } ?>
                         </td>
-                        <td data-label="Fez a chamada" data-booking-caller-cell="1"><?php echo e(trim((string) ($booking['chamada_por_nome'] ?? '')) !== '' ? (string) $booking['chamada_por_nome'] : '-'); ?></td>
+                        <?php if (empty($internView)) { ?><td data-label="Fez a chamada" data-booking-caller-cell="1"><?php echo e(trim((string) ($booking['chamada_por_nome'] ?? '')) !== '' ? (string) $booking['chamada_por_nome'] : '-'); ?></td><?php } ?>
                     </tr>
                 <?php } ?>
             </tbody>

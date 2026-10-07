@@ -10,6 +10,13 @@ class ScheduleGridController extends Controller
 {
     public function index(): void
     {
+        if (\App\Core\Auth::check()) {
+            $account = (new \App\Services\UserService())->currentAccountWithRoles();
+            if (\App\Services\InternPermissionService::isRestricted($account['roles'] ?? [])) {
+                $this->jsonResponse(['success' => false, 'message' => 'A consulta de grades de horário não está disponível para estagiários.'], 403);
+                exit;
+            }
+        }
         $service = new ScheduleGridService();
         $error = null;
         $fieldOptions = ['turma' => 'Nome da turma', 'turma_id' => 'ID da turma', 'status' => 'Status da turma', 'modalidade' => 'Modalidade', 'professor' => 'Professor', 'professores_auxiliares' => 'Professores auxiliares', 'estagiarios' => 'Estagiários', 'horario' => 'Horário', 'idade' => 'Faixa etária', 'programa' => 'Programa', 'temporada' => 'Temporada no rodapé'];

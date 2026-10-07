@@ -34,6 +34,7 @@ class ProfessorController extends Controller
     {
         $user = $this->assertProfessorAccess();
         $sectionName = (string) ($_GET['nome'] ?? 'inicio');
+        if ($sectionName === 'inscricoes') { $this->assertProfessorMutationAccess(); }
         if (!in_array($sectionName, ['inicio', 'usuarios-pessoas', 'inscricoes', 'minhas-turmas', 'agenda'], true)) {
             $this->jsonResponse(['success' => false, 'message' => 'A seção não está disponível para professores.'], 403);
             return;
@@ -54,9 +55,10 @@ class ProfessorController extends Controller
 
     public function peoplePanel(): void
     {
-        $this->assertProfessorAccess();
+        $user = $this->assertProfessorAccess();
         try {
             $data = $this->buildPeopleData();
+            $data['internView'] = \App\Services\InternPermissionService::isRestricted($user['roles'] ?? []);
             extract($data, EXTR_SKIP);
             $professorView = true;
             ob_start();
@@ -70,16 +72,19 @@ class ProfessorController extends Controller
 
     public function personDetails(): void
     {
-        $this->assertProfessorAccess();
+        $user = $this->assertProfessorAccess();
         try {
             $person = $this->maskCpfData($this->adminService->getPersonDetails((int) ($_GET['id'] ?? 0)));
+            if (\App\Services\InternPermissionService::isRestricted($user['roles'] ?? [])) {
+                $person = \App\Services\InternPermissionService::studentData($person);
+            }
             $this->jsonResponse(['success' => true, 'person' => $person]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
     public function userDetails(): void
     {
-        $this->assertProfessorAccess();
+        $this->assertProfessorMutationAccess();
         try {
             $user = $this->maskCpfData($this->adminService->getUserDetails((int) ($_GET['id'] ?? 0)));
             $this->jsonResponse(['success' => true, 'user' => $user]);
@@ -88,7 +93,7 @@ class ProfessorController extends Controller
 
     public function userDependents(): void
     {
-        $this->assertProfessorAccess();
+        $this->assertProfessorMutationAccess();
         try {
             $payload = $this->adminService->listUserDependents((int) ($_GET['conta_id'] ?? 0));
             $this->jsonResponse([
@@ -142,7 +147,7 @@ class ProfessorController extends Controller
 
     public function personEnrollments(): void
     {
-        $this->assertProfessorAccess();
+        $this->assertProfessorMutationAccess();
         try {
             $this->jsonResponse([
                 'success' => true,
@@ -256,6 +261,7 @@ class ProfessorController extends Controller
             $classId = (int) ($_GET['turma_id'] ?? 0);
             if (!$service->professorIsAssignedToClass((int) $user['conta_id'], $classId)) { throw new \RuntimeException('Você não está atribuído a esta turma.'); }
             $attendance = $service->classAttendanceRoster($classId, trim((string) ($_GET['data'] ?? ''))); $professorView = true;
+            $internView = \App\Services\InternPermissionService::isRestricted($user['roles'] ?? []);
             ob_start(); require ROOT_PATH . '/app/Views/admin/partials/course_class_attendance.php'; $html = (string) ob_get_clean();
             $this->jsonResponse(['success' => true, 'html' => $html]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
@@ -263,7 +269,7 @@ class ProfessorController extends Controller
 
     public function printableCourseClassAttendance(): void
     {
-        $user = $this->assertProfessorAccess();
+        $user = $this->assertProfessorMutationAccess();
         $classId = (int) ($_GET['turma_id'] ?? 0);
         $service = new \App\Services\CourseEnrollmentService();
         if (!$service->professorIsAssignedToClass((int) ($user['conta_id'] ?? 0), $classId)) {
@@ -293,7 +299,7 @@ class ProfessorController extends Controller
 
     public function printableCourseClassAddresses(): void
     {
-        $user = $this->assertProfessorAccess();
+        $user = $this->assertProfessorMutationAccess();
         $classId = (int) ($_GET['turma_id'] ?? 0);
         $service = new \App\Services\CourseEnrollmentService();
         if (!$service->professorIsAssignedToClass((int) ($user['conta_id'] ?? 0), $classId)) {
@@ -452,6 +458,7 @@ class ProfessorController extends Controller
             }
             $currentAdminName = (string) ($user['nome_completo'] ?? '');
             $professorView = true;
+            $internView = \App\Services\InternPermissionService::isRestricted($user['roles'] ?? []);
             ob_start();
             require ROOT_PATH . '/app/Views/admin/partials/booking_occurrence_modal_content.php';
             $this->jsonResponse(['success' => true, 'html' => (string) ob_get_clean()]);
@@ -561,7 +568,7 @@ class ProfessorController extends Controller
 
     public function conditionValidationModal(): void
     {
-        $this->assertProfessorAccess();
+        $this->assertProfessorMutationAccess();
         try { $this->renderValidationModal('condition'); }
         catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
@@ -577,7 +584,7 @@ class ProfessorController extends Controller
 
     public function healthCertificateValidationModal(): void
     {
-        $this->assertProfessorAccess();
+        $this->assertProfessorMutationAccess();
         try { $this->renderValidationModal('health'); }
         catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
@@ -593,7 +600,7 @@ class ProfessorController extends Controller
 
     public function certificateDocument(): void
     {
-        $this->assertProfessorAccess();
+        $this->assertProfessorMutationAccess();
         try {
             $document = $this->adminService->getCertificateDocumentForAdmin((int) ($_GET['document_id'] ?? 0));
             $relativePath = (string) ($document['caminho_armazenado'] ?? '');
@@ -611,7 +618,7 @@ class ProfessorController extends Controller
 
     public function healthCertificateDocument(): void
     {
-        $this->assertProfessorAccess();
+        $this->assertProfessorMutationAccess();
         try {
             $document = $this->adminService->getHealthCertificateDocumentForAdmin((int) ($_GET['certificate_id'] ?? 0));
             $relativePath = (string) ($document['caminho_arquivo'] ?? '');
@@ -629,13 +636,14 @@ class ProfessorController extends Controller
 
     private function buildPeopleData(): array
     {
+        $internView = \App\Services\InternPermissionService::isRestricted($this->userService->currentAccountWithRoles()['roles'] ?? []);
         $peopleLimit = max(1, min(AdminService::MAX_PEOPLE_LIMIT, (int) ($_GET['people_limit'] ?? AdminService::DEFAULT_PEOPLE_LIMIT)));
         return [
             'people' => $this->adminService->listUsersAndDependents($peopleLimit, (string) ($_GET['people_search'] ?? '')),
             'usersOnly' => [],
             'peopleUsersTotals' => $this->adminService->peopleAndUsersTotals(),
-            'conditionValidationRows' => $this->adminService->listPeopleRequiringConditionValidation(),
-            'healthCertificateValidationRows' => $this->adminService->listPeopleRequiringHealthCertificateValidation(),
+            'conditionValidationRows' => $internView ? [] : $this->adminService->listPeopleRequiringConditionValidation(),
+            'healthCertificateValidationRows' => $internView ? [] : $this->adminService->listPeopleRequiringHealthCertificateValidation(),
             'availableRoles' => [], 'canManageRoles' => false,
             'peopleLimit' => $peopleLimit, 'usersLimit' => $peopleLimit,
             'peopleLimitMax' => AdminService::MAX_PEOPLE_LIMIT,
