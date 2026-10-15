@@ -8,11 +8,6 @@ use App\Services\UserService;
 
 final class ModalityEvaluationController extends Controller
 {
-    private function admin(array $account): bool
-    {
-        return array_intersect(array_column($account['roles'] ?? [], 'slug'),['master_admin','admin','supervisor','coordinator']) !== [];
-    }
-
     private function validateToken(): void
     {
         if (empty($_SESSION['evaluation_csrf']) || !hash_equals($_SESSION['evaluation_csrf'],(string)($_POST['csrf'] ?? ''))) {
@@ -36,7 +31,7 @@ final class ModalityEvaluationController extends Controller
         try { $service->authorize($account,$person,$modality); }
         catch (\RuntimeException $error) { $this->jsonResponse(['success'=>false,'message'=>$error->getMessage()],403); return; }
         $_SESSION['evaluation_csrf'] ??= bin2hex(random_bytes(32));
-        try { $this->jsonResponse(['success'=>true,'csrf'=>$_SESSION['evaluation_csrf'],'can_configure'=>$this->admin($account),'settings'=>(new \App\Services\ModalityCertificateSettings())->get(),'can_manage'=>ModalityEvaluationService::canManage($account['roles'] ?? [])] + $service->details($person,$modality)); }
+        try { $this->jsonResponse(['success'=>true,'csrf'=>$_SESSION['evaluation_csrf'],'can_manage'=>ModalityEvaluationService::canManage($account['roles'] ?? [])] + $service->details($person,$modality,!ModalityEvaluationService::canManage($account['roles'] ?? []) || ($_GET['visualizacao'] ?? '')==='usuario')); }
         catch (\Throwable $error) { $this->jsonResponse(['success'=>false,'message'=>'Não foi possível consultar a avaliação.'],422); }
     }
 
@@ -62,6 +57,10 @@ final class ModalityEvaluationController extends Controller
         try {
             $record = $service->certificate((int)($_GET['id'] ?? 0));
             $service->authorize($account,(int)$record['pessoa_id'],(int)$record['modalidade_id']);
+            if (!ModalityEvaluationService::canManage($account['roles'] ?? [])) {
+                $visible=$service->details((int)$record['pessoa_id'],(int)$record['modalidade_id'],true)['certificates'];
+                if (!in_array((int)$record['id'],array_map('intval',array_column($visible,'id')),true)) throw new \RuntimeException('Certificado substituído por uma atualização de nível.');
+            }
         } catch (\RuntimeException $error) { $this->jsonResponse(['success'=>false,'message'=>'Certificado indisponível para esta conta.'],403); return; }
         $pdf = (new \App\Services\ModalityLevelPdfService())->render($record);
         header('Content-Type: application/pdf');
@@ -71,14 +70,4 @@ final class ModalityEvaluationController extends Controller
         echo $pdf;
     }
 
-    public function settings(): void
-    {
-        $account = $this->account();
-        if (!$this->admin($account)) { $this->jsonResponse(['success'=>false,'message'=>'Somente a administração pode configurar o certificado.'],403); return; }
-        $this->validateToken();
-        try {
-            (new \App\Services\ModalityCertificateSettings())->save((string)($_POST['instituicao'] ?? ''),$_FILES['logo'] ?? [],!empty($_POST['remover_logo']));
-            $this->jsonResponse(['success'=>true,'message'=>'Modelo do certificado atualizado.']);
-        } catch (\RuntimeException $error) { $this->jsonResponse(['success'=>false,'message'=>$error->getMessage()],422); }
-    }
 }

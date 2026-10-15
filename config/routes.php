@@ -25,7 +25,6 @@ return [
     ['GET', '/avaliacoes/modalidade', [ModalityEvaluationController::class, 'details']],
     ['POST', '/avaliacoes/modalidade', [ModalityEvaluationController::class, 'save']],
     ['GET', '/avaliacoes/certificado.pdf', [ModalityEvaluationController::class, 'certificate']],
-    ['POST', '/avaliacoes/certificado/modelo', [ModalityEvaluationController::class, 'settings']],
     ['GET', '/', [HomeController::class, 'index']],
     ['GET', '/tutorial', [HomeController::class, 'tutorial']],
     ['GET', '/grades-de-horario', [ScheduleGridController::class, 'index']],

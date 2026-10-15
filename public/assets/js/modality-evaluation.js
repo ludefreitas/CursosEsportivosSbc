@@ -18,7 +18,7 @@
         (data.certificates || []).forEach(function (record) { target.append($('<p>').append(certificateLink(record))); });
         if (!seen.size && !(data.certificates || []).length) target.append($('<p>', {text: 'Nenhuma avaliação ou certificado de nível registrado.'}));
     }
-    function request(person, modality) { return $.getJSON(url('/avaliacoes/modalidade'), {pessoa_id: person, modalidade_id: modality || 0}); }
+    function request(person, modality, userView) { return $.getJSON(url('/avaliacoes/modalidade'), {pessoa_id: person, modalidade_id: modality || 0, visualizacao: userView ? 'usuario' : ''}); }
     function modal() {
         let element = $('#modality-evaluation-modal');
         if (element.length) return element;
@@ -50,21 +50,11 @@
                 if ((data.evaluations || []).length) status.val(data.evaluations[0].situacao);
                 const active = (data.certificates || []).find(function (item) { return item.status === 'ativo'; });
                 if (active && status.val() === 'apto') level.val(String(active.nivel_modalidade_id));
-                form.append($('<label>').append($('<span>', {text: 'Situação da aptidão'}), status), $('<label>').append($('<span>', {text: 'Nível'}), level), $('<label>').append($('<span>', {text: 'Observações técnicas / justificativa'}), $('<textarea>', {name: 'observacoes', rows: 4, maxlength: 4000})), $('<label>', {class: 'checkbox-chip'}).append($('<input>', {type: 'checkbox', name: 'confirmar_rebaixamento', value: '1'}), $('<span>', {text: 'Confirmo o rebaixamento de nível, quando aplicável.'})), $('<p>', {class: 'muted', text: 'Não apto ou Pendente inativam o certificado de nível atual. O histórico permanece disponível.'}), $('<div>', {class: 'alert-inline hidden', 'data-evaluation-error': '1', role: 'alert'}), $('<button>', {type: 'submit', class: 'btn btn-primary', text: 'Salvar avaliação'}));
+                form.append($('<label>').append($('<span>', {text: 'Situação da aptidão'}), status), $('<label>').append($('<span>', {text: 'Nível'}), level), $('<label>').append($('<span>', {text: 'Observações técnicas / justificativa'}), $('<textarea>', {name: 'observacoes', rows: 4, maxlength: 4000})), $('<label>', {class: 'checkbox-chip'}).append($('<input>', {type: 'checkbox', name: 'confirmar_rebaixamento', value: '1'}), $('<span>', {text: 'Confirmo o rebaixamento de nível, quando aplicável.'})), $('<p>', {class: 'muted', text: 'A mudança de nível permite apenas o nível anterior ou seguinte. Não apto ou Pendente inativam o certificado de nível atual. O histórico permanece disponível.'}), $('<div>', {class: 'alert-inline hidden', 'data-evaluation-error': '1', role: 'alert'}), $('<button>', {type: 'submit', class: 'btn btn-primary', text: 'Salvar avaliação'}));
                 status.on('change', function () { const apt = status.val() === 'apto'; level.prop('disabled', !apt); if (!apt) level.val(''); }).trigger('change');
                 target.append(form);
             }
-            if (data.can_configure) {
-                const settings = $('<details>').append($('<summary>', {text: 'Configurar logo e instituição do certificado'}));
-                const form = $('<form>', {class: 'stack-form', 'data-certificate-settings': '1', 'data-manual-submit': '1'}).append(
-                    $('<input>', {type: 'hidden', name: 'csrf', value: data.csrf}),
-                    $('<label>').append($('<span>', {text: 'Nome da instituição (abaixo do logo)'}), $('<input>', {name: 'instituicao', value: data.settings.institution, maxlength: 150, required: true})),
-                    $('<label>').append($('<span>', {text: 'Logo em JPG — até 2 MB'}), $('<input>', {type: 'file', name: 'logo', accept: 'image/jpeg'})),
-                    $('<label>', {class: 'checkbox-chip'}).append($('<input>', {type: 'checkbox', name: 'remover_logo', value: '1'}), $('<span>', {text: 'Remover logo e manter espaço reservado'})),
-                    $('<button>', {type: 'submit', class: 'btn btn-secondary', text: 'Salvar modelo do certificado'}), $('<p>', {'data-settings-message': '1', role: 'status'}));
-                if (data.settings.logo) form.prepend($('<img>', {src: url(data.settings.logo), alt: 'Logo atual da instituição', class: 'modality-certificate-logo'}));
-                target.append(settings.append(form));
-            }
+
         }).fail(function (xhr) { target.text(App.core.extrairMensagemErroAjax(xhr).mensagem); });
     }
     $(document).on('click', '[data-evaluation-open]', function () { open(String($(this).attr('data-evaluation-person')), String($(this).attr('data-evaluation-modality')), $(this).attr('data-evaluation-open') === 'edit'); });
@@ -78,14 +68,10 @@
             else form.find('[data-evaluation-error]').removeClass('hidden').text(data.message);
         }).fail(function (xhr) { form.find('[data-evaluation-error]').removeClass('hidden').text(App.core.extrairMensagemErroAjax(xhr).mensagem); }).always(function () { button.prop('disabled', false); });
     });
-    $(document).on('submit', '[data-certificate-settings]', function (event) {
-        event.preventDefault(); const form = $(this); const button = form.find('[type=submit]').prop('disabled', true);
-        $.ajax({url: url('/avaliacoes/certificado/modelo'), method: 'POST', dataType: 'json', data: new FormData(this), processData: false, contentType: false}).done(function (data) { form.find('[data-settings-message]').text(data.message); }).fail(function (xhr) { form.find('[data-settings-message]').text(App.core.extrairMensagemErroAjax(xhr).mensagem); }).always(function () { button.prop('disabled', false); });
-    });
     function loadLists() {
         $('[data-evaluation-person-list]:not([data-evaluation-loaded])').each(function () {
             const element = $(this).attr('data-evaluation-loaded', '1').text('Carregando níveis...');
-            request(element.attr('data-evaluation-person-list'), 0).done(function (data) { if (data.success) records(data, element); else element.text(data.message); }).fail(function (xhr) { element.text(App.core.extrairMensagemErroAjax(xhr).mensagem); });
+            request(element.attr('data-evaluation-person-list'), 0, true).done(function (data) { if (data.success) records(data, element); else element.text(data.message); }).fail(function (xhr) { element.text(App.core.extrairMensagemErroAjax(xhr).mensagem); });
         });
     }
     $(function () {

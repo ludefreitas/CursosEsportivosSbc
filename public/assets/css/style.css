@@ -4,6 +4,16 @@
  * conforme a largura visual ocupada pelo quadro.
  */
 
+/* Cor compartilhada pelos links de aptidão em todos os cards. */
+.link-button[data-evaluation-open="view"] {
+    color: #d96500;
+}
+
+.link-button[data-evaluation-open="view"]:hover,
+.link-button[data-evaluation-open="view"]:focus-visible {
+    color: #b65300;
+}
+
 /* Página inicial: os quadros usam tags diferentes, mas o intervalo é único. */
 .pagina-home .page-content > :is(
     .home-banner-visual,

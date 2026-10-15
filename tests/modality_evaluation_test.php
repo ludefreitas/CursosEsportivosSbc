@@ -37,7 +37,7 @@ namespace {
                 public function fetch(int $mode): mixed {
                     if (str_contains($this->sql,'FROM certificados_nivel_modalidade')) return $this->db->current;
                     if (str_contains($this->sql,'FROM niveis_modalidade')) {
-                        $id=$this->params[':id']; return ['id'=>$id,'slug'=>[1=>'iniciante',2=>'intermediario',3=>'avancado'][$id] ?? 'invalido'];
+                        $id=$this->params[':id']; return ['id'=>$id,'slug'=>[1=>'iniciante',2=>'intermediario',3=>'avancado',4=>'treinamento'][$id] ?? 'invalido'];
                     }
                     return false;
                 }
@@ -59,7 +59,9 @@ namespace {
     try { $service->save(1,1,1,['situacao'=>'apto','nivel_modalidade_id'=>1]); throw new \LogicException('Rebaixamento sem confirmação aceito.'); }
     catch (\RuntimeException $expected) {}
     if (!$pdo->rolledBack || $pdo->writes !== []) throw new \RuntimeException('Rebaixamento inválido gravou dados.');
-    $service->save(1,1,1,['situacao'=>'apto','nivel_modalidade_id'=>1,'confirmar_rebaixamento'=>1,'observacoes'=>'Justificativa técnica.']);
+    try { $service->save(1,1,1,['situacao'=>'apto','nivel_modalidade_id'=>1,'confirmar_rebaixamento'=>1,'observacoes'=>'Salto inválido.']); throw new \LogicException('Salto de dois níveis aceito.'); }
+    catch (\RuntimeException $expected) {}
+    $service->save(1,1,1,['situacao'=>'apto','nivel_modalidade_id'=>2,'confirmar_rebaixamento'=>1,'observacoes'=>'Justificativa técnica.']);
     if (count($pdo->writes)!==3 || $pdo->writes[2]['params'][':t'] !== 'rebaixamento') throw new \RuntimeException('Histórico de rebaixamento incorreto.');
     $pdo->writes=[];
     $service->save(1,1,1,['situacao'=>'apto','nivel_modalidade_id'=>3]);
@@ -71,5 +73,30 @@ namespace {
         try { $service->save(1,1,1,$invalid); throw new \LogicException('Avaliação inválida aceita.'); }
         catch (\RuntimeException $expected) {}
     }
-    echo "Avaliação: permissões, rebaixamento, histórico e certificados validados sem banco real.\n";
+    // Evolução de um nível, limites e certificados inativos não permitem saltos.
+    $pdo->current=['id'=>4,'nivel_modalidade_id'=>1,'slug'=>'iniciante','status'=>'ativo'];$pdo->writes=[];
+    try {$service->save(1,1,1,['situacao'=>'apto','nivel_modalidade_id'=>3]);throw new \LogicException('Salto de evolução aceito.');}catch(\RuntimeException $expected){}
+    if($pdo->writes!==[])throw new \RuntimeException('Salto de evolução gravou dados.');
+    $service->save(1,1,1,['situacao'=>'apto','nivel_modalidade_id'=>2]);
+    if(($pdo->writes[2]['params'][':t']??'')!=='evolucao')throw new \RuntimeException('Evolução adjacente recusada.');
+    $pdo->current['status']='inativo';$pdo->writes=[];
+    try {$service->save(1,1,1,['situacao'=>'apto','nivel_modalidade_id'=>4]);throw new \LogicException('Certificado inativo permitiu salto.');}catch(\RuntimeException $expected){}
+    $service->save(1,1,1,['situacao'=>'apto','nivel_modalidade_id'=>1]);
+    if(count($pdo->writes)!==3)throw new \RuntimeException('Mesmo nível inativo não gerou certificado atualizado.');
+    $slugs=['iniciante','intermediario','avancado','treinamento'];
+    foreach($slugs as $from=>$slug)foreach($slugs as $to=>$next){
+        $accepted=true;try{\App\Services\ModalityEvaluationService::validateLevelTransition(['slug'=>$slug],['slug'=>$next]);}catch(\RuntimeException $error){$accepted=false;}
+        if($accepted!==(abs($from-$to)<=1))throw new \RuntimeException('Transição de nível inválida: '.$slug.' para '.$next);
+    }
+    $make=static fn(int $id,int $level,string $movement='evolucao',int $modality=1):array=>['id'=>$id,'modalidade_id'=>$modality,'nivel_modalidade_id'=>$level,'nivel_slug'=>$slugs[$level-1],'tipo_movimentacao'=>$movement,'status'=>'inativo'];
+    $history=[$make(1,1,'concessao'),$make(2,2),$make(3,3),$make(4,2,'rebaixamento')];
+    $visible=\App\Services\ModalityEvaluationService::userCertificates(array_reverse($history));
+    if(array_column($visible,'id')!==[4])throw new \RuntimeException('Rebaixamento expôs certificados antigos.');
+    $history[]=$make(5,3);$history[]=$make(6,1,'concessao',2);
+    $visible=\App\Services\ModalityEvaluationService::userCertificates($history);
+    if(array_column($visible,'id')!==[6,5,4])throw new \RuntimeException('Evolução posterior ou outra modalidade foi ocultada.');
+    $history[]=$make(7,2,'rebaixamento');
+    if(array_column(\App\Services\ModalityEvaluationService::userCertificates($history),'id')!==[7,6])throw new \RuntimeException('Novo rebaixamento manteve evolução antiga.');
+    if(count($history)!==7)throw new \RuntimeException('Histórico interno foi alterado.');
+    echo "Avaliação: permissões, rebaixamento, histórico do usuário, transições adjacentes e certificados validados sem banco real.\n";
 }

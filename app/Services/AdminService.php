@@ -4913,18 +4913,19 @@ class AdminService
             if ($level === null) { throw new RuntimeException('O nível selecionado não está cadastrado no sistema.'); }
         }
 
-        $currentStmt = $pdo->prepare("SELECT cnm.id, cnm.nivel_modalidade_id, nm.slug, nm.nome
+        $currentStmt = $pdo->prepare("SELECT cnm.id, cnm.nivel_modalidade_id, cnm.status, nm.slug, nm.nome
             FROM certificados_nivel_modalidade cnm
             INNER JOIN niveis_modalidade nm ON nm.id = cnm.nivel_modalidade_id
-            WHERE cnm.pessoa_id = :pessoa AND cnm.modalidade_id = :modalidade AND cnm.status = 'ativo'
+            WHERE cnm.pessoa_id = :pessoa AND cnm.modalidade_id = :modalidade
             ORDER BY cnm.id DESC LIMIT 1 FOR UPDATE");
         $currentStmt->execute([':pessoa' => $personId, ':modalidade' => $modalityId]);
         $current = $currentStmt->fetch(PDO::FETCH_ASSOC) ?: null;
         $movement = 'concessao';
+        if ($level !== null) ModalityEvaluationService::validateLevelTransition($current,$level);
 
         if ($level !== null && $current !== null) {
             $comparison = modality_level_rank((string) $level['slug']) <=> modality_level_rank((string) $current['slug']);
-            if ($comparison === 0) { throw new RuntimeException('A pessoa já possui certificado ativo neste nível.'); }
+            if ($comparison === 0 && ($current['status'] ?? 'ativo')==='ativo') { throw new RuntimeException('A pessoa já possui certificado ativo neste nível.'); }
             if ($comparison < 0) {
                 if (empty($data['confirmar_rebaixamento']) || $notes === '') {
                     throw new RuntimeException('Para rebaixar o nível, confirme expressamente a decisão e informe uma justificativa técnica.');
