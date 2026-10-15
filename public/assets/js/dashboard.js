@@ -106,6 +106,11 @@
                 $details.append(enrollmentDetailLine('Pessoa', details.pessoa));
                 $details.append(enrollmentDetailLine('Data de nascimento', details.nascimento));
                 $details.append(enrollmentDetailLine('Turma', details.turma));
+                const classInformation = String(details.informacao_turma || '').trim();
+                if (classInformation) {
+                    $details.append($('<section>', { class: 'course-class-information-highlight' })
+                        .append($('<strong>', { text: 'Informação da turma' }), $('<p>', { text: classInformation }).css('white-space', 'pre-line')));
+                }
                 $details.append(enrollmentDetailLine('Modalidade', details.modalidade));
                 $details.append(enrollmentDetailLine('Temporada', details.temporada));
                 $details.append(enrollmentDetailLine('Status atual', details.status));

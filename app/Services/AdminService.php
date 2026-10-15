@@ -282,7 +282,7 @@ class AdminService
         }
 
         $stmt = Database::connection()->prepare('
-            SELECT i.*, t.nome AS turma_nome, te.nome AS temporada_nome,
+            SELECT i.*, t.nome AS turma_nome, t.observacao AS turma_observacao, te.nome AS temporada_nome,
                    m.nome AS modalidade_nome,
                    COALESCE(l.apelido_local, l.nome_local) AS local_apelido,
                    e.nome AS espaco_nome, t.dias_semana, t.hora_inicio, t.hora_fim,

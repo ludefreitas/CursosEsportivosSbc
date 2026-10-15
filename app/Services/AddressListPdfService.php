@@ -1,12 +1,15 @@
 <?php
+// @pdf-model enderecos|Lista de alunos com endereços
 
 namespace App\Services;
+require_once __DIR__ . '/PdfBrandingService.php';
 
 final class AddressListPdfService
 {
     private const PAGE_WIDTH = 841.89;
     private const PAGE_HEIGHT = 595.28;
     private const MARGIN = 28.35;
+    private int $rowsPerPage = 14;
     private const ROWS_PER_PAGE = 14;
     private const ROW_HEIGHT = 31.0;
     private const HEADER_HEIGHT = 24.0;
@@ -27,7 +30,10 @@ final class AddressListPdfService
 
     public function render(array $class, array $students, bool $maskCpf = false): string
     {
-        $pages = array_chunk($students, self::ROWS_PER_PAGE);
+        $branding = (new PdfBrandingSettings())->get('enderecos');
+        $reserve = PdfBrandingSettings::footerHeight($branding);
+        $this->rowsPerPage = max(1, min(14, (int) floor((488 - $reserve - 30) / 31)));
+        $pages = array_chunk($students, $this->rowsPerPage);
         if ($pages === []) {
             $pages = [[]];
         }
@@ -63,7 +69,7 @@ final class AddressListPdfService
 
         $objects[2] = '<< /Type /Pages /Count ' . count($pageReferences) . ' /Kids [' . implode(' ', $pageReferences) . '] >>';
         ksort($objects);
-        return $this->buildDocument($objects);
+        return (new PdfBrandingService())->apply($this->buildDocument($objects), 'enderecos', $branding);
     }
 
     private function pageContent(array $class, array $students, int $firstNumber, int $page, int $totalPages, bool $maskCpf): array
@@ -85,7 +91,7 @@ final class AddressListPdfService
 
         $tableTop = 512.0;
         $headerBottom = $tableTop - self::HEADER_HEIGHT;
-        $tableBottom = $headerBottom - self::ROWS_PER_PAGE * self::ROW_HEIGHT;
+        $tableBottom = $headerBottom - $this->rowsPerPage * self::ROW_HEIGHT;
         $commands[] = '0.92 g ' . $this->rect($left, $headerBottom, $right - $left, self::HEADER_HEIGHT) . ' f 0 g';
 
         $x = $left;
@@ -98,7 +104,7 @@ final class AddressListPdfService
         $commands[] = $this->line($left, $tableTop, $right, $tableTop);
         $commands[] = $this->line($left, $headerBottom, $right, $headerBottom);
 
-        for ($row = 0; $row < self::ROWS_PER_PAGE; $row++) {
+        for ($row = 0; $row < $this->rowsPerPage; $row++) {
             $rowBottom = $headerBottom - self::ROW_HEIGHT * ($row + 1);
             if ($row % 2 === 0) {
                 $commands[] = '0.975 g ' . $this->rect($left, $rowBottom, $right - $left, self::ROW_HEIGHT) . ' f 0 g';

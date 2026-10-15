@@ -23,6 +23,7 @@
 </section>
 
 <?php require ROOT_PATH . '/app/Views/dashboard/partials/course_enrollment_rows.php'; ?>
+<section class="content-card"><h2>Meus níveis nas modalidades</h2><div data-evaluation-person-list="<?php echo e((string) ($person['id'] ?? 0)); ?>"></div></section>
 
 <section class="dashboard-main-grid">
     <article class="content-card">

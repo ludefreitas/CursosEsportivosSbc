@@ -388,24 +388,15 @@ body.pagina-home .site-header {
 }
 
 .pagina-home .home-section-navigation {
-    display: grid;
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-    align-items: stretch;
-    gap: 7px;
-    padding: 8px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px 18px;
 }
 
 .pagina-home .home-section-navigation .btn {
-    width: 100%;
-    max-width: none;
-    min-height: 30px;
-    height: 30px;
-    padding: 4px 9px;
-    font-size: 0.76rem;
-    line-height: 1.1;
-    text-wrap: balance;
-    overflow-wrap: anywhere;
-    overflow: hidden;
+    min-height: 38px;
+    padding: 8px 16px;
 }
 
 .pagina-home .home-section-navigation .home-navigation-training {
@@ -434,7 +425,7 @@ body.pagina-home .site-header {
 
 .pagina-home .home-section-navigation .home-navigation-enrollments {
     color: #173b4a;
-    border-color: #a7adb2;
+    border: 1px solid #a7adb2;
     background: linear-gradient(135deg, #f5f6f7 0%, #d9dde0 100%);
 }
 
@@ -1438,9 +1429,6 @@ body.pagina-home .site-header {
     .pagina-home .section-grid {
         grid-template-columns: 1fr;
     }
-    .pagina-home .home-section-navigation {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
     .pagina-home .home-locations-card,
     .pagina-home .home-course-modalities-card {
         grid-template-columns: minmax(180px, 0.8fr) minmax(0, 1.2fr);
@@ -1479,10 +1467,6 @@ body.pagina-home .site-header {
         grid-template-columns: 1fr;
     }
 
-    .pagina-home .home-section-navigation .btn {
-        height: auto;
-        min-height: 34px;
-    }
 }
 
 @media (max-width: 560px) {
@@ -1495,9 +1479,6 @@ body.pagina-home .site-header {
         grid-template-columns: 1fr;
     }
 
-    .pagina-home .home-section-navigation {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
 
     .pagina-home .home-locations-card,
     .pagina-home .home-course-modalities-card {

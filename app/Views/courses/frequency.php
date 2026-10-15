@@ -1,3 +1,4 @@
+<?php /* @pdf-model frequencia|Frequência mensal */ ?>
 <?php
 $monthNames = [1 => 'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
 $statusLabels = ['presente' => 'Presença', 'ausente' => 'Ausência', 'justificado' => 'Ausência justificada'];
@@ -16,7 +17,8 @@ $statusSymbols = ['presente' => 'P', 'ausente' => 'A', 'justificado' => 'J'];
     </style>
 </head>
 <body>
-<header><img src="<?php echo e(asset_url('img/sbc.png')); ?>" alt="Brasão de São Bernardo do Campo"><div><h1>SECRETARIA DE ESPORTES E LAZER</h1><p><strong>Centro Esportivo:</strong> <?php echo e($enrollment['local_nome'] . ' - ' . $enrollment['espaco_nome']); ?></p></div></header>
+<?php $pdfModel='frequencia'; require dirname(__DIR__) . '/partials/pdf_branding_header.php'; ?>
+<p><strong>Centro esportivo:</strong> <?php echo e($enrollment['local_nome'] . ' — ' . $enrollment['espaco_nome']); ?></p>
 <div class="details"><div><strong>Curso</strong><?php echo e($enrollment['modalidade_nome']); ?></div><div><strong>Dia da Semana / horário</strong><?php echo e($enrollment['dias_semana_descricao'] . ' das ' . substr($enrollment['hora_inicio'],0,5) . ' às ' . substr($enrollment['hora_fim'],0,5)); ?></div><div><strong>Turma</strong><?php echo e((string) $enrollment['turma_id']); ?></div></div>
 <?php foreach (array_chunk($attendance, 16) as $days) { ?>
 <div class="table-wrap"><table>
@@ -34,6 +36,7 @@ $statusSymbols = ['presente' => 'P', 'ausente' => 'A', 'justificado' => 'J'];
 <div class="signature">Divisão de Iniciação Esportiva<br>Secretaria de Esporte e Lazer de São Bernardo do Campo</div>
 <footer class="footer">Avenida Kennedy nº 1155 - Bairro Anchieta - São Bernardo do Campo - SP<br>CEP 09726-263 · telefone: 4126-5600<br>www.saobernardo.sp.gov.br · sesp@saobernardo.sp.gov.br</footer>
 </section>
+<?php require dirname(__DIR__) . '/partials/pdf_branding_footer.php'; ?>
 <button type="button" class="print-button" onclick="window.print()">Imprimir</button>
 </body>
 </html>

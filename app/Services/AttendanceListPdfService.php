@@ -1,6 +1,8 @@
 <?php
+// @pdf-model chamada|Lista de chamada da turma
 
 namespace App\Services;
+require_once __DIR__ . '/PdfBrandingService.php';
 
 final class AttendanceListPdfService
 {
@@ -9,11 +11,15 @@ final class AttendanceListPdfService
     private const MARGIN = 28.35;
     private const ROW_HEIGHT = 22.5;
     private const HEADER_ROW_HEIGHT = 20.0;
+    private int $rowsPerPage = 18;
     private const ROWS_PER_PAGE = 18;
 
     public function render(array $class, array $students): string
     {
-        $studentPages = array_chunk($students, self::ROWS_PER_PAGE);
+        $branding = (new PdfBrandingSettings())->get('chamada');
+        $reserve = PdfBrandingSettings::footerHeight($branding);
+        $this->rowsPerPage = max(1, min(18, (int) floor((453.5 - $reserve - 30) / 22.5)));
+        $studentPages = array_chunk($students, $this->rowsPerPage);
         if ($studentPages === []) {
             $studentPages = [[]];
         }
@@ -45,7 +51,7 @@ final class AttendanceListPdfService
 
         $objects[2] = '<< /Type /Pages /Count ' . count($pageReferences) . ' /Kids [' . implode(' ', $pageReferences) . '] >>';
         ksort($objects);
-        return $this->buildDocument($objects);
+        return (new PdfBrandingService())->apply($this->buildDocument($objects), 'chamada', $branding);
     }
 
     private function pageContent(array $class, array $students, int $firstNumber, int $page, int $totalPages, bool $hasLogo): string
@@ -81,7 +87,7 @@ final class AttendanceListPdfService
         $headerHeight = self::HEADER_ROW_HEIGHT * 2;
         $attendanceStart = $left + $numberWidth + $nameWidth;
         $headerBottom = $tableTop - $headerHeight;
-        $tableBottom = $headerBottom - self::ROW_HEIGHT * self::ROWS_PER_PAGE;
+        $tableBottom = $headerBottom - self::ROW_HEIGHT * $this->rowsPerPage;
 
         $commands[] = '0.94 g ' . $this->rect($left, $headerBottom, $right - $left, $headerHeight) . ' f 0 g';
         foreach ($students as $index => $_student) {
@@ -93,7 +99,7 @@ final class AttendanceListPdfService
         $commands[] = $this->line($left, $tableTop, $right, $tableTop);
         $commands[] = $this->line($attendanceStart, $tableTop - self::HEADER_ROW_HEIGHT, $right, $tableTop - self::HEADER_ROW_HEIGHT);
         $commands[] = $this->line($left, $headerBottom, $right, $headerBottom);
-        for ($row = 1; $row <= self::ROWS_PER_PAGE; $row++) {
+        for ($row = 1; $row <= $this->rowsPerPage; $row++) {
             $y = $headerBottom - self::ROW_HEIGHT * $row;
             $commands[] = $this->line($left, $y, $right, $y);
         }

@@ -224,12 +224,17 @@
     border-radius: 14px;
 }
 .course-class-details-modal-content p { margin: 0; }
-.course-class-details-modal-content .course-class-information-highlight {
+.course-class-information-highlight {
+    margin: 12px 0;
+    padding: 14px 16px;
+    border-radius: 12px;
     border: 2px solid var(--accent-orange);
     background: linear-gradient(135deg, #fff4dc, #fffdf8);
     box-shadow: 0 8px 20px rgba(226, 119, 0, .12);
 }
 .course-class-information-highlight > strong { color: #a94f00; font-size: 1.05rem; }
+.modality-certificate-logo { max-width: 180px; max-height: 100px; object-fit: contain; }
+#modality-evaluation-modal { z-index: 2260; }
 .course-class-information-highlight p { margin-top: 3px; white-space: pre-line; font-weight: 600; }
 #course-class-status-modal fieldset {
     display: grid;

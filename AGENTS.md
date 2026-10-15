@@ -7,3 +7,5 @@
 - Não executar `git push` automaticamente sem confirmação explícita do usuário.
 - Manter todos os textos visíveis em português do Brasil com a acentuação correta e preservar a codificação UTF-8.
 - Não executar verificações nem alterações estruturais de banco durante requisições da aplicação. Em especial, não usar `CREATE`, `CREATE TABLE IF NOT EXISTS`, `ALTER`, `SHOW COLUMNS` ou equivalentes no fluxo HTTP; quando indispensáveis, manter migrações em scripts explícitos e executados separadamente, para evitar lentidão e erro 524.
+
+- Todo PDF gerado pelo sistema, inclusive páginas de impressão/salvar como PDF, deve aparecer em Admin > Outras áreas > Arquivos PDF e usar a configuração central de logo principal, instituição e rodapé opcional. Novos geradores devem seguir `PDFS_CONFIGURACAO.md`, incluir o marcador `@pdf-model identificador|Título em português` e integrar a identidade visual antes da entrega.

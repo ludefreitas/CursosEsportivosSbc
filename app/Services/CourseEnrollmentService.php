@@ -212,8 +212,8 @@ class CourseEnrollmentService
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
         $this->synchronizeCalculatedSeasonStatuses($pdo);
-        $stmt = $pdo->prepare("SELECT i.id, i.numero_ordem, i.posicao_lista_espera, i.publico_alvo, i.excecao_condicao, i.tipo_inscricao, EXISTS (SELECT 1 FROM turmas_chamadas freq WHERE freq.inscricao_turma_id=i.id AND freq.status IN ('presente','ausente','justificado')) AS possui_frequencia, i.status, i.created_at, i.updated_at, i.motivo_status,
-                   p.nome_completo, p.cpf, p.data_nascimento, t.nome AS turma_nome, t.dias_semana, t.hora_inicio, t.hora_fim,
+        $stmt = $pdo->prepare("SELECT i.id, i.turma_id, i.numero_ordem, i.posicao_lista_espera, i.publico_alvo, i.excecao_condicao, i.tipo_inscricao, EXISTS (SELECT 1 FROM turmas_chamadas freq WHERE freq.inscricao_turma_id=i.id AND freq.status IN ('presente','ausente','justificado')) AS possui_frequencia, i.status, i.created_at, i.updated_at, i.motivo_status,
+                   p.nome_completo, p.cpf, p.data_nascimento, t.nome AS turma_nome, t.modalidade_id, t.observacao AS turma_observacao, t.dias_semana, t.hora_inicio, t.hora_fim,
                    te.nome AS temporada_nome, m.nome AS modalidade_nome,
                    cm.matriculas_inicio AS cronograma_matriculas_inicio,
                    cm.matriculas_fim AS cronograma_matriculas_fim,
@@ -319,7 +319,7 @@ class CourseEnrollmentService
                 p.cep, p.logradouro, p.numero_endereco, p.complemento, p.bairro, p.cidade, p.uf,
                 p.contato_emergencia_nome, p.contato_emergencia_telefone,
                 p.eh_pcd, p.eh_pvs, p.eh_plm,
-                t.nome AS turma_nome, t.dias_semana, t.hora_inicio, t.hora_fim,
+                t.nome AS turma_nome, t.modalidade_id, t.observacao AS turma_observacao, t.dias_semana, t.hora_inicio, t.hora_fim,
                 te.nome AS temporada_nome, te.status AS temporada_status, m.nome AS modalidade_nome,
                 COALESCE(l.apelido_local, l.nome_local) AS local_nome,
                 l.logradouro AS local_logradouro, l.numero_endereco AS local_numero_endereco,

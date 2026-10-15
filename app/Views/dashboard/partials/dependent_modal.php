@@ -7,6 +7,7 @@
     <button type="button" class="popup-close-icon" id="dashboard-dependent-modal-close" aria-label="Fechar dados da pessoa">&times;</button>
 </div>
 <div class="popup-body admin-popup-body dashboard-dependent-modal-body">
+    <section class="content-card"><h3>Aptidão e níveis das modalidades</h3><div data-evaluation-person-list="<?php echo e((string) ($dependent['id'] ?? 0)); ?>"></div></section>
     <div class="dashboard-dependent-panel" data-dependent-modal-panel="view">
         <div class="alert-inline dashboard-dependent-attention">
             Confira com atenção o CPF e a data de nascimento. Para corrigir qualquer um desses dados, entre em contato com o suporte.

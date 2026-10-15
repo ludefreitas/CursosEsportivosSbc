@@ -402,6 +402,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                 <td data-label="Pessoa" class="admin-booking-person-inline">
                                                     <div class="admin-booking-person-details">
                                                         <strong><?php echo e((string) ($booking['nome_completo'] ?? '')); ?></strong>
+                                                        <?php $evaluationPersonId = (int) ($booking['pessoa_id'] ?? 0); $evaluationModalityId = (int) ($booking['modalidade_id'] ?? 0); $evaluationAllowEdit = true; require __DIR__ . '/modality_evaluation_links.php'; ?>
                                                         <span>CPF: <?php echo e(!empty($professorView) ? format_cpf_professor((string) ($booking['cpf'] ?? '')) : format_cpf((string) ($booking['cpf'] ?? ''))); ?></span>
                                                         <span><?php echo e($booking['idade'] === null ? 'Idade não informada' : (string) $booking['idade'] . ' anos'); ?></span>
                                                         <?php if (trim((string) ($booking['condicoes'] ?? '')) !== '') { ?><span><?php echo e((string) $booking['condicoes']); ?></span><?php } ?>
@@ -2759,6 +2760,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
 <?php if ($sectionName === 'minhas-turmas' && !empty($professorView)) { require ROOT_PATH . '/app/Views/professor/partials/my_classes.php'; } ?>
 
 <?php if ($sectionName === 'outras-areas') { ?>
+<?php require __DIR__ . '/pdf_branding_panel.php'; ?>
     <section class="admin-section-panel" data-admin-section="outras-areas">
         <div class="section-head admin-section-head">
             <div>

@@ -16,8 +16,16 @@ use App\Controllers\ProfessorController;
 use App\Controllers\NotificationController;
 use App\Controllers\RematriculationController;
 use App\Controllers\ScheduleGridController;
+use App\Controllers\ModalityEvaluationController;
 
 return [
+    ['GET', '/admin/pdfs', [\App\Controllers\PdfBrandingController::class, 'catalog']],
+    ['POST', '/admin/pdfs/salvar', [\App\Controllers\PdfBrandingController::class, 'save']],
+    ['POST', '/admin/pdfs/preview', [\App\Controllers\PdfBrandingController::class, 'preview']],
+    ['GET', '/avaliacoes/modalidade', [ModalityEvaluationController::class, 'details']],
+    ['POST', '/avaliacoes/modalidade', [ModalityEvaluationController::class, 'save']],
+    ['GET', '/avaliacoes/certificado.pdf', [ModalityEvaluationController::class, 'certificate']],
+    ['POST', '/avaliacoes/certificado/modelo', [ModalityEvaluationController::class, 'settings']],
     ['GET', '/', [HomeController::class, 'index']],
     ['GET', '/tutorial', [HomeController::class, 'tutorial']],
     ['GET', '/grades-de-horario', [ScheduleGridController::class, 'index']],

@@ -1,6 +1,8 @@
 <?php
+// @pdf-model declaracao|Declaração do aluno
 
 namespace App\Services;
+require_once __DIR__ . '/PdfBrandingService.php';
 
 final class EnrollmentDeclarationPdfService
 {
@@ -9,9 +11,13 @@ final class EnrollmentDeclarationPdfService
     private array $commands = [];
     private array $pages = [];
     private float $y = 540;
+    private float $minimumY = 115;
+    private int $footerReserve = 0;
 
     public function render(array $enrollment, array $months, string $frequencyUrl, ?\DateTimeImmutable $issuedAt = null): string
     {
+        $this->footerReserve = PdfBrandingSettings::footerHeight((new PdfBrandingSettings())->get('declaracao'));
+        $this->minimumY = max(115, $this->footerReserve + 100);
         $this->commands = ['0 g', '0 G'];
         $this->pages = [];
         $issuedAt ??= new \DateTimeImmutable('now', new \DateTimeZone('America/Sao_Paulo'));
@@ -53,7 +59,7 @@ final class EnrollmentDeclarationPdfService
             $label = substr($month, 5, 2) . '/' . substr($month, 0, 4);
             $width = $this->width($label, 11);
             if ($x + $width > 540) { $x = 50; $this->y -= 20; }
-            if ($this->y < 180) { $this->nextPage(); $x = 50; }
+            if ($this->y < $this->minimumY + 65) { $this->nextPage(); $x = 50; }
             $this->commands[] = '0.04 0.32 0.72 rg';
             $this->commands[] = $this->text('F1', 11, $x, $this->y, $label);
             $this->commands[] = '0.04 0.32 0.72 RG ' . $this->line($x, $this->y - 2, $x + $width, $this->y - 2) . ' 0 G 0 g';
@@ -62,17 +68,17 @@ final class EnrollmentDeclarationPdfService
         }
         if ($months === []) { $this->commands[] = $this->text('F1', 11, $x, $this->y, 'Nenhum mês com chamada registrada.'); }
         $this->y -= 26;
-        if ($this->y < 190) { $this->nextPage(); }
+        if ($this->y < $this->minimumY + 75) { $this->nextPage(); }
         $note = '(*) Estes são os meses em que o aluno teve a sua presença; ou ausência; ou justificativa; anotada.';
         $this->commands[] = '0.93 0.97 0.93 rg ' . $this->rect(46, $this->y - 27, 503, 47) . ' f 0 g';
         $this->paragraph($note, 'F2', 10);
         $this->y -= 23;
-        if ($this->y < 245) { $this->nextPage(); }
+        if ($this->y < $this->minimumY + 140) { $this->nextPage(); }
         $this->paragraph('Sendo o que se apresenta para o momento, subscrevemo-nos.');
         $this->y -= 18;
         $this->paragraph('Atenciosamente,');
         $this->y -= 24;
-        if ($this->y < 160) { $this->nextPage(); }
+        if ($this->y < $this->minimumY + 45) { $this->nextPage(); }
         $this->commands[] = $this->line(100, $this->y, 495, $this->y);
         $this->center('Divisão de Iniciação Esportiva', $this->y - 17, 11);
         $this->center('Secretaria de Esporte e Lazer de São Bernardo do Campo', $this->y - 33, 10);
@@ -88,9 +94,9 @@ final class EnrollmentDeclarationPdfService
         foreach ($this->pages as $pageIndex => $commands) {
             $this->commands = $commands;
             $this->commands[] = '0.45 g';
-            $this->center('Avenida Kennedy nº 1155 - Bairro Anchieta - São Bernardo do Campo - SP', 64, 8);
-            $this->center('CEP 09726-263    telefone: 4126-5600', 51, 8);
-            $this->center('www.saobernardo.sp.gov.br    sesp@saobernardo.sp.gov.br', 38, 8);
+            $this->center('Avenida Kennedy nº 1155 - Bairro Anchieta - São Bernardo do Campo - SP', $this->footerReserve + 64, 8);
+            $this->center('CEP 09726-263    telefone: 4126-5600', $this->footerReserve + 51, 8);
+            $this->center('www.saobernardo.sp.gov.br    sesp@saobernardo.sp.gov.br', $this->footerReserve + 38, 8);
             if (count($this->pages) > 1) { $this->center('Página ' . ($pageIndex + 1) . ' de ' . count($this->pages), 22, 8); }
             $content = implode("\n", $this->commands);
             $contentObject = $next++;
@@ -107,7 +113,7 @@ final class EnrollmentDeclarationPdfService
         }
         $objects[2] = '<< /Type /Pages /Count ' . count($pageRefs) . ' /Kids [' . implode(' ', $pageRefs) . '] >>';
         ksort($objects);
-        return $this->buildDocument($objects);
+        return (new PdfBrandingService())->apply($this->buildDocument($objects), 'declaracao');
     }
 
     private function paragraph(string $value, string $font = 'F1', float $size = 11): void
@@ -116,13 +122,13 @@ final class EnrollmentDeclarationPdfService
         foreach (preg_split('/\s+/u', trim($value)) ?: [] as $word) {
             $candidate = $line === '' ? $word : $line . ' ' . $word;
             if ($this->width($candidate, $size, $font) > 495 && $line !== '') {
-                if ($this->y < 115) { $this->nextPage(); }
+                if ($this->y < $this->minimumY) { $this->nextPage(); }
                 $this->commands[] = $this->text($font, $size, 50, $this->y, $line);
                 $this->y -= 17;
                 $line = $word;
             } else { $line = $candidate; }
         }
-        if ($this->y < 115) { $this->nextPage(); }
+        if ($this->y < $this->minimumY) { $this->nextPage(); }
         $this->commands[] = $this->text($font, $size, 50, $this->y, $line);
         $this->y -= 17;
     }
@@ -130,9 +136,11 @@ final class EnrollmentDeclarationPdfService
     private function nextPage(): void
     {
         $this->pages[] = $this->commands;
+        $this->footerReserve = PdfBrandingSettings::footerHeight((new PdfBrandingSettings())->get('declaracao'));
+        $this->minimumY = max(115, $this->footerReserve + 100);
         $this->commands = ['0 g', '0 G'];
-        $this->center('DECLARAÇÃO ALUNO - CONTINUAÇÃO', 780, 13, 'F2');
-        $this->y = 735;
+        $this->center('DECLARAÇÃO ALUNO - CONTINUAÇÃO', 700, 13, 'F2');
+        $this->y = 670;
     }
 
     private function width(string $value, float $size, string $font = 'F1'): float

@@ -1,3 +1,4 @@
+<?php /* @pdf-model declaracao|Declaração do aluno */ ?>
 <?php
 $statuses = ['matriculada'=>'Matriculada','aguardando_matricula'=>'Aguardando matrícula','lista_espera'=>'Lista de espera','cancelada'=>'Cancelada','excluida'=>'Excluída','excluida_por_falta'=>'Excluída por falta','desistente'=>'Desistente','suspensa'=>'Suspensa'];
 $monthNames = [1=>'janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
@@ -24,7 +25,7 @@ $publicPath = url('/cursos/declaracao') . '?codigo=' . rawurlencode($code);
     <p id="copy-result" role="status" aria-live="polite"></p>
 </section>
 <main class="paper">
-    <header><img src="<?php echo e(asset_url('img/sbc.png')); ?>" alt="Brasão de São Bernardo do Campo"><strong>PREFEITURA DO MUNICÍPIO DE SÃO BERNARDO DO CAMPO</strong><p>Secretaria de Esporte e Lazer - SESP</p></header>
+    <?php $pdfModel='declaracao'; require dirname(__DIR__) . '/partials/pdf_branding_header.php'; ?>
     <p class="date">São Bernardo do Campo <?php echo e($today->format('d') . ' de ' . $monthNames[(int) $today->format('n')] . ' de ' . $today->format('Y')); ?></p>
     <h1>DECLARAÇÃO ALUNO</h1>
     <p class="intro">Declaro para devidos fins que <strong><?php echo e($enrollment['nome_completo']); ?></strong>, portador do CPF: <strong><?php echo e(format_cpf($enrollment['cpf'])); ?></strong>, <?php echo $enrollment['status'] === 'matriculada' ? 'está matriculado nos cursos' : 'possui registro de inscrição nos cursos'; ?> da Secretaria de Esportes e Lazer do município de São Bernardo do Campo, nas seguintes condições:</p>
@@ -38,6 +39,7 @@ $publicPath = url('/cursos/declaracao') . '?codigo=' . rawurlencode($code);
     <p class="closing">Atenciosamente,</p>
     <div class="signature">Divisão de Iniciação Esportiva<br>Secretaria de Esporte e Lazer de São Bernardo do Campo</div>
     <footer class="footer">Avenida Kennedy nº 1155 - Bairro Anchieta - São Bernardo do Campo - SP<br>CEP 09726-263 · telefone: 4126-5600<br>www.saobernardo.sp.gov.br · sesp@saobernardo.sp.gov.br</footer>
+<?php require dirname(__DIR__) . '/partials/pdf_branding_footer.php'; ?>
 </main>
 <script>
     const declarationLink = document.getElementById('declaration-link');

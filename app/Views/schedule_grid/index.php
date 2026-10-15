@@ -1,3 +1,4 @@
+<?php /* @pdf-model grade|Grade de horários */ ?>
 <section class="content-card schedule-grid-controls">
     <h1>Grades de horário</h1>
     <p>Consulte as turmas dos cursos por local e espaço. Cada espaço tem uma grade para imprimir em uma página A4 paisagem.</p>
@@ -58,14 +59,7 @@ $address = $location ? implode(' — ', array_filter([
                 <p class="schedule-grid-address"><?php echo e($location['nome_local'] . ($address !== '' ? ' — ' . $address : '')); ?></p>
                 <h3>QUADRO DE ATIVIDADES DA <u><?php echo e(mb_strtoupper($sheet['espaco']['nome'], 'UTF-8')); ?></u></h3>
             </div>
-            <div class="schedule-grid-brand">
-                <img src="<?php echo e(asset_url('img/grade-prefeitura.png')); ?>" alt="Prefeitura de São Bernardo do Campo">
-                <div class="schedule-grid-programs">
-                    <img src="<?php echo e(asset_url('img/grade-hora-treino.jpg')); ?>" alt="Hora do Treino">
-                    <img src="<?php echo e(asset_url('img/grade-corpo-acao.jpg')); ?>" alt="Corpo em Ação">
-                    <img src="<?php echo e(asset_url('img/grade-campeoes-vida.jpg')); ?>" alt="Campeões da Vida">
-                </div>
-            </div>
+            <div class="schedule-grid-brand"><?php $pdfModel='grade'; require dirname(__DIR__) . '/partials/pdf_branding_header.php'; ?></div>
         </header>
         <div class="schedule-grid-periods">
         <?php foreach ($sheet['periodos'] as $period) { ?>
@@ -91,6 +85,7 @@ $address = $location ? implode(' — ', array_filter([
         <?php } ?>
         </div>
         <footer class="schedule-grid-sheet-footer"><span><span data-grid-content="temporada" <?php echo !in_array('temporada', $fields, true) ? 'hidden' : ''; ?>><?php echo e($season['nome'] ?? ''); ?></span></span><span>Página <?php echo $sheetIndex + 1; ?></span><span><?php echo $sheet['total'] === 0 ? 'Nenhuma turma incluída neste espaço' : ''; ?></span></footer>
+    <?php require dirname(__DIR__) . '/partials/pdf_branding_footer.php'; ?>
     </article>
     </div>
 <?php } ?>

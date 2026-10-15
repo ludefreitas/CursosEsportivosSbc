@@ -2093,7 +2093,12 @@
                 const item = $(this).data('enrollment') || {};
                 const $content = $('#admin-person-enrollment-details-content').empty();
                 addDetail($content, 'Temporada', item.temporada_nome);
-                addDetail($content, 'Turma', item.turma_nome);
+                addDetail($content, 'Turma', (Number(item.turma_id) > 0 ? '[' + String(item.turma_id) + '] ' : '') + String(item.turma_nome || '-'));
+                const classInformation = String(item.turma_observacao || '').trim();
+                if (classInformation) {
+                    $content.append($('<section>', { class: 'course-class-information-highlight' })
+                        .append($('<strong>', { text: 'Informação da turma' }), $('<p>', { text: classInformation }).css('white-space', 'pre-line')));
+                }
                 addDetail($content, 'Modalidade', item.modalidade_nome);
                 addDetail($content, 'Local', item.local_apelido);
                 addDetail($content, 'Espaço', item.espaco_nome);
@@ -7543,6 +7548,11 @@
                 $content.append($('<h4>', { text: 'Detalhes da inscrição Nº ' + String(details.id || '') }));
                 $content.append($('<p>', { class: 'course-enrollment-detail-person', text: String(details.nome || '') + (details.idade !== null && details.idade !== undefined ? ' — ' + String(details.idade) + ' anos' : '') }));
                 $content.append(detailLine('Turma / Temporada', String(details.turma || '-') + ' / ' + String(details.temporada || '-')));
+                const classInformation = String(details.informacao_turma || '').trim();
+                if (classInformation) {
+                    $content.append($('<section>', { class: 'course-class-information-highlight' })
+                        .append($('<strong>', { text: 'Informação da turma' }), $('<p>', { text: classInformation }).css('white-space', 'pre-line')));
+                }
                 $content.append(detailLine('Horário', details.horario));
                 $content.append(detailLine('Local da aula', details.local));
                 $content.append(detailLine('Tipo de inscrição', details.tipo_inscricao));

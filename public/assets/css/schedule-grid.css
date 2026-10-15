@@ -52,3 +52,10 @@
     .schedule-grid-preview:last-child { break-after:auto; page-break-after:auto; }
     .schedule-grid-sheet { margin:0; box-shadow:none; break-inside:avoid; page-break-inside:avoid; print-color-adjust:exact; -webkit-print-color-adjust:exact; }
 }
+
+/* Rodapés extensos podem seguir em uma página adicional, sem cortar a grade. */
+.schedule-grid-sheet:has(.pdf-brand-footer){height:auto;min-height:192mm}
+.schedule-grid-sheet:has(.pdf-brand-footer) .schedule-grid-periods{height:150mm;flex:none}
+.schedule-grid-brand .pdf-brand-header img{max-height:16mm;max-width:50mm}
+.schedule-grid-brand .pdf-brand-placeholder{height:16mm;width:35mm}
+@media print{.schedule-grid-sheet:has(.pdf-brand-footer){break-inside:auto;page-break-inside:auto}.schedule-grid-period{break-inside:avoid}}

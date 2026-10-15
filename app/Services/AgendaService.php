@@ -830,11 +830,11 @@ class AgendaService
 
         if ((int) ($schedule['dispensar_avaliacao_previa'] ?? 0) !== 1) {
             $stmtEval = $pdo->prepare('
-                SELECT 1
+                SELECT situacao
                 FROM avaliacoes_fisicas
                 WHERE pessoa_id = :pessoa_id
                   AND modalidade_id = :modalidade_id
-                  AND situacao = "apto"
+                ORDER BY data_avaliacao DESC, id DESC
                 LIMIT 1
             ');
             $stmtEval->execute([
@@ -842,7 +842,7 @@ class AgendaService
                 ':modalidade_id' => $schedule['modalidade_id'],
             ]);
 
-            if (!(bool) $stmtEval->fetchColumn()) {
+            if ($stmtEval->fetchColumn() !== 'apto') {
                 throw new RuntimeException('Antes de participar deste treino ou aula, a pessoa precisa ter uma avaliação física apta para esta modalidade.');
             }
         }
