@@ -45,7 +45,7 @@ final class ModalityEvaluationService
         $roles = array_column($account['roles'] ?? [], 'slug');
         $admin = array_intersect($roles, ['master_admin', 'admin', 'supervisor', 'coordinator']) !== [];
         if ($admin) return;
-        if (InternPermissionService::isRestricted($account['roles'] ?? [])) throw new RuntimeException('Esta função não está disponível para estagiários.');
+        // if (InternPermissionService::isRestricted($account['roles'] ?? [])) throw new RuntimeException('Esta função não está disponível para estagiários.');
         $pdo = Database::connection();
         if (in_array('teacher', $roles, true) && $modalityId > 0) {
             $stmt = $pdo->prepare('SELECT 1 FROM inscricoes_turma i INNER JOIN turmas t ON t.id=i.turma_id WHERE i.pessoa_id=:p AND t.modalidade_id=:m AND (t.professor_conta_id=:a OR EXISTS (SELECT 1 FROM turmas_professores tp WHERE tp.turma_id=t.id AND tp.professor_conta_id=:b)) LIMIT 1');

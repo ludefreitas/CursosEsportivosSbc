@@ -259,6 +259,15 @@ class ProfileController extends Controller
     /**
      * Transfere o dependente para outro responsavel.
      */
+    public function transferResponsibleLookup(): void
+    {
+        if (!Auth::check()) $this->jsonResponse(['success'=>false,'message'=>'Faça login para continuar.'],401);
+        try {
+            $result=$this->profileService->lookupTransferResponsible((int)($_GET['dependent_person_id'] ?? 0),(string)($_GET['cpf'] ?? ''));
+            $this->jsonResponse(['success'=>true]+$result);
+        } catch (\RuntimeException $error) { $this->jsonResponse(['success'=>false,'message'=>$error->getMessage()],422); }
+    }
+
     public function transferDependent(): void
     {
         if (!Auth::check()) {

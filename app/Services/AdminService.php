@@ -132,7 +132,7 @@ class AdminService
                 r.cpf AS cpf_responsavel
             FROM pessoas p
             LEFT JOIN contas c ON c.cpf = p.cpf
-            LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id = p.id
+            LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id = p.id AND vr.data_fim IS NULL
             LEFT JOIN pessoas r ON r.id = vr.responsavel_pessoa_id
         ';
 
@@ -341,7 +341,7 @@ class AdminService
                 r.nome_completo AS nome_responsavel
             FROM pessoas p
             LEFT JOIN contas c ON c.cpf = p.cpf
-            LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id = p.id
+            LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id = p.id AND vr.data_fim IS NULL
             LEFT JOIN pessoas r ON r.id = vr.responsavel_pessoa_id
             WHERE p.id = :id
             LIMIT 1

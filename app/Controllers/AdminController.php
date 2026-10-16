@@ -208,8 +208,39 @@ class AdminController extends Controller
     }
 
     /**
-     * Retorna os dados completos de uma pessoa para edição inline.
+     * Consulta o vínculo atual antes da transferência administrativa.
      */
+    public function responsibilityContext(): void
+    {
+        $this->assertAdminAccess();
+        try {
+            $_SESSION['responsibility_transfer_csrf'] ??=bin2hex(random_bytes(32));
+            $person=(new \App\Services\ResponsibilityTransferService())->context((int)($_GET['id'] ?? 0));
+            $this->jsonResponse(['success'=>true,'person'=>$person,'csrf'=>$_SESSION['responsibility_transfer_csrf']]);
+        } catch (\RuntimeException $error) { $this->jsonResponse(['success'=>false,'message'=>$error->getMessage()],422); }
+    }
+
+    public function responsibilityCandidate(): void
+    {
+        $this->assertAdminAccess();
+        try {
+            $result=(new \App\Services\ResponsibilityTransferService())->lookup((string)($_GET['cpf'] ?? ''));
+            $this->jsonResponse(['success'=>true]+$result);
+        } catch (\RuntimeException $error) { $this->jsonResponse(['success'=>false,'message'=>$error->getMessage()],422); }
+    }
+
+    public function transferResponsibility(): void
+    {
+        $user=$this->assertAdminAccess();
+        if (empty($_SESSION['responsibility_transfer_csrf']) || !hash_equals($_SESSION['responsibility_transfer_csrf'],(string)($_POST['csrf'] ?? ''))) $this->jsonResponse(['success'=>false,'message'=>'Reabra a transferência e tente novamente.'],403);
+        try {
+            (new \App\Services\ResponsibilityTransferService())->transfer((int)($_POST['person_id'] ?? 0),(int)$user['conta_id'],$_POST);
+            $this->jsonResponse(['success'=>true,'message'=>'Responsabilidade transferida com sucesso.']);
+        } catch (\RuntimeException $error) { $this->jsonResponse(['success'=>false,'message'=>$error->getMessage()],422); }
+        catch (\Throwable $error) { $this->jsonResponse(['success'=>false,'message'=>'Não foi possível concluir a transferência. Nenhuma alteração foi aplicada. Tente novamente.'],422); }
+    }
+
+    /** Retorna os dados completos de uma pessoa para edição inline. */
     public function personDetails(): void
     {
         $this->assertAdminAccess();

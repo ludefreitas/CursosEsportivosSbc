@@ -2,7 +2,8 @@
     <div class="content-card">
         <span class="eyebrow">Painel autenticado</span>
         <h1><?php echo e($user['nome_completo'] ?? ''); ?></h1>
-        <p class="muted">CPF <?php echo e(format_cpf($user['cpf'] ?? '')); ?>. Seu cadastro completo libera agenda, dependentes e demais módulos autenticados.</p>
+        <p class="muted">CPF <?php echo e(format_cpf($user['cpf'] ?? '')); ?>.  Mantenha seu cadastro atualizado. Seu cadastro completo libera agendamentos; inscrições; acesso aos seus dependentes; e demais módulos autenticados.
+        </p>
         <div class="chips-wrap">
             <?php if (!empty($user['roles'])) { ?>
                 <?php foreach ($user['roles'] as $role) { ?>
@@ -89,8 +90,10 @@
 <section class="dashboard-secondary-grid">
     <article class="content-card">
         <h2>Transferir dependente</h2>
-        <p class="muted">A troca de responsável fica registrada no sistema, com motivo e trilha de auditoria.</p>
-        <form method="POST" action="<?php echo e(url('/dependentes/transferir')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1">
+        <p class="muted">
+            A troca de responsável é de sua responsabilidade. Digite atentamente e confira o CPF da pessoa que será o novo responsável do dependente selecionado. Após a transferência, somente o novo responsável poderá transferir o dependente novamente por este formulário.
+        </p>
+        <form method="POST" action="<?php echo e(url('/dependentes/transferir')); ?>" class="stack-form" data-ajax-form="1" data-success-reset="1" data-dependent-transfer-form="1">
             <label>
                 <span>Dependente</span>
                 <select name="dependent_person_id" required>
@@ -100,7 +103,8 @@
                     <?php } ?>
                 </select>
             </label>
-            <label><span>CPF do novo responsável</span><input type="text" name="new_responsible_cpf" placeholder="000.000.000-00" required></label>
+            <label><span>CPF do novo responsável</span><input type="text" name="new_responsible_cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" required></label>
+            <p data-transfer-responsible-name="1" role="status" aria-live="polite"></p>
             <label><span>Motivo da alteração</span><textarea name="reason" rows="4" required></textarea></label>
             <button type="submit" class="btn btn-secondary">Transferir responsabilidade</button>
         </form>

@@ -1,6 +1,11 @@
 <div id="dashboard-course-enrollments-panel">
 <section class="content-card" id="minhas-inscricoes-cursos">
-    <div class="section-head"><div><h2>Minhas inscrições em cursos</h2><p class="muted">A inscrição aguarda matrícula do professor ou permanece na lista de espera quando não há vaga.</p></div></div>
+    <div class="section-head"><div><h2>Minhas inscrições em cursos</h2>
+        <!-- <p class="muted">
+            A inscrição aguarda matrícula do professor ou permanece na lista de espera quando não há vaga.
+        </p>
+        -->
+    </div></div>
     <?php if (($courseEnrollments ?? []) === []) { ?>
         <p class="muted">Nenhuma inscrição encontrada.</p>
     <?php } else { ?>

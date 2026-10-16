@@ -142,5 +142,7 @@
     <script src="<?php echo e(asset_url('js/app.js')); ?>"></script>
     <?php if (current_path() === '/grades-de-horario') { ?><script src="<?php echo e(asset_url('js/schedule-grid.js')); ?>"></script><?php } ?>
 <script src="<?php echo e(asset_url('js/pdf-branding.js')); ?>"></script>
+<script src="<?php echo e(asset_url('js/admin-responsibility.js')); ?>"></script>
+<script src="<?php echo e(asset_url('js/dependent-transfer.js')); ?>"></script>
 </body>
 </html>

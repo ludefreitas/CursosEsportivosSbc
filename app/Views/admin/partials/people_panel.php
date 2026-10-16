@@ -221,6 +221,7 @@
                             <?php } else { ?>
                                 <span class="muted">-</span>
                             <?php } ?>
+                            <?php if (empty($professorView) && empty($internView)) { ?><br><button type="button" class="link-button admin-responsibility-transfer-link" data-responsibility-transfer="<?php echo e((string)$person['id']); ?>">(Transferir responsabilidade)</button><?php } ?>
                         </td>
                         <?php if (empty($internView)) { ?><td>
                             <button type="button" class="link-button admin-person-link" data-person-enrollments="1" data-person-id="<?php echo e((string) $person['id']); ?>" data-person-name="<?php echo e((string) $person['nome_completo']); ?>">Ver inscrições</button>

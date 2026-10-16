@@ -34,9 +34,7 @@ class AuthService
             throw new RuntimeException('CPF ou senha inválidos.');
         }
 
-        if (is_minor_by_birth_date($account['data_nascimento'] ?? null) === true) {
-            throw new RuntimeException('O CPF digitado pertence a uma pessoa menor de idade e por isso não pode acessar o sistema.');
-        }
+        (new AccountAgeAccessService())->assertAllowed($account);
 
         (new AccountAccessService())->revokeExpiredRolesForAccount((int) $account['conta_id']);
 
@@ -67,12 +65,15 @@ class AuthService
         }
 
         $pdo = Database::connection();
-        $stmt = $pdo->prepare('SELECT c.id FROM contas c INNER JOIN pessoas p ON p.cpf = c.cpf WHERE c.cpf = :cpf AND p.data_nascimento = :nascimento AND c.ativo = 1 LIMIT 1');
+        $stmt = $pdo->prepare('SELECT c.id,p.id AS pessoa_id,p.data_nascimento FROM contas c INNER JOIN pessoas p ON p.cpf = c.cpf WHERE c.cpf = :cpf AND p.data_nascimento = :nascimento AND c.ativo = 1 LIMIT 1');
         $stmt->execute([':cpf' => $cpf, ':nascimento' => $birth->format('Y-m-d')]);
-        $accountId = (int) ($stmt->fetchColumn() ?: 0);
+        $account = $stmt->fetch(PDO::FETCH_ASSOC);
+        $accountId = (int) ($account['id'] ?? 0);
         if ($accountId <= 0) {
             throw new RuntimeException('Não foi possível confirmar os dados informados. Confira o CPF e a data de nascimento.');
         }
+
+        (new AccountAgeAccessService())->assertAllowed($account);
 
         $update = $pdo->prepare('UPDATE contas SET senha_hash = :senha_hash, updated_at = NOW() WHERE id = :id LIMIT 1');
         $update->execute([':senha_hash' => password_hash($newPassword, PASSWORD_DEFAULT), ':id' => $accountId]);

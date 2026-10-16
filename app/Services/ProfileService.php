@@ -441,6 +441,17 @@ class ProfileService
     /**
      * Transfere um dependente para outro responsavel existente.
      */
+    public function lookupTransferResponsible(int $dependentId,string $cpf): array
+    {
+        $responsible=$this->getAuthenticatedPerson();
+        if (!$responsible) throw new RuntimeException('Faça login para continuar.');
+        if ($dependentId<=0) throw new RuntimeException('Selecione primeiro o dependente que deseja transferir.');
+        $stmt=Database::connection()->prepare('SELECT id FROM vinculos_responsaveis WHERE dependente_pessoa_id=:person AND responsavel_pessoa_id=:owner AND data_fim IS NULL LIMIT 1');
+        $stmt->execute([':person'=>$dependentId,':owner'=>(int)$responsible['id']]);
+        if (!$stmt->fetchColumn()) throw new RuntimeException('A pessoa selecionada não está vinculada à sua conta.');
+        return (new ResponsibilityTransferService())->lookup($cpf);
+    }
+
     public function transferDependent(array $data): void
     {
         $currentResponsible = $this->getAuthenticatedPerson();

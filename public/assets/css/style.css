@@ -156,3 +156,7 @@
         background: linear-gradient(90deg, #1767c4 0 25%, #f58b00 25% 50%, #25a45b 50% 75%, #dd4646 75% 100%) !important;
     }
 }
+
+.link-button.admin-responsibility-transfer-link { color:#c62828; font-size:.8rem; }
+.link-button.admin-responsibility-transfer-link:hover,
+.link-button.admin-responsibility-transfer-link:focus-visible { color:#9b1c1c; }

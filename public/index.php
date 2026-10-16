@@ -88,6 +88,17 @@ foreach ($routes as [$method, $path, $handler]) {
         continue;
     }
 
+    // Uma correção da data de nascimento também encerra sessões já abertas do menor.
+    if (\App\Core\Auth::check()) {
+        $ageBlock=(new \App\Services\AccountAgeAccessService())->sessionBlockMessage((int)\App\Core\Auth::id());
+        if ($ageBlock!==null) {
+            \App\Core\Auth::logout();
+            if (is_ajax_request()) json_response(['success'=>false,'message'=>$ageBlock,'redirect'=>login_modal_url('/')],403);
+            flash('error',$ageBlock);
+            redirect_to_login_modal('/');
+        }
+    }
+
     try {
         (new \App\Services\AccountAccessService())->touchSessionPresence($currentPath);
     } catch (\Throwable $e) {
