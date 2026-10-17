@@ -796,4 +796,21 @@ class ProfessorController extends Controller
         if ($this->isAjaxRequest()) { $this->jsonResponse(['success' => false, 'message' => 'Seu nível de acesso não permite abrir a área do professor.', 'redirect' => url('/')], 403); }
         redirect('/');
     }
+
+    public function scheduleClosures(): void
+    {
+        $user = $this->assertProfessorMutationAccess();
+        try {
+            $scheduleId = (int) ($_GET['horario_id'] ?? $_POST['horario_id'] ?? 0);
+            $schedule = $this->adminService->getWeeklyScheduleDetails($scheduleId, (int) $user['conta_id']);
+            $service = new \App\Services\ScheduleClosureService();
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                if (($_POST['acao'] ?? '') === 'excluir') $service->delete($scheduleId, (int) ($_POST['id'] ?? 0), (int) $user['conta_id']);
+                else $service->save($scheduleId, (int) $user['conta_id'], $_POST);
+            }
+            $this->jsonResponse(['success' => true, 'items' => $service->list($scheduleId), 'schedule' => ['id' => $scheduleId, 'local_nome' => $schedule['local_nome'], 'modalidade_nome' => $schedule['modalidade_nome'], 'hora_inicio' => $schedule['hora_inicio'], 'hora_fim' => $schedule['hora_fim']]]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
 }

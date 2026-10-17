@@ -65,7 +65,7 @@ namespace {
     }
     $blocked = [
         'professor' => ['classCopyOptions', 'saveAssignedClass', 'changeAssignedClassStatus', 'deleteAssignedClass',
-            'storeWeeklySchedule', 'updateWeeklySchedule', 'deactivateWeeklySchedule', 'activateWeeklySchedule',
+            'storeWeeklySchedule', 'updateWeeklySchedule', 'deactivateWeeklySchedule', 'activateWeeklySchedule', 'scheduleClosures',
             'updateEnrollmentStatus', 'createEnrollmentToken', 'excludeEnrollmentToken', 'saveConditionValidation', 'saveHealthCertificateValidation',
             'userDetails', 'userDependents', 'personEnrollments', 'printableCourseClassAttendance', 'printableCourseClassAddresses',
             'conditionValidationModal', 'healthCertificateValidationModal', 'certificateDocument', 'healthCertificateDocument', 'section'],
@@ -165,5 +165,5 @@ namespace {
             }
         }
     }
-    echo "Permissões do estagiário: 27 ações bloqueadas, consulta do aluno, endereço e chamada validados.\n";
+    echo "Permissões do estagiário: 28 ações bloqueadas, consulta do aluno, endereço e chamada validados.\n";
 }

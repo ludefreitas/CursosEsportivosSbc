@@ -1106,7 +1106,7 @@
                     const props = event.extendedProps || {};
                     const hasPersonalBooking = statusFromEvent(event) !== ''
                         || (Array.isArray(props.meus_agendamentos) && props.meus_agendamentos.length > 0);
-                    return props.agenda_aberta === true
+                    return Boolean(props.fechamento_temporario) || props.agenda_aberta === true
                         || String(props.agenda_aberta) === '1'
                         || (isPastDate && hasPersonalBooking);
                 });
@@ -1129,7 +1129,7 @@
                     const personalBookings = Array.isArray(props.meus_agendamentos) ? props.meus_agendamentos : [];
                     const hasPersonalBooking = status !== '' || personalBookings.length > 0;
                     const isAgendaOpen = props.agenda_aberta === true || String(props.agenda_aberta) === '1';
-                    if (!isAgendaOpen && !(isPastDate && hasPersonalBooking)) {
+                    if (!isAgendaOpen && !props.fechamento_temporario && !(isPastDate && hasPersonalBooking)) {
                         const isClosed = String(props.estado_janela_agendamento || '') === 'fechada';
                         const timeRange = App.agenda.formatarHoraAgenda(event.start) + ' às ' + App.agenda.formatarHoraAgenda(event.end);
                         const modalityName = String(props.modalidade || event.title || 'Modalidade');
@@ -1170,6 +1170,8 @@
             }
 
             function abrirDetalhesAgenda(event) {
+                const closureMessage = String((event && event.extendedProps && event.extendedProps.fechamento_temporario) || '');
+                if (closureMessage) { App.core.abrirPopup('aviso', closureMessage); return; }
                 if (!event || !App.agenda || typeof App.agenda.renderizarDetalhesAgenda !== 'function') return;
                 if ($('#agenda-details-modal').length === 0) {
                     App.core.abrirPopup('erro', 'Não foi possível carregar os detalhes deste horário.');

@@ -2281,3 +2281,15 @@
     .class-timeline-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .class-timeline-options .btn { min-width: 0; overflow-wrap: anywhere; white-space: normal; }
 }
+.schedule-closure-toolbar { display: flex; justify-content: flex-end; margin-bottom: 18px; }
+.schedule-closure-list { display: grid; gap: 12px; margin-top: 18px; }
+.schedule-closure-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; }
+.schedule-closure-row.is-em_vigor { background: #fff3df; border-color: #e8c893; }
+.schedule-closure-row.is-concluido { background: #edf6ef; border-color: #bedac6; }
+.schedule-closure-row.is-programado { background: #edf3fd; border-color: #bfd0ee; }
+.schedule-closure-buttons { display: flex; gap: 8px; }
+@media (max-width: 700px) {
+    .schedule-closure-row { flex-direction: column; align-items: stretch; }
+    .schedule-closure-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .schedule-closure-buttons .btn { width: 100%; min-width: 0; }
+}

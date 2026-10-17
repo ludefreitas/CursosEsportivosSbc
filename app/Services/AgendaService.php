@@ -269,6 +269,7 @@ class AgendaService
         $bookingsByOccurrence = $this->loadCalendarBookingsForAuthenticatedAccount($calendarStart, $calendarEnd);
         $occupancyByOccurrence = $this->loadCalendarOccupancyByOccurrence($calendarStart, $calendarEnd);
         $spaceSuspensions = $this->loadActiveSpaceSuspensions($calendarStart, $calendarEnd);
+        $scheduleClosures = ScheduleClosureService::loadMap($calendarStart->format('Y-m-d'), $calendarEnd->format('Y-m-d'));
         $noticeCache = [];
 
         foreach ($rows as $row) {
@@ -293,10 +294,12 @@ class AgendaService
                     continue;
                 }
 
+                $closureMessage = ScheduleClosureService::message($scheduleClosures, (int) $row['id'], $occurrenceDate);
+
                 $occupiedSlots = (int) ($occupancyByOccurrence[$occurrenceKey] ?? 0);
                 $totalSlots = (int) $row['vagas_geral'] + (int) $row['vagas_pcd'] + (int) $row['vagas_plm'] + (int) $row['vagas_pvs'];
                 $availableSlots = max(0, $totalSlots - $occupiedSlots);
-                $scheduleWindowBlockReason = $this->resolveScheduleWindowBlockReason($row, $date);
+                $scheduleWindowBlockReason = $closureMessage ?? $this->resolveScheduleWindowBlockReason($row, $date);
                 $scheduleWindowState = $this->resolveScheduleWindowState($row, $date);
                 $availableForBooking = !$isInactiveSchedule
                     && $availableSlots > 0
@@ -343,6 +346,7 @@ class AgendaService
                         'tipo_horario' => $row['tipo_horario'],
                         'niveis_aceitos_descricao' => describe_modality_levels($row['niveis_aceitos_json'] ?? null),
                         'horario_ativo' => !$isInactiveSchedule,
+                        'fechamento_temporario' => $closureMessage ?? '',
                         'vagas_geral' => (int) $row['vagas_geral'],
                         'vagas_pcd' => (int) $row['vagas_pcd'],
                         'vagas_plm' => (int) $row['vagas_plm'],
@@ -426,6 +430,9 @@ class AgendaService
         $schedule = $this->findScheduleById($scheduleId);
         $items = [];
 
+        $closureDate = $startDate->format('Y-m-d');
+        $closureMessage = ScheduleClosureService::message(ScheduleClosureService::loadMap($closureDate, $closureDate), $scheduleId, $closureDate);
+        if ($closureMessage !== null) return ['items' => [], 'window_blocked' => true, 'window_message' => $closureMessage];
         if ($this->resolveScheduleWindowBlockReason($schedule, $startDate) !== null) {
             return [
                 'items' => [],
@@ -1132,6 +1139,12 @@ class AgendaService
             } elseif ($personSexo !== $scheduleSexo) {
                 $reasons[] = 'Este horário de agendamento está reservado para pessoas do sexo ' . $sexoLabel . ', ' . $personName . ' não pode agendar.';
             }
+        }
+
+        $closureDate = $startDate->format('Y-m-d');
+        $closureMessage = ScheduleClosureService::message(ScheduleClosureService::loadMap($closureDate, $closureDate), (int) $schedule['id'], $closureDate);
+        if ($closureMessage !== null) {
+            $reasons[] = $closureMessage;
         }
 
         if ($this->isSingleSpaceSuspendedOnDate((int) ($schedule['espaco_treino_id'] ?? 0), $startDate->format('Y-m-d'))) {

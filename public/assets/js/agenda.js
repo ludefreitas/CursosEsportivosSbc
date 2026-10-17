@@ -708,6 +708,8 @@
                     }
                 },
                 eventClick: function (info) {
+                    const closureMessage = String((info.event.extendedProps || {}).fechamento_temporario || '');
+                    if (closureMessage) { App.core.abrirPopup('aviso', closureMessage); return; }
                     App.state.agendaPendingEventData = info;
 
                     if (info.event.extendedProps && info.event.extendedProps.is_special === true) {

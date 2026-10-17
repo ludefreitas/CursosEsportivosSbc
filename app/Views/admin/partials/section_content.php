@@ -821,6 +821,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                                     </td>
                                                     <td>
                                                         <?php if (empty($internView)) { ?><div class="admin-weekly-schedule-actions">
+                                                            <button type="button" class="btn btn-secondary btn-compact" data-schedule-closures="<?php echo e((string) $schedule['id']); ?>">Fechar agenda por período</button>
                                                             <?php if (empty($internView)) { ?><button type="button" class="btn btn-secondary btn-compact" data-weekly-schedule-team="1" data-weekly-schedule-id="<?php echo e((string) $schedule['id']); ?>" data-weekly-schedule-main-professor="<?php echo e((string) ($schedule['professor_conta_id'] ?? '')); ?>" data-weekly-schedule-professors='<?php echo e((string) json_encode($schedule['professores_ids'] ?? [], JSON_UNESCAPED_UNICODE)); ?>' data-weekly-schedule-interns='<?php echo e((string) json_encode($schedule['estagiarios_ids'] ?? [], JSON_UNESCAPED_UNICODE)); ?>'>Equipe</button><?php } ?>
                                                             <button
                                                                 type="button"

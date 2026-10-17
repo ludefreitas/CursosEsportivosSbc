@@ -7855,3 +7855,80 @@
         if ($timeline.length) reloadTimeline($timeline.attr('data-timeline-season'), $timeline.find('[data-timeline-period].is-active').attr('data-timeline-period'), $timeline.find('[data-timeline-modality].is-active').attr('data-timeline-modality'));
     });
 }(window, window.jQuery));
+(function (window, $) {
+    let $modal, scheduleId = 0, endpoint = '', closureRequest = null;
+    function dateLabel(value) { return String(value).split('-').reverse().join('/'); }
+    function error(xhr) { window.App.core.abrirPopup('erro', window.App.core.extrairMensagemErroAjax(xhr).mensagem); }
+    function ensureModal() {
+        if ($modal) return;
+        $modal = $('<div>', { class: 'popup-overlay hidden', id: 'schedule-closures-modal', 'aria-hidden': 'true' }).html(
+            '<div class="popup-card popup-admin-card" role="dialog" aria-modal="true" aria-labelledby="schedule-closures-title">' +
+            '<div class="popup-head"><div><h3 id="schedule-closures-title">Períodos de agenda fechada</h3><p class="muted" data-closure-subtitle></p></div><button type="button" class="popup-close-icon" data-closure-close aria-label="Fechar">&times;</button></div>' +
+            '<div class="popup-body"><div class="schedule-closure-toolbar"><button type="button" class="btn btn-primary" data-closure-new>Fechar por um período</button></div>' +
+            '<form class="stack-form hidden" data-closure-form><input type="hidden" name="id"><h4 data-closure-form-title>Novo período</h4><div class="grid-two"><label><span>Data inicial</span><input type="date" name="data_inicio" required></label><label><span>Data final</span><input type="date" name="data_fim" required></label></div><label><span>Motivo do fechamento</span><textarea name="motivo" rows="3" maxlength="1000" required></textarea></label><small class="muted">As datas inicial e final estão incluídas no fechamento. Para fechar um dia, informe a mesma data nos dois campos.</small><div class="schedule-closure-buttons"><button type="submit" class="btn btn-primary">Salvar período</button><button type="button" class="btn btn-secondary" data-closure-cancel>Cancelar</button></div></form>' +
+            '<p role="status" data-closure-loading class="hidden">Carregando períodos...</p><div class="schedule-closure-list" data-closure-list></div></div></div>'
+        ).appendTo('body');
+    }
+    function render(response) {
+        const labels = { em_vigor: 'Em vigor', concluido: 'Concluído', programado: 'Programado' };
+        const schedule = response.schedule || {};
+        $modal.find('[data-closure-subtitle]').text([schedule.modalidade_nome, schedule.local_nome, String(schedule.hora_inicio || '').slice(0, 5) + ' às ' + String(schedule.hora_fim || '').slice(0, 5)].join(' — '));
+        const $list = $modal.find('[data-closure-list]').empty();
+        (response.items || []).forEach(function (item) {
+            const $row = $('<div>', { class: 'schedule-closure-row is-' + item.situacao });
+            $('<div>').append($('<strong>', { text: dateLabel(item.data_inicio) + ' a ' + dateLabel(item.data_fim) }), $('<div>', { text: labels[item.situacao] || '' })).appendTo($row);
+            $row.children().first().append($('<p>', { text: item.motivo }), $('<small>', { text: 'Fechado por: ' + String(item.criado_por_nome || 'Conta indisponível') }));
+            const $actions = $('<div>', { class: 'schedule-closure-buttons' }).appendTo($row);
+            $('<button>', { type: 'button', class: 'btn btn-secondary', text: 'Editar', 'data-closure-edit': '1' }).data('closure', item).appendTo($actions);
+            $('<button>', { type: 'button', class: 'btn btn-danger', text: 'Excluir', 'data-closure-delete': item.id }).appendTo($actions);
+            $list.append($row);
+        });
+        if (!(response.items || []).length) $list.append($('<p>', { class: 'muted', text: 'Nenhum período de agenda fechada cadastrado para este horário.' }));
+    }
+    function request(data, method) {
+        const requestedSchedule = scheduleId;
+        $modal.find('[data-closure-loading]').removeClass('hidden');
+        $modal.find('button, input, textarea').prop('disabled', true);
+        closureRequest = $.ajax({ url: endpoint, method: method || 'GET', dataType: 'json', data: Object.assign({ horario_id: scheduleId }, data || {}) })
+            .done(function (response) {
+                if (requestedSchedule !== scheduleId) return;
+                if (!response || response.success === false) { window.App.core.abrirPopup('erro', (response && response.message) || 'Não foi possível carregar os períodos.'); return; }
+                render(response);
+                $modal.find('[data-closure-form]').addClass('hidden');
+            }).fail(function (xhr, status) { if (status !== 'abort') error(xhr); })
+            .always(function () { $modal.find('[data-closure-loading]').addClass('hidden'); $modal.find('button, input, textarea').prop('disabled', false); });
+    }
+    $(document).on('click', '[data-schedule-closures]', function () {
+        ensureModal();
+        if (closureRequest) closureRequest.abort();
+        scheduleId = Number($(this).attr('data-schedule-closures'));
+        endpoint = window.App.core.buildUrl(($('[data-professor-mode="1"]').length ? '/professor' : '/admin') + '/horarios-semanais/fechamentos');
+        $modal.find('[data-closure-list], [data-closure-subtitle]').empty();
+        $modal.find('[data-closure-form]').addClass('hidden');
+        $modal.removeClass('hidden').attr('aria-hidden', 'false');
+        request();
+    });
+    $(document).on('click', '[data-closure-close], #schedule-closures-modal', function (event) {
+        if (event.target === this) $modal.addClass('hidden').attr('aria-hidden', 'true');
+    });
+    $(document).on('click', '[data-closure-new], [data-closure-edit]', function () {
+        const item = $(this).data('closure') || {};
+        const $form = $modal.find('[data-closure-form]').removeClass('hidden');
+        $form[0].reset();
+        $form.find('[name="id"]').val(item.id || '');
+        $form.find('[name="data_inicio"]').val(item.data_inicio || '');
+        $form.find('[name="data_fim"]').val(item.data_fim || '');
+        $form.find('[name="motivo"]').val(item.motivo || '');
+        $form.find('[data-closure-form-title]').text(item.id ? 'Editar período' : 'Novo período');
+        $form.find('[name="data_inicio"]').trigger('focus');
+    });
+    $(document).on('click', '[data-closure-cancel]', function () { $modal.find('[data-closure-form]').addClass('hidden'); });
+    $(document).on('submit', '[data-closure-form]', function (event) {
+        event.preventDefault();
+        const $form = $(this);
+        request({ id: $form.find('[name="id"]').val(), data_inicio: $form.find('[name="data_inicio"]').val(), data_fim: $form.find('[name="data_fim"]').val(), motivo: $form.find('[name="motivo"]').val() }, 'POST');
+    });
+    $(document).on('click', '[data-closure-delete]', function () {
+        if (window.confirm('Excluir este período de agenda fechada?')) request({ acao: 'excluir', id: $(this).attr('data-closure-delete') }, 'POST');
+    });
+}(window, window.jQuery));
