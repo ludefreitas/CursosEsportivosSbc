@@ -9,7 +9,7 @@
                         <span>
                             <?php echo e((string) ($alert['message'] ?? '')); ?>
                             <?php if (!empty($alert['action_url'])) { ?>
-                                <a class="site-header-alert-action" href="<?php echo e((string) $alert['action_url']); ?>"><?php echo e((string) ($alert['action_label'] ?? 'Completar ação')); ?></a>
+                                <a class="site-header-alert-action" <?php if (!empty($alert['sus_person_id'])) { ?>data-sus-person="<?php echo e((string)$alert['sus_person_id']); ?>"<?php } ?> href="<?php echo e((string) $alert['action_url']); ?>"><?php echo e((string) ($alert['action_label'] ?? 'Completar ação')); ?></a>
                             <?php } ?>
                         </span>
                     </li>

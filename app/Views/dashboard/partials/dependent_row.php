@@ -11,6 +11,7 @@
             data-open-dependent-modal="1"
             data-person-id="<?php echo e((string) ($dependent['id'] ?? '0')); ?>"
         >Clique para visualizar ou editar dados</button>
+        <?php if (\App\Services\SusCardService::pending((string)($dependent['numero_cartao_sus'] ?? ''))) { ?><small class="sus-card-pending"><?php echo e(\App\Services\SusCardService::label((string)($dependent['numero_cartao_sus'] ?? ''))); ?></small><?php } ?>
     </td>
     <td>
         <?php $status = $healthSummary['clinico'] ?? ['class' => 'is-nao-enviado', 'icon' => '--', 'label' => 'Não enviado']; ?>

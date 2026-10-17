@@ -566,8 +566,8 @@
                         message = 'Informe um CEP válido com 8 dígitos.';
                     }
                 } else if ($field.is('[data-sus-card="1"]') || name === 'numero_cartao_sus') {
-                    if (digits.length !== 15) {
-                        message = 'Informe exatamente os 15 dígitos do Cartão SUS.';
+                    if (!window.SusCardValidator.isValid(value)) {
+                        message = 'Cartão SUS inválido. Confira os 15 dígitos. Se não possui, deixe em branco; o cadastro ficará com pendência.';
                     }
                 } else if ($field.is('[data-nis-number="1"]') && digits.length !== 11) {
                     message = 'Informe exatamente os 11 dígitos do NIS.';

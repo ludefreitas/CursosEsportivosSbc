@@ -4,6 +4,7 @@
     App.dashboard = Object.assign(App.dashboard || {}, {
         init: function () {
             let pendingEnrollmentCancellationForm = null;
+            let susEditorSequence=0;
             const highlightEnrollmentId = new URLSearchParams(window.location.search).get('inscricao_destaque');
             if (highlightEnrollmentId) {
                 const $highlightedEnrollment = $('[data-dashboard-enrollment-id="' + String(highlightEnrollmentId).replace(/[^0-9]/g, '') + '"]').first();
@@ -59,7 +60,7 @@
                     full_name: 'Nome completo da pessoa, sem abreviações.', cpf: 'CPF da pessoa. Este número identifica o cadastro e não pode ser duplicado.',
                     birth_date: 'Data de nascimento usada para calcular a idade e verificar a elegibilidade.', sexo: 'Sexo usado nas regras de turmas específicas por gênero.',
                     phone_whatsapp: 'WhatsApp de contato do dependente. O formulário inicia com o número do responsável autenticado.', email: 'E-mail para contato e comunicações sobre o cadastro.',
-                    numero_cartao_sus: 'Número opcional do Cartão Nacional de Saúde, com 15 dígitos.', eh_pcd: 'Indica Pessoa com Deficiência e exige a documentação correspondente.',
+                    numero_cartao_sus: 'Se não possui o cartão SUS, deixe em branco. O cadastro ficará com pendência. Procure uma UBS para obter o número e depois atualize este campo.', eh_pcd: 'Indica Pessoa com Deficiência e exige a documentação correspondente.',
                     eh_pvs: 'Indica Pessoa em Situação de Vulnerabilidade Social e exige documentação.', eh_plm: 'Indica Pessoa com Limitação de Mobilidade e exige documentação.',
                     zip_code: 'CEP do endereço da pessoa.', street: 'Nome da rua, avenida ou logradouro.', address_number: 'Número do imóvel.', address_complement: 'Complemento do endereço, como bloco ou apartamento.',
                     neighborhood: 'Bairro do endereço.', city: 'Cidade do endereço.', state: 'Sigla do estado com duas letras.',
@@ -295,6 +296,7 @@
             }
 
             function closeDependentModal() {
+                susEditorSequence++;
                 const $modal = getDependentModal();
                 const $content = getDependentContent();
 
@@ -466,6 +468,26 @@
                         App.core.abrirPopup('erro', erro.mensagem);
                     });
             });
+
+            function openSusEditor(personId) {
+                const sequence=++susEditorSequence;
+                $.getJSON(App.core.buildUrl('/dependentes/detalhe'),{person_id:personId}).done(function(response){
+                    if(sequence!==susEditorSequence)return;
+                    if (!response || response.success===false || !response.html) {App.core.abrirPopup('erro',String((response&&response.message)||'Não foi possível abrir os dados da pessoa.'));return;}
+                    openDependentModal(response.html);showDependentPanel('edit');
+                    window.requestAnimationFrame(function(){
+                        const $field=getDependentContent().find('[name="numero_cartao_sus"]').first();
+                        $field.closest('label').addClass('sus-card-highlight');
+                        if($field.length){$field[0].scrollIntoView({behavior:'smooth',block:'center'});$field[0].focus({preventScroll:true});}
+                    });
+                }).fail(function(xhr){if(sequence===susEditorSequence)App.core.abrirPopup('erro',App.core.extrairMensagemErroAjax(xhr).mensagem);});
+            }
+            $(document).on('click','a[data-sus-person]',function(event){
+                if(!getDependentModal().length)return;
+                event.preventDefault();openSusEditor(Number($(this).attr('data-sus-person')));
+            });
+            const susPersonId=Number(new URLSearchParams(window.location.search).get('sus_pessoa')||0);
+            if(susPersonId>0&&getDependentModal().length)openSusEditor(susPersonId);
 
             $(document).on('click', '[data-open-dependent-modal="1"]', function () {
                 const personId = Number($(this).data('personId') || 0);
@@ -642,6 +664,7 @@
                         $('[data-dependent-row-id="' + String(response.person_id) + '"]').replaceWith(String(response.row_html));
                     }
 
+                    if (typeof response.header_alerts_html==='string') replaceHeaderAlerts(response.header_alerts_html);
                     closeDependentModal();
                     App.core.abrirPopup('sucesso', String(response.message || 'Dependente atualizado com sucesso.'));
                 }).fail(function (xhr) {
@@ -683,6 +706,7 @@
                         $('select[name="dependent_person_id"]').append(String(response.option_html));
                     }
 
+                    if (typeof response.header_alerts_html==='string') replaceHeaderAlerts(response.header_alerts_html);
                     closeDependentCreateModal();
                     App.core.abrirPopup('sucesso', String(response.message || 'Dependente salvo com sucesso.'));
                 }).fail(function (xhr) {

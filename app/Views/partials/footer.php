@@ -131,6 +131,7 @@
     <script>
         window.APP_BASE_URL = <?php echo json_encode(url('/'), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
     </script>
+    <script src="<?php echo e(asset_url('js/sus-card.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/core.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/auth.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/agenda.js')); ?>"></script>

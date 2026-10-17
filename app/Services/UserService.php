@@ -108,19 +108,19 @@ class UserService
 
         $pdo = Database::connection();
         $stmtPeople = $pdo->prepare('
-            SELECT DISTINCT base.id, base.nome_completo, base.cpf, base.eh_pcd, base.eh_pvs, base.eh_plm
+            SELECT DISTINCT base.id, base.nome_completo, base.cpf, base.eh_pcd, base.eh_pvs, base.eh_plm, base.numero_cartao_sus
             FROM (
-                SELECT p.id, p.nome_completo, p.cpf, p.eh_pcd, p.eh_pvs, p.eh_plm
+                SELECT p.id, p.nome_completo, p.cpf, p.eh_pcd, p.eh_pvs, p.eh_plm, p.numero_cartao_sus
                 FROM contas c
                 INNER JOIN pessoas p ON p.cpf = c.cpf
                 WHERE c.id = :conta_id_titular
 
                 UNION
 
-                SELECT p.id, p.nome_completo, p.cpf, p.eh_pcd, p.eh_pvs, p.eh_plm
+                SELECT p.id, p.nome_completo, p.cpf, p.eh_pcd, p.eh_pvs, p.eh_plm, p.numero_cartao_sus
                 FROM contas c
                 INNER JOIN pessoas responsavel ON responsavel.cpf = c.cpf
-                INNER JOIN vinculos_responsaveis vr ON vr.responsavel_pessoa_id = responsavel.id
+                INNER JOIN vinculos_responsaveis vr ON vr.responsavel_pessoa_id = responsavel.id AND vr.data_fim IS NULL
                 INNER JOIN pessoas p ON p.id = vr.dependente_pessoa_id
                 WHERE c.id = :conta_id_dependentes
             ) base
@@ -162,6 +162,8 @@ class UserService
         ');
 
         foreach ($people as $person) {
+            $susAlert=SusCardService::alert($person);
+            if ($susAlert!==null) $alerts[]=$susAlert;
             foreach ($conditionMap as $field => $meta) {
                 if ((int) ($person[$field] ?? 0) !== 1) {
                     continue;

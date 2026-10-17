@@ -1364,9 +1364,7 @@ class AdminService
             throw new RuntimeException('Informe uma data de nascimento válida.');
         }
 
-        if ($numeroCartaoSus !== '' && strlen($numeroCartaoSus) !== 15) {
-            throw new RuntimeException('Quando informado, o número do cartão SUS deve conter exatamente 15 dígitos.');
-        }
+        SusCardService::assertOptional((string)($data['numero_cartao_sus'] ?? ''));
 
         if ($zipCode !== '' && strlen($zipCode) !== 8) {
             throw new RuntimeException('Informe um CEP válido com 8 dígitos.');

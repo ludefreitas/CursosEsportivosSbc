@@ -9,6 +9,7 @@
 <div class="popup-body admin-popup-body dashboard-dependent-modal-body">
     <section class="content-card"><h3>Aptidão e níveis das modalidades</h3><div data-evaluation-person-list="<?php echo e((string) ($dependent['id'] ?? 0)); ?>"></div></section>
     <div class="dashboard-dependent-panel" data-dependent-modal-panel="view">
+        <?php if (\App\Services\SusCardService::pending((string)($dependent['numero_cartao_sus'] ?? ''))) { ?><p class="alert-inline"><?php echo e(\App\Services\SusCardService::label((string)($dependent['numero_cartao_sus'] ?? ''))); ?>. <?php echo e(\App\Services\SusCardService::HELP); ?></p><?php } ?>
         <div class="alert-inline dashboard-dependent-attention">
             Confira com atenção o CPF e a data de nascimento. Para corrigir qualquer um desses dados, entre em contato com o suporte.
         </div>
@@ -108,8 +109,8 @@
                     </label>
                     <label>
                         <span>Número do cartão SUS</span>
-                        <input type="text" name="numero_cartao_sus" data-sus-card="1" inputmode="numeric" maxlength="18" value="<?php echo e((string) ($dependent['numero_cartao_sus'] ?? '')); ?>">
-                        <small class="muted">Campo opcional. Se informado, deve conter exatamente 15 dígitos.</small>
+                        <input type="text" name="numero_cartao_sus" data-sus-card="1" inputmode="numeric" maxlength="19" value="<?php echo e((string) ($dependent['numero_cartao_sus'] ?? '')); ?>">
+                        <small class="muted"><?php echo e(\App\Services\SusCardService::HELP); ?></small>
                     </label>
                     <label>
                         <span>Contato de emergência</span>

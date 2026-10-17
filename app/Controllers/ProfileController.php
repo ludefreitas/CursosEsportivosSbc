@@ -73,12 +73,12 @@ class ProfileController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Cadastro complementado com sucesso.',
+                    'message' => \App\Services\SusCardService::pending((string)($_POST['numero_cartao_sus'] ?? '')) ? 'Cadastro salvo com pendência do cartão SUS. Procure o sistema público de saúde para obter o número e atualize o cadastro.' : 'Cadastro complementado com sucesso.',
                     'redirect' => url($returnTo),
                 ]);
             }
 
-            flash('success', 'Cadastro complementado com sucesso.');
+            flash('success', \App\Services\SusCardService::pending((string)($_POST['numero_cartao_sus'] ?? '')) ? 'Cadastro salvo com pendência do cartão SUS. Procure o sistema público de saúde para obter o número e atualize o cadastro.' : 'Cadastro complementado com sucesso.');
             redirect($returnTo);
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
@@ -170,10 +170,11 @@ class ProfileController extends Controller
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Dependente salvo com sucesso.',
+                    'message' => \App\Services\SusCardService::pending((string)($dependent['numero_cartao_sus'] ?? '')) ? 'Cadastro salvo com pendência do cartão SUS. Procure o sistema público de saúde para obter o número e atualize o cadastro.' : 'Dependente salvo com sucesso.',
                     'redirect' => url('/dashboard'),
                     'row_html' => $this->renderDependentRowHtml($dependent),
                     'option_html' => $this->renderDependentOptionHtml($dependent),
+                    'header_alerts_html' => $this->renderHeaderCertificateAlertsHtml(),
                     'person_id' => (int) ($dependent['id'] ?? 0),
                 ]);
             }
@@ -243,9 +244,10 @@ class ProfileController extends Controller
 
             $this->jsonResponse([
                 'success' => true,
-                'message' => 'Dependente atualizado com sucesso.',
+                'message' => \App\Services\SusCardService::pending((string)($dependent['numero_cartao_sus'] ?? '')) ? 'Cadastro salvo com pendência do cartão SUS. Procure o sistema público de saúde para obter o número e atualize o cadastro.' : 'Dependente atualizado com sucesso.',
                 'html' => $this->renderDependentModalHtml($dependent),
                 'row_html' => $this->renderDependentRowHtml($dependent),
+                'header_alerts_html' => $this->renderHeaderCertificateAlertsHtml(),
                 'person_id' => (int) $dependent['id'],
             ]);
         } catch (\Throwable $e) {

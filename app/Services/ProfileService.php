@@ -305,6 +305,8 @@ class ProfileService
             throw new RuntimeException('Dependente inválido.');
         }
 
+        if ($personId===(int)$responsible['id']) return $this->attachHealthCertificatesSummary([$responsible])[0];
+
         $pdo = Database::connection();
         $stmt = $pdo->prepare('
             SELECT p.*, vr.id AS vinculo_id
@@ -931,11 +933,7 @@ class ProfileService
      */
     private function validarNumeroCartaoSus(string $value): void
     {
-        $normalized = $this->normalizeNumeroCartaoSus($value);
-
-        if ($normalized !== '' && strlen($normalized) !== 15) {
-            throw new RuntimeException('Quando informado, o número do cartão SUS deve conter exatamente 15 dígitos.');
-        }
+        SusCardService::assertOptional($value);
     }
 
     /**

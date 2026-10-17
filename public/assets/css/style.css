@@ -160,3 +160,6 @@
 .link-button.admin-responsibility-transfer-link { color:#c62828; font-size:.8rem; }
 .link-button.admin-responsibility-transfer-link:hover,
 .link-button.admin-responsibility-transfer-link:focus-visible { color:#9b1c1c; }
+
+.sus-card-highlight { outline:2px solid #dc7609; outline-offset:6px; border-radius:8px; background:#fff8e9; }
+.sus-card-pending { display:block; color:#9a5100; font-weight:600; margin-top:6px; }

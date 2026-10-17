@@ -40,8 +40,8 @@
             <label><span>E-mail</span><input type="email" name="email" required></label>
             <label>
                 <span>Número do cartão SUS</span>
-                <input type="text" name="numero_cartao_sus" data-sus-card="1" inputmode="numeric" maxlength="18">
-                <small class="muted">Este dado deve conter exatamente 15 dígitos.</small>
+                <input type="text" name="numero_cartao_sus" data-sus-card="1" inputmode="numeric" maxlength="19">
+                <small class="muted"><?php echo e(\App\Services\SusCardService::HELP); ?></small>
             </label>
         </div>
         
