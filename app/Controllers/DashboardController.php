@@ -40,6 +40,7 @@ class DashboardController extends Controller
 
         $this->view('dashboard/index', [
             'title' => 'Painel do Usuário',
+            'pageClass' => 'pagina-dashboard',
             'user' => $user,
             'person' => $person,
             'dependents' => $profileService->listDependents(),

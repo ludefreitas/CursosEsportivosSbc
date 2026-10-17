@@ -5,6 +5,10 @@
     --text: #1e2d2f;
     --muted: #5d6b6d;
     --accent-blue: #1767c4;
+    --accent-yellow: #ffa500;
+    --accent-yellow-soft: #fff6e5;
+    --accent-royal-blue: #4169e1;
+    --accent-royal-blue-soft: #edf0fc;
     --accent-blue-soft: rgba(23, 103, 196, 0.10);
     --accent-orange: #cb6d00;
     --accent-orange-soft: rgba(245, 139, 0, 0.12);

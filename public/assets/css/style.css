@@ -163,3 +163,76 @@
 
 .sus-card-highlight { outline:2px solid #dc7609; outline-offset:6px; border-radius:8px; background:#fff8e9; }
 .sus-card-pending { display:block; color:#9a5100; font-weight:600; margin-top:6px; }
+
+/* O quadro de inscrições tem um contêiner próprio entre as seções do painel. */
+body.pagina-dashboard .page-content > #dashboard-course-enrollments-panel {
+    margin-block: var(--page-section-gap);
+}
+/* Home e painel: uma cor por card, com fundo sólido suave. */
+body:is(.pagina-home, .pagina-dashboard) .page-shell
+:is(.hero-copy, .hero-card, .content-card, .info-card, .post-card, .special-event-card):is(div, article, section, nav) {
+    --card-accent: var(--accent-blue);
+    --card-tint: #edf4fc;
+    background: var(--card-tint) !important;
+    border-color: color-mix(in srgb, var(--card-accent) 24%, white) !important;
+    border-top: 5px solid var(--card-accent) !important;
+    box-shadow: none !important;
+}
+body:is(.pagina-home, .pagina-dashboard) .page-shell
+:is(.hero-copy, .hero-card, .content-card, .info-card, .post-card, .special-event-card):nth-child(6n + 2) {
+    --card-accent: var(--accent-orange);
+    --card-tint: #fff4e8;
+}
+body:is(.pagina-home, .pagina-dashboard) .page-shell
+:is(.hero-copy, .hero-card, .content-card, .info-card, .post-card, .special-event-card):nth-child(6n + 3) {
+    --card-accent: var(--accent-green);
+    --card-tint: #edf7f0;
+}
+body:is(.pagina-home, .pagina-dashboard) .page-shell
+:is(.hero-copy, .hero-card, .content-card, .info-card, .post-card, .special-event-card):nth-child(6n + 4) {
+    --card-accent: var(--accent-red);
+    --card-tint: #fcf0ed;
+}
+body:is(.pagina-home, .pagina-dashboard) .page-shell
+:is(.hero-copy, .hero-card, .content-card, .info-card, .post-card, .special-event-card):nth-child(6n + 5) {
+    --card-accent: var(--accent-yellow);
+    --card-tint: var(--accent-yellow-soft);
+}
+body:is(.pagina-home, .pagina-dashboard) .page-shell
+:is(.hero-copy, .hero-card, .content-card, .info-card, .post-card, .special-event-card):nth-child(6n + 6) {
+    --card-accent: var(--accent-royal-blue);
+    --card-tint: var(--accent-royal-blue-soft);
+}
+/* A ação principal determina a cor quando há botões no quadro. */
+body:is(.pagina-home, .pagina-dashboard) .page-shell
+:is(.hero-copy, .hero-card, .content-card, .info-card, .post-card):has(.btn-primary) {
+    --card-accent: var(--brand-700);
+    --card-tint: #edf6f8;
+}
+body.pagina-home .page-shell #home-locations-card {
+    --card-accent: #1f76b5;
+    --card-tint: #edf5fb;
+}
+body:is(.pagina-home, .pagina-dashboard) .page-shell
+:is(.hero-copy, .hero-card, .content-card, .info-card, .post-card):has(.btn-secondary):not(:has(.btn-primary)) {
+    --card-accent: var(--accent-orange);
+    --card-tint: #fff4e8;
+}
+body.pagina-home .page-shell .content-card.home-course-modalities-card {
+    --card-accent: #d96b1f;
+    --card-tint: #fff3e9;
+}
+body.pagina-home .page-shell .content-card.home-training-locations-card,
+body.pagina-home .page-shell .content-card.home-section-navigation {
+    --card-accent: #1ca746;
+    --card-tint: #eef9f0;
+}
+body:is(.pagina-home, .pagina-dashboard) .page-shell .content-card.site-header-alert-card {
+    --card-accent: var(--accent-yellow);
+    --card-tint: var(--accent-yellow-soft);
+}
+body:is(.pagina-home, .pagina-dashboard) .page-shell
+:is(.hero-copy, .hero-card, .content-card, .info-card, .post-card, .special-event-card):is(div, article, section, nav)::before,
+body.pagina-home .page-shell .hero > .hero-copy::after {
+    content: none !important;
+}

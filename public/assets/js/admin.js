@@ -5437,6 +5437,7 @@
                 });
                 $form.find('.field-invalid-container').removeClass('field-invalid-container');
                 $form.find('.field-error-inline').remove();
+                $form.removeData('observation-edited');
                 $form.find('[name="cronograma_modalidade_id"]').val(record && record.id ? String(record.id) : '');
                 Object.keys(record || {}).forEach(function (key) {
                     const $field = $form.find('[name="' + key + '"]');
@@ -5498,6 +5499,15 @@
                 if (!$form.find('[name="nome"]').val()) $form.find('[name="nome"]').val((modalityText && modalityText !== 'Selecione' ? modalityText + ' - ' : '') + String(season.nome || ''));
                 App.core.abrirPopup('sucesso', 'O cronograma da temporada foi copiado. Revise os dados antes de salvar.');
             }
+            $(document).on('input', '#admin-modality-schedule-form [name="observacao"]', function () {
+                $(this).closest('form').data('observation-edited', true);
+            });
+            $(document).on('change', '#admin-modality-schedule-form [name="temporada_id"]', function () {
+                const $form = $(this).closest('form');
+                if ($form.find('[name="cronograma_modalidade_id"]').val() || $form.data('observation-edited')) return;
+                const season = scheduleData('data-modality-seasons').find(function (item) { return String(item.id) === String($form.find('[name="temporada_id"]').val()); });
+                $form.find('[name="observacao"]').val(String((season && season.observacao) || ''));
+            });
             $(document).on('click', '#admin-modality-schedule-use-season', copySeasonToModalitySchedule);
             $(document).on('change', '[data-modality-schedule-notice-toggle="1"]', function () {
                 const enabled = $(this).is(':checked');
@@ -6340,6 +6350,7 @@
             }
 
             function fillForm($form, record) {
+                $form.removeData('observation-edited');
                 $form[0].reset();
                 Object.keys(record || {}).forEach(function (name) {
                     const $field = $form.find('[name="' + name + '"]');
@@ -6784,8 +6795,16 @@
                 if ($(this).is('[name="local_treino_id"]')) filterClassSpaces($form, '');
                 if ($form.find('[data-class-copy-toggle]').is(':checked')) resetClassCopy($form, false);
             });
+            $(document).on('input', '[data-course-form="class"] [name="observacao"]', function () {
+                $(this).closest('form').data('observation-edited', true);
+            });
             $(document).on('change', '[data-course-form="class"] [name="cronograma_modalidade_id"]', function () {
-                renderClassScheduleCatalog($(this).closest('form'));
+                const $form = $(this).closest('form');
+                if (!$form.find('[name="id"]').val() && !$form.data('observation-edited')) {
+                    const schedule = classScheduleData($form).find(function (item) { return String(item.id) === String($form.find('[name="cronograma_modalidade_id"]').val()); });
+                    $form.find('[name="observacao"]').val(String((schedule && schedule.observacao) || ''));
+                }
+                renderClassScheduleCatalog($form);
             });
             $(document).on('click', '[data-class-schedule-option]', function () {
                 const $form = $(this).closest('form');

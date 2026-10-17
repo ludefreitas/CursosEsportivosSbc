@@ -418,6 +418,7 @@ VALUES ('Secretaria de Esportes e Lazer de São Bernardo do Campo', 1);
 CREATE TABLE IF NOT EXISTS temporadas (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(150) NOT NULL,
+    observacao TEXT NULL,
     origem_temporada VARCHAR(180) NOT NULL,
     origem_temporada_id BIGINT UNSIGNED NULL,
     abrangencia_semanal VARCHAR(30) NOT NULL DEFAULT 'segunda_sexta',
@@ -454,6 +455,7 @@ CREATE TABLE IF NOT EXISTS cronogramas_modalidade (
     temporada_id BIGINT UNSIGNED NOT NULL,
     modalidade_id BIGINT UNSIGNED NOT NULL,
     nome VARCHAR(180) NOT NULL,
+    observacao TEXT NULL,
     abrangencia_semanal VARCHAR(30) NOT NULL DEFAULT 'segunda_sexta',
     data_inicio DATE NOT NULL,
     data_fim DATE NOT NULL,
