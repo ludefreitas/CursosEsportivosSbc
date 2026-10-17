@@ -46,6 +46,13 @@ foreach (($courseClasses ?? []) as $class) {
             </div>
         </div>
 
+        <div class="admin-class-filter-block hidden" data-class-secondary-block>
+            <strong><?php echo $groupByLocation ? 'Modalidades do local' : 'Locais da modalidade'; ?></strong>
+            <div class="admin-class-filter-line" data-class-secondary-line>
+                <div class="admin-class-filter-options" data-class-filter-options="secondary"></div>
+                <button type="button" class="link-button admin-class-filter-more hidden" data-class-filter-more="secondary" aria-expanded="false">Mais...</button>
+            </div>
+        </div>
         <p class="muted admin-class-result-summary" data-class-result-summary></p>
         <div class="professor-classes-grid admin-classes-grid" data-class-results><p class="muted">Selecione <?php echo $groupByLocation ? 'um local' : 'uma modalidade'; ?> para consultar as turmas.</p></div>
     <?php } ?>

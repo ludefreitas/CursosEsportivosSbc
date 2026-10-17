@@ -3059,28 +3059,30 @@ class AdminController extends Controller
 
         $courseManagementView = $view;
         $allClasses = (new CourseEnrollmentService())->listClassesForManagement();
-        $seasonClasses = array_values(array_filter($allClasses, static fn (array $class): bool => (int) ($class['temporada_id'] ?? 0) === $seasonId));
-        $groupField = $view === 'turmas-locais' ? 'local_treino_id' : 'modalidade_id';
-        $groupNameField = $view === 'turmas-locais' ? 'local_nome' : 'modalidade_nome';
-        $courseClassGroups = [];
-        foreach ($seasonClasses as $class) {
-            $id = (int) ($class[$groupField] ?? 0);
-            if ($id > 0) $courseClassGroups[$id] = (string) ($class[$groupNameField] ?? '');
-        }
-        natcasesort($courseClassGroups);
-        $courseClasses = $groupId > 0
-            ? array_values(array_filter($seasonClasses, static fn (array $class): bool => (int) ($class[$groupField] ?? 0) === $groupId))
-            : [];
+        $secondaryId = max(0, (int) ($_GET['subgrupo_id'] ?? 0));
+        $filter = \App\Services\CourseClassBrowserFilter::filter($allClasses, $view, $seasonId, $groupId, $secondaryId);
+        $courseClassGroups = $filter['groups'];
+        $courseClasses = $filter['classes'];
 
         ob_start();
         require ROOT_PATH . '/app/Views/admin/partials/course_class_group_buttons.php';
         $groupsHtml = (string) ob_get_clean();
+        $courseClassGroups = $filter['secondary_groups'];
+        $secondaryGroupsView = true;
         ob_start();
-        require ROOT_PATH . '/app/Views/admin/partials/course_class_card_list.php';
+        require ROOT_PATH . '/app/Views/admin/partials/course_class_group_buttons.php';
+        $secondaryHtml = (string) ob_get_clean();
+        ob_start();
+        if ($groupId > 0 && $secondaryId <= 0) {
+            echo '<p class="muted">Selecione ' . ($view === 'turmas-locais' ? 'uma modalidade' : 'um local') . ' para consultar as turmas.</p>';
+        } else {
+            require ROOT_PATH . '/app/Views/admin/partials/course_class_card_list.php';
+        }
         $classesHtml = (string) ob_get_clean();
         $this->jsonResponse([
             'success' => true,
             'groups_html' => $groupsHtml,
+            'secondary_html' => $secondaryHtml,
             'classes_html' => $classesHtml,
             'count' => count($courseClasses),
         ]);

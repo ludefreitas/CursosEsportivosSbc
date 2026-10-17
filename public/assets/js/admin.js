@@ -1002,7 +1002,7 @@
                 $host.html(returnState.html);
                 $host.find('[data-admin-class-browser]').each(function () {
                     layoutClassFilterLine($(this).find('[data-class-filter-line="season"]'));
-                    layoutClassFilterLine($(this).find('[data-class-group-line]:not(.hidden)'));
+                    layoutClassFilterLine($(this).find('[data-class-group-line]:not(.hidden)')); layoutClassFilterLine($(this).find('[data-class-secondary-line]'));
                 });
                 syncActiveButton(returnState.section);
                 updateHash(returnState.section);
@@ -6602,7 +6602,14 @@
                         if (!$group.length) return;
                         $browser.find('[data-class-group]').removeClass('is-active');
                         $group.addClass('is-active');
-                        loadAdminClassBrowser($browser, groupId);
+                        loadAdminClassBrowser($browser, groupId).done(function (secondaryResponse) {
+                            if (!secondaryResponse || secondaryResponse.success === false) return;
+                            const secondaryId = String(classFilterState.secondaryId || '');
+                            const $secondary = $browser.find('[data-class-secondary="' + secondaryId + '"]').first();
+                            if (!$secondary.length) return;
+                            $secondary.addClass('is-active');
+                            loadAdminClassBrowser($browser, groupId, secondaryId);
+                        });
                     });
                 } else {
                     initializeAdminClassBrowsers($updatedPanel);
@@ -6618,6 +6625,7 @@
                 if (!firstButton) { $more.addClass('hidden'); return; }
                 const expanded = $line.hasClass('is-expanded');
                 $more.addClass('hidden');
+                $options.removeClass('is-expanded');
                 const optionsElement = $options.get(0);
                 const needsMore = optionsElement.scrollWidth > optionsElement.clientWidth + 2;
                 $more.toggleClass('hidden', !needsMore);
@@ -6625,18 +6633,19 @@
                 $more.text(expanded ? 'Menos...' : 'Mais...').attr('aria-expanded', expanded ? 'true' : 'false');
             }
 
-            function loadAdminClassBrowser($browser, groupId) {
+            function loadAdminClassBrowser($browser, groupId, secondaryId) {
                 const seasonId = String($browser.find('[data-class-season].is-active').attr('data-class-season') || '');
                 const url = String($browser.attr('data-class-filter-url') || '');
                 const view = String($browser.attr('data-class-management-view') || 'turmas');
                 const selectedGroupId = String(groupId || '');
+                const selectedSecondaryId = String(secondaryId || '');
                 if (!seasonId || !url) return;
                 $browser.addClass('is-loading');
                 return $.ajax({
                     url: url,
                     method: 'GET',
                     dataType: 'json',
-                    data: { tipo: view, temporada_id: seasonId, grupo_id: selectedGroupId },
+                    data: { tipo: view, temporada_id: seasonId, grupo_id: selectedGroupId, subgrupo_id: selectedSecondaryId },
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
                 }).done(function (response) {
                     if (!response || response.success === false) {
@@ -6647,12 +6656,18 @@
                         $browser.find('[data-class-filter-options="group"]').html(String(response.groups_html || ''));
                         $browser.find('[data-class-group-line]').removeClass('is-expanded');
                     }
+                    if (!selectedSecondaryId) {
+                        $browser.find('[data-class-filter-options="secondary"]').html(String(response.secondary_html || ''));
+                        $browser.find('[data-class-secondary-line]').removeClass('is-expanded');
+                    }
+                    $browser.find('[data-class-secondary-block]').toggleClass('hidden', !selectedGroupId);
                     $browser.find('[data-class-results]').html(String(response.classes_html || ''));
                     const count = Number(response.count || 0);
-                    $browser.find('[data-class-result-summary]').text(selectedGroupId ? (count === 1 ? '1 turma encontrada.' : count + ' turmas encontradas.') : '');
+                    $browser.find('[data-class-result-summary]').text(selectedSecondaryId ? (count === 1 ? '1 turma encontrada.' : count + ' turmas encontradas.') : '');
                     window.requestAnimationFrame(function () {
                         layoutClassFilterLine($browser.find('[data-class-filter-line="season"]'));
                         layoutClassFilterLine($browser.find('[data-class-group-line]'));
+                        layoutClassFilterLine($browser.find('[data-class-secondary-line]'));
                     });
                 }).fail(function (xhr) {
                     App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
@@ -6686,6 +6701,12 @@
                 $(this).closest('[data-class-group-line]').find('[data-class-group]').removeClass('is-active');
                 $(this).addClass('is-active');
                 loadAdminClassBrowser($browser, String($(this).attr('data-class-group') || ''));
+            });
+            $(document).on('click', '[data-admin-class-browser] [data-class-secondary]', function () {
+                const $browser = $(this).closest('[data-admin-class-browser]');
+                $browser.find('[data-class-secondary]').removeClass('is-active');
+                $(this).addClass('is-active');
+                loadAdminClassBrowser($browser, $browser.find('[data-class-group].is-active').attr('data-class-group'), $(this).attr('data-class-secondary'));
             });
             $(document).on('click', '[data-admin-class-browser] [data-class-filter-more]', function () {
                 const $line = $(this).closest('.admin-class-filter-line').toggleClass('is-expanded');
@@ -7309,7 +7330,8 @@
                 const $currentClassBrowser = $form.closest('[data-admin-section]').find('[data-admin-class-browser]').first();
                 const classFilterState = $form.is('[data-course-form="class"]') && $currentClassBrowser.length ? {
                     seasonId: String($currentClassBrowser.find('[data-class-season].is-active').attr('data-class-season') || ''),
-                    groupId: String($currentClassBrowser.find('[data-class-group].is-active').attr('data-class-group') || '')
+                    groupId: String($currentClassBrowser.find('[data-class-group].is-active').attr('data-class-group') || ''),
+                    secondaryId: String($currentClassBrowser.find('[data-class-secondary].is-active').attr('data-class-secondary') || '')
                 } : null;
                 function showFirstInvalid(message) {
                     const formElement = $form.get(0);

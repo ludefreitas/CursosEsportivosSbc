@@ -755,8 +755,12 @@
     overflow: hidden;
 }
 .admin-class-filter-options.is-expanded {
-    overflow-x: auto;
-    padding-bottom: 5px;
+    flex-wrap: wrap;
+    overflow: visible;
+}
+.admin-class-filter-options.is-expanded .admin-class-filter-button {
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 .admin-class-filter-button {
     flex: 0 0 auto;
