@@ -2549,8 +2549,8 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
             </form>
 
             <div class="table-wrap">
-                <table class="data-table">
-                    <thead><tr><th>Nome</th><th>Ambiente</th><th>Horários ativos</th><th>Status</th><th>Pop-up dos cursos</th><th>Pop-up da agenda</th><th>Ação</th></tr></thead>
+                <table class="data-table admin-modality-table">
+                    <thead><tr><th>Modalidade</th><th>Pop-up dos cursos</th><th>Pop-up da agenda</th><th>Ações</th></tr></thead>
                     <tbody id="admin-modality-list-body">
                         <?php $modalities = $modalitiesManagement ?? []; require ROOT_PATH . '/app/Views/admin/partials/modality_rows.php'; ?>
                     </tbody>

@@ -2237,3 +2237,39 @@
 .user-notification-delete-discreet { color:#66757c; font-size:.86rem; font-weight:500; opacity:.82; }
 .user-notification-delete-discreet:hover,.user-notification-delete-discreet:focus { color:#a12b32; opacity:1; }
 @media (max-width:640px) { .rematriculation-card { width:calc(100vw - 12px); max-height:calc(100dvh - 12px); } .rematriculation-card .popup-body { padding:12px 16px; } .rematriculation-person { grid-template-columns:auto minmax(0,1fr); padding:10px; } .rematriculation-person > :last-child { grid-column:2; justify-self:start; } .rematriculation-deadline-form > * { width:100%; } .rematriculation-list-actions { align-items:stretch; flex-direction:column; padding:12px 0 0; } .rematriculation-list-actions .btn { width:100%; min-height:44px; } .rematriculation-footer { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:center; padding:10px 16px; } .rematriculation-footer .btn { width:100%; min-width:0; min-height:42px; padding:9px 8px; } .rematriculation-footer .btn:only-child { grid-column:2; } }
+/* Modalidades: resumo contínuo e duas ações de mesma largura no celular. */
+.admin-modality-table .admin-modality-summary {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+.admin-modality-table th:nth-child(2),
+.admin-modality-table th:nth-child(3),
+.admin-modality-table td:nth-child(2),
+.admin-modality-table td:nth-child(3) {
+    font-size: 11px;
+}
+@media (max-width: 760px) {
+    .admin-modality-table tbody td.admin-modality-summary,
+    .admin-modality-table tbody td.admin-modality-actions-cell {
+        display: block;
+    }
+    .admin-modality-table tbody td.admin-modality-summary::before,
+    .admin-modality-table tbody td.admin-modality-actions-cell::before {
+        content: none;
+    }
+    .admin-modality-table .admin-modality-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+        min-width: 0;
+    }
+    .admin-modality-table .admin-modality-actions .btn {
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+        white-space: normal;
+    }
+    .admin-modality-table .admin-modality-popup-cell {
+        min-width: 0;
+    }
+}

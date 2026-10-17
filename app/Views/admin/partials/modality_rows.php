@@ -1,5 +1,5 @@
 <?php if (($modalities ?? []) === []) { ?>
-    <tr><td colspan="7" class="muted">Nenhuma modalidade encontrada.</td></tr>
+    <tr><td colspan="4" class="muted">Nenhuma modalidade encontrada.</td></tr>
 <?php } ?>
 <?php foreach (($modalities ?? []) as $modality) { ?>
     <?php $modalityPopupRecords = array_values(array_filter(($modalityPopups ?? []), static fn (array $popup): bool => (int) ($popup['modalidade_id'] ?? 0) === (int) ($modality['id'] ?? 0))); ?>
@@ -11,10 +11,7 @@
         }
     ?>
     <tr>
-        <td><strong><?php echo e((string) ($modality['nome'] ?? '')); ?></strong></td>
-        <td><?php echo e(($modality['tipo_ambiente'] ?? '') === 'aquatica' ? 'Aquática' : 'Terrestre'); ?></td>
-        <td><?php echo e((string) ((int) ($modality['horarios_ativos'] ?? 0))); ?></td>
-        <td><?php echo (int) ($modality['ativo'] ?? 0) === 1 ? 'Ativa' : 'Inativa'; ?></td>
+        <td class="admin-modality-summary"><strong><?php echo e((string) ($modality['nome'] ?? '')); ?></strong> - <?php echo e(($modality['tipo_ambiente'] ?? '') === 'aquatica' ? 'Aquática' : 'Terrestre'); ?> - <strong><?php echo (int) ($modality['ativo'] ?? 0) === 1 ? 'Ativa' : 'Inativa'; ?></strong></td>
         <?php foreach (['cursos' => 'cursos', 'agenda' => 'agenda'] as $popupArea => $popupAreaLabel) { ?>
             <?php $areaPopups = $modalityPopupsByArea[$popupArea] ?? []; ?>
             <td><div class="admin-modality-popup-cell">
@@ -37,8 +34,8 @@
                 <button type="button" class="link-button admin-modality-popup-create" data-modality-id="<?php echo e((string) ($modality['id'] ?? 0)); ?>" data-modality-name="<?php echo e((string) ($modality['nome'] ?? '')); ?>" data-popup-area="<?php echo e($popupArea); ?>"><?php echo $areaPopups === [] ? 'Criar pop-up' : 'Criar para outro local'; ?></button>
             </div></td>
         <?php } ?>
-        <td>
-            <div class="course-row-actions">
+        <td class="admin-modality-actions-cell">
+            <div class="course-row-actions admin-modality-actions">
                 <button type="button" class="btn btn-secondary admin-modality-edit" data-modality-id="<?php echo e((string) ($modality['id'] ?? 0)); ?>">Editar</button>
                 <button type="button" class="btn btn-danger admin-modality-delete" data-modality-id="<?php echo e((string) ($modality['id'] ?? 0)); ?>" data-modality-name="<?php echo e((string) ($modality['nome'] ?? '')); ?>">Excluir</button>
             </div>
