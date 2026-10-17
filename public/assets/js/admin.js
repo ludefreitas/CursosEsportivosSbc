@@ -6576,6 +6576,14 @@
                     return true;
                 }
                 if (!response || !response.html) return false;
+                const $timeline = $('[data-class-timeline]').first();
+                if ($timeline.length) {
+                    App.admin.activateSection('cronograma-turmas', {
+                        temporada_id: $timeline.attr('data-timeline-season'),
+                        periodo: $timeline.find('[data-timeline-period].is-active').attr('data-timeline-period') || ''
+                    });
+                    return true;
+                }
                 const $updatedPanel = $(String(response.html)).first();
                 const sectionName = String($updatedPanel.attr('data-admin-section') || '');
                 if (!sectionName) return false;
@@ -7826,4 +7834,19 @@
     $(document).on('click','[data-rematriculation-cancel="1"]',function(){const $m=$('#rematriculation-modal');if(!window.confirm('Cancelar esta campanha de rematrícula? A seleção de origem será descartada.'))return;$.post(App.core.buildUrl('/rematriculas/cancelar'),{id:$m.data('campaignId')},function(r){if(!r||r.success===false){App.core.abrirPopup('erro',String((r&&r.message)||'Não foi possível cancelar.'));return;}$('[data-rematriculation-open="'+String($m.data('classId'))+'"]').removeClass('is-active').text('NÃO tem rematrícula');$m.addClass('hidden').attr('aria-hidden','true');App.core.abrirPopup('sucesso',r.message);},'json').fail(function(x){rematriculationError(x,'Não foi possível cancelar a rematrícula.');});});
     $(document).on('submit','[data-rematriculation-deadline-form="1"]',function(e){e.preventDefault();const $m=$('#rematriculation-modal');$.post(App.core.buildUrl('/rematriculas/prazo'),$(this).serialize(),function(r){if(r&&r.success){renderRematriculationCampaign($m,r.campaign);App.core.abrirPopup('sucesso','Prazo atualizado.');}else App.core.abrirPopup('erro',String((r&&r.message)||'Não foi possível alterar.'));},'json');});
     $(document).on('click','[data-rematriculation-resend]',function(){if(!window.confirm('A desistência anterior será arquivada e o convite voltará a aguardar resposta. Deseja reenviar?'))return;const $m=$('#rematriculation-modal');$.post(App.core.buildUrl('/rematriculas/reenviar'),{id:$m.data('campaignId'),convite_id:$(this).attr('data-rematriculation-resend')},function(r){if(r&&r.success){renderRematriculationCampaign($m,r.campaign);App.core.abrirPopup('sucesso',r.message);}else App.core.abrirPopup('erro',String((r&&r.message)||'Não foi possível reenviar.'));},'json');});
+}(window, window.jQuery));
+(function (window, $) {
+    function reloadTimeline(season, period) {
+        window.App.admin.activateSection('cronograma-turmas', { temporada_id: season, periodo: period || '' });
+    }
+    $(document).on('click', '[data-timeline-season-select]', function () {
+        reloadTimeline($(this).attr('data-timeline-season-select'), '');
+    });
+    $(document).on('click', '[data-timeline-period]', function () {
+        reloadTimeline($(this).closest('[data-class-timeline]').attr('data-timeline-season'), $(this).attr('data-timeline-period'));
+    });
+    $(document).on('professor:classes-refresh', function () {
+        const $timeline = $('[data-class-timeline]').first();
+        if ($timeline.length) reloadTimeline($timeline.attr('data-timeline-season'), $timeline.find('[data-timeline-period].is-active').attr('data-timeline-period'));
+    });
 }(window, window.jQuery));

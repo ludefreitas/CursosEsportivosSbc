@@ -2501,6 +2501,22 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
     </section>
 <?php } ?>
 
+<?php if ($sectionName === 'cronograma-turmas') {
+    $classTimelineView = true;
+    if (!empty($professorView)) {
+        $courseManagementView = 'professor-turmas';
+        require ROOT_PATH . '/app/Views/admin/partials/class_timeline.php';
+        $classTimelineView = false;
+        $courseClasses = [];
+        ob_start();
+        require ROOT_PATH . '/app/Views/admin/partials/course_management_panel.php';
+        $timelineControls = (string) ob_get_clean();
+        echo '<div class="hidden" data-professor-course-controls-source="1">' . $timelineControls . '</div>';
+    } else {
+        $courseManagementView = 'turmas';
+        require ROOT_PATH . '/app/Views/admin/partials/course_management_panel.php';
+    }
+} ?>
 <?php if (in_array($sectionName, ['temporadas', 'turmas', 'turmas-locais'], true)) { ?>
     <?php $courseManagementView = $sectionName; ?>
     <?php require ROOT_PATH . '/app/Views/admin/partials/course_management_panel.php'; ?>

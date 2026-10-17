@@ -96,6 +96,7 @@ class AdminController extends Controller
                 'temporadas',
                 'turmas',
                 'turmas-locais',
+                'cronograma-turmas',
             ];
             $masterSections = [
                 'migracao-cadastros',
@@ -2412,7 +2413,7 @@ class AdminController extends Controller
             $data['courseLocationsManagement'] = $this->adminService->listTrainingLocationsForSpaceForm();
         }
 
-        if (in_array($sectionName, ['temporadas', 'turmas', 'turmas-locais'], true)) {
+        if (in_array($sectionName, ['temporadas', 'turmas', 'turmas-locais', 'cronograma-turmas'], true)) {
             $courseService = new CourseEnrollmentService();
             $data['courseManagementView'] = $sectionName;
             $data['courseSeasons'] = $courseService->listSeasonsForManagement();

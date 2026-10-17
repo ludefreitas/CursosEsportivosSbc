@@ -35,7 +35,7 @@ class ProfessorController extends Controller
         $user = $this->assertProfessorAccess();
         $sectionName = (string) ($_GET['nome'] ?? 'inicio');
         if ($sectionName === 'inscricoes') { $this->assertProfessorMutationAccess(); }
-        if (!in_array($sectionName, ['inicio', 'usuarios-pessoas', 'inscricoes', 'minhas-turmas', 'agenda'], true)) {
+        if (!in_array($sectionName, ['inicio', 'usuarios-pessoas', 'inscricoes', 'minhas-turmas', 'cronograma-turmas', 'agenda'], true)) {
             $this->jsonResponse(['success' => false, 'message' => 'A seção não está disponível para professores.'], 403);
             return;
         }
@@ -690,6 +690,18 @@ class ProfessorController extends Controller
                 'courseEnrollmentsByPerson' => $courseEnrollmentService->professorEnrollmentSummariesByPerson(array_column($courseEnrollmentsManagement, 'pessoa_id'), (int) ($user['conta_id'] ?? 0)),
                 'courseEnrollmentStatusSummary' => $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId, $courseEnrollmentSeasonId, $courseEnrollmentGroupBy, $courseEnrollmentGroupId, $courseEnrollmentSecondaryGroupId, (int) ($user['conta_id'] ?? 0)),
             ];
+        }
+        if ($sectionName === 'cronograma-turmas') {
+            $this->assertProfessorMutationAccess();
+            $courseService = new \App\Services\CourseEnrollmentService();
+            return ['sectionName' => $sectionName, 'professorView' => true,
+                'courseClasses' => $courseService->listClassesForProfessor((int) ($user['conta_id'] ?? 0)),
+                'courseSeasons' => $courseService->listSeasonsForManagement(), 'courseSeasonOrigins' => [],
+                'modalitySchedules' => $courseService->listModalitySchedulesForManagement(),
+                'courseProfessors' => $courseService->listProfessors(), 'courseInterns' => $courseService->listInterns(),
+                'courseModalitiesManagement' => $this->adminService->listModalitiesForManagement(),
+                'courseLocationsManagement' => $this->adminService->listTrainingLocationsForSpaceForm(),
+                'courseSpacesManagement' => $this->adminService->listTrainingSpacesForManagement()];
         }
         if ($sectionName === 'minhas-turmas') {
             $courseService = new \App\Services\CourseEnrollmentService();
