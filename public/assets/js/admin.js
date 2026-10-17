@@ -6073,7 +6073,8 @@
                 schedules.forEach(function (schedule) {
                     $select.append($('<option>', { value: String(schedule.id), text: String(schedule.nome || '') })
                         .attr('data-season-id', String(schedule.temporada_id || ''))
-                        .attr('data-modality-id', String(schedule.modalidade_id || '')));
+                        .attr('data-modality-id', String(schedule.modalidade_id || ''))
+                        .attr('data-schedule-observation', String(schedule.observacao || '')));
                 });
                 const $label = $('<label>').append($('<span>', { text: 'Cronograma da modalidade' })).append($select)
                     .append($('<small>', { class: 'muted class-schedule-guidance', text: scheduleGuidance }))
@@ -6800,9 +6801,10 @@
             });
             $(document).on('change', '[data-course-form="class"] [name="cronograma_modalidade_id"]', function () {
                 const $form = $(this).closest('form');
-                if (!$form.find('[name="id"]').val() && !$form.data('observation-edited')) {
+                if (Number($form.find('[name="id"]').val() || 0) <= 0 && !$form.data('observation-edited')) {
                     const schedule = classScheduleData($form).find(function (item) { return String(item.id) === String($form.find('[name="cronograma_modalidade_id"]').val()); });
-                    $form.find('[name="observacao"]').val(String((schedule && schedule.observacao) || ''));
+                    const optionObservation = $form.find('[name="cronograma_modalidade_id"] option:selected').attr('data-schedule-observation');
+                    $form.find('[name="observacao"]').val(String(optionObservation != null ? optionObservation : ((schedule && schedule.observacao) || ''))).trigger('change');
                 }
                 renderClassScheduleCatalog($form);
             });

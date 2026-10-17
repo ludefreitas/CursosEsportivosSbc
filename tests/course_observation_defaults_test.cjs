@@ -11,7 +11,11 @@ function run(selector, values, parent, edited = false) {
     const form = {
         find(key) {
             const name = key.match(/name="([^"]+)"/)[1];
-            return { val(value) { if (arguments.length) values[name] = value; return values[name]; } };
+            return {
+                val(value) { if (arguments.length) { values[name] = value; return this; } return values[name]; },
+                attr() { return parent && parent.observacao; },
+                trigger() { return this; }
+            };
         },
         data() { return edited; }
     };
@@ -30,6 +34,10 @@ for (const kind of ['schedule', 'class']) {
     assert.equal(run(selector, values(''), { id: 1, observacao: 'Orientação com acentuação' }), 'Orientação com acentuação');
     assert.equal(run(selector, values('Anterior'), { id: 1, observacao: null }), '');
     assert.equal(run(selector, values(''), null), '');
+    if (!schedule) {
+        const zeroId = values(''); zeroId.id = '0';
+        assert.equal(run(selector, zeroId, { id: 1, observacao: 'Texto do cronograma' }), 'Texto do cronograma');
+    }
     assert.equal(run(selector, values('Personalizada'), { id: 1, observacao: 'Origem' }, true), 'Personalizada');
     assert.equal(run(selector, values(''), { id: 1, observacao: 'Origem' }, true), '');
     assert.equal(run(selector, values('Registro existente', true), { id: 1, observacao: 'Origem alterada' }), 'Registro existente');
