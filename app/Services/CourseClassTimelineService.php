@@ -3,7 +3,7 @@ namespace App\Services;
 
 final class CourseClassTimelineService
 {
-    public static function build(array $classes, array $schedules, int $seasonId, string $periodKey): array
+    public static function build(array $classes, array $schedules, int $seasonId, string $periodKey, int $modalityId = 0): array
     {
         $periods = [
             'disponibilidade' => ['Disponibilidade', 'data_inicio', 'data_fim'],
@@ -31,8 +31,14 @@ final class CourseClassTimelineService
                 $groups[$key]['classes'][(int) $class['id']] = $class;
             }
         }
+        $periodClasses = array_values($groups[$periodKey]['classes'] ?? []);
+        $modalities = [];
+        foreach ($periodClasses as $class) $modalities[(int) $class['modalidade_id']] = (string) ($class['modalidade_nome'] ?? 'Modalidade');
+        asort($modalities, SORT_NATURAL | SORT_FLAG_CASE);
+        if (!isset($modalities[$modalityId])) $modalityId = 0;
         return ['seasons' => $seasons, 'season_id' => $seasonId, 'groups' => $groups,
             'period_key' => isset($groups[$periodKey]) ? $periodKey : '',
-            'classes' => array_values($groups[$periodKey]['classes'] ?? [])];
+            'modalities' => $modalities, 'modality_id' => $modalityId,
+            'classes' => array_values(array_filter($periodClasses, static fn (array $class): bool => $modalityId > 0 && (int) $class['modalidade_id'] === $modalityId))];
     }
 }

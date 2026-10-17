@@ -6580,7 +6580,8 @@
                 if ($timeline.length) {
                     App.admin.activateSection('cronograma-turmas', {
                         temporada_id: $timeline.attr('data-timeline-season'),
-                        periodo: $timeline.find('[data-timeline-period].is-active').attr('data-timeline-period') || ''
+                        periodo: $timeline.find('[data-timeline-period].is-active').attr('data-timeline-period') || '',
+                        modalidade_id: $timeline.find('[data-timeline-modality].is-active').attr('data-timeline-modality') || '0'
                     });
                     return true;
                 }
@@ -7836,8 +7837,8 @@
     $(document).on('click','[data-rematriculation-resend]',function(){if(!window.confirm('A desistência anterior será arquivada e o convite voltará a aguardar resposta. Deseja reenviar?'))return;const $m=$('#rematriculation-modal');$.post(App.core.buildUrl('/rematriculas/reenviar'),{id:$m.data('campaignId'),convite_id:$(this).attr('data-rematriculation-resend')},function(r){if(r&&r.success){renderRematriculationCampaign($m,r.campaign);App.core.abrirPopup('sucesso',r.message);}else App.core.abrirPopup('erro',String((r&&r.message)||'Não foi possível reenviar.'));},'json');});
 }(window, window.jQuery));
 (function (window, $) {
-    function reloadTimeline(season, period) {
-        window.App.admin.activateSection('cronograma-turmas', { temporada_id: season, periodo: period || '' });
+    function reloadTimeline(season, period, modality) {
+        window.App.admin.activateSection('cronograma-turmas', { temporada_id: season, periodo: period || '', modalidade_id: modality || '0' });
     }
     $(document).on('click', '[data-timeline-season-select]', function () {
         reloadTimeline($(this).attr('data-timeline-season-select'), '');
@@ -7845,8 +7846,12 @@
     $(document).on('click', '[data-timeline-period]', function () {
         reloadTimeline($(this).closest('[data-class-timeline]').attr('data-timeline-season'), $(this).attr('data-timeline-period'));
     });
+    $(document).on('click', '[data-timeline-modality]', function () {
+        const $timeline = $(this).closest('[data-class-timeline]');
+        reloadTimeline($timeline.attr('data-timeline-season'), $timeline.find('[data-timeline-period].is-active').attr('data-timeline-period'), $(this).attr('data-timeline-modality'));
+    });
     $(document).on('professor:classes-refresh', function () {
         const $timeline = $('[data-class-timeline]').first();
-        if ($timeline.length) reloadTimeline($timeline.attr('data-timeline-season'), $timeline.find('[data-timeline-period].is-active').attr('data-timeline-period'));
+        if ($timeline.length) reloadTimeline($timeline.attr('data-timeline-season'), $timeline.find('[data-timeline-period].is-active').attr('data-timeline-period'), $timeline.find('[data-timeline-modality].is-active').attr('data-timeline-modality'));
     });
 }(window, window.jQuery));

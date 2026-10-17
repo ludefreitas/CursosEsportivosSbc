@@ -1,12 +1,12 @@
 <?php
-$timeline = \App\Services\CourseClassTimelineService::build($courseClasses ?? [], $modalitySchedules ?? [], (int) ($_GET['temporada_id'] ?? 0), (string) ($_GET['periodo'] ?? ''));
+$timeline = \App\Services\CourseClassTimelineService::build($courseClasses ?? [], $modalitySchedules ?? [], (int) ($_GET['temporada_id'] ?? 0), (string) ($_GET['periodo'] ?? ''), (int) ($_GET['modalidade_id'] ?? 0));
 $timelineDate = static function (string $value): string {
     if ($value === '') return 'Não informada';
     return date(strlen($value) > 10 ? 'd/m/Y H:i' : 'd/m/Y', strtotime($value));
 };
 ?>
 <article class="content-card class-timeline" data-class-timeline data-timeline-season="<?php echo e((string) $timeline['season_id']); ?>">
-    <div class="course-table-heading"><div><h2>Cronograma turmas</h2><p class="muted">Selecione a temporada e depois um período para consultar as turmas.</p></div></div>
+    <div class="course-table-heading"><div><h2>Cronograma turmas</h2><p class="muted">Selecione a temporada, o período e a modalidade para consultar as turmas.</p></div></div>
     <?php if ($timeline['seasons'] === []) { ?>
         <p class="muted">Nenhuma turma disponível para consulta.</p>
     <?php } else { ?>
@@ -23,10 +23,19 @@ $timelineDate = static function (string $value): string {
         <?php if ($timeline['period_key'] === '') { ?>
             <p class="muted">Selecione um período para consultar as turmas.</p>
         <?php } else { ?>
+            <div class="admin-class-filter-block"><strong>Modalidades do período</strong><div class="class-timeline-options">
+                <?php foreach ($timeline['modalities'] as $timelineModalityId => $timelineModalityName) { ?>
+                    <button type="button" class="btn btn-secondary admin-class-filter-button<?php echo $timelineModalityId === $timeline['modality_id'] ? ' is-active' : ''; ?>" data-timeline-modality="<?php echo e((string) $timelineModalityId); ?>"><?php echo e($timelineModalityName); ?></button>
+                <?php } ?>
+            </div></div>
+            <?php if ($timeline['modality_id'] === 0) { ?>
+                <p class="muted">Selecione uma modalidade para consultar as turmas.</p>
+            <?php } else { ?>
             <p class="muted"><?php echo count($timeline['classes']); ?> turma(s) encontrada(s).</p>
             <div class="professor-classes-grid admin-classes-grid">
                 <?php $courseClasses = $timeline['classes']; require ROOT_PATH . '/app/Views/admin/partials/course_class_card_list.php'; ?>
             </div>
+            <?php } ?>
         <?php } ?>
     <?php } ?>
 </article>
