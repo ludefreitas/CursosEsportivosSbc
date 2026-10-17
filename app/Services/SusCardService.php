@@ -4,7 +4,7 @@ use RuntimeException;
 
 final class SusCardService
 {
-    public const HELP='Se não possui o cartão SUS, deixe em branco. O cadastro ficará com pendência. Procure o sistema público de saúde (uma UBS) para obter o número do Cartão Nacional de Saúde e depois atualize este campo.';
+    public const HELP='Informe os 15 dígitos do Cartão Nacional de Saúde (CNS). Esse dado é importante para manter seu cadastro atualizado. Se não souber o número ou tiver dúvidas, procure uma Unidade Básica de Saúde (UBS) para obter ou confirmar a informação e atualize este campo.';
     public static function normalize(string $value): string {return preg_replace('/\D/','',$value) ?? '';}
     public static function isValid(string $value): bool
     {
@@ -36,7 +36,7 @@ final class SusCardService
     public static function assertOptional(string $value): void
     {
         if (trim($value)==='') return;
-        if (!self::isValid($value)) throw new RuntimeException('Número do cartão SUS inválido. Confira os 15 dígitos; números repetidos ou sequenciais não são aceitos. Se não possui, deixe em branco e procure o sistema público de saúde para obter o número. O cadastro ficará com pendência até a regularização.');
+        if (!self::isValid($value)) throw new RuntimeException('Número do cartão SUS inválido. Confira os 15 dígitos no seu Cartão Nacional de Saúde (CNS) e corrija o número informado. Em caso de dúvida, procure uma Unidade Básica de Saúde (UBS) para confirmar a informação.');
     }
     public static function pending(string $value): bool {return !self::isValid($value);}
     public static function label(string $value): string {return self::pending($value) ? 'Pendente — cartão SUS '.(trim($value)===''?'não informado':'inválido') : 'Cartão SUS informado';}
@@ -44,6 +44,6 @@ final class SusCardService
     {
         $number=(string)($person['numero_cartao_sus'] ?? '');
         if (!self::pending($number))return null;
-        return ['level'=>'warning','message'=>'O cadastro de '.$person['nome_completo'].' está com pendência: cartão SUS '.(trim($number)===''?'não informado':'inválido').'. Procure o sistema público de saúde (uma UBS) para obter ou confirmar o número e atualize o cadastro.','sus_person_id'=>(int)$person['id'],'action_label'=>'Informar cartão SUS','action_url'=>url('/dashboard').'?sus_pessoa='.(int)$person['id']];
+        return ['level'=>'warning','message'=>'O cadastro de '.$person['nome_completo'].' está com pendência: cartão SUS '.(trim($number)===''?'não informado':'inválido').'. Para regularizar, informe os 15 dígitos do Cartão Nacional de Saúde (CNS). Se precisar obter ou confirmar o número, procure uma Unidade Básica de Saúde (UBS) e atualize o cadastro.','sus_person_id'=>(int)$person['id'],'action_label'=>'Informar cartão SUS','action_url'=>url('/dashboard').'?sus_pessoa='.(int)$person['id']];
     }
 }

@@ -60,7 +60,7 @@
                     full_name: 'Nome completo da pessoa, sem abreviações.', cpf: 'CPF da pessoa. Este número identifica o cadastro e não pode ser duplicado.',
                     birth_date: 'Data de nascimento usada para calcular a idade e verificar a elegibilidade.', sexo: 'Sexo usado nas regras de turmas específicas por gênero.',
                     phone_whatsapp: 'WhatsApp de contato do dependente. O formulário inicia com o número do responsável autenticado.', email: 'E-mail para contato e comunicações sobre o cadastro.',
-                    numero_cartao_sus: 'Se não possui o cartão SUS, deixe em branco. O cadastro ficará com pendência. Procure uma UBS para obter o número e depois atualize este campo.', eh_pcd: 'Indica Pessoa com Deficiência e exige a documentação correspondente.',
+                    numero_cartao_sus: 'Informe os 15 dígitos do Cartão Nacional de Saúde (CNS). Esse dado é importante para manter seu cadastro atualizado. Se não souber o número ou tiver dúvidas, procure uma Unidade Básica de Saúde (UBS) para obter ou confirmar a informação e atualize este campo.', eh_pcd: 'Indica Pessoa com Deficiência e exige a documentação correspondente.',
                     eh_pvs: 'Indica Pessoa em Situação de Vulnerabilidade Social e exige documentação.', eh_plm: 'Indica Pessoa com Limitação de Mobilidade e exige documentação.',
                     zip_code: 'CEP do endereço da pessoa.', street: 'Nome da rua, avenida ou logradouro.', address_number: 'Número do imóvel.', address_complement: 'Complemento do endereço, como bloco ou apartamento.',
                     neighborhood: 'Bairro do endereço.', city: 'Cidade do endereço.', state: 'Sigla do estado com duas letras.',

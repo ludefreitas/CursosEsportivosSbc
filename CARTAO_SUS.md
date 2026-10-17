@@ -18,7 +18,7 @@ O quadro Avisos, junto aos avisos de documentos, informa que o cadastro da pesso
 
 A edição usa as permissões já existentes: somente o próprio titular e os dependentes vinculados à conta podem ser consultados nesse fluxo. O titular pode editar seus dados mesmo quando o cadastro legado não tem vínculo consigo mesmo. O salvamento por AJAX atualiza os avisos e a linha da pessoa, sem recarregar a página.
 
-O status aparece também no card de dados da pessoa e na lista de dependentes. Os formulários explicam que o número pode ficar vazio, mas que isso gera pendência.
+O status aparece também no card de dados da pessoa e na lista de dependentes. Os formulários destacam a importância do CNS para manter o cadastro atualizado, orientam informar os 15 dígitos e procurar uma UBS para obter ou confirmar o número. Nenhum aviso orienta deixar o campo em branco.
 
 ## Verificação
 

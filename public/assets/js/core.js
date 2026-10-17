@@ -567,7 +567,7 @@
                     }
                 } else if ($field.is('[data-sus-card="1"]') || name === 'numero_cartao_sus') {
                     if (!window.SusCardValidator.isValid(value)) {
-                        message = 'Cartão SUS inválido. Confira os 15 dígitos. Se não possui, deixe em branco; o cadastro ficará com pendência.';
+                        message = 'Número do cartão SUS inválido. Confira os 15 dígitos no seu Cartão Nacional de Saúde (CNS) e corrija o número informado.';
                     }
                 } else if ($field.is('[data-nis-number="1"]') && digits.length !== 11) {
                     message = 'Informe exatamente os 11 dígitos do NIS.';
