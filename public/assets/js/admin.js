@@ -6123,7 +6123,10 @@
             }
 
             function ensureClassScheduleField($form) {
-                if ($form.find('[name="cronograma_modalidade_id"]').length) return;
+                if ($form.find('[name="cronograma_modalidade_id"]').length) {
+                    $form.find('[name="cronograma_modalidade_id"]').closest('label').after($form.find('[name="observacao"]').closest('label'));
+                    return;
+                }
                 let schedules = [];
                 try { schedules = JSON.parse(String($form.closest('[data-course-modality-schedules]').attr('data-course-modality-schedules') || '[]')); } catch (error) { schedules = []; }
                 const scheduleGuidance = "Selecione aqui o cronograma ou clique em um dos 'cards' abaixo.";
@@ -6138,7 +6141,7 @@
                     .append($('<small>', { class: 'muted class-schedule-guidance', text: scheduleGuidance }))
                     .append($('<small>', { class: 'field-error hidden', 'data-class-schedule-warning': '1' }));
                 const $catalog = $('<div>', { class: 'class-schedule-catalog hidden', 'data-class-schedule-catalog': '1' });
-                $form.find('[name="modalidade_id"]').closest('label').after($label, $catalog);
+                $form.find('[name="modalidade_id"]').closest('label').after($label, $form.find('[name="observacao"]').closest('label'), $catalog);
             }
 
             function ensureClassCopyFields($form) {
@@ -6324,6 +6327,7 @@
                     temporada_id: 'Selecione a temporada à qual a turma pertencerá. A temporada serve de referência para publicação, inscrições e matrículas.',
                     modalidade_id: 'Selecione a modalidade esportiva oferecida pela turma. A escolha define quais cronogramas estarão disponíveis.',
                     cronograma_modalidade_id: 'Selecione o cronograma que regerá os períodos de publicação, inscrição, matrícula e aulas desta turma.',
+                    observacao: 'Ao criar a turma, este campo recebe automaticamente a observação do cronograma da modalidade selecionado, quando houver. Você pode editar ou apagar o texto. Ao escolher outro cronograma durante a criação, o campo recebe a observação dele. Depois de salvar, alterações no cronograma não modificam a observação da turma.',
                     local_treino_id: 'Selecione o local onde as aulas desta turma serão realizadas.',
                     espaco_treino_id: 'Selecione o espaço específico do local onde as aulas acontecerão, como quadra, sala ou piscina.',
                     nome: 'Informe um nome que identifique claramente a turma para administradores, professores e público.',
@@ -6368,6 +6372,7 @@
             }
 
             function filterClassSchedules($form, selectedId) {
+                const previousSelection = String($form.find('[name="cronograma_modalidade_id"]').val() || '');
                 const seasonId = String($form.find('[name="temporada_id"]').val() || '');
                 const modalityId = String($form.find('[name="modalidade_id"]').val() || '');
                 const $select = $form.find('[name="cronograma_modalidade_id"]');
@@ -6383,6 +6388,7 @@
                 $warning.toggleClass('hidden', !missingSchedule).text(missingSchedule ? 'Esta modalidade não possui cronograma na temporada selecionada. Crie primeiro o cronograma da modalidade.' : '');
                 $select.prop('disabled', missingSchedule);
                 $form.find('button[type="submit"]').prop('disabled', missingSchedule);
+                if (previousSelection !== String($select.val() || '')) $select.trigger('change');
                 renderClassScheduleCatalog($form);
                 return !missingSchedule;
             }
@@ -6409,6 +6415,7 @@
             }
 
             function fillForm($form, record) {
+                $form.data('observation-schedule', String((record || {}).cronograma_modalidade_id || ''));
                 $form.removeData('observation-edited');
                 $form[0].reset();
                 Object.keys(record || {}).forEach(function (name) {
@@ -6889,11 +6896,15 @@
             });
             $(document).on('change', '[data-course-form="class"] [name="cronograma_modalidade_id"]', function () {
                 const $form = $(this).closest('form');
-                if (Number($form.find('[name="id"]').val() || 0) <= 0 && !$form.data('observation-edited')) {
+                const selectedScheduleId = String($form.find('[name="cronograma_modalidade_id"]').val() || '');
+                const previousScheduleId = String($form.data('observation-schedule') || '');
+                if (Number($form.find('[name="id"]').val() || 0) <= 0 && (selectedScheduleId !== previousScheduleId || !$form.data('observation-edited'))) {
                     const schedule = classScheduleData($form).find(function (item) { return String(item.id) === String($form.find('[name="cronograma_modalidade_id"]').val()); });
                     const optionObservation = $form.find('[name="cronograma_modalidade_id"] option:selected').attr('data-schedule-observation');
-                    $form.find('[name="observacao"]').val(String(optionObservation != null ? optionObservation : ((schedule && schedule.observacao) || ''))).trigger('change');
+                    $form.find('[name="observacao"]').val(String(schedule ? (schedule.observacao || '') : (optionObservation || ''))).trigger('change');
+                    $form.data('observation-edited', false);
                 }
+                $form.data('observation-schedule', selectedScheduleId);
                 renderClassScheduleCatalog($form);
             });
             $(document).on('click', '[data-class-schedule-option]', function () {

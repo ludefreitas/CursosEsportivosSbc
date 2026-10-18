@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const source = fs.readFileSync('public/assets/js/admin.js', 'utf8');
-function run(selector, values, parent, edited = false) {
+function run(selector, values, parent, edited = false, previousSchedule = values.cronograma_modalidade_id || '') {
     const marker = "$(document).on('change', '" + selector + "', function () {";
     const start = source.indexOf(marker);
     assert(start >= 0);
@@ -17,7 +17,10 @@ function run(selector, values, parent, edited = false) {
                 trigger() { return this; }
             };
         },
-        data() { return edited; }
+        data(key, value) {
+            if (arguments.length > 1) { if (key === 'observation-edited') edited = value; else previousSchedule = value; return this; }
+            return key === 'observation-edited' ? edited : previousSchedule;
+        }
     };
     vm.runInNewContext('(function(){' + source.slice(bodyStart, end) + '}).call({})', {
         $() { return { closest() { return form; } }; },
@@ -40,6 +43,10 @@ for (const kind of ['schedule', 'class']) {
     }
     assert.equal(run(selector, values('Personalizada'), { id: 1, observacao: 'Origem' }, true), 'Personalizada');
     assert.equal(run(selector, values(''), { id: 1, observacao: 'Origem' }, true), '');
+    if (!schedule) {
+        assert.equal(run(selector, values('Texto editado'), { id: 1, observacao: 'Novo cronograma' }, true, '2'), 'Novo cronograma');
+        assert.equal(run(selector, values('Texto antigo'), { id: 1, observacao: null }, true, '2'), '');
+    }
     assert.equal(run(selector, values('Registro existente', true), { id: 1, observacao: 'Origem alterada' }), 'Registro existente');
 }
 console.log('Observações: cópia inicial, origem vazia, edição própria, remoção e preservação de registros existentes OK.');
