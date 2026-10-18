@@ -7394,6 +7394,15 @@
                 }).always(function () { $submit.prop('disabled', false); });
             });
 
+            function buildCourseFormData($form) {
+                const payload = new FormData($form[0]);
+                if ($form.is('[data-course-form="class"]')) {
+                    const $observation = $form.find('[name="observacao"]').first();
+                    if ($observation.length) payload.set('observacao', String($observation.val() == null ? '' : $observation.val()));
+                }
+                return payload;
+            }
+
             function saveCourseForm($form) {
                 if (!$form.length || $form.attr('data-course-saving') === '1') return;
                 const $currentClassBrowser = $form.closest('[data-admin-section]').find('[data-admin-class-browser]').first();
@@ -7482,7 +7491,7 @@
                 $form.attr('data-course-saving', '1');
                 const $button = $form.find('button[type="submit"]').prop('disabled', true);
                 $.ajax({
-                    url: $form.attr('action'), method: 'POST', dataType: 'json', data: new FormData($form[0]),
+                    url: $form.attr('action'), method: 'POST', dataType: 'json', data: buildCourseFormData($form),
                     processData: false, contentType: false,
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
                 }).done(function (response) {
