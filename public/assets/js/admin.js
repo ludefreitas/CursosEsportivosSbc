@@ -5481,6 +5481,8 @@
                     App.core.abrirPopup('erro', 'Selecione primeiro a temporada cujo cronograma será utilizado.');
                     return;
                 }
+                $form.find('[data-modality-schedule-templates]').empty().removeClass('is-selection-collapsed').addClass('hidden');
+                $form.find('#admin-modality-schedule-use-modality').attr('aria-expanded', 'false');
                 ['inscricoes_inicio', 'inscricoes_fim', 'matriculas_inicio', 'matriculas_fim', 'inscricoes_abertas_inicio', 'inscricoes_abertas_fim'].forEach(function (field) { $form.find('[name="' + field + '"]').val(toLocalDateTime(season[field])); });
                 $form.find('[name="abrangencia_semanal"]').val(String(season.abrangencia_semanal || 'segunda_sexta'));
                 ['data_inicio', 'data_fim', 'aulas_inicio', 'aulas_fim'].forEach(function (field) { $form.find('[name="' + field + '"]').val(String(season[field] || '')); });
@@ -5539,12 +5541,17 @@
             }
             $(document).on('click', '#admin-modality-schedule-use-modality', function () {
                 const $options = $('#admin-modality-schedule-form [data-modality-schedule-templates]');
-                const opening = $options.hasClass('hidden');
+                const opening = $options.hasClass('hidden') || $options.hasClass('is-selection-collapsed');
                 renderModalityScheduleTemplates();
+                $options.removeClass('is-selection-collapsed');
                 $options.toggleClass('hidden', !opening);
                 $(this).attr('aria-expanded', opening ? 'true' : 'false');
             });
-            $(document).on('change', '#admin-modality-schedule-form [name="temporada_id"]', renderModalityScheduleTemplates);
+            $(document).on('change', '#admin-modality-schedule-form [name="temporada_id"]', function () {
+                const $form = $(this).closest('form');
+                $form.find('[data-modality-schedule-templates]').empty().addClass('hidden');
+                $form.find('#admin-modality-schedule-use-modality').attr('aria-expanded', 'false');
+            });
             $(document).on('click', '[data-modality-schedule-template]', function () {
                 const $form = $('#admin-modality-schedule-form');
                 const id = String($(this).attr('data-modality-schedule-template'));
@@ -5553,7 +5560,10 @@
                 if (!source) return;
                 applyModalityScheduleTemplate($form, source);
                 $form.find('[data-modality-schedule-template]').removeClass('is-active');
+                $form.find('[data-modality-schedule-template]').not(this).hide();
                 $(this).addClass('is-active');
+                $form.find('[data-modality-schedule-templates]').addClass('is-selection-collapsed');
+                $form.find('#admin-modality-schedule-use-modality').attr('aria-expanded', 'false');
                 App.core.abrirPopup('sucesso', 'Os dados do cronograma selecionado foram copiados. Revise os campos antes de salvar.');
             });
             $(document).on('click', '#admin-modality-schedule-use-season', copySeasonToModalitySchedule);

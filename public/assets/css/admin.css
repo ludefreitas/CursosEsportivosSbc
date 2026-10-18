@@ -2279,6 +2279,7 @@
 }
 .class-timeline { display: grid; gap: 20px; }
 .class-timeline-options { display: flex; flex-wrap: wrap; gap: 10px; }
+.class-timeline-options.hidden { display: none; }
 .class-timeline-period { display: flex; flex-direction: column; gap: 5px; white-space: normal; text-align: left; align-items: flex-start; }
 .class-timeline-period span, .class-timeline-period small { font-weight: 400; }
 @media (max-width: 700px) {
