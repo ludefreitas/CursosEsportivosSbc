@@ -6232,6 +6232,44 @@
                 });
             });
 
+            function chooseClassCopyObservation(current, source, done) {
+                current = String(current || '');
+                source = String(source || '');
+                if (!source.trim()) { done(current); return; }
+                if (!current.trim()) { done(source); return; }
+                $('#class-copy-observation-modal').remove();
+                const $modal = $('<div>', { id: 'class-copy-observation-modal', class: 'popup-overlay', 'aria-hidden': 'false' });
+                const $card = $('<div>', { class: 'popup-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'class-copy-observation-title' }).appendTo($modal);
+                const $head = $('<div>', { class: 'popup-head' }).appendTo($card);
+                $head.append($('<h3>', { id: 'class-copy-observation-title', text: 'Qual observação deseja manter?' }));
+                $('<button>', { type: 'button', class: 'popup-close-icon', text: '×', 'aria-label': 'Cancelar cópia' }).on('click', function () { $modal.remove(); }).appendTo($head);
+                const $form = $('<form>', { class: 'popup-body stack-form' }).appendTo($card);
+                $form.append($('<p>', { text: 'O formulário e a turma de origem possuem observações. Escolha o texto que será salvo na nova turma. Nenhum registro de origem será alterado.' }));
+                const choices = [
+                    { label: 'Manter a observação atual do formulário (cronograma ou texto editado)', value: current },
+                    { label: 'Usar a observação da turma copiada', value: source },
+                    { label: 'Nenhuma observação', value: '' }
+                ];
+                choices.forEach(function (choice, index) {
+                    const $label = $('<label>', { class: 'class-copy-observation-choice' }).appendTo($form);
+                    $label.append($('<input>', { type: 'radio', name: 'copy_observation_choice', value: String(index), checked: index === 0 }));
+                    const $content = $('<div>').append($('<strong>', { text: choice.label }));
+                    if (choice.value) $content.append($('<p>', { text: choice.value, class: 'class-copy-observation-text' }));
+                    $label.append($content);
+                });
+                const $actions = $('<div>', { class: 'popup-actions' }).appendTo($form);
+                $('<button>', { type: 'button', class: 'btn btn-secondary', text: 'Cancelar cópia' }).on('click', function () { $modal.remove(); }).appendTo($actions);
+                $('<button>', { type: 'submit', class: 'btn btn-primary', text: 'Usar observação selecionada' }).appendTo($actions);
+                $form.on('submit', function (event) {
+                    event.preventDefault();
+                    const selected = Number($form.find('[name="copy_observation_choice"]:checked').val());
+                    $modal.remove();
+                    done(choices[selected].value);
+                });
+                $modal.appendTo('body');
+                $form.find('[name="copy_observation_choice"]').first().trigger('focus');
+            }
+
             $(document).on('click', '[data-class-copy-class]', function () {
                 const $button = $(this); const $form = $button.closest('form'); const $copy = $button.closest('[data-class-copy]');
                 $button.addClass('is-active').siblings().removeClass('is-active');
@@ -6240,6 +6278,8 @@
                     temporada_destino_id: $form.find('[name="temporada_id"]').val(), modalidade_destino_id: $form.find('[name="modalidade_id"]').val(), local_destino_id: $form.find('[name="local_treino_id"]').val()
                 }, function (response) {
                     const record = response.record || {};
+                    const currentObservation = String($form.find('[name="observacao"]').val() || '');
+                    chooseClassCopyObservation(currentObservation, record.observacao, function (chosenObservation) {
                     fillForm($form, record);
                     $form.find('[name="id"]').val('');
                     $form.find('[name="operacao"]').val('criar');
@@ -6265,6 +6305,10 @@
                     if ((response.previous_copies || []).length) notices.push('Atenção: esta turma já foi copiada para ' + response.previous_copies.map(function (item) { return 'a turma [' + String(item.turma_id) + '] da temporada ' + String(item.temporada_nome || ''); }).join('; ') + '. Você ainda pode criar outra cópia.');
                     if (missing.length) notices.push('Preencha os campos obrigatórios destacados: ' + missing.map(function (item) { return String(item.rotulo || ''); }).join(', ') + '.');
                     $copy.find('[data-class-copy-notice]').toggleClass('hidden', notices.length === 0).text(notices.join(' '));
+                    $form.find('[name="observacao"]').val(chosenObservation).trigger('change');
+                    $form.data('observation-edited', true);
+                    $form.data('observation-schedule', String($form.find('[name="cronograma_modalidade_id"]').val() || ''));
+                    });
                 });
             });
 

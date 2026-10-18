@@ -141,6 +141,7 @@
     <script src="<?php echo e(asset_url('js/modality-evaluation.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/home.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/app.js')); ?>"></script>
+    <script src="<?php echo e(asset_url('js/form-field-help.js')); ?>"></script>
     <?php if (current_path() === '/grades-de-horario') { ?><script src="<?php echo e(asset_url('js/schedule-grid.js')); ?>"></script><?php } ?>
 <script src="<?php echo e(asset_url('js/pdf-branding.js')); ?>"></script>
 <script src="<?php echo e(asset_url('js/admin-responsibility.js')); ?>"></script>

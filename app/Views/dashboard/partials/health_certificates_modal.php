@@ -15,7 +15,7 @@ $serviceLocationOptions = $service_location_options ?? [];
             data-person-name="<?php echo e((string) ($person['nome_completo'] ?? '')); ?>"
         >
             <span class="dashboard-certificate-guidance-fallback" aria-hidden="true">
-            Envie e atualize aqui o atestado do tipo de você selecionou (clícnico ou dermatológico) de <?php echo e((string) ($person['nome_completo'] ?? '')); ?>. Ao enviar um novo PDF do mesmo tipo, o arquivo anterior será substituído e voltara para status pendente.
+            Envie ou atualize aqui o atestado do tipo selecionado (clínico ou dermatológico) de <?php echo e((string) ($person['nome_completo'] ?? '')); ?>. Ao enviar um novo PDF do mesmo tipo, o arquivo anterior será substituído e voltará ao status pendente.
             </span>
         </div>
         <form
