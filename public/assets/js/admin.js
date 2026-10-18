@@ -6270,6 +6270,20 @@
                 $form.find('[name="copy_observation_choice"]').first().trigger('focus');
             }
 
+            function preserveClassCopySchedule($form, record) {
+                const selectedId = String($form.find('[name="cronograma_modalidade_id"]').val() || '');
+                const selectedSchedule = classScheduleData($form).find(function (schedule) {
+                    return String(schedule.id) === selectedId
+                        && String(schedule.temporada_id) === String(record.temporada_id)
+                        && String(schedule.modalidade_id) === String(record.modalidade_id);
+                });
+                if (!selectedSchedule) return record;
+                return Object.assign({}, record, {
+                    cronograma_modalidade_id: selectedId,
+                    campos_obrigatorios_pendentes: (record.campos_obrigatorios_pendentes || []).filter(function (item) { return item.campo !== 'cronograma_modalidade_id'; })
+                });
+            }
+
             $(document).on('click', '[data-class-copy-class]', function () {
                 const $button = $(this); const $form = $button.closest('form'); const $copy = $button.closest('[data-class-copy]');
                 $button.addClass('is-active').siblings().removeClass('is-active');
@@ -6277,7 +6291,7 @@
                     etapa: 'detalhe', temporada_origem: $copy.attr('data-source-season'), turma_origem_id: $button.attr('data-class-copy-class'),
                     temporada_destino_id: $form.find('[name="temporada_id"]').val(), modalidade_destino_id: $form.find('[name="modalidade_id"]').val(), local_destino_id: $form.find('[name="local_treino_id"]').val()
                 }, function (response) {
-                    const record = response.record || {};
+                    const record = preserveClassCopySchedule($form, response.record || {});
                     const currentObservation = String($form.find('[name="observacao"]').val() || '');
                     chooseClassCopyObservation(currentObservation, record.observacao, function (chosenObservation) {
                     fillForm($form, record);
