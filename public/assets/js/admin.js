@@ -6235,8 +6235,7 @@
             function chooseClassCopyObservation(current, source, done) {
                 current = String(current || '');
                 source = String(source || '');
-                if (!source.trim()) { done(current); return; }
-                if (!current.trim()) { done(source); return; }
+                if (!current.trim() && !source.trim()) { done(''); return; }
                 $('#class-copy-observation-modal').remove();
                 const $modal = $('<div>', { id: 'class-copy-observation-modal', class: 'popup-overlay', 'aria-hidden': 'false' });
                 const $card = $('<div>', { class: 'popup-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'class-copy-observation-title' }).appendTo($modal);
@@ -6244,7 +6243,7 @@
                 $head.append($('<h3>', { id: 'class-copy-observation-title', text: 'Qual observação deseja manter?' }));
                 $('<button>', { type: 'button', class: 'popup-close-icon', text: '×', 'aria-label': 'Cancelar cópia' }).on('click', function () { $modal.remove(); }).appendTo($head);
                 const $form = $('<form>', { class: 'popup-body stack-form', 'data-manual-submit': '1' }).appendTo($card);
-                $form.append($('<p>', { text: 'O formulário e a turma de origem possuem observações. Escolha o texto que será salvo na nova turma. Nenhum registro de origem será alterado.' }));
+                $form.append($('<p>', { text: 'Confira as observações disponíveis e escolha o texto da nova turma. Quando a turma antiga não tiver observação, você poderá manter o texto atual ou escolher nenhuma. Nenhum registro de origem será alterado.' }));
                 const choices = [
                     { label: 'Manter a observação atual do formulário (cronograma ou texto editado)', value: current },
                     { label: 'Usar a observação da turma copiada', value: source },
@@ -6252,9 +6251,10 @@
                 ];
                 choices.forEach(function (choice, index) {
                     const $label = $('<label>', { class: 'class-copy-observation-choice' }).appendTo($form);
-                    $label.append($('<input>', { type: 'radio', name: 'copy_observation_choice', value: String(index), checked: index === 0 }));
+                    $label.append($('<input>', { type: 'radio', name: 'copy_observation_choice', value: String(index), checked: index === (current.trim() ? 0 : 1), disabled: index < 2 && !choice.value.trim() }));
                     const $content = $('<div>').append($('<strong>', { text: choice.label }));
                     if (choice.value) $content.append($('<p>', { text: choice.value, class: 'class-copy-observation-text' }));
+                    else if (index < 2) $content.append($('<p>', { text: index === 0 ? 'O campo atual está vazio.' : 'A turma de origem não possui observação informada.', class: 'muted' }));
                     $label.append($content);
                 });
                 const $actions = $('<div>', { class: 'popup-actions' }).appendTo($form);

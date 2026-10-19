@@ -6,8 +6,14 @@ let nodes=[],selected=0;
 function $(tag,attrs){const node={tag,attrs:attrs||{},handlers:{},append(){return this;},appendTo(){return this;},on(event,fn){this.handlers[event]=fn;return this;},remove(){return this;},find(){return {val(){return String(selected);},first(){return this;},trigger(){return this;}};}};nodes.push(node);return node;}
 const context=vm.createContext({$});vm.runInContext(source.slice(start,end),context);
 let result;
-context.chooseClassCopyObservation('Observação do cronograma','',v=>result=v);assert.equal(result,'Observação do cronograma');
-context.chooseClassCopyObservation('','Observação de origem',v=>result=v);assert.equal(result,'Observação de origem');
+context.chooseClassCopyObservation('','',v=>result=v);assert.equal(result,'');
+for(const [current,origin,choice,expected] of [['Observação do cronograma','',0,'Observação do cronograma'],['Observação do cronograma','',2,''],['','Observação de origem',1,'Observação de origem']]) {
+ nodes=[];result=undefined;selected=choice;
+ context.chooseClassCopyObservation(current,origin,v=>result=v);
+ assert.equal(result,undefined,'Não deve pular o alerta se houver texto em qualquer origem.');
+ nodes.find(n=>n.tag==='<form>').handlers.submit({preventDefault(){},stopPropagation(){}});
+ assert.equal(result,expected);
+}
 for(selected=0;selected<3;selected++){
  nodes=[];result=undefined;
  context.chooseClassCopyObservation('Texto atual <teste>','Texto da turma de origem',v=>result=v);
