@@ -35,7 +35,7 @@ class ProfessorController extends Controller
         $user = $this->assertProfessorAccess();
         $sectionName = (string) ($_GET['nome'] ?? 'inicio');
         if ($sectionName === 'inscricoes') { $this->assertProfessorMutationAccess(); }
-        if (!in_array($sectionName, ['inicio', 'usuarios-pessoas', 'inscricoes', 'minhas-turmas', 'cronograma-turmas', 'agenda'], true)) {
+        if (!in_array($sectionName, ['inicio', 'usuarios-pessoas', 'inscricoes', 'minhas-turmas', 'cronograma-turmas', 'status-turmas', 'agenda'], true)) {
             $this->jsonResponse(['success' => false, 'message' => 'A seção não está disponível para professores.'], 403);
             return;
         }
@@ -691,7 +691,7 @@ class ProfessorController extends Controller
                 'courseEnrollmentStatusSummary' => $courseEnrollmentService->enrollmentStatusSummaryForManagement($courseEnrollmentClassId, $courseEnrollmentSeasonId, $courseEnrollmentGroupBy, $courseEnrollmentGroupId, $courseEnrollmentSecondaryGroupId, (int) ($user['conta_id'] ?? 0)),
             ];
         }
-        if ($sectionName === 'cronograma-turmas') {
+        if (in_array($sectionName, ['cronograma-turmas', 'status-turmas'], true)) {
             $this->assertProfessorMutationAccess();
             $courseService = new \App\Services\CourseEnrollmentService();
             return ['sectionName' => $sectionName, 'professorView' => true,

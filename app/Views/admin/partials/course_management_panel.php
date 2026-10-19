@@ -1,6 +1,6 @@
 <section
     class="admin-section-panel"
-    data-admin-section="<?php echo e(!empty($classTimelineView) ? 'cronograma-turmas' : (string) ($courseManagementView ?? 'temporadas')); ?>"
+    data-admin-section="<?php echo e(!empty($classStatusView) ? 'status-turmas' : (!empty($classTimelineView) ? 'cronograma-turmas' : (string) ($courseManagementView ?? 'temporadas'))); ?>"
     data-course-season-origins="<?php echo e((string) json_encode($courseSeasonOrigins ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
     data-course-modality-schedules="<?php echo e((string) json_encode($modalitySchedules ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
 >
@@ -8,7 +8,7 @@
         <div class="section-head admin-section-head"><div><h2>Temporadas</h2><p class="muted">Configure os períodos dos cursos e os limites progressivos de inscrições de cada temporada.</p></div></div>
     <?php } else { ?>
     <div class="hidden" data-course-space-options="<?php echo e((string) json_encode(array_map(static fn (array $space): array => ['id' => (int) ($space['id'] ?? 0), 'nome' => (string) ($space['nome'] ?? ''), 'local_treino_id' => (int) ($space['local_treino_id'] ?? 0)], $courseSpacesManagement ?? []), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"></div>
-        <div class="section-head admin-section-head"><div><h2><?php echo !empty($classTimelineView) ? 'Cronograma turmas' : (($courseManagementView ?? 'turmas') === 'turmas-locais' ? 'Turmas por local' : 'Turmas por modalidade'); ?></h2><p class="muted">Consulte e gerencie todas as turmas cadastradas.</p></div></div>
+        <div class="section-head admin-section-head"><div><h2><?php echo !empty($classStatusView) ? 'Status turmas' : (!empty($classTimelineView) ? 'Cronograma turmas' : (($courseManagementView ?? 'turmas') === 'turmas-locais' ? 'Turmas por local' : 'Turmas por modalidade')); ?></h2><p class="muted">Consulte e gerencie todas as turmas cadastradas.</p></div></div>
     <?php } ?>
 
     <section class="course-management-tables">
@@ -37,7 +37,7 @@
             </tbody></table></div>
         </article>
         <?php } else { ?>
-        <?php require ROOT_PATH . (!empty($classTimelineView) ? '/app/Views/admin/partials/class_timeline.php' : '/app/Views/admin/partials/course_class_cards.php'); ?>
+        <?php require ROOT_PATH . (!empty($classStatusView) ? '/app/Views/admin/partials/class_status_browser.php' : (!empty($classTimelineView) ? '/app/Views/admin/partials/class_timeline.php' : '/app/Views/admin/partials/course_class_cards.php')); ?>
         <?php } ?>
     </section>
 

@@ -2502,12 +2502,14 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
     </section>
 <?php } ?>
 
-<?php if ($sectionName === 'cronograma-turmas') {
-    $classTimelineView = true;
+<?php if (in_array($sectionName, ['cronograma-turmas', 'status-turmas'], true)) {
+    $classTimelineView = $sectionName === 'cronograma-turmas';
+    $classStatusView = $sectionName === 'status-turmas';
     if (!empty($professorView)) {
         $courseManagementView = 'professor-turmas';
-        require ROOT_PATH . '/app/Views/admin/partials/class_timeline.php';
+        require ROOT_PATH . ($classStatusView ? '/app/Views/admin/partials/class_status_browser.php' : '/app/Views/admin/partials/class_timeline.php');
         $classTimelineView = false;
+        $classStatusView = false;
         $courseClasses = [];
         ob_start();
         require ROOT_PATH . '/app/Views/admin/partials/course_management_panel.php';

@@ -14,7 +14,7 @@ for(selected=0;selected<3;selected++){
  assert.equal(result,undefined,'Não deve copiar antes da escolha.');
  const form=nodes.find(n=>n.tag==='<form>');assert(form);
  assert.equal(nodes.filter(n=>n.tag==='<input>').length,3);
- form.handlers.submit({preventDefault(){}});
+ form.handlers.submit({preventDefault(){},stopPropagation(){}});
  assert.equal(result,['Texto atual <teste>','Texto da turma de origem',''][selected]);
 }
 nodes=[];result=undefined;context.chooseClassCopyObservation('Atual','Origem',v=>result=v);

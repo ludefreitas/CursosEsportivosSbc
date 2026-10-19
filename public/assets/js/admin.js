@@ -6243,7 +6243,7 @@
                 const $head = $('<div>', { class: 'popup-head' }).appendTo($card);
                 $head.append($('<h3>', { id: 'class-copy-observation-title', text: 'Qual observação deseja manter?' }));
                 $('<button>', { type: 'button', class: 'popup-close-icon', text: '×', 'aria-label': 'Cancelar cópia' }).on('click', function () { $modal.remove(); }).appendTo($head);
-                const $form = $('<form>', { class: 'popup-body stack-form' }).appendTo($card);
+                const $form = $('<form>', { class: 'popup-body stack-form', 'data-manual-submit': '1' }).appendTo($card);
                 $form.append($('<p>', { text: 'O formulário e a turma de origem possuem observações. Escolha o texto que será salvo na nova turma. Nenhum registro de origem será alterado.' }));
                 const choices = [
                     { label: 'Manter a observação atual do formulário (cronograma ou texto editado)', value: current },
@@ -6262,6 +6262,7 @@
                 $('<button>', { type: 'submit', class: 'btn btn-primary', text: 'Usar observação selecionada' }).appendTo($actions);
                 $form.on('submit', function (event) {
                     event.preventDefault();
+                    event.stopPropagation();
                     const selected = Number($form.find('[name="copy_observation_choice"]:checked').val());
                     $modal.remove();
                     done(choices[selected].value);
@@ -6699,6 +6700,8 @@
                     return true;
                 }
                 if (!response || !response.html) return false;
+                const $statusBrowser = $('[data-class-status-browser]').first();
+                if ($statusBrowser.length) { App.admin.reloadClassStatus($statusBrowser); return true; }
                 const $timeline = $('[data-class-timeline]').first();
                 if ($timeline.length) {
                     App.admin.activateSection('cronograma-turmas', {
@@ -8088,5 +8091,23 @@
     });
     $(document).on('click', '[data-closure-delete]', function () {
         if (window.confirm('Excluir este período de agenda fechada?')) request({ acao: 'excluir', id: $(this).attr('data-closure-delete') }, 'POST');
+    });
+}(window, window.jQuery));
+(function (window, $) {
+    window.App.admin.reloadClassStatus = function ($browser, changedField, changedValue) {
+        const fields = ['temporada_id', 'status_turma', 'modalidade_id', 'local_treino_id'];
+        const data = { temporada_id: $browser.attr('data-season'), status_turma: $browser.attr('data-status'), modalidade_id: $browser.attr('data-modality'), local_treino_id: $browser.attr('data-location') };
+        if (changedField) {
+            data[changedField] = changedValue;
+            fields.slice(fields.indexOf(changedField) + 1).forEach(function (field) { data[field] = ''; });
+        }
+        window.App.admin.activateSection('status-turmas', data);
+    };
+    $(document).on('click', '[data-status-filter]', function () {
+        window.App.admin.reloadClassStatus($(this).closest('[data-class-status-browser]'), $(this).attr('data-status-filter'), $(this).attr('data-status-value'));
+    });
+    $(document).on('professor:classes-refresh', function () {
+        const $browser = $('[data-class-status-browser]').first();
+        if ($browser.length) window.App.admin.reloadClassStatus($browser);
     });
 }(window, window.jQuery));

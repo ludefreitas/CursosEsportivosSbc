@@ -32,6 +32,7 @@
             <button type="button" class="admin-nav-button" data-admin-nav-target="temporadas">Temporadas</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="turmas-locais">Turmas por local</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="cronograma-turmas">Cronograma turmas</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="status-turmas">Status turmas</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="turmas">Turmas por modalidade</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios">Usuários</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-online">Usuários online</button>
