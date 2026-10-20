@@ -351,6 +351,26 @@
                     .always(function () { App.core.hideLoading(true); });
             }
 
+            function classEnrollmentScheduleMessage(courseClass) {
+                function format(value) {
+                    const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+                    return match ? match[3] + '/' + match[2] + '/' + match[1] + ' às ' + match[4] + ':' + match[5] : '';
+                }
+                if (courseClass.status === 'planejada') {
+                    const start = format(courseClass.inscricoes_inicio);
+                    const end = format(courseClass.inscricoes_fim);
+                    if (start && end) return 'As inscrições iniciais para esta turma estão previstas para acontecer de ' + start + ' a ' + end + '.';
+                    return 'As datas das inscrições iniciais para esta turma ainda não foram definidas.';
+                }
+                if (courseClass.status === 'periodo_matricula' && !Number(courseClass.permitir_inscricao_periodo_matricula || 0)) {
+                    const start = format(courseClass.inscricoes_abertas_inicio);
+                    return start
+                        ? 'Esta turma está em período de matrículas. A partir de ' + start + ', você poderá fazer sua inscrição ou a de seu dependente, caso existam vagas disponíveis.'
+                        : 'Esta turma está em período de matrículas. A data de reabertura das inscrições ainda não foi definida.';
+                }
+                return '';
+            }
+
             function classAgeCriterionText(courseClass) {
                 const mode = String(courseClass.criterio_faixa_etaria || 'idade_exata');
                 if (mode === 'ano_nascimento') {
@@ -493,7 +513,12 @@
                 appendClassPublicNotices($summary, courseClass);
                 $content.append($summary);
                 if (people.length === 0) {
-                    $content.append($('<div>', { class: 'home-course-flow-state' }).append($('<p>', { text: 'Faça login para selecionar você ou uma pessoa vinculada à sua conta.' })));
+                    $content.append($('<div>', { class: 'auth-action-notice', role: 'note' })
+                        .append($('<strong>', { text: 'Entre na sua conta para continuar' }))
+                        .append($('<p>', { text: 'Faça login para inscrever você ou um dependente. Ainda não tem cadastro? Crie sua conta para começar.' }))
+                        .append($('<div>', { class: 'auth-action-notice-buttons' })
+                            .append($('<button>', { type: 'button', class: 'btn btn-primary', text: 'Entrar', 'data-open-route-modal': App.core.buildUrl('/login?return_to=%2F') }))
+                            .append($('<button>', { type: 'button', class: 'btn btn-secondary', text: 'Criar cadastro', 'data-open-route-modal': App.core.buildUrl('/cadastro?return_to=%2F') }))));
                 } else {
                     const $form = $('<form>', { class: 'stack-form home-course-enrollment-form', method: 'POST', action: App.core.buildUrl('/cursos/inscrever'), 'data-manual-submit': '1', 'data-class-name': String(courseClass.nome || '') });
                     $form.append($('<input>', { type: 'hidden', name: 'turma_id', value: String(courseClass.id || '') }));
@@ -581,6 +606,11 @@
                     const $actions = $('<div>', { class: 'home-course-class-actions' });
                     if (courseClass.permite_inscricao) $actions.append($('<button>', { type: 'button', class: 'btn btn-primary', text: 'Inscrever-se', 'data-home-course-enroll': String(courseClass.id || '') }));
                     $actions.append($('<button>', { type: 'button', class: 'btn btn-secondary', text: 'Vagas', 'data-home-course-vacancies': String(courseClass.id || '') }));
+                    const scheduleMessage = classEnrollmentScheduleMessage(courseClass);
+                    if (scheduleMessage) {
+                        $actions.append($('<button>', { type: 'button', class: 'btn btn-secondary home-course-enrollment-schedule', text: scheduleMessage })
+                            .on('click', function () { App.core.abrirPopup('info', scheduleMessage); }));
+                    }
                     $card.append($actions);
                     $content.append($card);
                 });

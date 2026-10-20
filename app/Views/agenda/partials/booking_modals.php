@@ -73,6 +73,16 @@ $needsProfileCompletion = $needsProfileCompletion ?? false;
                             </label>
                         <?php } ?>
                     </div>
+                    <?php if (empty($profile)) { ?>
+                    <div class="auth-action-notice" role="note">
+                        <strong>Entre na sua conta para agendar</strong>
+                        <p>Faça login para selecionar você ou um dependente. Ainda não tem cadastro? Crie sua conta para começar.</p>
+                        <div class="auth-action-notice-buttons">
+                            <button type="button" class="btn btn-primary" data-open-route-modal="<?php echo e(url('/login?return_to=' . rawurlencode(current_path()))); ?>">Entrar</button>
+                            <button type="button" class="btn btn-secondary" data-open-route-modal="<?php echo e(url('/cadastro?return_to=' . rawurlencode(current_path()))); ?>">Criar cadastro</button>
+                        </div>
+                    </div>
+                    <?php } ?>
                     <small class="muted<?php echo empty($schedulablePeople) ? '' : ' hidden'; ?>" id="agenda-person-helper" data-agenda-person-helper="1">
                         <?php if (empty($profile)) { ?>Faça login para liberar os nomes disponíveis para agendamento.<?php } else { ?><?php echo e($registrationBlock['mensagem'] ?? 'Complete seu cadastro para liberar os nomes disponíveis para agendamento.'); ?><?php } ?>
                     </small>
@@ -98,6 +108,7 @@ $needsProfileCompletion = $needsProfileCompletion ?? false;
             <div class="popup-head"><h3 id="agenda-login-reminder-title">Faça login para agendar</h3></div>
             <div class="popup-body"><p>Para concluir um agendamento, você precisa entrar com sua conta. Depois do login, os nomes disponíveis para agendamento serão liberados aqui.</p></div>
             <div class="popup-actions">
+                <button type="button" class="btn btn-secondary" data-open-route-modal="<?php echo e(url('/cadastro?return_to=' . rawurlencode(current_path()))); ?>">Criar cadastro</button>
                 <button type="button" class="btn btn-secondary" data-close-popup="#agenda-login-reminder">Fechar</button>
                 <button type="button" class="btn btn-primary" data-open-route-modal="<?php echo e(url('/login?return_to=%2F%23home-training-locations')); ?>">Fazer login</button>
             </div>

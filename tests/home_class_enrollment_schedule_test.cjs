@@ -1,0 +1,11 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const s=fs.readFileSync('public/assets/js/home.js','utf8');const context={};vm.createContext(context);
+vm.runInContext(s.slice(s.indexOf('            function classEnrollmentScheduleMessage('),s.indexOf('            function classAgeCriterionText(')),context);
+const message=context.classEnrollmentScheduleMessage;
+assert.strictEqual(message({status:'planejada',inscricoes_inicio:'2026-11-10 10:00:00',inscricoes_fim:'2026-11-12T22:59:00'}),'As inscrições iniciais para esta turma estão previstas para acontecer de 10/11/2026 às 10:00 a 12/11/2026 às 22:59.');
+assert.match(message({status:'periodo_matricula',permitir_inscricao_periodo_matricula:'0',inscricoes_abertas_inicio:'2026-11-20 07:30:00'}),/20\/11\/2026 às 07:30/);
+assert.strictEqual(message({status:'periodo_matricula',permitir_inscricao_periodo_matricula:1}),'');
+assert.strictEqual(message({status:'inscricoes_abertas'}),'');
+assert.match(message({status:'planejada'}),/ainda não foram definidas/);
+assert.match(message({status:'periodo_matricula'}),/ainda não foi definida/);
+console.log('Avisos de inscrição: planejada, matrícula com e sem inscrição e datas ausentes OK.');

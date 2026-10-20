@@ -218,3 +218,9 @@
         grid-template-columns: 1fr;
     }
 }
+
+.auth-action-notice { padding: 18px; margin: 16px 0; border: 1px solid #b8d8eb; border-left: 5px solid #1479ae; border-radius: 14px; background: #eef6fc; color: #163f54; text-align: left; }
+.auth-action-notice > strong { display: block; font-size: 19px; }
+.auth-action-notice p { margin: 8px 0 14px; line-height: 1.5; }
+.auth-action-notice-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+.auth-action-notice-buttons .btn { flex: 1 1 140px; min-height: 48px; white-space: normal; }
