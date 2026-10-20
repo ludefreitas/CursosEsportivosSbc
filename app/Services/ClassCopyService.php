@@ -225,7 +225,7 @@ class ClassCopyService
             'temporada_id' => $destinationSeasonId, 'modalidade_id' => $modalityId,
             'cronograma_modalidade_id' => $modalityId > 0 ? $this->destinationSchedule($destinationSeasonId, $modalityId) : 0,
             'local_treino_id' => $locationId, 'espaco_treino_id' => $spaceId,
-            'nome' => trim((string) ($row['descturma'] ?? '')), 'observacao' => trim((string) ($row['obs'] ?? '')),
+            'nome' => trim((string) ($row['descturma'] ?? '')), 'observacao' => $this->legacyObservation($row, $sourceClassId),
             'programa' => $program, 'dias_semana' => $this->weekdays((string) ($row['diasemana'] ?? '')),
             'hora_inicio' => $this->time((string) ($row['horainicio'] ?? '')), 'hora_fim' => $this->time((string) ($row['horatermino'] ?? '')),
             'idade_minima' => max(0, (int) ($row['initidade'] ?? 0)), 'idade_maxima' => max(0, (int) ($row['fimidade'] ?? 120)),
@@ -238,6 +238,24 @@ class ClassCopyService
         ];
         $record['campos_obrigatorios_pendentes'] = $this->requiredMissing($record);
         return $record;
+    }
+
+    private function legacyObservation(array $imported, int $classId): string
+    {
+        $observation = trim((string) ($imported['obs'] ?? ''));
+        if ($observation !== '') return $observation;
+
+        // Importações antigas podem conter obs vazio. Confirme na origem antes
+        // de apresentar a turma como se não tivesse observação.
+        try {
+            $stmt = $this->legacy()->prepare('SELECT obs FROM tb_turma WHERE idturma = :id LIMIT 1');
+            $stmt->execute([':id' => $classId]);
+            $source = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$source) throw new RuntimeException('Turma de origem não encontrada.');
+            return trim((string) ($source['obs'] ?? ''));
+        } catch (Throwable $e) {
+            throw new RuntimeException('Não foi possível verificar a observação da turma no site antigo. Tente novamente ou atualize a importação das turmas antes de copiar.', 0, $e);
+        }
     }
 
     private function previousCopies(string $source, int $sourceSeasonId, int $sourceClassId): array

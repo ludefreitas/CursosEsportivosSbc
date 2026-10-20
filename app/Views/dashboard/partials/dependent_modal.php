@@ -100,8 +100,12 @@
                 <div class="dashboard-dependent-edit-grid dashboard-dependent-edit-grid-2">
                     <label>
                         <span>WhatsApp</span>
-                        <input type="text" name="phone_whatsapp" value="<?php echo e((string) ($responsibleWhatsapp ?? $dependent['telefone_whatsapp'] ?? '')); ?>" readonly required data-locked-support-alert="1" data-locked-field-label="o WhatsApp" data-locked-message="O WhatsApp do dependente é preenchido automaticamente com o número do responsável autenticado e não pode ser alterado neste formulário.">
-                        <small class="muted">Preenchido automaticamente com o WhatsApp do responsável autenticado.</small>
+                        <input type="text" name="phone_whatsapp" value="<?php echo e((string) ($responsibleWhatsapp ?? $dependent['telefone_whatsapp'] ?? '')); ?>" required <?php if (empty($isResponsiblePerson)) { ?>readonly<?php } ?>>
+                        <?php if (empty($isResponsiblePerson)) { ?>
+                        <small class="muted">O WhatsApp deste dependente é o do responsável. Para alterar o número, <a href="<?php echo e(url('/dashboard')); ?>" data-edit-responsible-whatsapp="<?php echo e((string) ($responsiblePersonId ?? 0)); ?>">abra o cadastro do responsável</a>. Salve as alterações deste formulário antes de continuar.</small>
+                        <?php } else { ?>
+                        <small class="muted">Informe seu WhatsApp com DDD. Este número é usado como contato dos seus dependentes e deve ser diferente de todos os telefones de emergência cadastrados para você e seus dependentes.</small>
+                        <?php } ?>
                     </label>
                     <label>
                         <span>E-mail</span>

@@ -538,6 +538,8 @@ class ProfileController extends Controller
         $canEditBirthDate = $this->profileService->authenticatedAccountHasRole('teacher');
         $authenticatedPerson = $this->profileService->getAuthenticatedPerson();
         $responsibleWhatsapp = (string) ($authenticatedPerson['telefone_whatsapp'] ?? '');
+        $responsiblePersonId = (int) ($authenticatedPerson['id'] ?? 0);
+        $isResponsiblePerson = (int) ($dependent['id'] ?? 0) === $responsiblePersonId;
         require ROOT_PATH . '/app/Views/dashboard/partials/dependent_modal.php';
         return (string) ob_get_clean();
     }

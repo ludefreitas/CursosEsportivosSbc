@@ -109,6 +109,7 @@ class ProfileService
             (string) ($data['emergency_contact_phone'] ?? ''),
             (string) ($data['phone_whatsapp'] ?? '')
         );
+        $this->validarWhatsappContraEmergenciasDosDependentes((int) $person['id'], (string) ($data['phone_whatsapp'] ?? ''));
         $this->cepService->validarCepOuFalhar((string) ($data['zip_code'] ?? ''));
 
         $pdo = Database::connection();
@@ -353,6 +354,10 @@ class ProfileService
         }
 
         $dependent = $this->getManagedDependent($personId);
+        if ($personId === (int) $responsible['id']) {
+            $this->completeOwnProfile($data);
+            return $this->getManagedDependent($personId);
+        }
         $birthDate = trim((string) ($dependent['data_nascimento'] ?? ''));
 
         if ($this->authenticatedAccountHasRole('teacher')) {
@@ -887,6 +892,22 @@ class ProfileService
 
         if (!$ok1 && !$ok2) {
             throw new RuntimeException('Informe pelo menos um responsável com nome e CPF válidos.');
+        }
+    }
+
+    private function validarWhatsappContraEmergenciasDosDependentes(int $responsibleId, string $whatsapp): void
+    {
+        $digits = preg_replace('/\D+/', '', $whatsapp) ?? '';
+        if ($digits === '') return;
+        $stmt = Database::connection()->prepare('SELECT p.contato_emergencia_telefone
+            FROM vinculos_responsaveis vr
+            INNER JOIN pessoas p ON p.id = vr.dependente_pessoa_id
+            WHERE vr.responsavel_pessoa_id = :responsible_id AND p.id <> :own_id');
+        $stmt->execute([':responsible_id' => $responsibleId, ':own_id' => $responsibleId]);
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $phone) {
+            if ($digits === (preg_replace('/\D+/', '', (string) $phone) ?? '')) {
+                throw new RuntimeException('O WhatsApp não pode ser igual ao telefone de emergência de nenhum dos seus dependentes. Informe outro número ou atualize primeiro o contato de emergência correspondente.');
+            }
         }
     }
 

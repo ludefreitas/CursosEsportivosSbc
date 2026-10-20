@@ -413,6 +413,83 @@
                 });
             }
 
+            function agendaEventsForDay(date) {
+                const day = typeof date === 'string' ? date.slice(0, 10) : date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+                return App.state.adminAgendaCalendar.getEvents().filter(function (event) {
+                    return String(event.startStr || '').slice(0, 10) === day;
+                }).sort(function (a, b) { return String(a.startStr).localeCompare(String(b.startStr)); });
+            }
+
+            function openAgendaDayModal(date) {
+                const events = agendaEventsForDay(date);
+                if (!events.length) return;
+                $('#admin-agenda-day-modal').remove();
+                const previousFocus = document.activeElement;
+                const $modal = $('<div>', { id: 'admin-agenda-day-modal', class: 'popup-overlay', 'aria-hidden': 'false' });
+                const $card = $('<div>', { class: 'popup-card popup-admin-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'admin-agenda-day-title' }).appendTo($modal);
+                function close() { $modal.remove(); if (previousFocus && previousFocus.isConnected) previousFocus.focus(); }
+                const $head = $('<div>', { class: 'popup-head' }).appendTo($card);
+                const day = String(events[0].startStr).slice(0, 10).split('-').reverse().join('/');
+                $('<h3>', { id: 'admin-agenda-day-title', text: 'Horários de ' + day }).appendTo($head);
+                $('<button>', { type: 'button', class: 'popup-close-icon', 'aria-label': 'Voltar ao calendário', text: '×' }).on('click', close).appendTo($head);
+                const $body = $('<div>', { class: 'popup-body admin-agenda-day-options' }).appendTo($card);
+                events.forEach(function (event) {
+                    const props = event.extendedProps || {};
+                    const time = String(event.startStr).slice(11, 16);
+                    const end = String(event.endStr || '').slice(11, 16);
+                    const label = [time + (end ? ' às ' + end : ''), event.title, props.espaco].filter(Boolean).join(' — ');
+                    $('<button>', { type: 'button', class: 'btn btn-secondary', text: label }).on('click', function () {
+                        $modal.remove();
+                        openAdminAgendaEvent({ event: event });
+                    }).appendTo($body);
+                });
+                $('<div>', { class: 'popup-actions' }).append($('<button>', { type: 'button', class: 'btn btn-secondary', text: 'Voltar ao calendário' }).on('click', close)).appendTo($card);
+                $modal.on('click', function (event) { if (event.target === $modal[0]) close(); });
+                $modal.on('keydown', function (event) {
+                    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); }
+                    if (event.key === 'Tab') {
+                        const buttons = $modal.find('button').get();
+                        if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); buttons[buttons.length - 1].focus(); }
+                        else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) { event.preventDefault(); buttons[0].focus(); }
+                    }
+                });
+                $('body').append($modal);
+                $modal.find('button').first().trigger('focus');
+            }
+
+            function openAdminAgendaEvent(info) {
+                        const props = info.event.extendedProps || {};
+
+                        if (props.is_special === true) {
+                            let details = ''
+                                + '<strong>Horário especial:</strong> ' + App.core.escapeHtml(String(info.event.title || 'Horário especial'))
+                                + '<br><strong>Período:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.startStr || '')))
+                                + ' até ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.endStr || '')))
+                                + '<br><strong>Local:</strong> ' + App.core.escapeHtml(String(props.local || 'A definir'))
+                                + '<br><strong>Espaço:</strong> ' + App.core.escapeHtml(String(props.espaco || 'A definir'))
+                                + '<br><strong>Modalidade:</strong> ' + App.core.escapeHtml(String(props.modalidade || 'Sem modalidade'))
+                                + '<br><strong>Vagas:</strong> Geral ' + App.core.escapeHtml(String(props.vagas_geral || 0))
+                                + ' | PCD ' + App.core.escapeHtml(String(props.vagas_pcd || 0))
+                                + ' | PVS ' + App.core.escapeHtml(String(props.vagas_pvs || 0))
+                                + ' | PLM ' + App.core.escapeHtml(String(props.vagas_plm || 0))
+                                + '<br><strong>Agenda para inscrições abre em:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_inicio || '')))
+                                + '<br><strong>Agenda para inscrições fecha em:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_fim || '')))
+                                + '<br><strong>Status:</strong> ' + (Number(props.ativo || 0) === 1 ? 'Ativo' : 'Inativo');
+
+                            if (String(props.special_description || '').trim() !== '') {
+                                details += '<br><strong>Descrição:</strong> ' + App.core.escapeHtml(String(props.special_description || ''));
+                            }
+
+                            App.core.abrirPopupHtml('info', details);
+                            return;
+                        }
+
+                        loadOccurrenceAttendance(
+                            info.event.id,
+                            String(props.occurrence_start || info.event.startStr || '')
+                        );
+            }
+
             function initAdminAgendaCalendar() {
                 const calendarEl = document.getElementById('admin-agenda-calendar');
                 const $filterForm = $('#admin-agenda-calendar-filter-form');
@@ -482,37 +559,18 @@
                             main.style.filter = 'none';
                         }
                     },
+                    dayMaxEvents: 1,
+                    moreLinkContent: function (info) { return '+' + info.num + ' horários'; },
+                    moreLinkClick: function (info) { openAgendaDayModal(info.date); },
+                    dateClick: function (info) {
+                        const events = agendaEventsForDay(info.dateStr);
+                        if (events.length > 1) openAgendaDayModal(info.dateStr);
+                        else if (events.length === 1) openAdminAgendaEvent({ event: events[0] });
+                    },
                     eventClick: function (info) {
-                        const props = info.event.extendedProps || {};
-
-                        if (props.is_special === true) {
-                            let details = ''
-                                + '<strong>Horário especial:</strong> ' + App.core.escapeHtml(String(info.event.title || 'Horário especial'))
-                                + '<br><strong>Período:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.startStr || '')))
-                                + ' até ' + App.core.escapeHtml(formatCalendarDateTime(String(info.event.endStr || '')))
-                                + '<br><strong>Local:</strong> ' + App.core.escapeHtml(String(props.local || 'A definir'))
-                                + '<br><strong>Espaço:</strong> ' + App.core.escapeHtml(String(props.espaco || 'A definir'))
-                                + '<br><strong>Modalidade:</strong> ' + App.core.escapeHtml(String(props.modalidade || 'Sem modalidade'))
-                                + '<br><strong>Vagas:</strong> Geral ' + App.core.escapeHtml(String(props.vagas_geral || 0))
-                                + ' | PCD ' + App.core.escapeHtml(String(props.vagas_pcd || 0))
-                                + ' | PVS ' + App.core.escapeHtml(String(props.vagas_pvs || 0))
-                                + ' | PLM ' + App.core.escapeHtml(String(props.vagas_plm || 0))
-                                + '<br><strong>Agenda para inscrições abre em:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_inicio || '')))
-                                + '<br><strong>Agenda para inscrições fecha em:</strong> ' + App.core.escapeHtml(formatCalendarDateTime(String(props.data_publicacao_fim || '')))
-                                + '<br><strong>Status:</strong> ' + (Number(props.ativo || 0) === 1 ? 'Ativo' : 'Inativo');
-
-                            if (String(props.special_description || '').trim() !== '') {
-                                details += '<br><strong>Descrição:</strong> ' + App.core.escapeHtml(String(props.special_description || ''));
-                            }
-
-                            App.core.abrirPopupHtml('info', details);
-                            return;
-                        }
-
-                        loadOccurrenceAttendance(
-                            info.event.id,
-                            String(props.occurrence_start || info.event.startStr || '')
-                        );
+                        if (info.jsEvent) info.jsEvent.preventDefault();
+                        if (agendaEventsForDay(info.event.startStr).length > 1) openAgendaDayModal(info.event.startStr);
+                        else openAdminAgendaEvent(info);
                     }
                 });
 
@@ -1100,6 +1158,7 @@
             });
 
             function closeAdminAgendaFlow() {
+                $('#admin-agenda-day-modal').remove();
                 $('#admin-agenda-locations-modal, #admin-agenda-modalities-modal, #admin-agenda-calendar-modal')
                     .addClass('hidden').attr('aria-hidden', 'true');
             }
@@ -1142,7 +1201,7 @@
                 const locationLabel = String($('#admin-agenda-calendar-local-filter').data('label') || '').trim();
 
                 $('#admin-agenda-calendar-modality-filter').val(modalityId).data('label', modalityLabel);
-                $('#admin-agenda-calendar-subtitle').text(modalityLabel + ' em ' + locationLabel + '. Clique em um horário para acessar a lista de chamada.');
+                $('#admin-agenda-calendar-subtitle').text(modalityLabel + ' em ' + locationLabel + '. Clique no dia ou horário para acessar a lista de chamada. Dias com vários horários abrem uma lista para seleção.');
                 closeAdminAgendaFlow();
                 $('#admin-agenda-calendar-modal').removeClass('hidden').attr('aria-hidden', 'false');
 
@@ -6245,7 +6304,7 @@
                 const $form = $('<form>', { class: 'popup-body stack-form', 'data-manual-submit': '1' }).appendTo($card);
                 $form.append($('<p>', { text: 'Confira as observações disponíveis e escolha o texto da nova turma. Quando a turma antiga não tiver observação, você poderá manter o texto atual ou escolher nenhuma. Nenhum registro de origem será alterado.' }));
                 const choices = [
-                    { label: 'Manter a observação atual do formulário (cronograma ou texto editado)', value: current },
+                    { label: 'Manter a observação atual do formulário (cronograma da modalidade ou texto editado)', value: current },
                     { label: 'Usar a observação da turma copiada', value: source },
                     { label: 'Nenhuma observação', value: '' }
                 ];

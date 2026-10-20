@@ -59,7 +59,7 @@
                 const messages = {
                     full_name: 'Nome completo da pessoa, sem abreviações.', cpf: 'CPF da pessoa. Este número identifica o cadastro e não pode ser duplicado.',
                     birth_date: 'Data de nascimento usada para calcular a idade e verificar a elegibilidade.', sexo: 'Sexo usado nas regras de turmas específicas por gênero.',
-                    phone_whatsapp: 'WhatsApp de contato do dependente. O formulário inicia com o número do responsável autenticado.', email: 'E-mail para contato e comunicações sobre o cadastro.',
+                    phone_whatsapp: 'WhatsApp com DDD do responsável. Para dependentes, altere o número no cadastro do responsável.', email: 'E-mail para contato e comunicações sobre o cadastro.',
                     numero_cartao_sus: 'Informe os 15 dígitos do Cartão Nacional de Saúde (CNS). Esse dado é importante para manter seu cadastro atualizado. Se não souber o número ou tiver dúvidas, procure uma Unidade Básica de Saúde (UBS) para obter ou confirmar a informação e atualize este campo.', eh_pcd: 'Indica Pessoa com Deficiência e exige a documentação correspondente.',
                     eh_pvs: 'Indica Pessoa em Situação de Vulnerabilidade Social e exige documentação.', eh_plm: 'Indica Pessoa com Limitação de Mobilidade e exige documentação.',
                     zip_code: 'CEP do endereço da pessoa.', street: 'Nome da rua, avenida ou logradouro.', address_number: 'Número do imóvel.', address_complement: 'Complemento do endereço, como bloco ou apartamento.',
@@ -488,6 +488,31 @@
             });
             const susPersonId=Number(new URLSearchParams(window.location.search).get('sus_pessoa')||0);
             if(susPersonId>0&&getDependentModal().length)openSusEditor(susPersonId);
+
+            $(document).on('click', '[data-edit-responsible-whatsapp]', function (event) {
+                event.preventDefault();
+                const personId = Number($(this).attr('data-edit-responsible-whatsapp'));
+                if (!personId) return;
+                if (!window.confirm('Abrir o cadastro do responsável? Alterações ainda não salvas neste formulário serão descartadas.')) return;
+                $.getJSON(App.core.buildUrl('/dependentes/detalhe'), { person_id: personId })
+                    .done(function (response) {
+                        if (!response || response.success === false || !response.html) {
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível abrir o cadastro do responsável.'));
+                            return;
+                        }
+                        openDependentModal(response.html);
+                        showDependentPanel('edit');
+                        window.requestAnimationFrame(function () {
+                            const field = getDependentContent().find('[name="phone_whatsapp"]').get(0);
+                            if (field) {
+                                field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                field.focus({ preventScroll: true });
+                            }
+                        });
+                    }).fail(function (xhr) {
+                        App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                    });
+            });
 
             $(document).on('click', '[data-open-dependent-modal="1"]', function () {
                 const personId = Number($(this).data('personId') || 0);

@@ -2303,3 +2303,8 @@
 .class-copy-observation-choice input[type="radio"] { width: 18px; height: 18px; flex: 0 0 18px; margin-top: 2px; }
 .class-copy-observation-choice > div { min-width: 0; }
 .class-copy-observation-text { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 180px; overflow-y: auto; margin-bottom: 0; }
+
+#admin-agenda-day-modal { z-index: 10030; }
+#admin-agenda-day-modal .popup-card { width: min(620px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); }
+.admin-agenda-day-options { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.admin-agenda-day-options .btn { width: 100%; min-height: 52px; white-space: normal; text-align: left; justify-content: flex-start; padding: 14px 16px; font-size: 16px; line-height: 1.5; }
