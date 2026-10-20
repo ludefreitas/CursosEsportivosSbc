@@ -1550,3 +1550,9 @@ body.pagina-home .site-header {
         overflow-wrap: anywhere;
     }
 }
+
+.dashboard-booking-mark { font-size: 24px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; }
+.dashboard-booking-mark.is-present { color: #16833b; }
+.dashboard-booking-mark.is-absent { color: #c93e33; }
+.dashboard-booking-mark.is-justified { color: #ab6400; }
+#meus-agendamentos [aria-current="page"] { font-weight: 700; text-decoration: underline; }

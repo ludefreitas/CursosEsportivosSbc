@@ -44,6 +44,7 @@ class DashboardController extends Controller
             'user' => $user,
             'person' => $person,
             'dependents' => $profileService->listDependents(),
+            'bookingHistory' => (new \App\Services\DashboardBookingService())->listForAccount((int) \App\Core\Auth::id(), (int) ($_GET['ano_agendamentos'] ?? 0)),
             'metrics' => $userService->dashboardMetrics((int) $person['id']),
             'courseEnrollments' => $courseEnrollmentService->listForAuthenticatedAccount(),
             'professorEnrollmentDeletionEnabled' => $professorEnrollmentDeletionEnabled,

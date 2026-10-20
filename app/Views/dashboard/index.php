@@ -23,6 +23,7 @@
     <article class="info-card"><h3><?php echo e((string) $metrics['postagens_blog']); ?></h3><p>Postagens ativas</p></article>
 </section>
 
+<?php require ROOT_PATH . '/app/Views/dashboard/partials/booking_history.php'; ?>
 <?php require ROOT_PATH . '/app/Views/dashboard/partials/course_enrollment_rows.php'; ?>
 <section class="content-card"><h2>Meus níveis nas modalidades</h2><div data-evaluation-person-list="<?php echo e((string) ($person['id'] ?? 0)); ?>"></div></section>
 

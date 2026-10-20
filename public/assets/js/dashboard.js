@@ -5,6 +5,26 @@
         init: function () {
             let pendingEnrollmentCancellationForm = null;
             let susEditorSequence=0;
+            $(document).on('click', '[data-booking-justification]', function () {
+                App.core.abrirPopup('info', String($(this).attr('data-booking-justification') || 'Nenhum motivo informado.'));
+            });
+            $(document).on('submit', '[data-dashboard-cancel-booking]', function (event) {
+                event.preventDefault();
+                if (!window.confirm('Deseja excluir este agendamento e liberar a vaga?')) return;
+                const $form = $(this), $button = $form.find('button');
+                if ($button.prop('disabled')) return;
+                $button.prop('disabled', true);
+                $.ajax({ url: $form.attr('action'), method: 'POST', data: $form.serialize(), dataType: 'json' })
+                    .done(function (response) {
+                        if (!response || response.success === false) {
+                            App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível excluir o agendamento.'));
+                            return;
+                        }
+                        window.location.reload();
+                    }).fail(function (xhr) {
+                        App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                    }).always(function () { $button.prop('disabled', false); });
+            });
             const highlightEnrollmentId = new URLSearchParams(window.location.search).get('inscricao_destaque');
             if (highlightEnrollmentId) {
                 const $highlightedEnrollment = $('[data-dashboard-enrollment-id="' + String(highlightEnrollmentId).replace(/[^0-9]/g, '') + '"]').first();
