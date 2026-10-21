@@ -519,7 +519,7 @@
                 if (people.length === 0) {
                     $content.append($('<div>', { class: 'auth-action-notice', role: 'note' })
                         .append($('<strong>', { text: 'Entre na sua conta para continuar' }))
-                        .append($('<p>', { text: 'Faça login para inscrever você ou um dependente. Ainda não tem cadastro? Crie sua conta para começar.' }))
+                        .append($('<p>', { text: 'Faça login para inscrever você ou um dependente, clique no botão "Entrar". Ainda não tem cadastro? Crie sua conta para começar, clique em "Criar cadastro".' }))
                         .append($('<div>', { class: 'auth-action-notice-buttons' })
                             .append($('<button>', { type: 'button', class: 'btn btn-primary', text: 'Entrar', 'data-open-route-modal': App.core.buildUrl('/login?return_to=%2F') }))
                             .append($('<button>', { type: 'button', class: 'btn btn-secondary', text: 'Criar cadastro', 'data-open-route-modal': App.core.buildUrl('/cadastro?return_to=%2F') }))));
