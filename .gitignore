@@ -28,3 +28,6 @@ composer.lock
 
 # Uploaded files and generated content
 public/uploads/
+
+# Cartazes editáveis (preservar no backup e na publicação)
+config/cartazes.json

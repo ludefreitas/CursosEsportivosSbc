@@ -93,6 +93,10 @@
                 }
             });
 
+            const posterLocationId = Number(new URLSearchParams(window.location.search).get('local_modalidades') || 0);
+            if (posterLocationId > 0) {
+                openLocationNotice(posterLocationId, 'cursos', function () { loadModalities(posterLocationId); });
+            }
             $(document).on('click', '[data-home-location-select]', function () {
                 const selectedId = String($(this).attr('data-home-location-select') || '');
                 const selected = locations.find(function (location) { return String(location.id || '') === selectedId; });

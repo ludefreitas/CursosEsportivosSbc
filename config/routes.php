@@ -19,6 +19,9 @@ use App\Controllers\ScheduleGridController;
 use App\Controllers\ModalityEvaluationController;
 
 return [
+    ['GET', '/admin/cartazes', [\App\Controllers\PosterController::class, 'index']],
+    ['POST', '/admin/cartazes/salvar', [\App\Controllers\PosterController::class, 'save']],
+    ['POST', '/admin/cartazes/imagem', [\App\Controllers\PosterController::class, 'upload']],
     ['GET', '/admin/pdfs', [\App\Controllers\PdfBrandingController::class, 'catalog']],
     ['POST', '/admin/pdfs/salvar', [\App\Controllers\PdfBrandingController::class, 'save']],
     ['POST', '/admin/pdfs/preview', [\App\Controllers\PdfBrandingController::class, 'preview']],

@@ -5,6 +5,19 @@ final class PdfBrandingPreviewService
     public function render(string $type,array $settings): array
     {
         return (new PdfBrandingSettings())->withOverride($type,$settings,function() use($type,$settings) {
+            if ($type==='cartaz') {
+                $posterPreviewOnly=true;
+                $posterCsrf='';$branding=$settings;
+                $posterOptions=['locations'=>[['id'=>1,'apelido_local'=>'CREC Orquídeas','nome_local'=>'Centro Esportivo Eder Simões Barbosa']],'seasons'=>[['id'=>1,'nome'=>'Temporada de exemplo']],'modalities'=>[]];
+                $posters=[['id'=>'000000000000000000000001','name'=>'Cartaz de exemplo','local_id'=>1,'temporada_id'=>1,'title'=>'CREC ORQUÍDEAS','subtitle'=>'Centro Esportivo Eder Simões Barbosa','heading'=>'Modalidades oferecidas neste local','modalities'=>"Ginástica\nPilates\nVôlei\nAlongamento\nFutsal",'address'=>'Rua de exemplo, 100 — São Bernardo do Campo','site'=>url('/'),'instructions'=>'Aponte a câmera do celular para o QR code, faça seu cadastro e escolha sua turma.','free_text'=>'Os cursos são gratuitos e as vagas são limitadas.','contact'=>'Fale com a equipe do local para tirar suas dúvidas.','footer_text'=>'Esporte para todas as pessoas','primary'=>'#145d74','accent'=>'#ed8a27','background'=>'#f4f0e5','text'=>'#164454']];
+                ob_start();
+                try {
+                    echo '<!doctype html><html lang="pt-BR"><meta charset="utf-8"><body><main>';
+                    require PdfBrandingSettings::root().'/app/Views/posters/index.php';
+                    echo '</main></body></html>';
+                    return ['text/html; charset=UTF-8',ob_get_clean()];
+                } catch (\Throwable $error) { ob_end_clean(); throw $error; }
+            }
             $enrollment=['id'=>0,'turma_id'=>0,'nome_completo'=>'Aluno de exemplo — PRÉ-VISUALIZAÇÃO','cpf'=>'00000000000','status'=>'matriculada','modalidade_nome'=>'Ginástica','temporada_nome'=>'Temporada de exemplo','local_nome'=>'Centro esportivo de exemplo','espaco_nome'=>'Quadra','dias_semana_descricao'=>'Terça e quinta','hora_inicio'=>'09:00','hora_fim'=>'10:00'];
             $class=$enrollment+['nome'=>'Turma de exemplo','professor_principal_nome'=>'Professor de exemplo'];
             if ($type==='chamada') return ['application/pdf',(new AttendanceListPdfService())->render($class,array_fill(0,22,$enrollment))];

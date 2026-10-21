@@ -25,6 +25,25 @@ if (str_starts_with($requestPath, '/public/')) {
     exit;
 }
 
+// Imagens públicas de divulgação e identidade visual. Não expor uploads
+// particulares (atestados e documentos) pelo front controller.
+if (preg_match('~^/uploads/(posters/[a-f0-9]{32}\\.(?:jpg|png|webp)|pdf-branding/logo-[a-f0-9]{24}\\.(?:jpg|png))$~', $requestPath)) {
+    $imagePath = __DIR__ . '/public' . $requestPath;
+    if (!is_file($imagePath)) {
+        http_response_code(404);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo 'Imagem não encontrada.';
+        exit;
+    }
+    $extension = strtolower(pathinfo($imagePath, PATHINFO_EXTENSION));
+    header('Content-Type: ' . ['jpg'=>'image/jpeg','png'=>'image/png','webp'=>'image/webp'][$extension]);
+    header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: public, max-age=86400');
+    header('Content-Length: ' . (string) filesize($imagePath));
+    if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'HEAD') readfile($imagePath);
+    exit;
+}
+
 if (str_starts_with($requestPath, '/assets/')) {
     $assetRelativePath = substr($requestPath, strlen('/assets/'));
     $assetFullPath = __DIR__ . '/public/assets/' . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $assetRelativePath);
