@@ -1,5 +1,5 @@
 <?php if (empty($trainingLocations)) { ?>
-    <tr><td colspan="9">Nenhum local encontrado.</td></tr>
+    <tr><td colspan="3">Nenhum local encontrado.</td></tr>
 <?php } ?>
 <?php foreach (($trainingLocations ?? []) as $location) { ?>
     <?php
@@ -21,6 +21,14 @@
     $locationPopupRecords = array_values(array_filter(($locationPopups ?? []), static fn (array $popup): bool => (int) ($popup['local_treino_id'] ?? 0) === (int) $location['id']));
     $locationPopupsByArea = [];
     foreach ($locationPopupRecords as $popupRecord) $locationPopupsByArea[(string) $popupRecord['area']] = $popupRecord;
+    $locationSummary = implode(' - ', [
+        !empty($location['cep']) ? format_cep((string) $location['cep']) : '-',
+        format_training_location_address($location),
+        (string) ($location['cidade'] . '/' . $location['uf']),
+        trim((string) ($location['admin_local_nome'] ?? '')) !== '' ? (string) $location['admin_local_nome'] : '-',
+        trim((string) ($location['coord_local_nome'] ?? '')) !== '' ? (string) $location['coord_local_nome'] : '-',
+        (int) $location['ativo'] === 1 ? 'Ativo' : 'Inativo',
+    ]);
     ?>
     <tr>
         <td>
@@ -29,13 +37,13 @@
                 <br><small class="muted"><?php echo e((string) $location['nome_local']); ?></small>
             <?php } ?>
         </td>
-        <td><?php echo e(!empty($location['cep']) ? format_cep((string) $location['cep']) : '-'); ?></td>
-        <td><?php echo e(format_training_location_address($location)); ?></td>
-        <td><?php echo e((string) ($location['cidade'] . '/' . $location['uf'])); ?></td>
-        <td><?php echo e(trim((string) ($location['admin_local_nome'] ?? '')) !== '' ? (string) $location['admin_local_nome'] : '-'); ?></td>
-        <td><?php echo e(trim((string) ($location['coord_local_nome'] ?? '')) !== '' ? (string) $location['coord_local_nome'] : '-'); ?></td>
-        <td><?php echo (int) $location['ativo'] === 1 ? 'Ativo' : 'Inativo'; ?></td>
-        <td><div class="admin-location-popup-areas">
+        <td class="admin-training-location-summary"><span class="admin-training-location-summary-line"><?php echo e($locationSummary); ?></span></td>
+        <td class="admin-training-location-actions-cell"><div class="admin-location-popup-areas">
+            <button
+                type="button"
+                class="btn btn-warning admin-training-location-edit"
+                data-location="<?php echo e((string) json_encode($locationEditPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
+            >Editar</button>
             <?php foreach (['cursos' => 'cursos', 'agenda' => 'agenda'] as $popupArea => $popupAreaLabel) { $popup = $locationPopupsByArea[$popupArea] ?? null; ?>
                 <div class="admin-modality-popup-cell">
                     <?php if ($popup) { ?>
@@ -48,12 +56,5 @@
                 </div>
             <?php } ?>
         </div></td>
-        <td>
-            <button
-                type="button"
-                class="btn btn-warning admin-training-location-edit"
-                data-location="<?php echo e((string) json_encode($locationEditPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
-            >Editar</button>
-        </td>
     </tr>
 <?php } ?>

@@ -21,3 +21,11 @@ Use `preparar-acesso.php` para renderizar o painel e o formulário reais com dad
 A gravação utiliza a home local, os formulários de autenticação reais, as views do painel e os arquivos CSS/JS reais. A cópia local do jQuery contorna a indisponibilidade do CDN no ambiente de gravação. Login, recuperação e salvamento do dependente são interceptados no navegador; nenhum POST chega ao banco. O retorno de sucesso inclui uma linha demonstrativa na lista, sem persistência. Não use essas interceptações na aplicação publicada.
 
 As saídas ficam em `output/tutorial-login-realista/` e `output/tutorial-dependente-realista/`, com vídeo principal, versão para celular, legendas e player com capítulos.
+
+## Atestados clínico e dermatológico
+
+Execute `php scripts/tutoriais_realistas/preparar-atestados.php` e `node scripts/tutoriais_realistas/roteirizar-atestados.cjs`. O primeiro renderiza o cabeçalho, o painel e os modais reais por CLI, com pessoas fictícias e sem conectar ao banco. O segundo prepara os roteiros de cada tipo.
+
+Para cada tipo (`clinico` ou `dermatologico`), gere a voz com `narrar-acesso.ps1 atestado-TIPO`, ensaie com `node scripts/tutoriais_realistas/gravar-atestados.cjs TIPO --preflight`, grave sem `--preflight` e exporte com `finalizar-acesso.py atestado-TIPO`.
+
+Todas as requisições da gravação são atendidas no navegador com arquivos locais ou respostas simuladas. Não há servidor de aplicação, upload real, acesso ao banco ou alteração de senha. O PDF selecionado é um arquivo de teste preexistente, apresentado com nome demonstrativo, sem mostrar conteúdo clínico. A narração distingue envio e validação do documento. As saídas incluem vídeo principal, versão para celular, legendas e player com capítulos em `output/tutorial-atestado-TIPO-realista/`.

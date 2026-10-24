@@ -921,7 +921,11 @@ class AdminController extends Controller
             return;
         }
         try {
-            (new TutorialPageService())->save((int) $user['conta_id'], $_POST);
+            $requestLimit = TutorialPageService::requestLimitBytes();
+            if ($requestLimit > 0 && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > $requestLimit) {
+                throw new \RuntimeException('Os arquivos ultrapassam o limite total de envio do servidor. Salve menos vídeos de cada vez ou use versões menores.');
+            }
+            (new TutorialPageService())->save((int) $user['conta_id'], $_POST, $_FILES['video_arquivo'] ?? []);
             $this->jsonResponse(['success' => true, 'message' => 'Página pública de ajuda atualizada com sucesso.']);
         } catch (\Throwable $e) {
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);

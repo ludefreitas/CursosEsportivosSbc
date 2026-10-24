@@ -33,6 +33,10 @@ if (str_starts_with($requestPath, '/public/')) {
     exit;
 }
 
+// Também atende instalações cujo DocumentRoot aponta diretamente para public/.
+require_once dirname(__DIR__) . '/app/Services/TutorialVideoStreamService.php';
+if (\App\Services\TutorialVideoStreamService::serve(dirname(__DIR__), $requestPath)) exit;
+
 $appConfigFile = dirname(__DIR__) . '/config/app.php';
 ob_start();
 

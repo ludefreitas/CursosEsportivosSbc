@@ -1712,12 +1712,12 @@ class AdminService
     public function listTrainingLocationsForSpaceForm(): array
     {
         $pdo = Database::connection();
-        $stmt = $pdo->query('
+        $stmt = $pdo->query("
             SELECT id, nome_local, apelido_local
             FROM locais_treino
             WHERE ativo = 1
-            ORDER BY nome_local
-        ');
+            ORDER BY COALESCE(NULLIF(TRIM(apelido_local), ''), nome_local), nome_local, id
+        ");
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

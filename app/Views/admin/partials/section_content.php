@@ -2095,14 +2095,8 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <thead>
                             <tr>
                                 <th>Nome<br><small class="muted">(nome completo)</small></th>
-                                <th>CEP</th>
-                                <th>Endereço</th>
-                                <th>Cidade/UF</th>
-                                <th>Administrador</th>
-                                <th>Coordenador</th>
-                                <th>Status</th>
-                                <th>Pop-ups públicos</th>
-                                <th>Ação</th>
+                                <th aria-label="Dados do local"></th>
+                                <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody id="admin-training-location-list-body">

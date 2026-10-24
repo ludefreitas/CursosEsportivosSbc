@@ -552,6 +552,17 @@ body.pagina-error .site-nav > .inline-form .link-button,
     color: #fff !important;
 }
 
+.site-header .site-nav > a.nav-color-purple {
+    background: #6d28d9 !important;
+    color: #fff !important;
+}
+
+.site-header .site-nav > a.nav-color-purple:hover,
+.site-header .site-nav > a.nav-color-purple:focus-visible {
+    background: #5b21b6 !important;
+    color: #fff !important;
+}
+
 .site-header .site-nav > a.nav-color-red,
 .site-header .site-nav > .inline-form .nav-color-red {
     background: #c84f3a !important;
@@ -1812,17 +1823,29 @@ body.pagina-error label span {
     background: #0e2028;
 }
 
-.tutorial-video-frame iframe {
+.tutorial-video-frame iframe,
+.tutorial-video-frame video {
     width: 100%;
     height: 100%;
     border: 0;
+    display: block;
+    object-fit: contain;
 }
 
 .tutorial-admin-video-row {
     display: grid;
-    grid-template-columns: minmax(220px, .9fr) minmax(280px, 1.25fr) auto;
+    grid-template-columns: minmax(170px, .9fr) minmax(140px, .55fr) minmax(240px, 1.25fr) auto;
     gap: 10px;
     align-items: end;
+}
+
+.tutorial-admin-video-source { min-width: 0; }
+.tutorial-current-file { margin: 8px 0 0; overflow-wrap: anywhere; }
+.tutorial-current-file small { display: block; }
+
+@media (min-width: 721px) and (max-width: 1100px) {
+    .tutorial-admin-video-row { grid-template-columns: 1fr 1fr; }
+    .tutorial-admin-video-source { grid-column: 1 / -1; }
 }
 
 .tutorial-admin-video-actions {

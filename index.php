@@ -25,6 +25,10 @@ if (str_starts_with($requestPath, '/public/')) {
     exit;
 }
 
+// Vídeos de ajuda são públicos e precisam aceitar pedidos de intervalos de bytes.
+require_once __DIR__ . '/app/Services/TutorialVideoStreamService.php';
+if (\App\Services\TutorialVideoStreamService::serve(__DIR__, $requestPath)) exit;
+
 // Imagens públicas de divulgação e identidade visual. Não expor uploads
 // particulares (atestados e documentos) pelo front controller.
 if (preg_match('~^/uploads/(posters/[a-f0-9]{32}\\.(?:jpg|png|webp)|pdf-branding/logo-[a-f0-9]{24}\\.(?:jpg|png))$~', $requestPath)) {

@@ -155,6 +155,7 @@
 .course-enrollment-load-more { display:flex; flex-direction:column; align-items:center; gap:6px; padding:18px 0 4px; }
 .course-enrollment-load-more .btn { min-width:180px; }
 .class-copy-panel { display:grid; gap:10px; padding:12px; border:1px solid var(--line); border-radius:12px; background:#f7fbfc; }
+.class-copy-panel [data-class-copy-notice] { color: #b91c1c; }
 .class-copy-toggle { margin:0; }
 .class-copy-steps, .class-copy-step { display:grid; gap:8px; }
 .class-copy-options { display:flex; flex-wrap:wrap; gap:7px; }
@@ -413,9 +414,8 @@
 }
 .admin-training-locations-table th:last-child,
 .admin-training-locations-table td:last-child {
-    width: 92px;
-    min-width: 92px;
-    text-align: center;
+    min-width: 0;
+    text-align: left;
 }
 .admin-training-locations-table .admin-training-location-edit {
     min-width: 78px;
@@ -423,6 +423,24 @@
     white-space: nowrap;
     overflow-wrap: normal;
     word-break: keep-all;
+}
+.admin-training-location-summary-line {
+    display: block;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+.data-table tbody td.admin-training-location-summary::before,
+.data-table tbody td.admin-training-location-actions-cell::before {
+    content: none;
+}
+@media (max-width: 760px) {
+    .data-table tbody td.admin-training-location-summary,
+    .data-table tbody td.admin-training-location-actions-cell {
+        display: block;
+    }
+    .admin-training-location-summary-line {
+        max-width: 100%;
+    }
 }
 .admin-home-preview-card { margin-top: 18px; }
 .admin-home-preview-actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -885,13 +903,19 @@
     font-weight: 700;
 }
 .admin-location-popup-areas {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(125px, 1fr));
-    gap: 10px;
-    min-width: 270px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px 24px;
+    min-width: 0;
 }
-@media (max-width: 900px) {
-    .admin-location-popup-areas { grid-template-columns: 1fr; min-width: 150px; }
+.admin-training-locations-table .admin-location-popup-areas .btn,
+.admin-training-locations-table .admin-location-popup-areas .link-button {
+    width: auto;
+}
+.admin-location-popup-areas > .admin-modality-popup-cell {
+    min-width: 0;
+    max-width: 100%;
 }
 .admin-modality-popup-fixed-area {
     padding: 10px 13px;

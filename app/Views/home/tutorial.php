@@ -15,7 +15,14 @@
                 <article class="tutorial-video-card">
                     <div class="tutorial-video-title"><span>Vídeo <?php echo e((string) ($index + 1)); ?></span><h2><?php echo e((string) ($video['titulo'] ?? '')); ?></h2></div>
                     <div class="tutorial-video-frame">
+                        <?php if (($video['tipo'] ?? 'youtube') === 'local') { ?>
+                        <video controls playsinline preload="metadata" aria-label="<?php echo e((string) ($video['titulo'] ?? '')); ?>">
+                            <source src="<?php echo e(url((string) ($video['arquivo'] ?? ''))); ?>" type="<?php echo str_ends_with((string) ($video['arquivo'] ?? ''), '.webm') ? 'video/webm' : 'video/mp4'; ?>">
+                            Seu navegador não suporta a reprodução deste vídeo. <a href="<?php echo e(url((string) ($video['arquivo'] ?? ''))); ?>">Baixar vídeo</a>.
+                        </video>
+                        <?php } else { ?>
                         <iframe src="<?php echo e((string) ($video['embed_url'] ?? '')); ?>" title="Vídeo <?php echo e((string) ($index + 1)); ?> — <?php echo e((string) ($video['titulo'] ?? '')); ?>" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                        <?php } ?>
                     </div>
                 </article>
             <?php } ?>
