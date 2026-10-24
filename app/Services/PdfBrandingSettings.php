@@ -3,6 +3,25 @@ namespace App\Services;
 
 final class PdfBrandingSettings
 {
+    public static function canShowEditLink(): bool
+    {
+        $path = function_exists('current_path') ? current_path() : (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/');
+        $path = rtrim($path, '/') ?: '/';
+        // A grade mantém seu atalho administrativo. Painel do usuário e
+        // documentos públicos nunca exibem controles de identidade visual.
+        $managementPage = $path === '/admin' || str_starts_with($path, '/admin/') || $path === '/grades-de-horario';
+        return $managementPage && self::canConfigure();
+    }
+    public static function canConfigure(): bool
+    {
+        static $allowed;
+        if ($allowed !== null) return $allowed;
+        try {
+            if (!\App\Core\Auth::check()) return $allowed = false;
+            $account=(new UserService())->currentAccountWithRoles();
+            return $allowed = in_array('master_admin',array_column($account['roles']??[],'slug'),true);
+        } catch (\Throwable $error) { return $allowed = false; }
+    }
     public const MODELS = ['nivel'=>'Certificado de nível da modalidade','declaracao'=>'Declaração do aluno','chamada'=>'Lista de chamada da turma','enderecos'=>'Lista de alunos com endereços','frequencia'=>'Frequência mensal (impressão / salvar como PDF)','grade'=>'Grade de horários (impressão / salvar como PDF)'];
     public static function catalog(): array
     {

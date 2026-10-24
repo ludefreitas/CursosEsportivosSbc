@@ -14,4 +14,50 @@ form.onsubmit=async e=>{e.preventDefault();save.disabled=true;try{const result=a
 preview.onclick=async()=>{preview.disabled=true;try{const r=await request('/admin/pdfs/preview',{method:'POST',body:payload()});if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=URL.createObjectURL(await r.blob());frame.src=previewUrl;frame.hidden=false;msg.textContent='Prévia das alterações, sem salvar a configuração.';}catch(err){msg.textContent=err.message;}finally{preview.disabled=false;}};
 modal.append(form);document.body.append(modal);modal.addEventListener('close',()=>{modal.remove();if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl=null;}},{once:true});modal.showModal();}catch(err){alert(err.message);}}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-pdf-model]');if(b)open(b.dataset.pdfModel);});
+// O atalho aguarda a seção administrativa carregar por AJAX.
+const requestedModel=new URLSearchParams(window.location.search).get('pdf_model');
+if(requestedModel&&/^[a-z0-9_]+$/.test(requestedModel)&&window.location.pathname.replace(/\/$/,'').endsWith('/admin')){
+    let observer;
+    function openRequestedModel(){
+        const button=document.querySelector('[data-pdf-branding-panel] [data-pdf-model="'+requestedModel+'"]');
+        if(!button)return;
+        if(observer)observer.disconnect();
+        const cleanUrl=new URL(window.location.href);cleanUrl.searchParams.delete('pdf_model');
+        window.history.replaceState({},document.title,cleanUrl.pathname+cleanUrl.search+cleanUrl.hash);
+        button.scrollIntoView({behavior:'smooth',block:'center'});
+        open(requestedModel);
+    }
+    observer=new MutationObserver(openRequestedModel);
+    observer.observe(document.body,{childList:true,subtree:true});
+    openRequestedModel();
+}
+// Atalhos nas páginas que oferecem geração de arquivos PDF.
+if(document.body.dataset.pdfBrandingAllowed==='1'){
+    const models=[
+        ['nivel','Certificado de nível',/\/avaliacoes\/certificado\.pdf$/],
+        ['chamada','Lista de chamada',/\/turmas\/chamada\.pdf$/],
+        ['enderecos','Lista com endereços',/\/turmas\/lista-enderecos\.pdf$/],
+        ['declaracao','Declaração',/\/cursos\/declaracao(?:\.pdf|\/emitir)?$/],
+        ['frequencia','Frequência mensal',/\/cursos\/frequencia$/]
+    ];
+    let timer;
+    function syncShortcuts(){
+        const main=document.querySelector('main');if(!main)return;
+        const found=new Set();
+        document.querySelectorAll('a[href]:not([data-pdf-brand-link])').forEach(link=>{
+            let path;try{path=new URL(link.href,location.href).pathname;}catch(error){return;}
+            models.forEach(([id,name,pattern])=>{if(pattern.test(path))found.add(id);});
+        });
+        const desired=models.filter(([id])=>found.has(id)&&!document.querySelector('[data-pdf-brand-link="'+id+'"]'));
+        let region=document.getElementById('pdf-brand-shortcuts');
+        const signature=desired.map(([id])=>id).join(',');
+        if(region&&region.dataset.models===signature)return;
+        if(!desired.length){if(region)region.remove();return;}
+        if(!region){region=el('aside');region.id='pdf-brand-shortcuts';region.className='pdf-brand-shortcuts';region.setAttribute('aria-label','Configuração dos documentos PDF');main.prepend(region);}
+        region.dataset.models=signature;region.replaceChildren(el('strong','Logos e rodapés dos PDFs: '));
+        desired.forEach(([id,name])=>{const link=el('a','Editar logo e rodapé — '+name);link.href=base()+'/admin?pdf_model='+id+'#admin-outras-areas';region.append(link);});
+    }
+    new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(syncShortcuts,50);}).observe(document.body,{childList:true,subtree:true});
+    syncShortcuts();
+}
 })();

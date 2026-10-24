@@ -2359,3 +2359,5 @@ body.pagina-error label span {
 .enrollment-declaration-button{background:#218838!important;border:1px solid #218838!important;color:#fff!important;text-decoration:none!important}.enrollment-declaration-button:hover,.enrollment-declaration-button:focus-visible{background:#176b2b!important;border-color:#176b2b!important}
 
 .enrollment-declaration-button{display:inline-flex!important;align-items:center;justify-content:center;white-space:nowrap!important;word-break:normal!important;overflow-wrap:normal!important;min-width:126px;box-sizing:border-box;padding:12px 16px!important}
+
+.pdf-brand-shortcuts{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:12px 16px;margin:12px 0;background:#eef6fc;border:1px solid #c7ddeb;border-radius:10px;font-size:13px}.pdf-brand-shortcuts a{color:#146f9b;text-decoration:underline}@media print{.pdf-brand-shortcuts,.pdf-brand-edit-link{display:none!important}}

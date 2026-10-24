@@ -22,6 +22,7 @@
 <body
     class="<?php echo e($pageClass ?? ''); ?>"
     data-profile-completion-required="<?php echo !empty($profileCompletionRequired) ? '1' : '0'; ?>"
+    data-pdf-branding-allowed="<?php echo \App\Services\PdfBrandingSettings::canShowEditLink() ? '1' : '0'; ?>"
     data-admin-access-allowed="<?php echo !empty($headerAdminAccessAllowed) ? '1' : '0'; ?>"
     data-professor-access-allowed="<?php echo !empty($headerProfessorAccessAllowed) ? '1' : '0'; ?>"
     data-intern-restricted="<?php echo !empty($headerInternAccessAllowed) && empty($headerProfessorAccessAllowed) && empty($headerAdminAccessAllowed) ? '1' : '0'; ?>"

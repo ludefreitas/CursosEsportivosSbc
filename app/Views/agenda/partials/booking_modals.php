@@ -15,9 +15,14 @@ $needsProfileCompletion = $needsProfileCompletion ?? false;
             <div id="painel-evento" class="stack-form">
                 <p class="muted">Clique em um horário no calendário para ver local, vagas e regras.</p>
             </div>
-            <div id="agenda-access-warning" class="<?php echo empty($schedulablePeople) ? 'alert-inline' : 'alert-inline hidden'; ?>">
+            <div id="agenda-access-warning" class="<?php echo empty($profile) ? 'auth-action-notice' : 'alert-inline'; ?><?php echo empty($schedulablePeople) ? '' : ' hidden'; ?>">
                 <?php if (empty($profile)) { ?>
-                    Para agendar um horário, você precisa fazer login na sua conta.
+                    <strong>Entre na sua conta para agendar</strong>
+                    <p>Faça login para agendar treinos para você ou um dependente, clique no botão "Entrar". Ainda não tem cadastro? Crie sua conta para começar, clique em "Criar cadastro".</p>
+                    <div class="auth-action-notice-buttons">
+                        <button type="button" class="btn btn-primary" data-open-route-modal="<?php echo e(url('/login?return_to=' . rawurlencode(current_path()))); ?>">Entrar</button>
+                        <button type="button" class="btn btn-secondary" data-open-route-modal="<?php echo e(url('/cadastro?return_to=' . rawurlencode(current_path()))); ?>">Criar cadastro</button>
+                    </div>
                 <?php } else { ?>
                     <?php echo e($registrationBlock['mensagem'] ?? 'Para agendar um horário, você precisa completar seu cadastro.'); ?>
                 <?php } ?>
@@ -76,7 +81,7 @@ $needsProfileCompletion = $needsProfileCompletion ?? false;
                     <?php if (empty($profile)) { ?>
                     <div class="auth-action-notice" role="note">
                         <strong>Entre na sua conta para agendar</strong>
-                        <p>Faça login para selecionar você ou um dependente. Ainda não tem cadastro? Crie sua conta para começar.</p>
+                        <p>Faça login para agendar treinos para você ou um dependente, clique no botão "Entrar". Ainda não tem cadastro? Crie sua conta para começar, clique em "Criar cadastro".</p>
                         <div class="auth-action-notice-buttons">
                             <button type="button" class="btn btn-primary" data-open-route-modal="<?php echo e(url('/login?return_to=' . rawurlencode(current_path()))); ?>">Entrar</button>
                             <button type="button" class="btn btn-secondary" data-open-route-modal="<?php echo e(url('/cadastro?return_to=' . rawurlencode(current_path()))); ?>">Criar cadastro</button>

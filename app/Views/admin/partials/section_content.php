@@ -2598,9 +2598,21 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 <div><h2>Cronogramas das modalidades</h2><p class="muted">Cada cronograma pertence a uma modalidade e temporada. As datas são independentes depois de salvas.</p></div>
                 <button type="button" class="btn btn-primary" id="admin-modality-schedule-create">Criar cronograma</button>
             </div>
+            <?php
+            $scheduleSeasons = [];
+            foreach (($modalitySchedules ?? []) as $schedule) {
+                $scheduleSeasons[(int) $schedule['temporada_id']] = (string) $schedule['temporada_nome'];
+            }
+            $selectedScheduleSeason = array_key_first($scheduleSeasons);
+            ?>
+            <div class="chips-wrap" role="group" aria-label="Filtrar cronogramas por temporada">
+                <?php foreach ($scheduleSeasons as $seasonId => $seasonName) { ?>
+                    <button type="button" class="btn <?php echo $seasonId === $selectedScheduleSeason ? 'btn-primary' : 'btn-secondary'; ?>" data-modality-schedule-season="<?php echo e((string) $seasonId); ?>" aria-pressed="<?php echo $seasonId === $selectedScheduleSeason ? 'true' : 'false'; ?>"><?php echo e($seasonName); ?></button>
+                <?php } ?>
+            </div>
             <div class="table-wrap"><table class="data-table"><thead><tr><th>Cronograma</th><th>Modalidade</th><th>Temporada</th><th>Aulas</th><th>Edital</th><th>Turmas</th><th>Ações</th></tr></thead><tbody id="admin-modality-schedule-list-body">
                 <?php foreach (($modalitySchedules ?? []) as $schedule) { ?>
-                    <tr>
+                    <tr data-modality-schedule-season-row="<?php echo e((string) $schedule['temporada_id']); ?>"<?php if ((int) $schedule['temporada_id'] !== $selectedScheduleSeason) { ?> class="hidden"<?php } ?>>
                         <td><?php echo e((string) $schedule['nome']); ?><br><small>Disponível: <?php echo e(!empty($schedule['data_inicio']) ? date('d/m/Y', strtotime((string) $schedule['data_inicio'])) : '-'); ?> a <?php echo e(!empty($schedule['data_fim']) ? date('d/m/Y', strtotime((string) $schedule['data_fim'])) : '-'); ?></small></td><td><?php echo e((string) $schedule['modalidade_nome']); ?></td><td><?php echo e((string) $schedule['temporada_nome']); ?></td>
                         <td><?php echo e(!empty($schedule['aulas_inicio']) ? date('d/m/Y', strtotime((string) $schedule['aulas_inicio'])) : '-'); ?> a <?php echo e(!empty($schedule['aulas_fim']) ? date('d/m/Y', strtotime((string) $schedule['aulas_fim'])) : '-'); ?></td>
                         <td><?php echo !empty($schedule['possui_edital']) ? e((string) ($schedule['numero_edital'] ?? 'Sim')) : 'Não'; ?></td><td><?php echo e((string) ($schedule['total_turmas'] ?? 0)); ?><?php if ((int) ($schedule['total_turmas_sem_cronograma'] ?? 0) > 0) { ?><br><small class="field-error"><?php echo e((string) $schedule['total_turmas_sem_cronograma']); ?> turma(s) desta modalidade ainda sem cronograma definido</small><?php } ?></td>

@@ -1,0 +1,57 @@
+[
+  {
+    "id": "login-00",
+    "title": "Entrar no site",
+    "speech": "Na página inicial, clique em Entrar. Use a conta da pessoa responsável, maior de idade. Para acompanhar este exemplo, utilizamos dados fictícios."
+  },
+  {
+    "id": "login-01",
+    "title": "CPF e senha",
+    "speech": "Informe o CPF do titular da conta e a senha cadastrada. O login é feito com CPF, e não com o endereço de e-mail. Depois, clique em Entrar."
+  },
+  {
+    "id": "login-02",
+    "title": "CPF ou senha inválidos",
+    "speech": "Este alerta informa que o CPF ou a senha não foram reconhecidos. Confira os números, a digitação da senha e se você já possui conta. Se esqueceu a senha, feche o aviso e clique em Recuperar senha."
+  },
+  {
+    "id": "login-03",
+    "title": "Recuperar senha",
+    "speech": "Clique em Recuperar senha, logo abaixo do campo Senha. Não é necessário criar outra conta para recuperar o acesso a um CPF já cadastrado."
+  },
+  {
+    "id": "login-04",
+    "title": "Identificar o titular",
+    "speech": "Informe o CPF da pessoa titular da conta e a data de nascimento que consta no cadastro. Não use os dados do dependente para recuperar a senha do responsável."
+  },
+  {
+    "id": "login-05",
+    "title": "Criar nova senha",
+    "speech": "Crie uma nova senha com pelo menos seis caracteres e repita exatamente o mesmo texto no segundo campo. Prefira uma senha que você não utilize em outros serviços."
+  },
+  {
+    "id": "login-06",
+    "title": "Confirmar a alteração",
+    "speech": "Marque Não sou robô e clique em Alterar senha. Se o sistema não conseguir confirmar os dados, confira o CPF e a data de nascimento. Se o cadastro estiver incorreto, procure o suporte."
+  },
+  {
+    "id": "login-07",
+    "title": "Senha alterada",
+    "speech": "Leia a confirmação: Senha alterada com sucesso. Você já pode entrar usando a nova senha. Clique no botão de fechar este aviso e volte à opção Entrar."
+  },
+  {
+    "id": "login-08",
+    "title": "Entrar com a nova senha",
+    "speech": "Informe novamente o CPF do titular e, agora, a nova senha. Clique em Entrar para concluir o acesso."
+  },
+  {
+    "id": "login-09",
+    "title": "Login confirmado",
+    "speech": "O aviso confirma o login. Clique para fechar e acessar o painel. Se aparecer uma solicitação para completar o cadastro, conclua os dados obrigatórios antes de agendar ou se inscrever."
+  },
+  {
+    "id": "login-10",
+    "title": "Painel do usuário",
+    "speech": "Pronto! Este é o painel da sua conta. Aqui você acompanha suas informações e seus dependentes. Não compartilhe sua senha e encerre a sessão ao usar um computador compartilhado."
+  }
+]

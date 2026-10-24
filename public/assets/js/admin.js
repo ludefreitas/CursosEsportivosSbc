@@ -5366,6 +5366,18 @@
                 const id=Number($(this).attr('data-popup-id')||0); if(!id||!window.confirm('Deseja excluir este pop-up da modalidade?')) return;
                 $.post(App.core.buildUrl('/admin/modalidades/popups/excluir'),{modalidade_popup_id:id},function(response){if(!response||response.success===false){App.core.abrirPopup('erro',String(response&&response.message||'Não foi possível excluir.'));return;} closeModalityPopupModal(); App.admin.activateSection('modalidades'); App.core.abrirPopup('sucesso',String(response.message));},'json').fail(function(xhr){App.core.abrirPopup('erro',App.core.extrairMensagemErroAjax(xhr).mensagem);});
             });
+            $(document).on('click', '[data-modality-schedule-season]', function () {
+                const seasonId = String($(this).attr('data-modality-schedule-season'));
+                const $card = $(this).closest('.content-card');
+                $card.find('[data-modality-schedule-season]').each(function () {
+                    const selected = String($(this).attr('data-modality-schedule-season')) === seasonId;
+                    $(this).toggleClass('btn-primary', selected).toggleClass('btn-secondary', !selected)
+                        .attr('aria-pressed', selected ? 'true' : 'false');
+                });
+                $card.find('[data-modality-schedule-season-row]').each(function () {
+                    $(this).toggleClass('hidden', String($(this).attr('data-modality-schedule-season-row')) !== seasonId);
+                });
+            });
             function scheduleModal() { return $('#admin-modality-schedule-modal'); }
             function closeScheduleModal() { scheduleModal().addClass('hidden').attr('aria-hidden', 'true'); }
             function scheduleData(attribute) {

@@ -1,0 +1,77 @@
+[
+  {
+    "id": "dependente-00",
+    "title": "Antes de cadastrar um dependente",
+    "speech": "Primeiro, faça login na conta da pessoa responsável, maior de idade. Na página inicial, clique em Entrar. O dependente será vinculado à conta que estiver autenticada."
+  },
+  {
+    "id": "dependente-01",
+    "title": "Entrar na conta do responsável",
+    "speech": "Digite o CPF e a senha do responsável e clique em Entrar. Se não lembrar a senha, use Recuperar senha, como mostramos no outro tutorial."
+  },
+  {
+    "id": "dependente-02",
+    "title": "Confirmar o acesso",
+    "speech": "Feche a confirmação do login para acessar seu painel. Caso o sistema solicite completar seu cadastro, faça isso antes de continuar."
+  },
+  {
+    "id": "dependente-03",
+    "title": "Encontrar Meus dependentes",
+    "speech": "No painel do usuário, role a página até Meus dependentes e clique em Novo dependente. Podem ser cadastradas pessoas maiores ou menores de idade, sem duplicar CPF."
+  },
+  {
+    "id": "dependente-04",
+    "title": "Ler os avisos do formulário",
+    "speech": "O cadastro é restrito a moradores de São Bernardo do Campo. O comprovante de endereço será exigido na matrícula e no dia do agendamento. Confira principalmente o CPF e a data de nascimento."
+  },
+  {
+    "id": "dependente-05",
+    "title": "Nome, CPF e nascimento",
+    "speech": "Digite o nome completo, o CPF e a data de nascimento do dependente. Estes dados identificam a pessoa. Para corrigir CPF ou nascimento depois, será necessário acionar o suporte técnico."
+  },
+  {
+    "id": "dependente-06",
+    "title": "Sexo e contato",
+    "speech": "Selecione o sexo. O WhatsApp já vem preenchido com o número do responsável e não pode ser alterado neste formulário. Preencha também o e-mail solicitado."
+  },
+  {
+    "id": "dependente-07",
+    "title": "Cartão SUS e condições",
+    "speech": "Informe o cartão SUS se tiver o número disponível. Declare uma condição somente quando corresponder à situação da pessoa. O formulário permite uma condição por pessoa e explica a documentação necessária."
+  },
+  {
+    "id": "dependente-08",
+    "title": "Endereço do dependente",
+    "speech": "Digite o CEP e confira o endereço sugerido. Complete número, complemento, bairro, cidade e UF. O complemento deve ser usado apenas quando necessário, por exemplo, para informar apartamento."
+  },
+  {
+    "id": "dependente-09",
+    "title": "Identificação dos responsáveis",
+    "speech": "Informe nome e CPF de pelo menos um responsável. Pode ser o seu próprio nome e CPF. Confira os dados antes de seguir."
+  },
+  {
+    "id": "dependente-10",
+    "title": "Contato de emergência",
+    "speech": "Informe o nome e o telefone de uma pessoa para contato em caso de emergência. Este telefone precisa ser diferente do WhatsApp do responsável. Vamos mostrar o aviso quando os números são iguais."
+  },
+  {
+    "id": "dependente-11",
+    "title": "Corrigir o telefone",
+    "speech": "O sistema não aceita o mesmo número para WhatsApp e emergência. Feche o alerta, informe um contato diferente e confira os dados antes de salvar novamente."
+  },
+  {
+    "id": "dependente-12",
+    "title": "Salvar dependente",
+    "speech": "Clique em Salvar dependente, no rodapé do formulário. Aguarde a confirmação antes de sair da página ou tentar novamente."
+  },
+  {
+    "id": "dependente-13",
+    "title": "Cadastro confirmado",
+    "speech": "A confirmação informa que o dependente foi salvo. Feche este aviso e confira o nome na lista Meus dependentes. Neste vídeo, o envio é demonstrativo, sem gravar dados reais."
+  },
+  {
+    "id": "dependente-14",
+    "title": "Próximos passos",
+    "speech": "O dependente agora está na lista da sua conta. Cadastrar uma pessoa não garante matrícula nem reserva uma vaga. Nas inscrições e nos agendamentos, selecione o dependente e siga os requisitos apresentados pelo sistema."
+  }
+]

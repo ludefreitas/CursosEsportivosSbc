@@ -172,7 +172,7 @@ body.pagina-dashboard .page-content > #dashboard-course-enrollments-panel {
 body:is(.pagina-home, .pagina-dashboard) .page-shell
 :is(.hero-copy, .hero-card, .content-card, .info-card, .post-card, .special-event-card):is(div, article, section, nav) {
     --card-accent: var(--accent-blue);
-    --card-tint: #edf4fc;
+    --card-tint: #e0ecfa;
     background: var(--card-tint) !important;
     border-color: color-mix(in srgb, var(--card-accent) 24%, white) !important;
     border-top: 5px solid var(--card-accent) !important;
@@ -181,55 +181,55 @@ body:is(.pagina-home, .pagina-dashboard) .page-shell
 body:is(.pagina-home, .pagina-dashboard) .page-shell
 :is(.hero-copy, .hero-card, .content-card, .info-card, .post-card, .special-event-card):nth-child(6n + 2) {
     --card-accent: var(--accent-orange);
-    --card-tint: #fff4e8;
+    --card-tint: #ffe9d2;
 }
 body:is(.pagina-home, .pagina-dashboard) .page-shell
 :is(.hero-copy, .hero-card, .content-card, .info-card, .post-card, .special-event-card):nth-child(6n + 3) {
     --card-accent: var(--accent-green);
-    --card-tint: #edf7f0;
+    --card-tint: #dff0e4;
 }
 body:is(.pagina-home, .pagina-dashboard) .page-shell
 :is(.hero-copy, .hero-card, .content-card, .info-card, .post-card, .special-event-card):nth-child(6n + 4) {
     --card-accent: var(--accent-red);
-    --card-tint: #fcf0ed;
+    --card-tint: #f8e2dc;
 }
 body:is(.pagina-home, .pagina-dashboard) .page-shell
 :is(.hero-copy, .hero-card, .content-card, .info-card, .post-card, .special-event-card):nth-child(6n + 5) {
     --card-accent: var(--accent-yellow);
-    --card-tint: var(--accent-yellow-soft);
+    --card-tint: #ffedcc;
 }
 body:is(.pagina-home, .pagina-dashboard) .page-shell
 :is(.hero-copy, .hero-card, .content-card, .info-card, .post-card, .special-event-card):nth-child(6n + 6) {
     --card-accent: var(--accent-royal-blue);
-    --card-tint: var(--accent-royal-blue-soft);
+    --card-tint: #dfe5fa;
 }
 /* A ação principal determina a cor quando há botões no quadro. */
 body:is(.pagina-home, .pagina-dashboard) .page-shell
 :is(.hero-copy, .hero-card, .content-card, .info-card, .post-card):has(.btn-primary) {
     --card-accent: var(--brand-700);
-    --card-tint: #edf6f8;
+    --card-tint: #dfedf2;
 }
 body.pagina-home .page-shell #home-locations-card {
     --card-accent: #1f76b5;
-    --card-tint: #edf5fb;
+    --card-tint: #dfedf8;
 }
 body:is(.pagina-home, .pagina-dashboard) .page-shell
 :is(.hero-copy, .hero-card, .content-card, .info-card, .post-card):has(.btn-secondary):not(:has(.btn-primary)) {
     --card-accent: var(--accent-orange);
-    --card-tint: #fff4e8;
+    --card-tint: #ffe9d2;
 }
 body.pagina-home .page-shell .content-card.home-course-modalities-card {
     --card-accent: #d96b1f;
-    --card-tint: #fff3e9;
+    --card-tint: #ffe7d5;
 }
 body.pagina-home .page-shell .content-card.home-training-locations-card,
 body.pagina-home .page-shell .content-card.home-section-navigation {
     --card-accent: #1ca746;
-    --card-tint: #eef9f0;
+    --card-tint: #dff2e3;
 }
 body:is(.pagina-home, .pagina-dashboard) .page-shell .content-card.site-header-alert-card {
     --card-accent: var(--accent-yellow);
-    --card-tint: var(--accent-yellow-soft);
+    --card-tint: #ffedcc;
 }
 body:is(.pagina-home, .pagina-dashboard) .page-shell
 :is(.hero-copy, .hero-card, .content-card, .info-card, .post-card, .special-event-card):is(div, article, section, nav)::before,

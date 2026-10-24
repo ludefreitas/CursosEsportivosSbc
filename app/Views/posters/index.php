@@ -3,7 +3,7 @@ $pdfModel='cartaz'; ?>
 <link rel="stylesheet" href="<?php echo e(asset_url('css/posters.css')); ?>">
 <?php if (!empty($posterPreviewOnly)) { ?><style>.poster-heading,.poster-editor,.poster-toolbar,#poster-output-help{display:none!important}.poster-workspace{display:block}.poster-preview-column{position:static}</style><?php } ?>
 <section class="poster-screen">
-    <div class="poster-heading"><div><a href="<?php echo e(url('/admin')); ?>">← Administração</a><h1>Cartaz de divulgação</h1><p>Escolha o local, personalize e compartilhe. A prévia acompanha suas alterações.</p></div><a href="<?php echo e(url('/admin#admin-outras-areas')); ?>">Configurar identidade visual dos PDFs</a></div>
+    <div class="poster-heading"><div><a href="<?php echo e(url('/admin')); ?>">← Administração</a><h1>Cartaz de divulgação</h1><p>Escolha o local, personalize e compartilhe. A prévia acompanha suas alterações.</p></div><?php require \App\Services\PdfBrandingSettings::root().'/app/Views/partials/pdf_branding_edit_link.php'; ?></div>
     <div class="poster-workspace">
         <form id="poster-editor" class="poster-editor" data-manual-submit="1">
             <label>Campanhas salvas<select id="poster-saved"><option value="">Nova campanha</option><?php foreach ($posters as $poster) { ?><option value="<?php echo e($poster['id']); ?>"><?php echo e($poster['name']); ?></option><?php } ?></select></label>

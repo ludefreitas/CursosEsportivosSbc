@@ -598,8 +598,8 @@
                     classesById[String(courseClass.id)] = courseClass;
                     const $card = $('<article>', { class: 'home-course-class-card' });
                     const seasonLabel = classSeasonLabel(courseClass);
-                    $card.append($('<h4>', { text: String(courseClass.modalidade_nome || (selectedModality && selectedModality.nome) || 'Modalidade') + ' - ' + seasonLabel }));
                     $card.append($('<p>', { class: 'home-course-class-name' }).append($('<strong>', { text: '[' + String(courseClass.id || '') + '] - ' + String(courseClass.nome || '') })));
+                    $card.append($('<h4>', { text: String(courseClass.modalidade_nome || (selectedModality && selectedModality.nome) || 'Modalidade') + ' - ' + seasonLabel }));
                     $card.append($('<p>').append($('<strong>', { text: 'Local da aula: ' })).append(document.createTextNode(String(courseClass.local_nome || ''))));
                     if (courseClass.dias_semana && courseClass.hora_inicio && courseClass.hora_fim) {
                         $card.append($('<p>').append($('<strong>', { text: 'Dias e horário: ' })).append(document.createTextNode(String(courseClass.dias_semana_descricao || courseClass.dias_semana) + ', das ' + String(courseClass.hora_inicio).slice(0, 5) + ' às ' + String(courseClass.hora_fim).slice(0, 5))));

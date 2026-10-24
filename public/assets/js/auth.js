@@ -502,6 +502,8 @@
                             $agendaHelper.toggleClass('hidden', !authenticationNeedsProfileCompletion);
                         }
 
+                        $('#agenda-access-warning').data('defaultHtml', '').data('defaultText', authenticationNeedsProfileCompletion ? 'Para agendar um horário, você precisa completar seu cadastro.' : '');
+
                         if (authenticationNeedsProfileCompletion) {
                             $('#agenda-access-warning')
                                 .removeClass('hidden')

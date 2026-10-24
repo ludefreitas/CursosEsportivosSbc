@@ -275,7 +275,9 @@
             const $accessWarning = $('#agenda-access-warning');
             const defaultWarningText = String($accessWarning.data('defaultText') || '').trim();
 
-            if (defaultWarningText !== '') {
+            if ($accessWarning.data('defaultHtml')) {
+                $accessWarning.html($accessWarning.data('defaultHtml'));
+            } else if (defaultWarningText !== '') {
                 $accessWarning.text(defaultWarningText);
             }
 
@@ -595,7 +597,9 @@
                     personOptions.addClass('hidden').html('');
                 } else {
                     accessWarning.removeClass('hidden');
-                    if (String(accessWarning.data('defaultText') || '').trim() !== '') {
+                    if (accessWarning.data('defaultHtml')) {
+                        accessWarning.html(accessWarning.data('defaultHtml'));
+                    } else if (String(accessWarning.data('defaultText') || '').trim() !== '') {
                         accessWarning.text(String(accessWarning.data('defaultText') || '').trim());
                     }
                     personOptions.addClass('hidden');
@@ -744,6 +748,7 @@
 
             if ($accessWarning.length > 0 && String($accessWarning.data('defaultText') || '').trim() === '') {
                 $accessWarning.data('defaultText', $.trim($accessWarning.text()));
+                $accessWarning.data('defaultHtml', $accessWarning.html());
             }
 
             $(document).on('click', '#agenda-profile-reminder', function (event) {
