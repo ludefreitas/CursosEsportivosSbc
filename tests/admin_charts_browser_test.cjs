@@ -1,0 +1,75 @@
+const fs=require('fs'),path=require('path'),net=require('net'),assert=require('assert'),{spawn,execFileSync}=require('child_process');
+const{chromium}=require('C:/Users/Aberto/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const root=path.resolve(__dirname,'..');
+(async()=>{
+ const directory=fs.mkdtempSync(path.join(root,'tmp/chart-browser-')),database=path.join(directory,'fixture.sqlite');
+ execFileSync('php',['tests/admin_chart_service_test.php','--database',database],{cwd:root});
+ const port=await new Promise(resolve=>{const s=net.createServer();s.listen(0,'127.0.0.1',()=>{const n=s.address().port;s.close(()=>resolve(n));});});
+ const server=spawn('php',['-d','session.save_path='+directory,'-S','127.0.0.1:'+port,'tests/fixtures/admin_charts_router.php'],{cwd:root,env:{...process.env,CHART_TEST_DATABASE:database},windowsHide:true,stdio:'ignore'});
+ let browser;
+ try{
+ const base='http://127.0.0.1:'+port;
+ for(let i=0;i<80;i++){try{await fetch(base);break;}catch{await new Promise(r=>setTimeout(r,100));}}
+ const headers={'X-Requested-With':'XMLHttpRequest'};
+ const query='/admin/graficos/dados?modo=multi&temporadas[]=1&temporadas[]=2&max_temporadas=6&procura_de=2025-06-15&procura_ate=2025-06-15';
+ for(const[role,status]of[['guest',401],['intern',403],['incomplete',403],['admin',200],['supervisor',200],['coordinator',200],['master_admin',200]]){const r=await fetch(base+query,{headers:{...headers,'X-Test-Role':role}});assert.equal(r.status,status,role);}
+ let r=await fetch(base+query+'&publico=inválido',{headers});assert.equal(r.status,422);
+ r=await fetch(base+query,{headers});let body=await r.json();assert.equal(body.data.totals.offered,26);assert.equal(body.data.demand.enrollments.classes[0].count,12);assert.match(r.headers.get('cache-control'),/no-store/);
+ assert.equal((await fetch(base+'/cursos/interesse',{method:'POST',body:new URLSearchParams({tipo:'turma',id:'1'})})).status,403);
+ assert.equal((await fetch(base+'/cursos/interesse',{method:'POST',headers:{...headers,Origin:'https://fora.example'},body:new URLSearchParams({tipo:'turma',id:'1'})})).status,403);
+ browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
+ const page=await browser.newPage({viewport:{width:1366,height:1000}}),errors=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ const settle=async()=>{await page.waitForTimeout(350);await page.waitForFunction(()=>window.jQuery&&jQuery.active===0);};
+ const values=()=>page.locator('[data-chart-stats] strong').allTextContents();
+ await page.goto(base+'/admin#admin-graficos');
+ await page.locator('[data-chart-stats] strong').first().waitFor();await settle();
+ assert.deepEqual(await values(),['20','14','10','3']);
+ await page.locator('[name="temporadas[]"][value="1"]').check();await settle();
+ assert.deepEqual(await values(),['34','23','22','4']);
+ await page.locator('[name="procura_de"]').fill('2025-06-15');await page.locator('[name="procura_ate"]').fill('2025-06-15');await page.locator('[data-chart-form] button[type=submit]').click();await settle();
+ assert.match(await page.locator('[data-chart-demand="classes"]').innerText(),/12 inscrições/);
+ assert.equal(await page.locator('[data-chart-detail-rows] teste').count(),0);
+ assert.match(await page.locator('[data-chart-detail-rows]').textContent(),/Futsal <teste>/);
+ await page.locator('[name="periodo"]').selectOption('manha');await settle();
+ assert.match(await page.locator('[data-chart-demand="classes"]').innerText(),/Natação manhã/);
+ assert(!/Futsal/.test(await page.locator('[data-chart-demand="classes"]').innerText()));
+ assert.deepEqual(await values(),['34','23','22','4']);
+ await page.locator('[name="periodo"]').selectOption('');await page.locator('[name="status"]').selectOption('aguardando_matricula');await settle();
+ assert.deepEqual(await values(),['34','23','1','4']);
+ await page.locator('[name="status"]').selectOption('');await settle();
+ await page.locator('[data-chart-group]').selectOption('modalities');
+ await page.locator('[data-chart-drill="1"]').click();await settle();
+ assert.equal(await page.locator('[name="modalidade_id"]').inputValue(),'1');
+ assert.deepEqual(await values(),['20','10','18','2']);
+ assert(await page.locator('[data-chart-details]').evaluate(e=>e.open));
+ await page.locator('[data-chart-clear-group]').click();await settle();
+ await page.locator('[name="max_temporadas"]').fill('1');await page.locator('[name="max_temporadas"]').dispatchEvent('change');await settle();
+ assert(await page.locator('[data-chart-error]').isVisible());assert(await page.locator('[data-chart-results]').evaluate(e=>e.classList.contains('hidden')));
+ await page.locator('[name="modo"]').selectOption('single');await settle();
+ assert.equal(await page.locator('[name="temporadas[]"]:checked').count(),1);
+ await page.locator('[name="max_temporadas"]').fill('6');await page.locator('[name="modo"]').selectOption('range');await settle();
+ assert.deepEqual(await values(),['34','23','22','4']);
+ await page.screenshot({path:path.join(root,'tmp/admin-charts-desktop.png'),fullPage:true});
+ for(const width of [820,640,390,320]){await page.setViewportSize({width,height:900});await page.waitForTimeout(120);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),width+'px');assert.equal(await page.locator('.chart-svg').evaluate(e=>e.outerHTML.includes('NaN')),false);}
+ await page.screenshot({path:path.join(root,'tmp/admin-charts-mobile.png'),fullPage:true});
+ // O teste de captura usa apenas o banco SQLite isolado, sem criar cliques na aplicação real.
+ await page.goto(base+'/');await page.locator('[data-home-location-select]').click();await page.locator('[data-home-course-modality-select]').click();await page.locator('[data-home-course-enroll]').dblclick();await settle();
+ await page.goto(base+'/admin#admin-graficos');await page.locator('[data-chart-stats] strong').first().waitFor();await settle();
+ await page.locator('[name="modo"]').selectOption('range');await settle();
+ await page.locator('[data-chart-demand-measure]').selectOption('clicks');
+ assert.match(await page.locator('[data-chart-demand="classes"]').innerText(),/1 clique/);
+ assert.match(await page.locator('[data-chart-demand="periods"]').innerText(),/Noite/);
+ await page.locator('[name="publico"]').selectOption('pcd');await page.locator('[name="status"]').selectOption('cancelada');await settle();
+ assert.match(await page.locator('[data-chart-demand="classes"]').innerText(),/1 clique/);
+ await page.locator('[name="procura_de"]').fill('2024-01-01');await page.locator('[name="procura_ate"]').fill('2024-01-31');await page.locator('[data-chart-form] button[type=submit]').click();await settle();
+ assert.match(await page.locator('[data-chart-demand="classes"]').innerText(),/Nenhuma procura/);
+ assert.deepEqual(errors,[]);
+ console.log('OK: permissões, seção AJAX, filtros reais, vagas e status, intervalo de procura, períodos de aula, rankings, cliques anônimos, deduplicação, detalhamento, XSS e layout 320–1366px.');
+ }finally{
+ if(browser)await browser.close();
+ server.kill();await new Promise(resolve=>{if(server.exitCode!==null)return resolve();server.once('exit',resolve);});
+ const checked=fs.realpathSync(directory),expected=path.resolve(root,'tmp')+path.sep;
+ assert(checked.startsWith(expected)&&path.basename(checked).startsWith('chart-browser-'));fs.rmSync(checked,{recursive:true});
+ }
+})().catch(e=>{console.error(e);process.exitCode=1;});

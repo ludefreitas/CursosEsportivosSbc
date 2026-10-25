@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="<?php echo e(asset_url('css/auth.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/agenda.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/admin.css')); ?>">
+    <?php if (current_path() === '/admin') { ?><link rel="stylesheet" href="<?php echo e(asset_url('css/admin-charts.css')); ?>"><?php } ?>
     <?php if (in_array(current_path(), ['/professor', '/estagiario'], true)) { ?><link rel="stylesheet" href="<?php echo e(asset_url('css/professor.css')); ?>"><?php } ?>
     <link rel="stylesheet" href="<?php echo e(asset_url('css/home.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/blog.css')); ?>">

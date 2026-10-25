@@ -17,6 +17,7 @@
             <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="configuracoes">Configurações</button><?php } ?>
             <?php if (has_role($user['roles'] ?? [], 'master_admin') || has_role($user['roles'] ?? [], 'admin')) { ?><a href="<?php echo e(url('/admin/cartazes')); ?>" class="admin-nav-button">Cartaz de divulgação</a><?php } ?>
             <a href="<?php echo e(url('/grades-de-horario')); ?>" class="admin-nav-button">Grades de horário</a>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="graficos">Gráficos e indicadores</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="inscricoes">Inscrições em cursos</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="locais-espacos">Locais e espaços</button>
             <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="migracao-atestados">Migração de atestados</button><?php } ?>

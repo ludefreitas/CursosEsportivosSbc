@@ -1,6 +1,11 @@
 <?php
 $sectionName = (string) ($sectionName ?? 'inicio');
 
+if ($sectionName === 'graficos') {
+    require ROOT_PATH . '/app/Views/admin/partials/charts_panel.php';
+    return;
+}
+
 if (!isset($diasSemana)) {
     $diasSemana = [
         1 => 'Segunda-feira',

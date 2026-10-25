@@ -24,6 +24,7 @@ use App\Services\AddressListPdfService;
 use App\Services\ModalityPopupService;
 use App\Services\LocationPopupService;
 use App\Services\TutorialPageService;
+use App\Services\AdminChartService;
 use DateTimeImmutable;
 
 class AdminController extends Controller
@@ -87,6 +88,7 @@ class AdminController extends Controller
             $commonSections = [
                 'inicio',
                 'usuarios-online',
+                'graficos',
                 'usuarios-pessoas',
                 'usuarios',
                 'inscricoes',
@@ -139,6 +141,18 @@ class AdminController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ]);
+        }
+    }
+
+    /** Retorna somente totais administrativos, sem dados pessoais de inscritos. */
+    public function chartData(): void
+    {
+        $this->assertAdminAccess();
+        header('Cache-Control: private, no-store');
+        try {
+            $this->jsonResponse(['success' => true, 'data' => (new AdminChartService())->report($_GET)]);
+        } catch (\Throwable $error) {
+            $this->jsonResponse(['success' => false, 'message' => $error->getMessage()], 422);
         }
     }
 
@@ -2192,6 +2206,10 @@ class AdminController extends Controller
         $data = [
             'sectionName' => $sectionName,
         ];
+
+        if ($sectionName === 'graficos') {
+            $data['chartOptions'] = (new AdminChartService())->options();
+        }
 
         if ($sectionName === 'usuarios-online') {
             $data['onlineLimit'] = max(1, min(AdminService::MAX_ONLINE_SESSIONS_LIMIT, (int) ($_GET['online_limit'] ?? 25)));

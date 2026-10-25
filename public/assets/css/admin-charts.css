@@ -1,0 +1,110 @@
+.admin-charts {
+    --chart-offered: #147ba8;
+    --chart-available: #13804a;
+    --chart-enrollments: #b96108;
+    --chart-purple: #7651b8;
+    --chart-teal: #177e86;
+    --chart-red: #b83e47;
+    --chart-neutral: #617584;
+    --chart-track: #e6eff4;
+    --chart-surface: #fffdf9;
+    --chart-line: #d6e1e8;
+    --chart-secondary: #536a78;
+    min-width: 0;
+}
+.admin-charts [hidden] { display: none !important; }
+.admin-charts .chart-filters { display: grid; gap: 16px; border-top: 4px solid var(--chart-offered); }
+.admin-charts .chart-filter-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.admin-charts .chart-demand-fieldset { min-width: 0; margin: 0; padding: 14px; border: 1px solid var(--chart-line); border-radius: 12px; }
+.admin-charts .chart-demand-fieldset legend { font-weight: 700; }
+.admin-charts .chart-demand-fieldset > p { margin: 10px 0 0; font-size: 13px; }
+.admin-charts .chart-demand-section { margin-top: 24px; display: grid; gap: 16px; }
+.admin-charts .chart-demand-section > .section-head, .admin-charts .chart-demand-section > p { margin: 0; }
+.admin-charts .chart-navigation-rankings { margin-top: 16px; }
+.admin-charts .chart-bar-row > small { overflow-wrap: anywhere; }
+.admin-charts label { min-width: 0; }
+.admin-charts select, .admin-charts input[type="number"] { min-width: 0; width: 100%; }
+.admin-charts .chart-season-fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.admin-charts .chart-season-fieldset legend { margin-bottom: 8px; font-weight: 700; }
+.admin-charts .chart-season-options, .admin-charts .chart-filter-actions { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.admin-charts .chart-season-options .checkbox-chip { margin: 0; }
+.admin-charts .chart-error { color: #b91c1c; margin: 0; }
+.admin-charts .chart-query-status { margin: 14px 0; }
+.admin-charts .chart-selection { margin: 0 0 14px; overflow-wrap: anywhere; }
+.admin-charts .chart-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+.admin-charts .chart-stat { padding: 17px; border: 1px solid var(--chart-line); border-radius: 14px; background: var(--chart-surface); min-width: 0; }
+.admin-charts .chart-stat strong { display: block; font-size: clamp(24px, 3vw, 32px); margin: 4px 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.admin-charts .chart-stat span { color: var(--chart-secondary); font-size: 13px; display: block; }
+.admin-charts .chart-anomaly { border-left: 4px solid var(--chart-enrollments); padding: 12px 15px; margin: 0 0 20px; background: #fff3df; color: #78440a; overflow-wrap: anywhere; }
+.admin-charts .chart-panel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.admin-charts .chart-panel { margin: 0; min-width: 0; display: grid; gap: 16px; }
+.admin-charts .chart-panel h3, .admin-charts .chart-panel p { margin: 0; }
+.admin-charts .chart-panel h3 { font-size: 18px; }
+.admin-charts .chart-panel .muted { font-size: 13px; }
+.admin-charts .chart-panel-full { grid-column: 1 / -1; }
+.admin-charts .chart-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 12px; }
+.admin-charts .chart-legend span { display: inline-flex; align-items: center; gap: 6px; overflow-wrap: anywhere; }
+.admin-charts .chart-legend i, .admin-charts .chart-status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex: 0 0 10px; }
+.admin-charts .chart-bars { display: grid; gap: 16px; }
+.admin-charts .chart-bar-row { display: grid; gap: 6px; }
+.admin-charts .chart-bar-label { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: 13px; }
+.admin-charts .chart-bar-label > span:first-child { overflow-wrap: anywhere; }
+.admin-charts .chart-numeric { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.admin-charts .chart-track { height: 10px; background: var(--chart-track); border-radius: 3px; overflow: hidden; }
+.admin-charts .chart-bar { display: block; height: 100%; border-radius: 3px; }
+.admin-charts .chart-public-row { display: grid; grid-template-columns: 43px minmax(0, 1fr) auto; align-items: center; gap: 9px; font-size: 13px; }
+.admin-charts .chart-public-tracks { display: grid; gap: 5px; }
+.admin-charts .chart-ring-layout { display: grid; grid-template-columns: minmax(130px, .85fr) minmax(0, 1.2fr); gap: 16px; align-items: center; }
+.admin-charts .chart-ring { width: 100%; max-width: 185px; aspect-ratio: 1; border-radius: 50%; margin: auto; position: relative; background: var(--chart-track); }
+.admin-charts .chart-ring::before { content: ""; position: absolute; inset: 23%; border-radius: 50%; background: var(--chart-surface); }
+.admin-charts .chart-ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.admin-charts .chart-ring-center strong { font-size: 24px; font-variant-numeric: tabular-nums; }
+.admin-charts .chart-ring-center span { font-size: 12px; color: var(--chart-secondary); }
+.admin-charts .chart-status-list { display: grid; gap: 8px; }
+.admin-charts .chart-status-row { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 7px; align-items: center; font-size: 12px; }
+.admin-charts .chart-group-select { max-width: 270px; }
+.admin-charts .chart-group-button { width: 100%; display: grid; gap: 6px; padding: 5px 0; background: transparent; border: 0; border-radius: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; box-shadow: none; }
+.admin-charts .chart-group-button:hover { transform: none; }
+.admin-charts .chart-group-button:hover .chart-bar-label { text-decoration: underline; }
+.admin-charts .chart-stack { display: flex; height: 20px; background: var(--chart-track); border-radius: 4px; overflow: hidden; }
+.admin-charts .chart-stack > span { min-width: 0; }
+.admin-charts .chart-svg { width: 100%; display: block; overflow: visible; }
+.admin-charts .chart-svg text { fill: var(--text, #173b4b); font: 12px Arial, sans-serif; }
+.admin-charts .chart-svg .chart-grid-line { stroke: var(--chart-line); stroke-width: 1; }
+.admin-charts .chart-season-values { display: grid; gap: 8px; font-size: 12px; }
+.admin-charts .chart-season-value { padding: 7px 0; border-bottom: 1px solid var(--chart-line); overflow-wrap: anywhere; }
+.admin-charts .chart-season-value strong { display: block; }
+.admin-charts .chart-matrix { display: grid; gap: 14px; }
+.admin-charts .chart-matrix-row { display: grid; gap: 8px; font-size: 13px; }
+.admin-charts .chart-matrix-cells { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; }
+.admin-charts .chart-matrix-cell { padding: 9px 6px; border-radius: 5px; text-align: center; background: rgba(20,123,168,var(--cell-alpha, .1)); overflow-wrap: anywhere; }
+.admin-charts .chart-matrix-cell span { display: block; font-size: 12px; }
+.admin-charts .chart-matrix-cell strong { font-size: 18px; font-variant-numeric: tabular-nums; }
+.admin-charts .chart-detail-rows { display: grid; }
+.admin-charts .chart-detail-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; padding: 12px 0; border-top: 1px solid var(--chart-line); font-size: 13px; overflow-wrap: anywhere; }
+.admin-charts .chart-detail-row small { display: block; font-size: 12px; color: var(--chart-secondary); }
+.admin-charts .chart-detail-row .chart-detail-warning { color: #9a4d00; }
+.admin-charts details summary { cursor: pointer; font-weight: 700; padding: 4px 0; }
+.admin-charts .chart-pagination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; font-size: 13px; }
+.admin-charts .chart-explanation { font-size: 13px; line-height: 1.5; margin: 18px 0 0; }
+.admin-charts [aria-busy="true"] { opacity: .65; }
+@media (max-width: 1050px) {
+    .admin-charts .chart-panel-grid { grid-template-columns: 1fr; }
+    .admin-charts .chart-panel-full { grid-column: auto; }
+}
+@media (max-width: 800px) {
+    .admin-charts .chart-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .admin-charts .chart-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 480px) {
+    .admin-charts .chart-filter-grid { grid-template-columns: 1fr; }
+    .admin-charts .chart-ring-layout { grid-template-columns: 1fr; }
+    .admin-charts .chart-ring { max-width: 165px; }
+    .admin-charts .chart-stat { padding: 12px; }
+    .admin-charts .chart-public-row { font-size: 12px; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 6px; }
+    .admin-charts .chart-detail-row { grid-template-columns: 1fr 1fr; }
+    .admin-charts .chart-detail-row > span:first-child { grid-column: 1 / -1; }
+    .admin-charts .chart-filter-actions { align-items: stretch; }
+    .admin-charts .chart-matrix-cells { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .admin-charts .chart-pagination .btn { min-width: 0; }
+}
