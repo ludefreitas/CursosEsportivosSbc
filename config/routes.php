@@ -114,6 +114,7 @@ return [
     ['POST', '/admin/recuperacao-dados/reverter', [DataRecoveryController::class, 'reverse']],
     ['GET', '/admin/secao', [AdminController::class, 'section']],
     ['GET', '/admin/graficos/dados', [AdminController::class, 'chartData']],
+    ['GET', '/admin/graficos-agendamento/dados', [AdminController::class, 'agendaChartData']],
     ['POST', '/admin/pagina-professor', [AdminController::class, 'saveProfessorPage']],
     ['POST', '/admin/pagina-ajuda', [AdminController::class, 'saveTutorialPage']],
     ['GET', '/admin/pessoas/responsabilidade', [AdminController::class, 'responsibilityContext']],

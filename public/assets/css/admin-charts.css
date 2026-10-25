@@ -108,3 +108,27 @@
     .admin-charts .chart-matrix-cells { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .admin-charts .chart-pagination .btn { min-width: 0; }
 }
+.agenda-charts input[type="date"], .agenda-charts input[type="time"] { width:100%; min-width:0; box-sizing:border-box; }
+.agenda-charts select[multiple] { min-height:110px; }
+.agenda-charts .agenda-measure { display:block; max-width:360px; margin:20px 0; }
+.agenda-charts .agenda-bar-button, .agenda-charts .agenda-bar-row { display:block; width:100%; text-align:left; padding:10px 0; border:0; background:transparent; color:inherit; min-width:0; box-sizing:border-box; }
+.agenda-charts .agenda-bar-button:hover { background:var(--chart-track); }
+.agenda-charts .agenda-bar-label { display:flex; justify-content:space-between; align-items:start; gap:16px; overflow-wrap:anywhere; }
+.agenda-charts .agenda-bar-label strong { white-space:nowrap; font-variant-numeric:tabular-nums; }
+.agenda-charts .agenda-rail { display:block; height:9px; margin-top:7px; background:var(--chart-track); border-radius:5px; overflow:hidden; }
+.agenda-charts .agenda-rail > span { display:block; height:100%; border-radius:5px; }
+.agenda-charts .agenda-series { margin-bottom:14px; }
+.agenda-charts h4 { margin:10px 0 3px; overflow-wrap:anywhere; }
+.agenda-charts .agenda-heat { display:grid; grid-template-columns:1.1fr repeat(3,minmax(0,1fr)); gap:5px; align-items:center; font-size:13px; }
+.agenda-charts .agenda-heat > span { padding:8px 2px; overflow-wrap:anywhere; }
+.agenda-charts .agenda-heat-value { text-align:center; border-radius:5px; font-variant-numeric:tabular-nums; }
+.agenda-charts .agenda-trend-panel { grid-column:1 / -1; }
+.agenda-charts .agenda-trend-svg { width:100%; display:block; }
+.agenda-charts .agenda-trend-svg text { fill:currentColor; font-size:12px; }
+.agenda-charts .agenda-legend { display:flex; flex-wrap:wrap; gap:16px; }
+.agenda-charts .agenda-legend span:first-child { color:var(--chart-offered); }
+.agenda-charts .agenda-legend span:nth-child(2) { color:var(--chart-available); }
+.agenda-charts .agenda-session { border-bottom:1px solid var(--chart-line); padding:12px 0; overflow-wrap:anywhere; }
+.agenda-charts .agenda-session p { margin:7px 0; }
+.agenda-charts .agenda-details { margin-top:20px; }
+@media(max-width:480px) { .agenda-charts .agenda-heat { font-size:12px; gap:3px; } }

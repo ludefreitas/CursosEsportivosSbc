@@ -32,13 +32,13 @@ namespace {
     }
     if($path==='/jquery.js'){header('Content-Type: application/javascript');readfile(ROOT_PATH.'/tmp/tutorial-realista/jquery.min.js');exit;}
     if($path==='/cursos/interesse'){(new \App\Controllers\CourseInterestController())->record();exit;}
-    if($path==='/admin/graficos/dados'||$path==='/admin/secao'){
+    if($path==='/admin/graficos/dados'||$path==='/admin/graficos-agendamento/dados'||$path==='/admin/secao'){
         $controller=(new \ReflectionClass(\App\Controllers\AdminController::class))->newInstanceWithoutConstructor();
         (new \ReflectionProperty($controller,'userService'))->setValue($controller,new \App\Services\UserService());
-        if($path==='/admin/secao')$controller->section();else$controller->chartData();exit;
+        if($path==='/admin/secao')$controller->section();elseif($path==='/admin/graficos-agendamento/dados')$controller->agendaChartData();else$controller->chartData();exit;
     }
     if($path==='/'){
         echo '<!doctype html><meta charset="utf-8"><button data-home-location-select="1">Baetão</button><button data-home-course-modality-select="1">Futsal</button><button data-home-course-enroll="1">Abrir turma</button><script src="/jquery.js"></script><script>window.App={core:{buildUrl:p=>p}};</script><script src="/assets/js/course-interest.js"></script>';exit;
     }
-    echo '<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/assets/css/core.css"><link rel="stylesheet" href="/assets/css/admin.css"><link rel="stylesheet" href="/assets/css/admin-charts.css"><body class="pagina-admin"><main style="max-width:1180px;margin:auto;padding:12px"><button data-admin-nav-target="graficos">Gráficos e indicadores</button><div data-admin-section-host data-admin-section-url="/admin/secao"></div></main><script src="/jquery.js"></script><script src="/assets/js/core.js"></script><script src="/assets/js/admin.js"></script><script src="/assets/js/admin-charts.js"></script><script>App.admin.iniciarSecoesAdmin();</script></body></html>';
+    echo '<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/assets/css/core.css"><link rel="stylesheet" href="/assets/css/admin.css"><link rel="stylesheet" href="/assets/css/admin-charts.css"><body class="pagina-admin"><main style="max-width:1180px;margin:auto;padding:12px"><button data-admin-nav-target="graficos">Gráficos e indicadores</button><button data-admin-nav-target="graficos-agendamento">Gráficos do agendamento</button><div data-admin-section-host data-admin-section-url="/admin/secao"></div></main><script src="/jquery.js"></script><script src="/assets/js/core.js"></script><script src="/assets/js/admin.js"></script><script src="/assets/js/admin-charts.js"></script><script src="/assets/js/agenda-charts.js"></script><script>App.admin.iniciarSecoesAdmin();</script></body></html>';
 }

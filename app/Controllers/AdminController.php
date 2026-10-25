@@ -25,6 +25,7 @@ use App\Services\ModalityPopupService;
 use App\Services\LocationPopupService;
 use App\Services\TutorialPageService;
 use App\Services\AdminChartService;
+use App\Services\AgendaChartService;
 use DateTimeImmutable;
 
 class AdminController extends Controller
@@ -89,6 +90,7 @@ class AdminController extends Controller
                 'inicio',
                 'usuarios-online',
                 'graficos',
+                'graficos-agendamento',
                 'usuarios-pessoas',
                 'usuarios',
                 'inscricoes',
@@ -141,6 +143,19 @@ class AdminController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ]);
+        }
+    }
+
+    public function agendaChartData(): void
+    {
+        $this->assertAdminAccess();
+        header('Cache-Control: private, no-store');
+        try {
+            $this->jsonResponse(['success' => true, 'data' => (new AgendaChartService())->report($_GET)]);
+        } catch (\RuntimeException $error) {
+            error_log('Gráficos do agendamento: ' . $error->getMessage());
+            $message = $error instanceof \PDOException ? 'Não foi possível consultar o agendamento. Verifique os registros do servidor.' : $error->getMessage();
+            $this->jsonResponse(['success' => false, 'message' => $message], 422);
         }
     }
 
@@ -2206,6 +2221,10 @@ class AdminController extends Controller
         $data = [
             'sectionName' => $sectionName,
         ];
+
+        if ($sectionName === 'graficos-agendamento') {
+            $data['agendaChartOptions'] = (new AgendaChartService())->options();
+        }
 
         if ($sectionName === 'graficos') {
             $data['chartOptions'] = (new AdminChartService())->options();
