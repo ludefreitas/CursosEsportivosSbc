@@ -6552,7 +6552,7 @@
                 if (String($form.find('[name="id"]').val() || '').trim() !== '') return;
                 (publicType ? [publicType] : ['geral', 'pcd', 'plm', 'pvs']).forEach(function (category) {
                     const slots = Number($form.find('[name="vagas_' + category + '"]').val());
-                    const suggested = Number.isFinite(slots) ? Math.round(Math.max(0, slots) * 0.2) : 0;
+                    const suggested = Number.isFinite(slots) ? Math.max(1, Math.round(Math.max(0, slots) * 0.2)) : 1;
                     $form.find('[name="vagas_espera_' + category + '"]').val(String(suggested));
                 });
             }
