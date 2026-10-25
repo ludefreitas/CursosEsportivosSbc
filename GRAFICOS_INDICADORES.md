@@ -34,3 +34,33 @@ node tests/admin_charts_browser_test.cjs
 ```
 
 O primeiro teste usa SQLite isolado e preparação por CLI. O segundo inicia um servidor local com autenticação de teste e banco separado em `tmp/`, conferindo os controladores reais, as permissões, o carregamento da seção, os filtros, os registros de cliques e larguras de 320 a 1366 pixels. Os testes não alteram inscrições ou contadores da aplicação real.
+
+## Frequência nas aulas e monitoramento
+
+O painel inclui presenças, ausências não justificadas, justificativas, percentual de presença, percentual de faltas, aulas com registros e evolução por data. Há agrupamentos por turma, local, modalidade, período e dia da semana. O intervalo da frequência é independente do intervalo da procura e aceita até 366 dias.
+
+Presença percentual = presentes ÷ (presentes + ausentes + justificados). São registros por aluno e aula, não pessoas únicas. Registros em datas futuras são excluídos e sinalizados. Público e período afetam estes gráficos; o status atual da inscrição não elimina registros históricos de frequência. Textos individuais de justificativa e dados pessoais não são retornados.
+
+O **monitor das chamadas** tem outro intervalo de até 366 dias, um atalho **Hoje**, seleção de turma, situação da chamada, atualização manual e atualização automática a cada 60 segundos enquanto o painel estiver visível. A atualização para ao sair da seção ou ocultar a aba. O monitor mostra todas as aulas previstas pela grade no intervalo, incluindo as que não possuem nenhum registro de chamada; a resposta e a lista têm páginas de 30 registros.
+
+Situações: chamada não iniciada, parcial, completa, aguardando horário, sem matriculados, sem aula no intervalo e sem cronograma. Aulas futuras não são classificadas como chamada atrasada. Sem registro não é falta. Chamada completa significa que todos os alunos atualmente matriculados do público selecionado têm uma marcação; não existe confirmação separada de encerramento da chamada.
+
+As estatísticas do monitor somam presentes, ausentes, justificados e registros pendentes apenas das aulas iniciadas, com percentuais calculados pela razão dos totais. O monitor acompanha temporadas, local, modalidade, público e período selecionados. A situação e a turma selecionadas refinam a lista; os totais das situações continuam permitindo acompanhar o conjunto no intervalo.
+
+**Limite histórico:** a cobertura é estimada pela lista atual de matriculados, considerando a data de criação da inscrição. Mudanças antigas de status, de calendário, de vínculo ou de horário não têm reconstituição completa. Não se infere a quantidade exata de alunos matriculados em cada aula passada. Turmas sem aula no intervalo recebem uma linha de diagnóstico; não se inventam chamadas pendentes para todos os dias sem aula. Os registros históricos de frequência permanecem nos gráficos mesmo quando o aluno atualmente tem outro status.
+
+O serviço utiliza somente consultas de leitura. A ausência das tabelas necessárias gera uma mensagem de indisponibilidade da frequência, preservando os demais gráficos. A migração existente de chamada deve ser executada separadamente por CLI, nunca no acesso à página.
+
+Testes adicionais:
+
+```powershell
+php tests/course_attendance_chart_test.php
+php tests/admin_user_role_filter_test.php
+node tests/course_attendance_browser_test.cjs
+```
+
+## Temas e filtro de usuários
+
+Os painéis de cursos e agendamento têm botão **Usar tema escuro / Usar tema claro**. A preferência é compartilhada entre os dois e salva no armazenamento local do navegador; não altera o restante da aplicação.
+
+Na lista **Usuários**, o filtro **Papel do usuário** combina com busca e limite de resultados. A filtragem acontece na consulta antes do limite. Contas com vários papéis aparecem se possuírem o selecionado, preservando todos os seus papéis na coluna. O filtro não altera permissões ou atribuições.

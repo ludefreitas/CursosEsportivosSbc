@@ -4,6 +4,7 @@ $today = new \DateTimeImmutable('now', new \DateTimeZone('America/Sao_Paulo'));
 ?>
 <section class="admin-section-panel admin-charts agenda-charts" data-admin-section="graficos-agendamento" data-agenda-charts data-url="<?php echo e(url('/admin/graficos-agendamento/dados')); ?>">
     <div class="section-head"><div><h2>Gráficos e indicadores do agendamento</h2><p class="muted">Compare a procura por reservas, a frequência registrada e a ocupação das vagas.</p></div></div>
+    <button type="button" class="btn btn-outline" data-chart-theme-toggle aria-pressed="false">Usar tema escuro</button>
     <form class="content-card chart-filters" data-agenda-form>
         <div class="chart-filter-grid">
             <label>Tipo de agenda<select name="type"><option value="weekly">Horários semanais</option><option value="special">Horários especiais</option></select></label>

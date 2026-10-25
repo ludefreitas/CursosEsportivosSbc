@@ -2213,7 +2213,8 @@
                         people_limit: peopleLimit,
                         people_search: peopleSearch,
                         users_limit: usersLimit,
-                        users_search: usersSearch
+                        users_search: usersSearch,
+                        users_role: String($usersForm.find('select[name="users_role"]').val() || '')
                     },
                     suppressGlobalLoading: settings.preserveSearchFocus
                 })
@@ -2295,7 +2296,7 @@
                 $(this).trigger('input');
             });
 
-            $(document).on('change', '[data-admin-people-filter="1"] input[name="people_limit"], [data-admin-people-filter="1"] input[name="users_limit"]', function () {
+            $(document).on('change', '[data-admin-people-filter="1"] input[name="people_limit"], [data-admin-people-filter="1"] input[name="users_limit"], [data-admin-people-filter="1"] select[name="users_role"]', function () {
                 const $form = $(this).closest('form');
 
                 if ($form.length === 0) {
@@ -6371,6 +6372,7 @@
                     fillForm($form, record);
                     $form.find('[name="id"]').val('');
                     $form.find('[name="operacao"]').val('criar');
+                    updateClassWaitlistSuggestion($form);
                     $form.find('[data-class-copy-toggle]').prop('checked', true);
                     $copy.removeClass('hidden').find('[data-class-copy-steps]').removeClass('hidden');
                     filterClassSchedules($form, record.cronograma_modalidade_id || '');
@@ -6544,6 +6546,15 @@
                 });
                 if (selectedId) $select.val(String(selectedId));
                 if (!$select.val()) $select.val('');
+            }
+
+            function updateClassWaitlistSuggestion($form, publicType) {
+                if (String($form.find('[name="id"]').val() || '').trim() !== '') return;
+                (publicType ? [publicType] : ['geral', 'pcd', 'plm', 'pvs']).forEach(function (category) {
+                    const slots = Number($form.find('[name="vagas_' + category + '"]').val());
+                    const suggested = Number.isFinite(slots) ? Math.round(Math.max(0, slots) * 0.2) : 0;
+                    $form.find('[name="vagas_espera_' + category + '"]').val(String(suggested));
+                });
             }
 
             function fillForm($form, record) {
@@ -6731,6 +6742,7 @@
                 if (type === 'class') { ensureClassScheduleField($form); ensureClassCopyFields($form); ensureClassProgramField($form); ensureClassAgeCriterionField($form); ensureClassAgeExceptionFields($form); ensureClassLevelFields($form); ensureClassFieldHelp($form); }
                 if (type === 'season') { ensureSeasonNoticeFields($form); ensureSeasonWeeklyCoverageField($form); ensureSeasonFieldHelp($form); }
                 fillForm($form, record || {});
+                if (type === 'class' && !record) updateClassWaitlistSuggestion($form);
                 if (type === 'class') {
                     const acceptedLevels = Array.isArray((record || {}).niveis_aceitos) ? record.niveis_aceitos : [];
                     $form.find('[name="niveis_aceitos[]"]').each(function () { $(this).prop('checked', acceptedLevels.indexOf(String($(this).val())) !== -1); });
@@ -7018,6 +7030,9 @@
                 }).fail(function (xhr) {
                     App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
                 }).always(function () { $button.prop('disabled', false); });
+            });
+            $(document).on('input', '[data-course-form="class"] [name="vagas_geral"], [data-course-form="class"] [name="vagas_pcd"], [data-course-form="class"] [name="vagas_plm"], [data-course-form="class"] [name="vagas_pvs"]', function () {
+                updateClassWaitlistSuggestion($(this).closest('form'), String(this.name).replace('vagas_', ''));
             });
             $(document).on('change', '[data-course-form="class"] [name="temporada_id"], [data-course-form="class"] [name="modalidade_id"], [data-course-form="class"] [name="local_treino_id"]', function () {
                 const $form = $(this).closest('form');

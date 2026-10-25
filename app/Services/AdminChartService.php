@@ -109,6 +109,7 @@ class AdminChartService
         $statement = $pdo->prepare("SELECT i.turma_id,i.publico_alvo,i.status,COUNT(*) AS total FROM inscricoes_turma i INNER JOIN turmas t ON t.id=i.turma_id WHERE $where AND i.created_at>=:procura_de AND i.created_at<:procura_fim GROUP BY i.turma_id,i.publico_alvo,i.status");
         $statement->execute($params+[':procura_de'=>$filters['demand_from'].' 00:00:00',':procura_fim'=>(new \DateTimeImmutable($filters['demand_to']))->modify('+1 day')->format('Y-m-d').' 00:00:00']);
         $result['demand'] = $this->aggregateDemand($classes,$statement->fetchAll(PDO::FETCH_ASSOC),(new CourseInterestService($pdo))->report($filters),$filters);
+        $result['attendance'] = (new CourseAttendanceChartService($pdo))->report($where,$params,$filters,$input);
         return $result;
     }
 

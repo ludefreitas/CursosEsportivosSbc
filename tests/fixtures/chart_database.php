@@ -8,9 +8,12 @@ function createChartTestDatabase(string $dsn = 'sqlite::memory:', ?PDO $provided
     $pdo->exec('CREATE TABLE temporadas(id INTEGER PRIMARY KEY,nome TEXT,data_inicio TEXT,data_fim TEXT,status TEXT);
         CREATE TABLE locais_treino(id INTEGER PRIMARY KEY,nome_local TEXT,apelido_local TEXT,ativo INTEGER DEFAULT 1);
         CREATE TABLE modalidades(id INTEGER PRIMARY KEY,nome TEXT,ativo INTEGER DEFAULT 1);
-        CREATE TABLE turmas(id INTEGER PRIMARY KEY,temporada_id INTEGER,nome TEXT,local_treino_id INTEGER,modalidade_id INTEGER,status TEXT,vagas_totais INTEGER,vagas_geral INTEGER,vagas_pcd INTEGER,vagas_plm INTEGER,vagas_pvs INTEGER,hora_inicio TEXT DEFAULT NULL,ativo INTEGER DEFAULT 1);
+        CREATE TABLE turmas(id INTEGER PRIMARY KEY,temporada_id INTEGER,nome TEXT,local_treino_id INTEGER,modalidade_id INTEGER,status TEXT,vagas_totais INTEGER,vagas_geral INTEGER,vagas_pcd INTEGER,vagas_plm INTEGER,vagas_pvs INTEGER,hora_inicio TEXT DEFAULT NULL,ativo INTEGER DEFAULT 1,dias_semana TEXT DEFAULT "1,2,3,4,5,6,7",cronograma_modalidade_id INTEGER DEFAULT 1);
         CREATE TABLE inscricoes_turma(id INTEGER PRIMARY KEY,turma_id INTEGER,publico_alvo TEXT,status TEXT,created_at TEXT DEFAULT "2025-06-15 12:00:00");
         CREATE TABLE curso_interesse_diario(dia TEXT,tipo TEXT,entidade_id INTEGER,temporada_id INTEGER,local_id INTEGER,modalidade_id INTEGER,turma_id INTEGER,periodo TEXT,total INTEGER,PRIMARY KEY(dia,tipo,entidade_id));');
+    $pdo->exec('CREATE TABLE cronogramas_modalidade(id INTEGER PRIMARY KEY,aulas_inicio TEXT,aulas_fim TEXT);
+        CREATE TABLE turmas_chamadas(id INTEGER PRIMARY KEY,turma_id INTEGER,inscricao_turma_id INTEGER,data_aula TEXT,status TEXT,UNIQUE(inscricao_turma_id,data_aula));');
+    $pdo->exec("INSERT INTO cronogramas_modalidade VALUES(1,'2024-01-01','2027-12-31')");
     $pdo->exec("INSERT INTO temporadas VALUES(1,'Temporada 2024','2024-01-01','2024-12-31','encerrada'),(2,'Temporada 2025','2025-01-01','2025-12-31','encerrada'),(3,'Temporada 2026','2026-01-01','2026-12-31','ativa');
         INSERT INTO locais_treino(id,nome_local,apelido_local) VALUES(1,'Centro Esportivo Baetão','Baetão'),(2,'Centro Esportivo Orquídeas','Orquídeas');
         INSERT INTO modalidades(id,nome) VALUES(1,'Futsal'),(2,'Natação');

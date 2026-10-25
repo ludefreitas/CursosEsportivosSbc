@@ -23,6 +23,8 @@ const root=path.resolve(__dirname,'..');
   const refresh=async()=>{await form.locator('button[type=submit]').click();await page.waitForFunction(()=>document.querySelector('[data-agenda-charts]')?.getAttribute('aria-busy')===null);assert(await page.locator('[data-agenda-error]').isHidden());};
   await form.locator('[name=from]').fill('2026-10-01');await form.locator('[name=to]').fill('2026-10-31');await refresh();
   assert.equal(await page.locator('[data-agenda-stats] strong').nth(0).innerText(),'66');
+  await page.locator('[data-chart-theme-toggle]').click();assert.equal(await page.locator('[data-agenda-charts]').getAttribute('data-chart-theme'),'dark');
+  await page.locator('[data-chart-theme-toggle]').click();assert.equal(await page.locator('[data-agenda-charts]').getAttribute('data-chart-theme'),'light');
   await form.locator('[name=compare]').check();await refresh();assert(await page.locator('[data-agenda-comparison]').isVisible());
   await form.locator('[name="locations[]"]').selectOption('1');await form.locator('[name="modalities[]"]').selectOption('1');await refresh();
   assert.equal(await page.locator('[data-agenda-stats] strong').nth(0).innerText(),'42');

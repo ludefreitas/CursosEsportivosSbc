@@ -9,6 +9,8 @@
 
     function Controller(root) {
         this.root = root;
+        App.chartThemes?.initialize(root);
+        this.attendanceUI=App.courseAttendanceCharts?.create(root, background=>{if(!background||!this.request)this.load(1);});
         this.find = selector => root.querySelector(selector);
         this.form = this.find('[data-chart-form]');
         this.options = JSON.parse(this.find('[data-chart-options]').textContent);
@@ -35,7 +37,7 @@
     Controller.prototype.values = function (page) {
         const form = this.form;
         const get = name => form.elements.namedItem(name).value;
-        return { modo: get('modo'), max_temporadas: get('max_temporadas'), temporadas: Array.from(form.querySelectorAll('[name="temporadas[]"]:checked'), input => input.value), de: get('de'), ate: get('ate'), local_id: get('local_id'), modalidade_id: get('modalidade_id'), publico: get('publico'), status: get('status'), procura_de: get('procura_de'), procura_ate: get('procura_ate'), periodo: get('periodo'), pagina: page || 1 };
+        return { modo: get('modo'), max_temporadas: get('max_temporadas'), temporadas: Array.from(form.querySelectorAll('[name="temporadas[]"]:checked'), input => input.value), de: get('de'), ate: get('ate'), local_id: get('local_id'), modalidade_id: get('modalidade_id'), publico: get('publico'), status: get('status'), procura_de: get('procura_de'), procura_ate: get('procura_ate'), periodo: get('periodo'), pagina: page || 1, ...(this.find('[data-attendance-from]').value ? {frequencia_de:this.find('[data-attendance-from]').value}:{}), ...(this.find('[data-attendance-to]').value ? {frequencia_ate:this.find('[data-attendance-to]').value}:{}), ...(this.find('[data-attendance-monitor-from]').value ? {monitor_de:this.find('[data-attendance-monitor-from]').value}:{}), ...(this.find('[data-attendance-monitor-to]').value ? {monitor_ate:this.find('[data-attendance-monitor-to]').value}:{}), monitor_turma:this.find('[data-attendance-class]').value, monitor_situacao:this.find('[data-attendance-state]').value, monitor_pagina:this.attendanceUI?.page||1 };
     };
 
     Controller.prototype.validate = function (values) {
@@ -82,7 +84,11 @@
 
     Controller.prototype.load = function (page) {
         clearTimeout(this.timer);
-        const values = this.values(page), validation = this.validate(values), sequence = ++this.sequence;
+        const values = this.values(page);
+        for (const [start,end,label] of [['frequencia_de','frequencia_ate','frequência'],['monitor_de','monitor_ate','monitoramento']]) {
+            if(values[start]&&values[end]&&(values[start]>values[end]||(Date.parse(values[end])-Date.parse(values[start]))/86400000>365)){this.error('Selecione um intervalo válido de até 366 dias para '+label+'.');return;}
+        }
+        const validation = this.validate(values), sequence = ++this.sequence;
         if (this.request) this.request.abort();
         this.error(validation);
         this.lastQuery = JSON.stringify(this.values(1));
@@ -147,6 +153,7 @@
 
     Controller.prototype.render = function () {
         const data = this.data, totals = data.totals;
+        this.attendanceUI?.render(data.attendance);
         this.find('[data-chart-selection]').textContent = data.comparison.map(item => item.label).join(' + ') + ' · ' + number(totals.classes) + ' turmas · ' + number(totals.locations) + ' locais · ' + number(totals.modalities) + ' modalidades';
         this.find('[data-chart-stats]').innerHTML = [['Vagas oferecidas', totals.offered, 'Capacidade por público'], ['Vagas disponíveis', totals.available, 'Saldo atual de vagas'], ['Inscrições totais', totals.enrollments, data.filters.status ? this.options.statuses[data.filters.status] : 'Todos os status'], ['Turmas', totals.classes, 'Nos filtros selecionados']].map(([label, value, note]) => '<div class="chart-stat"><span>' + escape(label) + '</span><strong>' + number(value) + '</strong><span>' + escape(note) + '</span></div>').join('');
         const warning = this.find('[data-chart-anomaly]');
@@ -235,6 +242,7 @@
     };
 
     Controller.prototype.destroy = function () {
+        this.attendanceUI?.destroy();
         ++this.sequence;
         clearTimeout(this.timer); clearTimeout(this.resizeTimer);
         if (this.request) this.request.abort();

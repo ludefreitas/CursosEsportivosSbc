@@ -463,6 +463,7 @@
                 <input type="number" name="users_limit" min="1" max="<?php echo e((string) $peopleLimitMax); ?>" value="<?php echo e((string) ($usersLimit ?? $peopleLimit)); ?>" required>
                 <small class="muted">Limite máximo aplicado nesta tela: <?php echo e((string) $peopleLimitMax); ?> nomes por consulta.</small>
             </label>
+            <label><span>Papel do usuário</span><select name="users_role"><option value="">Todos os papéis</option><?php foreach (($availableRoles ?? []) as $roleOption) { ?><option value="<?php echo e($roleOption['slug']); ?>"<?php echo ($usersRole ?? '') === $roleOption['slug'] ? ' selected' : ''; ?>><?php echo e($roleOption['nome']); ?></option><?php } ?></select><small class="muted">Inclui contas com o papel selecionado, mesmo que tenham outros papéis.</small></label>
             <div class="admin-filter-actions">
                 <button type="submit" class="btn btn-secondary">Atualizar lista</button>
             </div>

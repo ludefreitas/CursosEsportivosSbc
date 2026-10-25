@@ -180,7 +180,7 @@ class AdminService
     /**
      * Lista somente usuarios com conta criada para consulta administrativa.
      */
-    public function listUsersOnly(int $limit = self::DEFAULT_PEOPLE_LIMIT, string $search = ''): array
+    public function listUsersOnly(int $limit = self::DEFAULT_PEOPLE_LIMIT, string $search = '', string $role = ''): array
     {
         $limit = max(1, min(self::MAX_PEOPLE_LIMIT, $limit));
         $search = trim($search);
@@ -226,6 +226,11 @@ class AdminService
             $sql .= '
                 WHERE (' . implode(' OR ', $conditions) . ')
             ';
+        }
+
+        if ($role !== '') {
+            $sql .= ($search !== '' ? ' AND ' : ' WHERE ') . 'EXISTS (SELECT 1 FROM conta_papeis filtro_cp INNER JOIN papeis filtro_p ON filtro_p.id=filtro_cp.papel_id WHERE filtro_cp.conta_id=c.id AND filtro_p.slug=:users_role)';
+            $params[':users_role'] = $role;
         }
 
         $sql .= '

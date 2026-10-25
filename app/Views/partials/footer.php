@@ -136,7 +136,7 @@
     <script src="<?php echo e(asset_url('js/auth.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/agenda.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/admin.js')); ?>"></script>
-    <?php if (current_path() === '/admin') { ?><script src="<?php echo e(asset_url('js/admin-charts.js')); ?>"></script><script src="<?php echo e(asset_url('js/agenda-charts.js')); ?>"></script><?php } ?>
+    <?php if (current_path() === '/admin') { ?><script src="<?php echo e(asset_url('js/chart-themes.js')); ?>"></script><script src="<?php echo e(asset_url('js/course-attendance-charts.js')); ?>"></script><script src="<?php echo e(asset_url('js/admin-charts.js')); ?>"></script><script src="<?php echo e(asset_url('js/agenda-charts.js')); ?>"></script><?php } ?>
     <?php if (in_array(current_path(), ['/professor', '/estagiario'], true)) { ?><script src="<?php echo e(asset_url('js/professor.js')); ?>"></script><?php } ?>
     <script src="<?php echo e(asset_url('js/dashboard.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/modality-evaluation.js')); ?>"></script>

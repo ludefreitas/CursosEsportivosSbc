@@ -9,6 +9,7 @@
     const days = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
     let active;
     function Controller(root) {
+        App.chartThemes?.initialize(root);
         this.root=root;this.q=s=>root.querySelector(s);this.form=this.q('[data-agenda-form]');this.page=1;this.sequence=0;
         this.form.addEventListener('submit', e=>{e.preventDefault();this.load(1);});
         this.form.addEventListener('reset', ()=>setTimeout(()=>this.load(1),0));

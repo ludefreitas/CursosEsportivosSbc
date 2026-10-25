@@ -2,6 +2,7 @@
 <section class="admin-section-panel admin-charts" data-admin-section="graficos" data-admin-charts data-url="<?php echo e(url('/admin/graficos/dados')); ?>">
     <script type="application/json" data-chart-options><?php echo json_encode($chartOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
     <div class="section-head admin-section-head"><div><h2>Gráficos e indicadores</h2><p class="muted">Compare temporadas, locais, modalidades, vagas e inscrições.</p></div></div>
+    <button type="button" class="btn btn-outline" data-chart-theme-toggle aria-pressed="false">Usar tema escuro</button>
     <form class="content-card chart-filters" data-chart-form>
         <div class="chart-filter-grid">
             <label><span>Temporadas</span><select name="modo"><option value="multi">Combinar temporadas</option><option value="single">Uma temporada</option><option value="range">Todas no intervalo</option></select></label>
@@ -53,6 +54,43 @@
                 <article class="content-card chart-panel"><h3>Turmas mais procuradas</h3><div data-chart-demand="classes" class="chart-bars"></div></article>
                 <article class="content-card chart-panel"><h3>Períodos de aula mais procurados</h3><div data-chart-demand="periods" class="chart-bars"></div><p class="muted">Pelo início da aula: manhã, das 5h às 11h59; tarde, das 12h às 17h59; noite, nos demais horários. “Sem horário” indica turma sem horário cadastrado.</p></article>
                 <article class="content-card chart-panel chart-panel-full"><details><summary>Cliques diretos em locais e modalidades</summary><p class="muted">Seleções anteriores à escolha da turma. Estes totais seguem apenas o intervalo de datas: não pertencem a uma temporada, público, status ou período de aula. São cliques registrados, não visitantes únicos.</p><div class="chart-panel-grid chart-navigation-rankings"><div><h4>Locais selecionados</h4><div data-chart-navigation="locations" class="chart-bars"></div></div><div><h4>Modalidades selecionadas</h4><div data-chart-navigation="modalities" class="chart-bars"></div></div></div></details></article>
+            </div>
+        </section>
+        <section class="chart-demand-section" data-course-attendance>
+            <h3>Frequência nas aulas e monitoramento das turmas</h3>
+            <div class="chart-filter-grid">
+                <label>Frequência: data inicial<input type="date" name="frequencia_de" data-attendance-from></label>
+                <label>Frequência: data final<input type="date" name="frequencia_ate" data-attendance-to></label>
+                <button type="button" class="btn btn-secondary" data-attendance-update>Atualizar frequência e monitor</button>
+            </div>
+            <p class="muted">A frequência acompanha temporadas, local, modalidade, público e período da aula. O status da inscrição não filtra os registros históricos. O monitor de aulas tem um intervalo próprio e usa os alunos atualmente matriculados.</p>
+            <p role="status" data-attendance-message></p>
+            <div data-attendance-content hidden>
+                <div class="chart-stats" data-attendance-stats></div>
+                <div class="chart-panel-grid">
+                    <article class="content-card chart-panel"><h3>Presenças, faltas e justificativas</h3><div data-attendance-statuses></div></article>
+                    <article class="content-card chart-panel"><h3>Frequência por período</h3><div data-attendance-group="periods"></div></article>
+                    <article class="content-card chart-panel"><h3>Frequência por local</h3><div data-attendance-group="locations"></div></article>
+                    <article class="content-card chart-panel"><h3>Frequência por modalidade</h3><div data-attendance-group="modalities"></div></article>
+                    <article class="content-card chart-panel"><h3>Frequência por turma</h3><label>Ordenar por<select data-attendance-metric><option value="present">Presenças</option><option value="attendance">Percentual de presença</option><option value="absent">Faltas não justificadas</option><option value="justified">Faltas justificadas</option></select></label><div data-attendance-group="classes"></div></article>
+                    <article class="content-card chart-panel"><h3>Frequência por dia da semana</h3><div data-attendance-group="weekdays"></div></article>
+                    <article class="content-card chart-panel chart-panel-full"><h3>Evolução da frequência nas aulas</h3><div data-attendance-trend></div></article>
+                </div>
+                <article class="content-card">
+                    <h3 data-attendance-today>Monitor das chamadas</h3>
+                    <div class="chart-filter-grid"><label>Monitor: data inicial<input type="date" data-attendance-monitor-from></label><label>Monitor: data final<input type="date" data-attendance-monitor-to></label><div class="chart-filter-actions"><button type="button" class="btn btn-secondary" data-attendance-monitor-update>Consultar aulas</button><button type="button" class="btn btn-outline" data-attendance-today-button>Hoje</button></div></div>
+                    <p class="muted">Todas as aulas previstas no intervalo, mesmo sem registros de chamada. Até 366 dias. A cobertura em datas passadas é estimada com a situação atual das matrículas e a data de criação da inscrição; alterações de matrícula e de calendário não têm reconstituição histórica completa.</p>
+                    <div class="chart-filter-grid">
+                        <label>Turma<select data-attendance-class><option value="">Todas as turmas</option></select></label>
+                        <label>Situação da chamada<select data-attendance-state><option value="scheduled">Aulas previstas no intervalo</option><option value="">Todas as situações</option><option value="nao_iniciada">Chamada não iniciada</option><option value="parcial">Chamada parcial</option><option value="completa">Chamada completa</option><option value="aguardando">Aguardando horário</option><option value="sem_matriculados">Sem matriculados</option><option value="sem_cronograma">Sem cronograma</option><option value="sem_aula">Sem aula no intervalo</option></select></label>
+                        <label><input type="checkbox" data-attendance-auto checked> Atualizar a cada 60 segundos enquanto o painel estiver aberto</label>
+                    </div>
+                    <p data-attendance-monitor-summary aria-live="polite"></p><div class="chart-stats" data-attendance-monitor-stats></div>
+                    <div data-attendance-monitor></div>
+                    <div class="chart-filter-actions"><button type="button" class="btn btn-outline" data-attendance-prev>Anterior</button><span data-attendance-page></span><button type="button" class="btn btn-outline" data-attendance-next>Próxima</button></div>
+                    <p class="muted">Chamada completa significa que todos os alunos atualmente matriculados têm presente, ausente ou justificado registrado na data da aula. Não existe confirmação separada de encerramento da chamada. A cobertura usa o público selecionado. Sem registro não é falta; ausência de cronograma não é ausência de chamada confirmada.</p>
+                </article>
+                <p class="muted">Percentual de presença = presentes ÷ (presentes + ausentes + justificados). São registros por aluno e aula, não pessoas únicas. Registros em datas futuras são excluídos das estatísticas. Nomes e vínculos das turmas refletem o cadastro atual.</p>
             </div>
         </section>
         <p class="muted chart-explanation">Vagas disponíveis seguem a regra atual do sistema: a capacidade por público menos as reservas de inscrições matriculadas, aguardando matrícula e suspensas. Lista de espera e demais status não ocupam essas vagas. O filtro de status altera as inscrições apresentadas, sem alterar artificialmente a disponibilidade. Inscrições são registros, não pessoas únicas. Turmas encerradas também entram quando pertencem às temporadas selecionadas.</p>

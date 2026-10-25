@@ -132,3 +132,33 @@
 .agenda-charts .agenda-session p { margin:7px 0; }
 .agenda-charts .agenda-details { margin-top:20px; }
 @media(max-width:480px) { .agenda-charts .agenda-heat { font-size:12px; gap:3px; } }
+.admin-charts[data-chart-theme] { background:var(--chart-page,#f1f6fa); color:var(--chart-text,#173544); padding:16px; border-radius:16px; color-scheme:light; }
+.admin-charts[data-chart-theme="dark"] { --chart-page:#101d29; --chart-text:#edf3fa; --chart-surface:#1a2b3c; --chart-line:#41546a; --chart-secondary:#bccbdc; --chart-track:#31465b; --chart-offered:#65c4f0; --chart-available:#6bd5a2; --chart-enrollments:#ffc578; --chart-purple:#c1a0ff; --chart-teal:#6dd7dd; --chart-red:#ff9ba5; --chart-neutral:#b3c4d5; color-scheme:dark; }
+.admin-charts[data-chart-theme] .content-card { background:var(--chart-surface); color:inherit; border-color:var(--chart-line); }
+.admin-charts[data-chart-theme] .muted, .admin-charts[data-chart-theme] small, .admin-charts[data-chart-theme] label { color:var(--chart-secondary); }
+.admin-charts[data-chart-theme] h2, .admin-charts[data-chart-theme] h3, .admin-charts[data-chart-theme] h4, .admin-charts[data-chart-theme] strong { color:inherit; }
+.admin-charts[data-chart-theme] input:not([type="checkbox"]), .admin-charts[data-chart-theme] select { background:var(--chart-surface); color:var(--chart-text,#173544); border-color:var(--chart-line); }
+.admin-charts[data-chart-theme] .btn-outline { background:var(--chart-surface); color:var(--chart-text,#173544); border-color:var(--chart-line); }
+.admin-charts[data-chart-theme] [data-chart-theme-toggle] { margin-bottom:16px; }
+.admin-charts[data-chart-theme="dark"] .chart-anomaly { background:#48371e; color:#ffe1ae; }
+.admin-charts[data-chart-theme="dark"] .chart-error { color:#ffadb5; }
+.admin-charts[data-chart-theme="dark"] .checkbox-chip, .admin-charts[data-chart-theme="dark"] .chart-matrix-cell { background:var(--chart-surface); color:var(--chart-text); border-color:var(--chart-line); }
+.admin-charts .attendance-monitor-row { border-top:1px solid var(--chart-line); padding:15px 0; overflow-wrap:anywhere; }
+.admin-charts .attendance-monitor-row h4 { margin:0 0 8px; }
+.admin-charts .attendance-monitor-row p { margin:8px 0; }
+.admin-charts .attendance-state { display:inline-block; padding:6px 10px; border-radius:8px; background:var(--chart-track); }
+.admin-charts .attendance-state-nao_iniciada { border-left:5px solid var(--chart-red); }
+.admin-charts .attendance-state-parcial { border-left:5px solid var(--chart-enrollments); }
+.admin-charts .attendance-state-completa { border-left:5px solid var(--chart-available); }
+.admin-charts .attendance-trend-svg { width:100%; display:block; }
+.admin-charts .attendance-trend-svg text { fill:currentColor; font-size:12px; }
+.admin-charts .attendance-legend { display:flex; flex-wrap:wrap; gap:12px; }
+.admin-charts .attendance-legend span:nth-child(1) { color:var(--chart-available); }
+.admin-charts .attendance-legend span:nth-child(2) { color:var(--chart-red); }
+.admin-charts .attendance-legend span:nth-child(3) { color:var(--chart-purple); }
+.admin-charts [data-course-attendance] input[type="date"] { width:100%; min-width:0; box-sizing:border-box; }
+.admin-charts [data-course-attendance] .chart-bar-row { margin:12px 0 5px; }
+@media(max-width:480px) { .admin-charts[data-chart-theme] { padding:10px; } }
+.admin-charts[data-chart-theme] .chart-svg text { fill:var(--chart-text,#173544); }
+.admin-charts[data-chart-theme="dark"] .chart-detail-warning { color:#ffd49a; }
+.admin-charts[data-chart-theme="dark"] .chart-matrix-cell { background:rgba(101,196,240,var(--cell-alpha,.1)); }
