@@ -6128,8 +6128,8 @@
                     const $field = $('<label>', { class: 'course-age-criterion-field' })
                         .append($('<span>', { text: 'Critério da faixa etária' }))
                         .append($('<select>', { name: 'criterio_faixa_etaria', required: true })
-                            .append($('<option>', { value: 'idade_exata', text: 'Usar idade exata pela data de nascimento' }))
-                            .append($('<option>', { value: 'ano_nascimento', text: 'Usar apenas o ano de nascimento' })))
+                            .append($('<option>', { value: 'ano_nascimento', text: 'Usar apenas o ano de nascimento' }))
+                            .append($('<option>', { value: 'idade_exata', text: 'Usar idade exata pela data de nascimento' })))
                         .append($('<small>', { class: 'muted', text: 'No modo por ano, o sistema ignora o dia e o mês de nascimento.' }));
                     $anchor.after($field);
                 }
