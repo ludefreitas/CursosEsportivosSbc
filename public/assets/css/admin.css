@@ -91,6 +91,14 @@
     flex-wrap: wrap;
     gap: 6px;
 }
+.professor-class-filter-step + .professor-class-filter-step,
+.admin-class-browser > .admin-class-filter-block + .admin-class-filter-block {
+    border-top: 2px solid #16768a;
+    padding-top: 12px;
+}
+.professor-class-filter-step + .professor-class-filter-step {
+    margin-top: 12px;
+}
 .professor-class-filter-buttons .btn.is-active {
     color: #fff;
     border-color: #16768a;
