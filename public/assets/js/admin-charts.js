@@ -182,12 +182,16 @@
         this.find('[data-chart-demand-note]').textContent = measure === 'clicks'
             ? (demand.clicks_available ? 'Cliques registrados nas turmas, agrupados por local, modalidade e período de aula. Seguem os filtros de temporadas, local e modalidade. Como os cliques são anônimos, os filtros de público e status não se aplicam. A contagem começa com a ativação deste recurso; não há histórico anterior nem contagem de visitantes únicos.' : 'A contagem de cliques ainda não está disponível. Nenhum histórico de cliques foi estimado.')
             : 'Inscrições realizadas dentro do intervalo de datas, com os filtros de temporada, local, modalidade, público, status atual e período da aula. Não representa pessoas únicas.';
-        const bars = (items, unit, color) => {
-            const maximum = Math.max(1, ...items.map(item => item.count));
+        const bars = (items, unit, color, scale) => {
+            const maximum = scale || Math.max(1, ...items.map(item => item.count));
             return items.map(item => '<div class="chart-bar-row"><div class="chart-bar-label"><span>' + escape(item.label) + '</span><span class="chart-numeric">' + number(item.count) + ' ' + (item.count === 1 ? (unit === 'cliques' ? 'clique' : 'inscrição') : unit) + '</span></div>' + (item.context ? '<small class="muted">' + escape(item.context) + '</small>' : '') + '<div class="chart-track"><span class="chart-bar" style="width:' + item.count / maximum * 100 + '%;background:' + color + '"></span></div></div>').join('') || '<p class="muted">Nenhuma procura registrada neste intervalo.</p>';
         };
         for (const kind of ['locations','modalities','classes','periods']) {
-            this.find('[data-chart-demand="' + kind + '"]').innerHTML = bars(demand[measure][kind], measure === 'clicks' ? 'cliques' : 'inscrições', measure === 'clicks' ? 'var(--chart-purple)' : 'var(--chart-enrollments)');
+            const unit = measure === 'clicks' ? 'cliques' : 'inscrições';
+            const color = measure === 'clicks' ? 'var(--chart-purple)' : 'var(--chart-enrollments)';
+            this.find('[data-chart-demand="' + kind + '"]').innerHTML = kind === 'periods'
+                ? demand[measure][kind].map(item => bars([item], unit, color, Math.max(1, ...demand[measure][kind].map(period => period.count))) + '<details class="chart-period-modalities"><summary>Ver modalidades de ' + escape(item.label.toLocaleLowerCase('pt-BR')) + '</summary>' + bars(item.modalities || [], unit, color) + '</details>').join('')
+                : bars(demand[measure][kind], unit, color);
         }
         for (const kind of ['locations','modalities']) this.find('[data-chart-navigation="' + kind + '"]').innerHTML = demand.clicks_available ? bars(demand.navigation[kind], 'cliques', 'var(--chart-teal)') : '<p class="muted">Contagem de cliques ainda não disponível.</p>';
     };
@@ -226,10 +230,10 @@
     Controller.prototype.drawMatrix = function () {
         const { locations, modalities } = this.data;
         const maximum = Math.max(1, ...locations.flatMap(location => location.parts.map(part => part.count)));
-        this.find('[data-chart-matrix]').innerHTML = locations.map(location => '<div class="chart-matrix-row"><strong>' + escape(location.label) + '</strong><div class="chart-matrix-cells">' + modalities.map(modality => {
+        this.find('[data-chart-matrix]').innerHTML = locations.map(location => '<details class="chart-matrix-row" open><summary>' + escape(location.label) + '</summary><div class="chart-matrix-cells">' + modalities.map(modality => {
             const part = location.parts.find(part => part.id === modality.id), count = part ? part.count : 0;
             return '<div class="chart-matrix-cell" style="--cell-alpha:' + (count ? .1 + count / maximum * .35 : .03) + '"><span>' + escape(modality.label) + '</span><strong>' + number(count) + '</strong></div>';
-        }).join('') + '</div></div>').join('') || '<p class="muted">Nenhuma turma nos filtros selecionados.</p>';
+        }).join('') + '</div></details>').join('') || '<p class="muted">Nenhuma turma nos filtros selecionados.</p>';
     };
 
     Controller.prototype.drawDetails = function () {

@@ -13,7 +13,7 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS curso_interesse_diario (
     local_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
     modalidade_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
     turma_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
-    periodo ENUM('manha','tarde','noite','sem_horario') NOT NULL DEFAULT 'sem_horario',
+    periodo ENUM('manha','tarde','noite','madrugada','sem_horario') NOT NULL DEFAULT 'sem_horario',
     total BIGINT UNSIGNED NOT NULL DEFAULT 0,
     PRIMARY KEY(dia,tipo,entidade_id),
     INDEX idx_interesse_temporada (temporada_id,dia,tipo),

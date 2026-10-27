@@ -164,6 +164,10 @@
 .course-enrollment-load-more .btn { min-width:180px; }
 .class-copy-panel { display:grid; gap:10px; padding:12px; border:1px solid var(--line); border-radius:12px; background:#f7fbfc; }
 .class-copy-panel.hidden { display: none; }
+.course-team-field.is-collapsed > :not(legend) { display: none; }
+.course-team-toggle { font: inherit; text-decoration: underline; }
+.course-team-toggle::after { content: ' ▾'; }
+.course-team-toggle[aria-expanded="false"]::after { content: ' ▸'; }
 .class-copy-panel [data-class-copy-notice] { color: #b91c1c; }
 .class-copy-toggle { margin:0; }
 .class-copy-steps, .class-copy-step { display:grid; gap:8px; }

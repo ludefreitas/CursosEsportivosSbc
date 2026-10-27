@@ -7090,6 +7090,15 @@
                 $modal.find('[name="estagiario_conta_ids[]"]').each(function () { $(this).prop('checked', internIds.indexOf(String($(this).val())) !== -1); });
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
             });
+            $(document).on('click', '[data-course-team-toggle]', function () {
+                const collapsed = $(this).closest('.course-team-field').toggleClass('is-collapsed').hasClass('is-collapsed');
+                $(this).attr('aria-expanded', String(!collapsed));
+            });
+            document.addEventListener('invalid', function (event) {
+                const $field = $(event.target).closest('.course-team-field');
+                if (!$field.find('[data-course-team-toggle]').length) return;
+                $field.removeClass('is-collapsed').find('[data-course-team-toggle]').attr('aria-expanded', 'true');
+            }, true);
             $(document).on('input', '[data-course-team-search]', function () {
                 const query = String($(this).val() || '').trim().toLocaleLowerCase('pt-BR');
                 $(this).siblings('[data-course-team-options]').find('label').each(function () {

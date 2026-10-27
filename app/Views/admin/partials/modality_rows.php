@@ -1,5 +1,5 @@
 <?php if (($modalities ?? []) === []) { ?>
-    <tr><td colspan="<?php echo !empty($professorView) ? '3' : '5'; ?>" class="muted">Nenhuma modalidade encontrada.</td></tr>
+    <tr><td colspan="<?php echo !empty($professorView) ? '2' : '5'; ?>" class="muted">Nenhuma modalidade encontrada.</td></tr>
 <?php } ?>
 <?php foreach (($modalities ?? []) as $modality) { ?>
     <?php $modalityPopupRecords = array_values(array_filter(($modalityPopups ?? []), static fn (array $popup): bool => (int) ($popup['modalidade_id'] ?? 0) === (int) ($modality['id'] ?? 0))); ?>
@@ -12,7 +12,7 @@
     ?>
     <tr>
         <td class="admin-modality-summary"><strong><?php echo e((string) ($modality['nome'] ?? '')); ?></strong> - <?php echo e(($modality['tipo_ambiente'] ?? '') === 'aquatica' ? 'Aquática' : 'Terrestre'); ?> - <strong><?php echo (int) ($modality['ativo'] ?? 0) === 1 ? 'Ativa' : 'Inativa'; ?></strong></td>
-        <td><?php echo e((string) ($modality['criador_nome'] ?? 'Não informado')); ?></td>
+        <?php if (empty($professorView)) { ?><td><?php echo e((string) ($modality['criador_nome'] ?? 'Não informado')); ?></td><?php } ?>
         <?php if (empty($professorView)) { ?>
         <?php foreach (['cursos' => 'cursos', 'agenda' => 'agenda'] as $popupArea => $popupAreaLabel) { ?>
             <?php $areaPopups = $modalityPopupsByArea[$popupArea] ?? []; ?>

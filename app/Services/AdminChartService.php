@@ -115,7 +115,7 @@ class AdminChartService
 
     public function aggregateDemand(array $classes, array $enrollments, array $clicks, array $filters): array
     {
-        $newMetrics = static fn()=>['locations'=>[],'modalities'=>[],'classes'=>[],'periods'=>array_map(static fn($id,$label)=>['id'=>$id,'label'=>$label,'count'=>0],array_keys(CourseInterestService::PERIODS),array_values(CourseInterestService::PERIODS))];
+        $newMetrics = static fn()=>['locations'=>[],'modalities'=>[],'classes'=>[],'periods'=>array_map(static fn($id,$label)=>['id'=>$id,'label'=>$label,'count'=>0,'modalities'=>[]],array_keys(CourseInterestService::PERIODS),array_values(CourseInterestService::PERIODS))];
         $registered=$newMetrics(); $interested=$newMetrics(); $counts=[];
         foreach ($enrollments as $entry) {
             if ($filters['public']!=='' && $filters['public']!==(string)$entry['publico_alvo']) continue;
@@ -131,7 +131,12 @@ class AdminChartService
             $append($metrics,'locations',(int)$row['local_id'],(string)$row['local_label'],$count);
             $append($metrics,'modalities',(int)$row['modality_id'],(string)$row['modality_label'],$count);
             $append($metrics,'classes',(int)$row['id'],'['.$row['id'].'] '.$row['name'],$count,$row['local_label'].' · '.$row['modality_label']);
-            foreach($metrics['periods'] as &$item)if($item['id']===$period)$item['count']+=$count;
+            foreach($metrics['periods'] as &$item) if($item['id']===$period) {
+                $item['count'] += $count;
+                $id = (int) $row['modality_id'];
+                $item['modalities'][$id] ??= ['id'=>$id, 'label'=>(string)$row['modality_label'], 'count'=>0];
+                $item['modalities'][$id]['count'] += $count;
+            }
             unset($item);
         };
         foreach($classes as $class){
@@ -140,12 +145,17 @@ class AdminChartService
             $add($registered,['id'=>(int)$class['id'],'name'=>$class['nome'],'local_id'=>(int)$class['local_treino_id'],'local_label'=>$class['local_nome'],'modality_id'=>(int)$class['modalidade_id'],'modality_label'=>$class['modalidade_nome']],$counts[(int)$class['id']]??0,$period);
         }
         foreach($clicks['classes'] as $row){
-            $period=(string)$row['periodo'];
+            $period=isset($row['hora_inicio']) ? CourseInterestService::period((string)$row['hora_inicio']) : (string)$row['periodo'];
             if($filters['period']!=='' && $filters['period']!==$period)continue;
             $add($interested,['id'=>(int)$row['turma_id'],'name'=>$row['turma_nome']??'Turma removida','local_id'=>(int)$row['local_id'],'local_label'=>trim((string)($row['apelido_local']??''))?:($row['nome_local']??'Local removido'),'modality_id'=>(int)$row['modalidade_id'],'modality_label'=>$row['modalidade_nome']??'Modalidade removida'],(int)$row['total'],$period);
         }
         $sort = static function(array $metrics):array {
             foreach(['locations','modalities','classes'] as $key){$values=array_values($metrics[$key]);usort($values,static fn($a,$b)=>($b['count']<=>$a['count'])?:strnatcasecmp($a['label'],$b['label']));$metrics[$key]=array_slice($values,0,10);}
+            foreach ($metrics['periods'] as &$period) {
+                $period['modalities'] = array_values($period['modalities']);
+                usort($period['modalities'], static fn($a,$b)=>($b['count']<=>$a['count'])?:strnatcasecmp($a['label'],$b['label']));
+            }
+            unset($period);
             return $metrics;
         };
         $navigation=['locations'=>[],'modalities'=>[]];

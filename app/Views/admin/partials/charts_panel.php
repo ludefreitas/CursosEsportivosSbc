@@ -26,7 +26,7 @@
         <fieldset class="chart-demand-fieldset"><legend>Intervalo da procura</legend><div class="chart-filter-grid">
             <label><span>Data inicial</span><input type="date" name="procura_de" value="<?php echo e($chartToday->modify('-29 days')->format('Y-m-d')); ?>" required></label>
             <label><span>Data final</span><input type="date" name="procura_ate" value="<?php echo e($chartToday->format('Y-m-d')); ?>" required></label>
-            <label><span>Período da aula</span><select name="periodo"><option value="">Todos os períodos</option><option value="manha">Manhã</option><option value="tarde">Tarde</option><option value="noite">Noite</option><option value="sem_horario">Sem horário</option></select></label>
+            <label><span>Período da aula</span><select name="periodo"><option value="">Todos os períodos</option><option value="manha">Manhã</option><option value="tarde">Tarde</option><option value="noite">Noite</option><option value="madrugada">Madrugada</option><option value="sem_horario">Sem horário</option></select></label>
         </div><p class="muted">As datas e o período da aula filtram somente a seção “Mais procurados”. As datas incluem o dia inicial e o final.</p></fieldset>
         <div class="chart-filter-actions"><button type="submit" class="btn btn-primary">Atualizar gráficos</button><span class="muted" data-chart-updated></span></div>
         <p class="chart-error hidden" role="alert" data-chart-error></p>
@@ -52,7 +52,7 @@
                 <article class="content-card chart-panel"><h3>Locais mais procurados</h3><div data-chart-demand="locations" class="chart-bars"></div></article>
                 <article class="content-card chart-panel"><h3>Modalidades mais procuradas</h3><div data-chart-demand="modalities" class="chart-bars"></div></article>
                 <article class="content-card chart-panel"><h3>Turmas mais procuradas</h3><div data-chart-demand="classes" class="chart-bars"></div></article>
-                <article class="content-card chart-panel"><h3>Períodos de aula mais procurados</h3><div data-chart-demand="periods" class="chart-bars"></div><p class="muted">Pelo início da aula: manhã, das 5h às 11h59; tarde, das 12h às 17h59; noite, nos demais horários. “Sem horário” indica turma sem horário cadastrado.</p></article>
+                <article class="content-card chart-panel"><h3>Períodos de aula mais procurados</h3><div data-chart-demand="periods" class="chart-bars"></div><p class="muted">Pelo início da aula: manhã, das 06h às 11h59; tarde, das 12h às 17h59; noite, das 18h às 23h59; madrugada, das 00h às 05h59; nos demais horários. “Sem horário” indica turma sem horário cadastrado.</p></article>
                 <article class="content-card chart-panel chart-panel-full"><details><summary>Cliques diretos em locais e modalidades</summary><p class="muted">Seleções anteriores à escolha da turma. Estes totais seguem apenas o intervalo de datas: não pertencem a uma temporada, público, status ou período de aula. São cliques registrados, não visitantes únicos.</p><div class="chart-panel-grid chart-navigation-rankings"><div><h4>Locais selecionados</h4><div data-chart-navigation="locations" class="chart-bars"></div></div><div><h4>Modalidades selecionadas</h4><div data-chart-navigation="modalities" class="chart-bars"></div></div></div></details></article>
             </div>
         </section>

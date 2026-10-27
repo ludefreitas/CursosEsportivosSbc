@@ -48,7 +48,7 @@ $outside = $service->report(array_replace($interval,['procura_de'=>'2025-06-16',
 expectChart($outside['demand']['enrollments']['classes']===[] && $outside['totals']===$demand['totals'],'Intervalo de procura alterou o histórico geral.');
 $morning = $service->report($interval+['periodo'=>'manha']);
 expectChart(count($morning['demand']['enrollments']['classes'])===1 && $morning['demand']['enrollments']['classes'][0]['id']===3,'Filtro do período da aula incorreto.');
-foreach([['procura_de'=>'2025-02-30'],['procura_de'=>'2025-07-01','procura_ate'=>'2025-06-01'],['periodo'=>'madrugada']]as$bad){try{$service->report(array_replace($filters,$bad));throw new LogicException('Data ou período inválido aceito.');}catch(RuntimeException $error){if($error instanceof LogicException)throw$error;}}
+foreach([['procura_de'=>'2025-02-30'],['procura_de'=>'2025-07-01','procura_ate'=>'2025-06-01'],['periodo'=>'invalido']]as$bad){try{$service->report(array_replace($filters,$bad));throw new LogicException('Data ou período inválido aceito.');}catch(RuntimeException $error){if($error instanceof LogicException)throw$error;}}
 // O adaptador abaixo traduz apenas o UPSERT para testar a gravação MySQL em SQLite isolado.
 $clickPdo = new class('sqlite::memory:') extends PDO {
     public function prepare(string $query,array $options=[]):PDOStatement|false {
@@ -65,6 +65,15 @@ expectChart($clickReport['demand']['clicks']['classes'][0]['count']===2,'Filtro 
 expectChart($clickReport['demand']['clicks']['periods'][2]['count']===2,'Período do clique não corresponde à aula.');
 expectChart($clickReport['demand']['navigation']['locations'][0]['count']===1,'Clique de navegação misturado às turmas.');
 expectChart($clickPdo->query('SELECT COUNT(*) FROM curso_interesse_diario')->fetchColumn()==3,'Contadores diários não foram agregados.');
-foreach(['04:59'=>'noite','05:00'=>'manha','11:59'=>'manha','12:00'=>'tarde','17:59'=>'tarde','18:00'=>'noite',''=>'sem_horario','99:99'=>'sem_horario']as$time=>$period)expectChart(\App\Services\CourseInterestService::period($time)===$period,'Limite de horário incorreto.');
+foreach(['00:00'=>'madrugada','04:59'=>'madrugada','05:00'=>'madrugada','05:59'=>'madrugada','06:00'=>'manha','11:59'=>'manha','12:00'=>'tarde','17:59'=>'tarde','18:00'=>'noite','23:59'=>'noite',''=>'sem_horario','99:99'=>'sem_horario']as$time=>$period)expectChart(\App\Services\CourseInterestService::period($time)===$period,'Limite de horário incorreto.');
+$clickPdo->exec("UPDATE turmas SET hora_inicio='05:59:00' WHERE id IN (1,3)");
+$interest->record('turma',3); $interest->record('turma',3); $interest->record('turma',3);
+$early=(new AdminChartService($clickPdo))->report($filters+['periodo'=>'madrugada']);
+$periods=array_column($early['demand']['clicks']['periods'],null,'id');
+expectChart($periods['madrugada']['count']===5,'Reclassificar cliques existentes pela nova faixa da madrugada.');
+expectChart(array_column($periods['madrugada']['modalities'],'label')===['Natação','Futsal'],'Ordenar modalidades do período por cliques.');
+expectChart(array_column($periods['madrugada']['modalities'],'count')===[3,2],'Preservar os totais por modalidade dentro do período.');
+expectChart($periods['manha']['count']===0,'Não contabilizar 05h59 como manhã.');
+
 echo "OK: totais, públicos, status, reserva, capacidade excedida, intervalos, filtros inválidos, histórico, agrupamentos e paginação.\n";
 echo "OK: procura por data, limites do dia, período das aulas, cliques reais agregados e ausência de associação de cliques a público/status.\n";

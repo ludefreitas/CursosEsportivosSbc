@@ -81,12 +81,15 @@ function renderPanel(bool $professorView, array $modalities): string {
     return (string) ob_get_clean();
 }
 $html = renderPanel(true, $modalities);
+check(!str_contains($html, '<th>Criador</th>'), 'Ocultar coluna de criador nas duas listas do professor.');
+check(!str_contains($html, '<td>Professora Ana</td>') && !str_contains($html, '<td>Professor João</td>'), 'Ocultar células de criador nas duas listas do professor.');
 check(substr_count($html, 'class="btn btn-secondary admin-modality-edit"') === 1, 'Professor só edita sua modalidade.');
 check(substr_count($html, 'class="btn btn-secondary admin-modality-schedule-edit"') === 1, 'Professor só edita seu cronograma.');
 check(!str_contains($html, 'class="btn btn-danger admin-modality-delete"'), 'Não disponibilizar exclusão de modalidades.');
 check(str_contains($html, 'Voleibol') && str_contains($html, 'Ginástica'), 'Exibir todas as modalidades, inclusive inativas e sem autor.');
 check(str_contains($html, 'id="admin-modality-create"') && str_contains($html, 'id="admin-modality-schedule-create"'), 'Oferecer criação de modalidade e cronograma.');
 $html = renderPanel(false, $modalities);
+check(substr_count($html, '<th>Criador</th>') === 2, 'Exibir criador nas duas listas do admin.');
 check(substr_count($html, 'class="btn btn-secondary admin-modality-edit"') === 3, 'Manter edição administrativa.');
 check(substr_count($html, 'class="btn btn-secondary admin-modality-schedule-edit"') === 2, 'Manter edição administrativa de cronogramas.');
 check(str_contains($html, 'Professora Ana') && str_contains($html, 'Professor João'), 'Exibir criadores no admin.');
