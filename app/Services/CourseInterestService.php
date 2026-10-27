@@ -21,6 +21,17 @@ class CourseInterestService
         return $hour < 6 ? 'madrugada' : ($hour < 12 ? 'manha' : ($hour < 18 ? 'tarde' : 'noite'));
     }
 
+    public static function describeSchedule(array $row): string
+    {
+        $names = [1=>'Segunda-feira', 2=>'Terça-feira', 3=>'Quarta-feira', 4=>'Quinta-feira', 5=>'Sexta-feira', 6=>'Sábado', 7=>'Domingo'];
+        $days = array_values(array_unique(array_filter(array_map('intval', explode(',', (string) ($row['dias_semana'] ?? ''))), static fn($day)=>isset($names[$day]))));
+        sort($days);
+        $description = $days ? implode(', ', array_map(static fn($day)=>$names[$day], $days)) : 'Dias não informados';
+        $start = substr((string) ($row['hora_inicio'] ?? ''), 0, 5);
+        $end = substr((string) ($row['hora_fim'] ?? ''), 0, 5);
+        return $description . ' · ' . ($start !== '' ? ($end !== '' ? $start . ' às ' . $end : 'A partir das ' . $start) : 'Horário não informado');
+    }
+
     public function record(string $type, int $id): bool
     {
         if (!in_array($type, ['local','modalidade','turma'], true) || $id <= 0) throw new RuntimeException('Interesse inválido.');
@@ -55,7 +66,7 @@ class CourseInterestService
         if ($filters['location']) { $where.=' AND c.local_id=:local'; $params[':local']=$filters['location']; }
         if ($filters['modality']) { $where.=' AND c.modalidade_id=:modalidade'; $params[':modalidade']=$filters['modality']; }
         try {
-            $statement = $pdo->prepare("SELECT c.turma_id,c.temporada_id,c.local_id,c.modalidade_id,c.periodo,t.hora_inicio,SUM(c.total) AS total,t.nome AS turma_nome,l.nome_local,l.apelido_local,m.nome AS modalidade_nome FROM curso_interesse_diario c LEFT JOIN turmas t ON t.id=c.turma_id LEFT JOIN locais_treino l ON l.id=c.local_id LEFT JOIN modalidades m ON m.id=c.modalidade_id WHERE c.tipo='turma' AND $where GROUP BY c.turma_id,c.temporada_id,c.local_id,c.modalidade_id,c.periodo,t.hora_inicio,t.nome,l.nome_local,l.apelido_local,m.nome");
+            $statement = $pdo->prepare("SELECT c.turma_id,c.temporada_id,c.local_id,c.modalidade_id,c.periodo,t.hora_inicio,t.hora_fim,t.dias_semana,SUM(c.total) AS total,t.nome AS turma_nome,l.nome_local,l.apelido_local,m.nome AS modalidade_nome FROM curso_interesse_diario c LEFT JOIN turmas t ON t.id=c.turma_id LEFT JOIN locais_treino l ON l.id=c.local_id LEFT JOIN modalidades m ON m.id=c.modalidade_id WHERE c.tipo='turma' AND $where GROUP BY c.turma_id,c.temporada_id,c.local_id,c.modalidade_id,c.periodo,t.hora_inicio,t.hora_fim,t.dias_semana,t.nome,l.nome_local,l.apelido_local,m.nome");
             $statement->execute($params);
             $classes = $statement->fetchAll(PDO::FETCH_ASSOC);
             // A escolha de local/modalidade anterior à turma não pertence a uma temporada.

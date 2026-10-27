@@ -25,6 +25,13 @@ const root=path.resolve(__dirname,'..');
  await page.goto(base+'/admin#admin-graficos');
  await page.locator('[data-chart-stats] strong').first().waitFor();await settle();
  assert.deepEqual(await values(),['20','14','10','3']);
+ const cards = page.locator('[data-chart-collapsible]');
+ assert.equal(await cards.count(), 3);
+ for (const card of await cards.all()) {
+  assert(!(await card.evaluate(e=>e.open)));
+  await card.locator(':scope > summary').click();
+  assert(await card.evaluate(e=>e.open));
+ }
  const location = page.locator('[data-chart-matrix] details').first();
  assert(!(await location.evaluate(e=>e.open)));
  assert(!(await location.locator('.chart-matrix-cells').isVisible()));

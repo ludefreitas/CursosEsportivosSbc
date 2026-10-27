@@ -6780,7 +6780,7 @@
                     updateSeasonRegistrationEnrollmentField($form);
                     validateCoursePeriodChronology($form);
                 }
-                $('#course-' + type + '-modal-title').text((record ? 'Editar ' : 'Criar ') + (type === 'season' ? 'temporada' : 'turma'));
+                $('#course-' + type + '-modal-title').text((record ? 'Editar ' : 'Criar ') + (type === 'season' ? 'temporada' : 'turma') + (type === 'class' && record ? ' - [' + String(record.id) + ']' : ''));
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
             }
 

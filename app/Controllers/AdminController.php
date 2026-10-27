@@ -2772,7 +2772,7 @@ class AdminController extends Controller
             $classData['_atribuir_criador_como_professor'] = 1;
             (new CourseEnrollmentService())->createClass((int) $user['conta_id'], $classData);
             $view = ($_POST['course_management_view'] ?? '') === 'turmas-locais' ? 'turmas-locais' : 'turmas';
-            $this->jsonResponse(['success' => true, 'message' => !empty($_POST['id']) ? 'Turma atualizada com sucesso.' : 'Turma criada com sucesso.', 'html' => $this->renderCourseManagementPanelHtml($view)]);
+            $this->jsonResponse(['success' => true, 'message' => !empty($_POST['id']) ? 'Turma [' . (int) $_POST['id'] . '] atualizada com sucesso.' : 'Turma criada com sucesso.', 'html' => $this->renderCourseManagementPanelHtml($view)]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 

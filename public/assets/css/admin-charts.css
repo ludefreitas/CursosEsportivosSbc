@@ -13,6 +13,23 @@
     min-width: 0;
 }
 .admin-charts [hidden] { display: none !important; }
+.admin-charts .attendance-monitor-location { margin-top: 12px; }
+.admin-charts [data-attendance-monitor-list] > summary,
+.admin-charts .attendance-monitor-location > summary { text-decoration: underline; }
+.admin-charts .attendance-monitor-row > p { font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
+.admin-charts .attendance-monitor-row > h4 { font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+.admin-charts [data-attendance-group="classes"] .chart-label {
+    display: block;
+    font-size: 13px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+.admin-charts [data-chart-demand="classes"] .chart-bar-row > small {
+    display: block;
+    font-size: 12px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
 .admin-charts .chart-matrix-row > summary,
 .admin-charts .chart-period-modalities > summary { cursor: pointer; text-decoration: underline; font-weight: 700; }
 .admin-charts .chart-matrix-row > summary { margin-bottom: 8px; }

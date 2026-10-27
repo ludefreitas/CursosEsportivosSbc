@@ -241,7 +241,7 @@ class ProfessorController extends Controller
                 throw new \RuntimeException('Não foi possível identificar a operação solicitada para a turma.');
             }
             $service->createClass((int) $user['conta_id'], $_POST);
-            $this->jsonResponse(['success' => true, 'message' => $operation === 'criar' ? 'Turma criada com sucesso.' : 'Turma atualizada com sucesso.', 'professor_class_refresh' => true]);
+            $this->jsonResponse(['success' => true, 'message' => $operation === 'criar' ? 'Turma criada com sucesso.' : 'Turma [' . $classId . '] atualizada com sucesso.', 'professor_class_refresh' => true]);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 

@@ -96,7 +96,7 @@ class AdminChartService
         if ($filters['location']) { $where .= ' AND t.local_treino_id=:local'; $params[':local'] = $filters['location']; }
         if ($filters['modality']) { $where .= ' AND t.modalidade_id=:modalidade'; $params[':modalidade'] = $filters['modality']; }
         $pdo = $this->connection();
-        $statement = $pdo->prepare("SELECT t.id,t.temporada_id,t.nome,t.local_treino_id,t.modalidade_id,t.status,t.hora_inicio,t.vagas_totais,t.vagas_geral,t.vagas_pcd,t.vagas_plm,t.vagas_pvs,
+        $statement = $pdo->prepare("SELECT t.id,t.temporada_id,t.nome,t.local_treino_id,t.modalidade_id,t.status,t.hora_inicio,t.hora_fim,t.dias_semana,t.vagas_totais,t.vagas_geral,t.vagas_pcd,t.vagas_plm,t.vagas_pvs,
             COALESCE(NULLIF(TRIM(l.apelido_local), ''),l.nome_local) AS local_nome,m.nome AS modalidade_nome
             FROM turmas t INNER JOIN locais_treino l ON l.id=t.local_treino_id INNER JOIN modalidades m ON m.id=t.modalidade_id
             WHERE $where ORDER BY local_nome,m.nome,t.nome,t.id");
@@ -130,7 +130,7 @@ class AdminChartService
             if (!$count) return;
             $append($metrics,'locations',(int)$row['local_id'],(string)$row['local_label'],$count);
             $append($metrics,'modalities',(int)$row['modality_id'],(string)$row['modality_label'],$count);
-            $append($metrics,'classes',(int)$row['id'],'['.$row['id'].'] '.$row['name'],$count,$row['local_label'].' · '.$row['modality_label']);
+            $append($metrics,'classes',(int)$row['id'],'['.$row['id'].'] '.$row['name'],$count,$row['local_label'].' · '.$row['modality_label'].' · '.$row['schedule']);
             foreach($metrics['periods'] as &$item) if($item['id']===$period) {
                 $item['count'] += $count;
                 $id = (int) $row['modality_id'];
@@ -142,12 +142,12 @@ class AdminChartService
         foreach($classes as $class){
             $period=CourseInterestService::period((string)($class['hora_inicio']??''));
             if($filters['period']!=='' && $filters['period']!==$period)continue;
-            $add($registered,['id'=>(int)$class['id'],'name'=>$class['nome'],'local_id'=>(int)$class['local_treino_id'],'local_label'=>$class['local_nome'],'modality_id'=>(int)$class['modalidade_id'],'modality_label'=>$class['modalidade_nome']],$counts[(int)$class['id']]??0,$period);
+            $add($registered,['id'=>(int)$class['id'],'name'=>$class['nome'],'local_id'=>(int)$class['local_treino_id'],'local_label'=>$class['local_nome'],'modality_id'=>(int)$class['modalidade_id'],'modality_label'=>$class['modalidade_nome'],'schedule'=>CourseInterestService::describeSchedule($class)],$counts[(int)$class['id']]??0,$period);
         }
         foreach($clicks['classes'] as $row){
             $period=isset($row['hora_inicio']) ? CourseInterestService::period((string)$row['hora_inicio']) : (string)$row['periodo'];
             if($filters['period']!=='' && $filters['period']!==$period)continue;
-            $add($interested,['id'=>(int)$row['turma_id'],'name'=>$row['turma_nome']??'Turma removida','local_id'=>(int)$row['local_id'],'local_label'=>trim((string)($row['apelido_local']??''))?:($row['nome_local']??'Local removido'),'modality_id'=>(int)$row['modalidade_id'],'modality_label'=>$row['modalidade_nome']??'Modalidade removida'],(int)$row['total'],$period);
+            $add($interested,['id'=>(int)$row['turma_id'],'name'=>$row['turma_nome']??'Turma removida','local_id'=>(int)$row['local_id'],'local_label'=>trim((string)($row['apelido_local']??''))?:($row['nome_local']??'Local removido'),'modality_id'=>(int)$row['modalidade_id'],'modality_label'=>$row['modalidade_nome']??'Modalidade removida','schedule'=>CourseInterestService::describeSchedule($row)],(int)$row['total'],$period);
         }
         $sort = static function(array $metrics):array {
             foreach(['locations','modalities','classes'] as $key){$values=array_values($metrics[$key]);usort($values,static fn($a,$b)=>($b['count']<=>$a['count'])?:strnatcasecmp($a['label'],$b['label']));$metrics[$key]=array_slice($values,0,10);}

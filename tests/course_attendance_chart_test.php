@@ -21,6 +21,8 @@ $db->exec('PRAGMA query_only=ON');$r=$service->report('t.temporada_id IN (:a,:b)
 function attendanceExpect(bool $condition,string $message): void {if(!$condition)throw new RuntimeException($message);}
 attendanceExpect($r['totals']['present']===6&&$r['totals']['absent']===1&&$r['totals']['justified']===1&&$r['totals']['attendance']===75.0,'Totais e denominadores.');
 attendanceExpect($r['totals']['future_excluded']===1&&$r['totals']['records']===8,'Frequências futuras não viram presenças realizadas.');
+$classGroups=array_column($r['groups']['classes'],null,'id');
+attendanceExpect(str_contains($classGroups[1]['label'],'Segunda-feira') && str_contains($classGroups[1]['label'],'Domingo · 09:00 às 20:00'), 'Exibir dias da semana e horário da turma na frequência.');
 $map=array_column($r['monitor'],null,'id');attendanceExpect($map[1]['state']==='parcial'&&$map[1]['expected']===3&&$map[1]['pending']===1,'Chamada parcial por aluno.');
 attendanceExpect($map[2]['state']==='completa'&&$map[2]['completed']===6,'Chamada completa.');
 attendanceExpect($map[3]['state']==='nao_iniciada'&&$map[5]['state']==='aguardando','Não iniciada versus horário futuro.');

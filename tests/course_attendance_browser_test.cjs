@@ -11,6 +11,16 @@ const root=path.resolve(__dirname,'..');
   await page.goto(base+'/admin#admin-graficos');await page.locator('[data-attendance-stats] strong').first().waitFor();
   const wait=()=>page.waitForFunction(()=>window.jQuery&&jQuery.active===0);
   await page.locator('[name=modo]').selectOption('range');await wait();await page.waitForTimeout(500);await wait();
+  const list=page.locator('[data-attendance-monitor-list]');
+  assert(!(await list.evaluate(e=>e.open)));
+  await list.locator(':scope > summary').click();
+  const locations=page.locator('[data-attendance-location]');
+  assert(await locations.count()>0);
+  for(const location of await locations.all()){
+   assert(!(await location.evaluate(e=>e.open)));
+   await location.locator(':scope > summary').click();
+  }
+  assert.match(await page.locator('.attendance-monitor-row').first().innerText(), /Segunda-feira|Terça-feira|Quarta-feira|Quinta-feira|Sexta-feira|Sábado|Domingo/);
   assert.equal(await page.locator('[data-attendance-stats] strong').nth(0).innerText(),'6');assert.match(await page.locator('[data-attendance-monitor]').innerText(),/Chamada parcial/);assert.match(await page.locator('[data-attendance-monitor]').innerText(),/Chamada completa/);
   await page.locator('[data-attendance-state]').selectOption('parcial');await wait();assert.equal(await page.locator('.attendance-monitor-row').count(),1);
   await page.locator('[data-attendance-class]').selectOption('1');await wait();assert.match(await page.locator('[data-attendance-monitor]').innerText(),/Futsal <teste>/);assert.equal(await page.locator('[data-attendance-monitor] teste').count(),0);

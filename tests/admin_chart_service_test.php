@@ -8,6 +8,7 @@ use App\Services\AdminChartService;
 if (($argv[1] ?? '') === '--database') { createChartTestDatabase('sqlite:' . $argv[2]); echo "Base de teste preparada por CLI.\n"; exit; }
 function expectChart(bool $condition, string $message): void { if (!$condition) throw new RuntimeException($message); }
 $pdo = createChartTestDatabase();
+$pdo->exec("UPDATE turmas SET dias_semana='2,4' WHERE id=1");
 $service = new AdminChartService($pdo);
 $filters = ['modo' => 'multi', 'temporadas' => [1,2], 'max_temporadas' => 6];
 $report = $service->report($filters);
@@ -56,11 +57,14 @@ $clickPdo = new class('sqlite::memory:') extends PDO {
     }
 };
 createChartTestDatabase('sqlite::memory:',$clickPdo);
+$clickPdo->exec("UPDATE turmas SET dias_semana='2,4' WHERE id=1");
 $interest = new \App\Services\CourseInterestService($clickPdo);
 expectChart($interest->record('turma',1) && $interest->record('turma',1),'Clique válido não foi registrado.');
 expectChart($interest->record('local',1) && $interest->record('modalidade',1),'Seleções de local/modalidade não registradas.');
 expectChart(!$interest->record('turma',9999),'Clique em turma inexistente foi aceito.');
 $clickReport=(new AdminChartService($clickPdo))->report($filters+['publico'=>'pcd','status'=>'cancelada']);
+expectChart(str_contains($clickReport['demand']['clicks']['classes'][0]['context'], 'Terça-feira, Quinta-feira · 19:00 às 20:00'), 'Dias e horários ausentes na procura por cliques.');
+expectChart(str_contains($demand['demand']['enrollments']['classes'][0]['context'], 'Terça-feira, Quinta-feira · 19:00 às 20:00'), 'Dias e horários ausentes na procura por inscrições.');
 expectChart($clickReport['demand']['clicks']['classes'][0]['count']===2,'Filtro de público/status adulterou cliques anônimos.');
 expectChart($clickReport['demand']['clicks']['periods'][2]['count']===2,'Período do clique não corresponde à aula.');
 expectChart($clickReport['demand']['navigation']['locations'][0]['count']===1,'Clique de navegação misturado às turmas.');
