@@ -2193,7 +2193,7 @@ class AdminService
             ORDER BY nome
         ');
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return ModalityCreatorService::attach($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [], 'modalidades');
     }
 
     /** Lista modalidades para a seção administrativa de gerenciamento. */
@@ -2230,7 +2230,7 @@ class AdminService
         foreach ($params as $key => $value) $stmt->bindValue($key, $value, PDO::PARAM_STR);
         $stmt->bindValue(':limite', $limit, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return ModalityCreatorService::attach($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [], 'modalidades');
     }
 
     public function getModalityForManagement(int $modalityId): array

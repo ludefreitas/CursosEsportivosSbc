@@ -1,5 +1,5 @@
 <?php if (($modalities ?? []) === []) { ?>
-    <tr><td colspan="4" class="muted">Nenhuma modalidade encontrada.</td></tr>
+    <tr><td colspan="<?php echo !empty($professorView) ? '3' : '5'; ?>" class="muted">Nenhuma modalidade encontrada.</td></tr>
 <?php } ?>
 <?php foreach (($modalities ?? []) as $modality) { ?>
     <?php $modalityPopupRecords = array_values(array_filter(($modalityPopups ?? []), static fn (array $popup): bool => (int) ($popup['modalidade_id'] ?? 0) === (int) ($modality['id'] ?? 0))); ?>
@@ -12,6 +12,8 @@
     ?>
     <tr>
         <td class="admin-modality-summary"><strong><?php echo e((string) ($modality['nome'] ?? '')); ?></strong> - <?php echo e(($modality['tipo_ambiente'] ?? '') === 'aquatica' ? 'Aquática' : 'Terrestre'); ?> - <strong><?php echo (int) ($modality['ativo'] ?? 0) === 1 ? 'Ativa' : 'Inativa'; ?></strong></td>
+        <td><?php echo e((string) ($modality['criador_nome'] ?? 'Não informado')); ?></td>
+        <?php if (empty($professorView)) { ?>
         <?php foreach (['cursos' => 'cursos', 'agenda' => 'agenda'] as $popupArea => $popupAreaLabel) { ?>
             <?php $areaPopups = $modalityPopupsByArea[$popupArea] ?? []; ?>
             <td><div class="admin-modality-popup-cell">
@@ -34,10 +36,15 @@
                 <button type="button" class="link-button admin-modality-popup-create" data-modality-id="<?php echo e((string) ($modality['id'] ?? 0)); ?>" data-modality-name="<?php echo e((string) ($modality['nome'] ?? '')); ?>" data-popup-area="<?php echo e($popupArea); ?>"><?php echo $areaPopups === [] ? 'Criar pop-up' : 'Criar para outro local'; ?></button>
             </div></td>
         <?php } ?>
+        <?php } ?>
         <td class="admin-modality-actions-cell">
             <div class="course-row-actions admin-modality-actions">
+                <?php if (empty($professorView) || ((int) ($modality['criador_conta_id'] ?? 0) > 0 && (int) ($modality['criador_conta_id'] ?? 0) === (int) ($professorAccountId ?? 0))) { ?>
                 <button type="button" class="btn btn-secondary admin-modality-edit" data-modality-id="<?php echo e((string) ($modality['id'] ?? 0)); ?>">Editar</button>
+                <?php } ?>
+                <?php if (empty($professorView)) { ?>
                 <button type="button" class="btn btn-danger admin-modality-delete" data-modality-id="<?php echo e((string) ($modality['id'] ?? 0)); ?>" data-modality-name="<?php echo e((string) ($modality['nome'] ?? '')); ?>">Excluir</button>
+                <?php } ?>
             </div>
         </td>
     </tr>

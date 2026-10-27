@@ -34,8 +34,8 @@ class ProfessorController extends Controller
     {
         $user = $this->assertProfessorAccess();
         $sectionName = (string) ($_GET['nome'] ?? 'inicio');
-        if ($sectionName === 'inscricoes') { $this->assertProfessorMutationAccess(); }
-        if (!in_array($sectionName, ['inicio', 'usuarios-pessoas', 'inscricoes', 'minhas-turmas', 'cronograma-turmas', 'status-turmas', 'agenda'], true)) {
+        if (in_array($sectionName, ['inscricoes', 'modalidades'], true)) { $this->assertProfessorMutationAccess(); }
+        if (!in_array($sectionName, ['inicio', 'usuarios-pessoas', 'inscricoes', 'minhas-turmas', 'cronograma-turmas', 'status-turmas', 'agenda', 'modalidades'], true)) {
             $this->jsonResponse(['success' => false, 'message' => 'A seção não está disponível para professores.'], 403);
             return;
         }
@@ -51,6 +51,52 @@ class ProfessorController extends Controller
             while (ob_get_level() > 0) { ob_end_clean(); }
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
         }
+    }
+
+    public function modalityList(): void
+    {
+        $user = $this->assertProfessorMutationAccess();
+        try {
+            $professorView = true;
+            $professorAccountId = (int) $user['conta_id'];
+            $modalities = $this->adminService->listModalitiesForManagement();
+            $search = trim((string) ($_GET['modality_search'] ?? ''));
+            if ($search !== '') $modalities = array_filter($modalities, static fn (array $item): bool => mb_stripos($item['nome'], $search) !== false);
+            ob_start();
+            require ROOT_PATH . '/app/Views/admin/partials/modality_rows.php';
+            $this->jsonResponse(['success' => true, 'html' => (string) ob_get_clean()]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function modalityDetails(): void
+    {
+        $user = $this->assertProfessorMutationAccess();
+        try {
+            $id = (int) ($_GET['id'] ?? 0);
+            \App\Services\ModalityCreatorService::assertModalityOwner($id, (int) $user['conta_id']);
+            $this->jsonResponse(['success' => true, 'modality' => $this->adminService->getModalityForManagement($id)]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 403); }
+    }
+
+    public function saveModality(): void
+    {
+        $user = $this->assertProfessorMutationAccess();
+        try {
+            $id = (int) ($_POST['modalidade_id'] ?? 0);
+            $accountId = (int) $user['conta_id'];
+            if ($id > 0) \App\Services\ModalityCreatorService::assertModalityOwner($id, $accountId);
+            $modality = $id > 0 ? $this->adminService->updateModality($accountId, $_POST) : $this->adminService->createModality($accountId, $_POST);
+            $this->jsonResponse(['success' => true, 'message' => 'Modalidade salva com sucesso.', 'modality' => $modality]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function saveModalitySchedule(): void
+    {
+        $user = $this->assertProfessorMutationAccess();
+        try {
+            (new \App\Services\CourseEnrollmentService())->saveModalitySchedule((int) $user['conta_id'], $_POST, true);
+            $this->jsonResponse(['success' => true, 'message' => 'Cronograma salvo com sucesso.']);
+        } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
     public function peoplePanel(): void
@@ -654,6 +700,13 @@ class ProfessorController extends Controller
 
     private function buildSectionData(string $sectionName, array $user): array
     {
+        if ($sectionName === 'modalidades') {
+            $courseService = new \App\Services\CourseEnrollmentService();
+            $modalities = $this->adminService->listModalitiesForManagement();
+            return ['sectionName' => $sectionName, 'professorView' => true, 'professorAccountId' => (int) $user['conta_id'],
+                'modalitiesManagement' => $modalities, 'courseModalitiesManagement' => $modalities,
+                'courseSeasons' => $courseService->listSeasonsForManagement(), 'modalitySchedules' => $courseService->listModalitySchedulesForManagement()];
+        }
         if ($sectionName === 'inicio') { return ['sectionName' => $sectionName, 'professorView' => true]; }
         if ($sectionName === 'usuarios-pessoas') { return array_merge(['sectionName' => $sectionName, 'professorView' => true], $this->buildPeopleData()); }
         if ($sectionName === 'inscricoes') {

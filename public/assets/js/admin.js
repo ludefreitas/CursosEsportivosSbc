@@ -5237,6 +5237,10 @@
         },
 
         iniciarGerenciamentoModalidades: function () {
+            function modalityUrl(path) {
+                const professor = $('#admin-section-host').attr('data-professor-mode') === '1';
+                return App.core.buildUrl((professor ? '/professor' : '/admin') + '/modalidades' + (path || ''));
+            }
             let filterTimer = null;
             let filterRequest = null;
 
@@ -5259,7 +5263,7 @@
                 $limit.val(String(limit));
                 if (filterRequest) filterRequest.abort();
                 filterRequest = $.ajax({
-                    url: App.core.buildUrl('/admin/modalidades/lista'), method: 'GET', dataType: 'json', suppressGlobalLoading: true,
+                    url: modalityUrl('/lista'), method: 'GET', dataType: 'json', suppressGlobalLoading: true,
                     data: { modality_search: String($form.find('[name="modality_search"]').val() || ''), modality_limit: limit }
                 }).done(function (response) {
                     if (!response || response.success === false || typeof response.html !== 'string') {
@@ -5294,7 +5298,7 @@
             });
             $(document).on('click', '.admin-modality-edit', function () {
                 const id = Number($(this).data('modalityId') || 0);
-                $.getJSON(App.core.buildUrl('/admin/modalidades/detalhe'), { id: id }).done(function (response) {
+                $.getJSON(modalityUrl('/detalhe'), { id: id }).done(function (response) {
                     if (!response || !response.success) { App.core.abrirPopup('erro', String((response && response.message) || 'Modalidade não encontrada.')); return; }
                     const item = response.modality || {};
                     const $form = $('#admin-modality-form');
@@ -5315,7 +5319,7 @@
                 if (id <= 0 || !window.confirm('Deseja realmente excluir "' + name + '"? Esta ação não poderá ser desfeita.')) return;
                 $button.prop('disabled', true);
                 $.ajax({
-                    url: App.core.buildUrl('/admin/modalidades/excluir'),
+                    url: modalityUrl('/excluir'),
                     method: 'POST', dataType: 'json', data: { modalidade_id: id },
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
                 }).done(function (response) {
@@ -5361,13 +5365,13 @@
             });
             $(document).on('submit', '#admin-modality-popup-form', function (event) {
                 event.preventDefault(); const $form=$(this); const $button=$form.find('[type="submit"]').prop('disabled',true);
-                $.ajax({url:App.core.buildUrl('/admin/modalidades/popups'),method:'POST',dataType:'json',data:$form.serialize()})
+                $.ajax({url:modalityUrl('/popups'),method:'POST',dataType:'json',data:$form.serialize()})
                     .done(function(response){if(!response||response.success===false){App.core.abrirPopup('erro',String(response&&response.message||'Não foi possível salvar o pop-up.'));return;} closeModalityPopupModal(); App.admin.activateSection('modalidades'); App.core.abrirPopup('sucesso',String(response.message));})
                     .fail(function(xhr){App.core.abrirPopup('erro',App.core.extrairMensagemErroAjax(xhr).mensagem);}).always(function(){$button.prop('disabled',false);});
             });
             $(document).on('click', '#admin-modality-popup-delete', function () {
                 const id=Number($(this).attr('data-popup-id')||0); if(!id||!window.confirm('Deseja excluir este pop-up da modalidade?')) return;
-                $.post(App.core.buildUrl('/admin/modalidades/popups/excluir'),{modalidade_popup_id:id},function(response){if(!response||response.success===false){App.core.abrirPopup('erro',String(response&&response.message||'Não foi possível excluir.'));return;} closeModalityPopupModal(); App.admin.activateSection('modalidades'); App.core.abrirPopup('sucesso',String(response.message));},'json').fail(function(xhr){App.core.abrirPopup('erro',App.core.extrairMensagemErroAjax(xhr).mensagem);});
+                $.post(modalityUrl('/popups/excluir'),{modalidade_popup_id:id},function(response){if(!response||response.success===false){App.core.abrirPopup('erro',String(response&&response.message||'Não foi possível excluir.'));return;} closeModalityPopupModal(); App.admin.activateSection('modalidades'); App.core.abrirPopup('sucesso',String(response.message));},'json').fail(function(xhr){App.core.abrirPopup('erro',App.core.extrairMensagemErroAjax(xhr).mensagem);});
             });
             $(document).on('click', '[data-modality-schedule-season]', function () {
                 const seasonId = String($(this).attr('data-modality-schedule-season'));
@@ -5709,7 +5713,7 @@
                 }
                 const $button = $form.find('button[type="submit"]').prop('disabled', true);
                 $.ajax({
-                    url: App.core.buildUrl('/admin/modalidades/cronogramas'),
+                    url: modalityUrl('/cronogramas'),
                     method: 'POST',
                     dataType: 'json',
                     data: $form.serialize(),
@@ -5721,7 +5725,7 @@
             $(document).on('click', '.admin-modality-schedule-delete', function () {
                 const $button = $(this); const id = Number($button.data('scheduleId') || 0); const name = String($button.data('scheduleName') || 'este cronograma');
                 if (!window.confirm('Deseja realmente excluir "' + name + '"?')) return;
-                $.post(App.core.buildUrl('/admin/modalidades/cronogramas/excluir'), { cronograma_modalidade_id: id }, function (response) { if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível excluir o cronograma.')); return; } App.admin.activateSection('modalidades'); App.core.abrirPopup('sucesso', String(response.message)); }, 'json').fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); });
+                $.post(modalityUrl('/cronogramas/excluir'), { cronograma_modalidade_id: id }, function (response) { if (!response || response.success === false) { App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível excluir o cronograma.')); return; } App.admin.activateSection('modalidades'); App.core.abrirPopup('sucesso', String(response.message)); }, 'json').fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); });
             });
             $(document).on('submit', '#admin-modality-form', function (event) {
                 event.preventDefault();
@@ -5735,7 +5739,7 @@
                 if (!valid) return;
                 const editing = Number($form.find('[name="modalidade_id"]').val() || 0) > 0;
                 $.ajax({
-                    url: App.core.buildUrl(editing ? '/admin/modalidades/atualizar' : '/admin/modalidades'),
+                    url: modalityUrl(editing ? '/atualizar' : ''),
                     method: 'POST', dataType: 'json', data: $form.serialize(),
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
                 }).done(function (response) {
@@ -5744,7 +5748,8 @@
                         return;
                     }
                     closeModal();
-                    refreshList($('#admin-modality-filter-form'));
+                    if ($('#admin-section-host').attr('data-professor-mode') === '1') App.admin.activateSection('modalidades');
+                    else refreshList($('#admin-modality-filter-form'));
                     App.core.abrirPopup('sucesso', String(response.message || 'Modalidade salva com sucesso.'));
                 }).fail(function (xhr) {
                     $('#admin-modality-form-error').removeClass('hidden').text(App.core.extrairMensagemErroAjax(xhr).mensagem);

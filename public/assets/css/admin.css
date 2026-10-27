@@ -163,6 +163,7 @@
 .course-enrollment-load-more { display:flex; flex-direction:column; align-items:center; gap:6px; padding:18px 0 4px; }
 .course-enrollment-load-more .btn { min-width:180px; }
 .class-copy-panel { display:grid; gap:10px; padding:12px; border:1px solid var(--line); border-radius:12px; background:#f7fbfc; }
+.class-copy-panel.hidden { display: none; }
 .class-copy-panel [data-class-copy-notice] { color: #b91c1c; }
 .class-copy-toggle { margin:0; }
 .class-copy-steps, .class-copy-step { display:grid; gap:8px; }

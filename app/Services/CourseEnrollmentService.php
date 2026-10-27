@@ -701,14 +701,15 @@ class CourseEnrollmentService
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
         $stmt = $pdo->query('SELECT cm.*, te.nome AS temporada_nome, m.nome AS modalidade_nome, (SELECT COUNT(*) FROM turmas t WHERE t.cronograma_modalidade_id = cm.id) AS total_turmas, (SELECT COUNT(*) FROM turmas pendentes WHERE pendentes.temporada_id=cm.temporada_id AND pendentes.modalidade_id=cm.modalidade_id AND (pendentes.cronograma_modalidade_id IS NULL OR pendentes.cronograma_modalidade_id=0)) AS total_turmas_sem_cronograma, (SELECT COUNT(*) FROM cronogramas_modalidade pares WHERE pares.temporada_id=cm.temporada_id AND pares.modalidade_id=cm.modalidade_id) AS total_cronogramas_modalidade FROM cronogramas_modalidade cm INNER JOIN temporadas te ON te.id = cm.temporada_id INNER JOIN modalidades m ON m.id = cm.modalidade_id ORDER BY te.data_inicio DESC, m.nome ASC, cm.nome ASC');
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return ModalityCreatorService::attach($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [], 'cronogramas_modalidade');
     }
 
-    public function saveModalitySchedule(int $accountId, array $data): array
+    public function saveModalitySchedule(int $accountId, array $data, bool $ownSchedulesOnly = false): array
     {
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
         $id = (int) ($data['cronograma_modalidade_id'] ?? 0);
+        if ($ownSchedulesOnly && $id > 0) ModalityCreatorService::assertScheduleOwner($id, $accountId);
         $seasonId = (int) ($data['temporada_id'] ?? 0);
         $modalityId = (int) ($data['modalidade_id'] ?? 0);
         $name = trim((string) ($data['nome'] ?? ''));
@@ -763,6 +764,11 @@ class CourseEnrollmentService
                 || (string) ($currentSchedule['data_liberacao_multiplas_inscricoes_modalidade'] ?? '') !== (string) ($modalityRelease ?? '');
             $siblings = $pdo->prepare('SELECT COUNT(*) FROM cronogramas_modalidade WHERE temporada_id=:temporada AND modalidade_id=:modalidade AND id<>:id');
             $siblings->execute([':temporada' => $seasonId, ':modalidade' => $modalityId, ':id' => $id]);
+            if ($ownSchedulesOnly && $ruleChanged) {
+                $related = $pdo->prepare('SELECT id FROM cronogramas_modalidade WHERE temporada_id=? AND modalidade_id=? AND id<>?');
+                $related->execute([$seasonId, $modalityId, $id]);
+                foreach ($related->fetchAll(PDO::FETCH_COLUMN) as $relatedId) ModalityCreatorService::assertScheduleOwner((int) $relatedId, $accountId);
+            }
             if ($ruleChanged && (int) $siblings->fetchColumn() > 0 && empty($data['aplicar_regra_modalidade_todos_cronogramas'])) throw new RuntimeException('Esta regra deve ser alterada em todos os cronogramas da mesma modalidade nesta temporada. Confirme a aplicação conjunta para prosseguir.');
             $this->validateScheduleClassesEnrollmentDays($pdo, $id, $values['matriculas_inicio'], $values['matriculas_fim']);
             $stmt = $pdo->prepare('UPDATE cronogramas_modalidade SET observacao=:observacao, temporada_id=:temporada, modalidade_id=:modalidade, nome=:nome, abrangencia_semanal=:abrangencia_semanal, data_inicio=:data_inicio, data_fim=:data_fim, inscricoes_inicio=:inscricoes_inicio, inscricoes_fim=:inscricoes_fim, matriculas_inicio=:matriculas_inicio, matriculas_fim=:matriculas_fim, permitir_inscricao_periodo_matricula=:inscricao_matricula, inscricoes_abertas_inicio=:abertas_inicio, inscricoes_abertas_fim=:abertas_fim, aulas_inicio=:aulas_inicio, aulas_fim=:aulas_fim, possui_edital=:possui_edital, numero_edital=:numero_edital, link_edital=:link_edital, permitir_multiplas_inscricoes_modalidade=:multiplas_modalidade, limite_inscricoes_modalidade=:limite_modalidade, data_liberacao_multiplas_inscricoes_modalidade=:liberacao_modalidade WHERE id=:id LIMIT 1');
@@ -781,6 +787,11 @@ class CourseEnrollmentService
                 || (int) ($existingRuleData['limite_inscricoes_modalidade'] ?? 1) !== $modalityLimit
                 || (string) ($existingRuleData['data_liberacao_multiplas_inscricoes_modalidade'] ?? '') !== (string) ($modalityRelease ?? '')
             );
+            if ($ownSchedulesOnly && $ruleChanged) {
+                $related = $pdo->prepare('SELECT id FROM cronogramas_modalidade WHERE temporada_id=? AND modalidade_id=? AND id<>?');
+                $related->execute([$seasonId, $modalityId, $id]);
+                foreach ($related->fetchAll(PDO::FETCH_COLUMN) as $relatedId) ModalityCreatorService::assertScheduleOwner((int) $relatedId, $accountId);
+            }
             if ($ruleChanged && empty($data['aplicar_regra_modalidade_todos_cronogramas'])) throw new RuntimeException('Já existe outro cronograma desta modalidade nesta temporada. Confirme a aplicação da mesma regra em todos os cronogramas para prosseguir.');
             $stmt = $pdo->prepare('INSERT INTO cronogramas_modalidade (observacao, temporada_id, modalidade_id, nome, abrangencia_semanal, data_inicio, data_fim, inscricoes_inicio, inscricoes_fim, matriculas_inicio, matriculas_fim, permitir_inscricao_periodo_matricula, inscricoes_abertas_inicio, inscricoes_abertas_fim, aulas_inicio, aulas_fim, possui_edital, numero_edital, link_edital, permitir_multiplas_inscricoes_modalidade, limite_inscricoes_modalidade, data_liberacao_multiplas_inscricoes_modalidade) VALUES (:observacao, :temporada, :modalidade, :nome, :abrangencia_semanal, :data_inicio, :data_fim, :inscricoes_inicio, :inscricoes_fim, :matriculas_inicio, :matriculas_fim, :inscricao_matricula, :abertas_inicio, :abertas_fim, :aulas_inicio, :aulas_fim, :possui_edital, :numero_edital, :link_edital, :multiplas_modalidade, :limite_modalidade, :liberacao_modalidade)');
             $stmt->execute($params); $id = (int) $pdo->lastInsertId();

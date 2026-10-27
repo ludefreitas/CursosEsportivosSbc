@@ -2564,16 +2564,18 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     <span>Buscar modalidade</span>
                     <input type="text" name="modality_search" id="admin-modality-search" value="<?php echo e((string) ($modalitySearch ?? '')); ?>" placeholder="Digite nome, ambiente ou status" autocomplete="off">
                 </label>
+                <?php if (empty($professorView)) { ?>
                 <label>
                     <span>Quantidade a listar</span>
                     <input type="number" name="modality_limit" min="1" max="<?php echo e((string) ($modalityLimitMax ?? 50)); ?>" value="<?php echo e((string) ($modalityLimit ?? 10)); ?>">
                 </label>
+                <?php } ?>
                 <button type="submit" class="btn btn-secondary">Atualizar lista</button>
             </form>
 
             <div class="table-wrap">
                 <table class="data-table admin-modality-table">
-                    <thead><tr><th>Modalidade</th><th>Pop-up dos cursos</th><th>Pop-up da agenda</th><th>Ações</th></tr></thead>
+                    <thead><tr><th>Modalidade</th><th>Criador</th><?php if (empty($professorView)) { ?><th>Pop-up dos cursos</th><th>Pop-up da agenda</th><?php } ?><th>Ações</th></tr></thead>
                     <tbody id="admin-modality-list-body">
                         <?php $modalities = $modalitiesManagement ?? []; require ROOT_PATH . '/app/Views/admin/partials/modality_rows.php'; ?>
                     </tbody>
@@ -2614,16 +2616,16 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     <button type="button" class="btn <?php echo $seasonId === $selectedScheduleSeason ? 'btn-primary' : 'btn-secondary'; ?>" data-modality-schedule-season="<?php echo e((string) $seasonId); ?>" aria-pressed="<?php echo $seasonId === $selectedScheduleSeason ? 'true' : 'false'; ?>"><?php echo e($seasonName); ?></button>
                 <?php } ?>
             </div>
-            <div class="table-wrap"><table class="data-table"><thead><tr><th>Cronograma</th><th>Modalidade</th><th>Temporada</th><th>Aulas</th><th>Edital</th><th>Turmas</th><th>Ações</th></tr></thead><tbody id="admin-modality-schedule-list-body">
+            <div class="table-wrap"><table class="data-table"><thead><tr><th>Cronograma</th><th>Modalidade</th><th>Temporada</th><th>Criador</th><th>Aulas</th><th>Edital</th><th>Turmas</th><th>Ações</th></tr></thead><tbody id="admin-modality-schedule-list-body">
                 <?php foreach (($modalitySchedules ?? []) as $schedule) { ?>
                     <tr data-modality-schedule-season-row="<?php echo e((string) $schedule['temporada_id']); ?>"<?php if ((int) $schedule['temporada_id'] !== $selectedScheduleSeason) { ?> class="hidden"<?php } ?>>
-                        <td><?php echo e((string) $schedule['nome']); ?><br><small>Disponível: <?php echo e(!empty($schedule['data_inicio']) ? date('d/m/Y', strtotime((string) $schedule['data_inicio'])) : '-'); ?> a <?php echo e(!empty($schedule['data_fim']) ? date('d/m/Y', strtotime((string) $schedule['data_fim'])) : '-'); ?></small></td><td><?php echo e((string) $schedule['modalidade_nome']); ?></td><td><?php echo e((string) $schedule['temporada_nome']); ?></td>
+                        <td><?php echo e((string) $schedule['nome']); ?><br><small>Disponível: <?php echo e(!empty($schedule['data_inicio']) ? date('d/m/Y', strtotime((string) $schedule['data_inicio'])) : '-'); ?> a <?php echo e(!empty($schedule['data_fim']) ? date('d/m/Y', strtotime((string) $schedule['data_fim'])) : '-'); ?></small></td><td><?php echo e((string) $schedule['modalidade_nome']); ?></td><td><?php echo e((string) $schedule['temporada_nome']); ?></td><td><?php echo e((string) ($schedule['criador_nome'] ?? 'Não informado')); ?></td>
                         <td><?php echo e(!empty($schedule['aulas_inicio']) ? date('d/m/Y', strtotime((string) $schedule['aulas_inicio'])) : '-'); ?> a <?php echo e(!empty($schedule['aulas_fim']) ? date('d/m/Y', strtotime((string) $schedule['aulas_fim'])) : '-'); ?></td>
                         <td><?php echo !empty($schedule['possui_edital']) ? e((string) ($schedule['numero_edital'] ?? 'Sim')) : 'Não'; ?></td><td><?php echo e((string) ($schedule['total_turmas'] ?? 0)); ?><?php if ((int) ($schedule['total_turmas_sem_cronograma'] ?? 0) > 0) { ?><br><small class="field-error"><?php echo e((string) $schedule['total_turmas_sem_cronograma']); ?> turma(s) desta modalidade ainda sem cronograma definido</small><?php } ?></td>
-                        <td><div class="course-row-actions"><button type="button" class="btn btn-secondary admin-modality-schedule-edit" data-schedule="<?php echo e((string) json_encode($schedule, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>">Editar</button><button type="button" class="btn btn-danger admin-modality-schedule-delete" data-schedule-id="<?php echo e((string) $schedule['id']); ?>" data-schedule-name="<?php echo e((string) $schedule['nome']); ?>">Excluir</button></div></td>
+                        <td><div class="course-row-actions"><?php if (empty($professorView) || ((int) ($schedule['criador_conta_id'] ?? 0) > 0 && (int) ($schedule['criador_conta_id'] ?? 0) === (int) ($professorAccountId ?? 0))) { ?><button type="button" class="btn btn-secondary admin-modality-schedule-edit" data-schedule="<?php echo e((string) json_encode($schedule, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>">Editar</button><?php } ?><?php if (empty($professorView)) { ?><button type="button" class="btn btn-danger admin-modality-schedule-delete" data-schedule-id="<?php echo e((string) $schedule['id']); ?>" data-schedule-name="<?php echo e((string) $schedule['nome']); ?>">Excluir</button><?php } ?></div></td>
                     </tr>
                 <?php } ?>
-                <?php if (($modalitySchedules ?? []) === []) { ?><tr><td colspan="7" class="muted">Nenhum cronograma cadastrado.</td></tr><?php } ?>
+                <?php if (($modalitySchedules ?? []) === []) { ?><tr><td colspan="8" class="muted">Nenhum cronograma cadastrado.</td></tr><?php } ?>
             </tbody></table></div>
         </article>
 
