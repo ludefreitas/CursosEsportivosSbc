@@ -7074,6 +7074,8 @@
             $(document).on('click', '[data-course-professor-close="1"]', closeModals);
             $(document).on('click', '[data-course-assign-professor]', function () {
                 const $modal = $('#course-professor-modal');
+                $modal.find('.course-team-field').addClass('is-collapsed');
+                $modal.find('[data-course-team-toggle]').attr('aria-expanded', 'false');
                 $modal.find('[data-course-team-search]').val('');
                 $modal.find('[data-course-team-options] label').removeClass('hidden');
                 $modal.find('[name="turma_id"]').val(String($(this).attr('data-course-assign-professor') || ''));

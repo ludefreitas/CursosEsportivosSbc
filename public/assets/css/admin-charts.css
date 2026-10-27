@@ -17,6 +17,8 @@
 .admin-charts .chart-period-modalities > summary { cursor: pointer; text-decoration: underline; font-weight: 700; }
 .admin-charts .chart-matrix-row > summary { margin-bottom: 8px; }
 .admin-charts .chart-period-modalities { margin-bottom: 12px; }
+.admin-charts .chart-period-modalities > summary { font-size: 12px; font-weight: 400; color: var(--chart-secondary); text-decoration: none; }
+.admin-charts .chart-period-modalities > summary:hover { text-decoration: underline; }
 .admin-charts .chart-period-modalities[open] > summary { margin-bottom: 12px; }
 .admin-charts .chart-filters { display: grid; gap: 16px; border-top: 4px solid var(--chart-offered); }
 .admin-charts .chart-filter-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }

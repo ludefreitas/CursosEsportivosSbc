@@ -228,12 +228,16 @@
     };
 
     Controller.prototype.drawMatrix = function () {
+        const render = (groups, columns) => {
+            const maximum = Math.max(1, ...groups.flatMap(group => group.parts.map(part => part.count)));
+            return groups.map(group => '<details class="chart-matrix-row"><summary>' + escape(group.label) + '</summary><div class="chart-matrix-cells">' + columns.map(column => {
+                const part = group.parts.find(part => part.id === column.id), count = part ? part.count : 0;
+                return '<div class="chart-matrix-cell" style="--cell-alpha:' + (count ? .1 + count / maximum * .35 : .03) + '"><span>' + escape(column.label) + '</span><strong>' + number(count) + '</strong></div>';
+            }).join('') + '</div></details>').join('') || '<p class="muted">Nenhuma turma nos filtros selecionados.</p>';
+        };
         const { locations, modalities } = this.data;
-        const maximum = Math.max(1, ...locations.flatMap(location => location.parts.map(part => part.count)));
-        this.find('[data-chart-matrix]').innerHTML = locations.map(location => '<details class="chart-matrix-row" open><summary>' + escape(location.label) + '</summary><div class="chart-matrix-cells">' + modalities.map(modality => {
-            const part = location.parts.find(part => part.id === modality.id), count = part ? part.count : 0;
-            return '<div class="chart-matrix-cell" style="--cell-alpha:' + (count ? .1 + count / maximum * .35 : .03) + '"><span>' + escape(modality.label) + '</span><strong>' + number(count) + '</strong></div>';
-        }).join('') + '</div></details>').join('') || '<p class="muted">Nenhuma turma nos filtros selecionados.</p>';
+        this.find('[data-chart-matrix]').innerHTML = render(locations, modalities);
+        this.find('[data-chart-modality-matrix]').innerHTML = render(modalities, locations);
     };
 
     Controller.prototype.drawDetails = function () {
