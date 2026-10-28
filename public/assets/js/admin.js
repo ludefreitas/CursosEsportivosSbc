@@ -5644,6 +5644,28 @@
                 $form.find('#admin-modality-schedule-use-modality').attr('aria-expanded', 'false');
                 App.core.abrirPopup('sucesso', 'Os dados do cronograma selecionado foram copiados. Revise os campos antes de salvar.');
             });
+            $(document).on('click', '[data-schedule-classes]', function () {
+                const trigger=this, $trigger=$(this).prop('disabled',true);
+                $.getJSON(modalityUrl('/cronogramas/turmas'),{id:$trigger.attr('data-schedule-classes')}).done(function(response){
+                    if(!response || !response.success){App.core.abrirPopup('erro',String(response&&response.message||'Não foi possível consultar as turmas.'));return;}
+                    $('#modality-schedule-classes-modal').remove();
+                    const $modal=$('<div>',{id:'modality-schedule-classes-modal',class:'popup-overlay','aria-hidden':'false'});
+                    const $card=$('<div>',{class:'popup-card popup-admin-card',role:'dialog','aria-modal':'true','aria-labelledby':'modality-schedule-classes-title'}).appendTo($modal);
+                    const close=function(){$modal.remove();document.removeEventListener('keydown',onKey);if(trigger.isConnected)trigger.focus();};
+                    const onKey=function(event){if(event.key==='Escape')close();};
+                    const $head=$('<div>',{class:'popup-head'}).appendTo($card);
+                    $('<h3>',{id:'modality-schedule-classes-title',text:'Turmas do cronograma'}).appendTo($head);
+                    const $close=$('<button>',{type:'button',class:'popup-close-icon','aria-label':'Fechar',text:'×'}).on('click',close).appendTo($head);
+                    const $body=$('<div>',{class:'popup-body'}).appendTo($card);
+                    $('<p>').text(response.schedule.nome).appendTo($body);
+                    const $table=$('<table>',{class:'data-table schedule-classes-table'}).appendTo($body);
+                    $('<thead>').append($('<tr>').append($('<th>',{scope:'col',text:'Turma, dias, horários e local'}))).appendTo($table);
+                    const $rows=$('<tbody>').appendTo($table);
+                    response.schedule.turmas.forEach(function(item){const $cell=$('<td>').appendTo($('<tr>').appendTo($rows));$('<strong>').text('['+item.id+'] '+item.nome).appendTo($cell);$('<div>').text(item.dias_horarios).appendTo($cell);$('<div>').text('Local: '+item.local).appendTo($cell);});
+                    if(!response.schedule.turmas.length)$('<tr>').append($('<td>',{text:'Nenhuma turma vinculada a este cronograma.',class:'muted'})).appendTo($rows);
+                    $modal.on('click',function(event){if(event.target===this)close();});$('body').append($modal);document.addEventListener('keydown',onKey);$close.trigger('focus');
+                }).fail(function(xhr){App.core.abrirPopup('erro',App.core.extrairMensagemErroAjax(xhr).mensagem);}).always(function(){$trigger.prop('disabled',false);});
+            });
             $(document).on('click', '[data-schedule-history]', function () {
                 const trigger = this, $trigger = $(this).prop('disabled', true);
                 $.getJSON(App.core.buildUrl('/admin/modalidades/cronogramas/historico'), { id: $trigger.attr('data-schedule-history') }).done(function (response) {

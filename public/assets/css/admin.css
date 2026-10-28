@@ -164,6 +164,9 @@
 .course-enrollment-load-more .btn { min-width:180px; }
 .class-copy-panel { display:grid; gap:10px; padding:12px; border:1px solid var(--line); border-radius:12px; background:#f7fbfc; }
 .class-copy-panel.hidden { display: none; }
+.schedule-classes-table { width: 100%; table-layout: fixed; }
+.schedule-classes-table th,
+.schedule-classes-table td { white-space: normal; overflow-wrap: anywhere; word-break: normal; }
 .course-team-field.is-collapsed > :not(legend) { display: none; }
 .course-team-toggle { font: inherit; text-decoration: underline; }
 .course-team-toggle::after { content: ' ▾'; }

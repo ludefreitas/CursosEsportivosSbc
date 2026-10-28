@@ -90,6 +90,14 @@ class ProfessorController extends Controller
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
+    public function modalityScheduleClasses(): void
+    {
+        $this->assertProfessorMutationAccess();
+        try {
+            $this->jsonResponse(['success'=>true,'schedule'=>(new \App\Services\ModalityScheduleClassService())->list((int)($_GET['id'] ?? 0))]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success'=>false,'message'=>$e->getMessage()],422); }
+    }
+
     public function saveModalitySchedule(): void
     {
         $user = $this->assertProfessorMutationAccess();

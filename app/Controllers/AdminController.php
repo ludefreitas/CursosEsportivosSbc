@@ -2638,6 +2638,14 @@ class AdminController extends Controller
         } catch (\Throwable $e) { $this->jsonResponse(['success'=>false,'message'=>$e->getMessage()],422); }
     }
 
+    public function modalityScheduleClasses(): void
+    {
+        $this->assertAdminAccess();
+        try {
+            $this->jsonResponse(['success'=>true,'schedule'=>(new \App\Services\ModalityScheduleClassService())->list((int)($_GET['id'] ?? 0))]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success'=>false,'message'=>$e->getMessage()],422); }
+    }
+
     public function storeModalitySchedule(): void
     {
         $user = $this->assertAdminAccess();
