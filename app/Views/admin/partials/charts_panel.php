@@ -46,6 +46,31 @@
             <article class="content-card chart-panel"><details data-chart-collapsible><summary>Oferta de turmas por modalidade</summary><div data-chart-modality-matrix class="chart-matrix"></div><p class="muted">Cada valor indica turmas, não vagas.</p></details></article>
             <article class="content-card chart-panel chart-panel-full"><details data-chart-details><summary data-chart-details-title>Detalhar turmas</summary><div data-chart-detail-rows class="chart-detail-rows"></div><nav class="chart-pagination" aria-label="Páginas de turmas"><button type="button" class="btn btn-secondary" data-chart-page="previous">Anterior</button><span data-chart-page-label></span><button type="button" class="btn btn-secondary" data-chart-page="next">Próxima</button></nav></details></article>
         </div>
+        <section class="chart-demand-section" aria-label="Evolução das inscrições recebidas">
+            <h3>Evolução das inscrições recebidas</h3>
+            <p class="muted">Inscrições pela data em que foram recebidas, e não pela data da matrícula. Segue temporadas, local, modalidade, público, status atual e período da aula selecionados. O ano abaixo é independente das datas de procura e frequência. Não representa pessoas únicas nem o histórico das mudanças de status.</p>
+            <div class="chart-filter-grid">
+                <label>Ano<input type="number" min="2000" max="2100" value="<?php echo date('Y'); ?>" data-enrollment-trend-year></label>
+                <label>Agrupar por<select data-enrollment-trend-group><option value="month">Mês</option><option value="week">Semana</option><option value="day">Dia</option></select></label>
+                <label>Tipo de gráfico<select data-enrollment-trend-type><option value="line">Linhas</option><option value="bar">Barras</option></select></label>
+                <label>Modalidade no gráfico<select data-enrollment-trend-modality><option value="">Todas as modalidades</option></select></label>
+                <label>Turma no gráfico<select data-enrollment-trend-class><option value="">Todas as turmas</option></select></label>
+            </div>
+            <article class="content-card chart-panel"><h3 data-enrollment-trend-title>Inscrições recebidas no ano</h3><p class="muted" data-enrollment-trend-summary></p><div class="chart-trend-scroll" data-enrollment-trend-chart></div></article>
+            <article class="content-card chart-panel"><details><summary>Detalhar evolução por modalidade e turma</summary><p class="muted">Expanda uma modalidade para ver suas turmas. A tabela segue o agrupamento escolhido e inclui períodos com zero inscrições. Semanas começam na segunda-feira; nas bordas do ano, contam apenas os dias do ano selecionado.</p><div data-enrollment-trend-details></div></details></article>
+        </section>
+        <section class="chart-demand-section" aria-label="Indicadores por professor principal">
+            <div class="section-head"><div><h3>Indicadores por professor principal</h3><p class="muted">Cada turma é contabilizada somente para seu professor principal. Auxiliares e estagiários aparecem na equipe, sem receber os totais da turma. Os vínculos refletem o cadastro atual.</p></div></div>
+            <label class="chart-group-select"><span>Professor principal</span><select data-chart-professor><option value="">Todos os professores</option></select></label>
+            <p class="muted">Turmas, vagas e inscrições seguem as temporadas, local, modalidade e público selecionados. As inscrições no filtro seguem também o status. Matrículas e fila de espera mostram a situação atual. A frequência segue as datas e o período de aula da seção de frequência; não é filtrada pelo status atual da inscrição.</p>
+            <div class="chart-stats" data-chart-professor-stats></div>
+            <div class="chart-panel-grid">
+                <article class="content-card chart-panel"><h3>Turmas por professor principal</h3><div class="chart-bars" data-chart-professor-ranking="classes"></div></article>
+                <article class="content-card chart-panel"><h3>Inscrições por professor principal</h3><div class="chart-bars" data-chart-professor-ranking="enrollments"></div></article>
+                <article class="content-card chart-panel"><h3>Frequência por professor principal</h3><p class="muted" data-chart-professor-frequency-range></p><div class="chart-bars" data-chart-professor-ranking="attendance"></div><p class="muted">Presenças ÷ registros de presente, ausente ou justificado. Calculado sobre todos os registros das turmas, sem média dos percentuais individuais. Sem registros não significa 0% de presença.</p></article>
+                <article class="content-card chart-panel"><details><summary>Detalhar professores e suas equipes</summary><div data-chart-professor-details></div></details></article>
+            </div>
+        </section>
         <section class="chart-demand-section" aria-label="Mais procurados">
             <div class="section-head"><div><h3>Mais procurados</h3><p class="muted" data-chart-demand-range></p></div><label class="chart-group-select"><span>Medir procura por</span><select data-chart-demand-measure><option value="enrollments">Inscrições realizadas</option><option value="clicks">Cliques nas turmas</option></select></label></div>
             <p class="muted" data-chart-demand-note></p>

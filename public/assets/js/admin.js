@@ -5644,6 +5644,35 @@
                 $form.find('#admin-modality-schedule-use-modality').attr('aria-expanded', 'false');
                 App.core.abrirPopup('sucesso', 'Os dados do cronograma selecionado foram copiados. Revise os campos antes de salvar.');
             });
+            $(document).on('click', '[data-schedule-history]', function () {
+                const trigger = this, $trigger = $(this).prop('disabled', true);
+                $.getJSON(App.core.buildUrl('/admin/modalidades/cronogramas/historico'), { id: $trigger.attr('data-schedule-history') }).done(function (response) {
+                    if (!response || !response.success) { App.core.abrirPopup('erro', String(response && response.message || 'Não foi possível consultar o histórico.')); return; }
+                    const record = response.history;
+                    $('#modality-schedule-history-modal').remove();
+                    const $modal = $('<div>', {id:'modality-schedule-history-modal', class:'popup-overlay', 'aria-hidden':'false'});
+                    const $card = $('<div>', {class:'popup-card popup-admin-card',role:'dialog','aria-modal':'true','aria-labelledby':'modality-schedule-history-title'}).appendTo($modal);
+                    const close = function () { $modal.remove(); document.removeEventListener('keydown', escape); if (trigger.isConnected) trigger.focus(); };
+                    const escape = function (event) { if (event.key === 'Escape') close(); };
+                    const $head = $('<div>', {class:'popup-head'}).appendTo($card);
+                    $('<h3>', {id:'modality-schedule-history-title',text:record.acao+' do cronograma'}).appendTo($head);
+                    const $close = $('<button>', {type:'button',class:'popup-close-icon','aria-label':'Fechar',text:'×'}).on('click',close).appendTo($head);
+                    const $body = $('<div>', {class:'popup-body'}).appendTo($card);
+                    $('<p>').text(record.cronograma).appendTo($body);
+                    $('<p>').text('Usuário: '+record.usuario+' · '+record.data).appendTo($body);
+                    if (!record.detalhes_disponiveis) $('<p>',{class:'muted',text:'Este registro antigo informa o usuário e a data, mas não contém os valores anteriores e posteriores dos campos.'}).appendTo($body);
+                    else if (!record.alteracoes.length) $('<p>',{class:'muted',text:'Nenhuma mudança nos campos do cronograma foi identificada neste salvamento.'}).appendTo($body);
+                    else {
+                        const $table = $('<table>',{class:'data-table'}).appendTo($('<div>',{class:'table-wrap'}).appendTo($body));
+                        const $header = $('<tr>').appendTo($('<thead>').appendTo($table));
+                        ['Campo','Antes','Depois'].forEach(text=>$('<th>').text(text).appendTo($header));
+                        const $rows = $('<tbody>').appendTo($table);
+                        record.alteracoes.forEach(change=>{const $row=$('<tr>').appendTo($rows);[change.campo,change.antes,change.depois].forEach(text=>$('<td>').text(text).appendTo($row));});
+                    }
+                    $modal.on('click',function(event){if(event.target===this)close();});
+                    $('body').append($modal); document.addEventListener('keydown',escape); $close.trigger('focus');
+                }).fail(function (xhr) { App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem); }).always(function () { $trigger.prop('disabled',false); });
+            });
             $(document).on('click', '#admin-modality-schedule-use-season', copySeasonToModalitySchedule);
             $(document).on('change', '[data-modality-schedule-notice-toggle="1"]', function () {
                 const enabled = $(this).is(':checked');

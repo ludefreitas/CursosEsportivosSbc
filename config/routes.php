@@ -158,6 +158,7 @@ return [
     ['POST', '/admin/modalidades', [AdminController::class, 'storeModality']],
     ['POST', '/admin/modalidades/atualizar', [AdminController::class, 'updateModality']],
     ['POST', '/admin/modalidades/excluir', [AdminController::class, 'deleteModality']],
+    ['GET', '/admin/modalidades/cronogramas/historico', [AdminController::class, 'modalityScheduleHistory']],
     ['POST', '/admin/modalidades/cronogramas', [AdminController::class, 'storeModalitySchedule']],
     ['POST', '/admin/modalidades/cronogramas/excluir', [AdminController::class, 'deleteModalitySchedule']],
     ['POST', '/admin/modalidades/popups', [AdminController::class, 'storeModalityPopup']],

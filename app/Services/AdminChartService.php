@@ -96,12 +96,20 @@ class AdminChartService
         if ($filters['location']) { $where .= ' AND t.local_treino_id=:local'; $params[':local'] = $filters['location']; }
         if ($filters['modality']) { $where .= ' AND t.modalidade_id=:modalidade'; $params[':modalidade'] = $filters['modality']; }
         $pdo = $this->connection();
-        $statement = $pdo->prepare("SELECT t.id,t.temporada_id,t.nome,t.local_treino_id,t.modalidade_id,t.status,t.hora_inicio,t.hora_fim,t.dias_semana,t.vagas_totais,t.vagas_geral,t.vagas_pcd,t.vagas_plm,t.vagas_pvs,
+        $statement = $pdo->prepare("SELECT t.professor_conta_id, principal.nome_completo AS professor_nome,t.id,t.temporada_id,t.nome,t.local_treino_id,t.modalidade_id,t.status,t.hora_inicio,t.hora_fim,t.dias_semana,t.vagas_totais,t.vagas_geral,t.vagas_pcd,t.vagas_plm,t.vagas_pvs,
             COALESCE(NULLIF(TRIM(l.apelido_local), ''),l.nome_local) AS local_nome,m.nome AS modalidade_nome
-            FROM turmas t INNER JOIN locais_treino l ON l.id=t.local_treino_id INNER JOIN modalidades m ON m.id=t.modalidade_id
+            FROM turmas t INNER JOIN locais_treino l ON l.id=t.local_treino_id INNER JOIN modalidades m ON m.id=t.modalidade_id LEFT JOIN contas principal_conta ON principal_conta.id=t.professor_conta_id LEFT JOIN pessoas principal ON principal.cpf=principal_conta.cpf
             WHERE $where ORDER BY local_nome,m.nome,t.nome,t.id");
         $statement->execute($params);
         $classes = $statement->fetchAll(PDO::FETCH_ASSOC);
+        $teams = [];
+        foreach (['auxiliares'=>['turmas_professores','professor_conta_id'], 'estagiarios'=>['turmas_estagiarios','estagiario_conta_id']] as $kind=>[$table,$column]) {
+            $team = $pdo->prepare("SELECT t.id, p.nome_completo FROM turmas t INNER JOIN $table equipe ON equipe.turma_id=t.id INNER JOIN contas c ON c.id=equipe.$column INNER JOIN pessoas p ON p.cpf=c.cpf WHERE $where" . ($kind==='auxiliares' ? ' AND (t.professor_conta_id IS NULL OR equipe.professor_conta_id<>t.professor_conta_id)' : '') . ' ORDER BY p.nome_completo');
+            $team->execute($params);
+            foreach ($team->fetchAll(PDO::FETCH_ASSOC) as $member) $teams[(int)$member['id']][$kind][] = $member['nome_completo'];
+        }
+        foreach ($classes as &$class) $class['equipe'] = $teams[(int)$class['id']] ?? [];
+        unset($class);
         // O status escolhido não entra neste WHERE: a reserva de vagas exige todos os status ocupantes.
         $statement = $pdo->prepare("SELECT i.turma_id,i.publico_alvo,i.status,COUNT(*) AS total FROM inscricoes_turma i INNER JOIN turmas t ON t.id=i.turma_id WHERE $where GROUP BY i.turma_id,i.publico_alvo,i.status");
         $statement->execute($params);
@@ -109,8 +117,41 @@ class AdminChartService
         $statement = $pdo->prepare("SELECT i.turma_id,i.publico_alvo,i.status,COUNT(*) AS total FROM inscricoes_turma i INNER JOIN turmas t ON t.id=i.turma_id WHERE $where AND i.created_at>=:procura_de AND i.created_at<:procura_fim GROUP BY i.turma_id,i.publico_alvo,i.status");
         $statement->execute($params+[':procura_de'=>$filters['demand_from'].' 00:00:00',':procura_fim'=>(new \DateTimeImmutable($filters['demand_to']))->modify('+1 day')->format('Y-m-d').' 00:00:00']);
         $result['demand'] = $this->aggregateDemand($classes,$statement->fetchAll(PDO::FETCH_ASSOC),(new CourseInterestService($pdo))->report($filters),$filters);
+        $result['enrollment_trend'] = $this->enrollmentTrend($where, $params, $classes, $filters, $input);
         $result['attendance'] = (new CourseAttendanceChartService($pdo))->report($where,$params,$filters,$input);
+        $attendance = array_column($result['attendance']['groups']['professors'] ?? [], null, 'id');
+        $classAttendance = array_column($result['attendance']['groups']['classes'] ?? [], null, 'id');
+        foreach ($result['professors'] as &$professor) {
+            foreach ($professor['rows'] as &$row) $row['frequency'] = ($result['attendance']['available'] ?? false) ? ($classAttendance[$row['id']] ?? ['records'=>0,'attendance'=>null]) : null;
+            unset($row);
+            $professor['frequency'] = ($result['attendance']['available'] ?? false) ? ($attendance[$professor['id']] ?? ['present'=>0,'absent'=>0,'justified'=>0,'records'=>0,'attendance'=>null]) : null;
+        }
+        unset($professor);
         return $result;
+    }
+
+    private function enrollmentTrend(string $where, array $params, array $classes, array $filters, array $input): array
+    {
+        $year = $this->positiveInt($input['evolucao_ano'] ?? (new \DateTimeImmutable('now', new \DateTimeZone('America/Sao_Paulo')))->format('Y'), 'o ano da evolução');
+        if ($year < 2000 || $year > 2100) throw new RuntimeException('Selecione um ano entre 2000 e 2100 para a evolução.');
+        $params[':evolucao_inicio'] = $year . '-01-01 00:00:00';
+        $params[':evolucao_fim'] = ($year + 1) . '-01-01 00:00:00';
+        if ($filters['public'] !== '') { $where .= ' AND i.publico_alvo=:evolucao_publico'; $params[':evolucao_publico'] = $filters['public']; }
+        if ($filters['status'] !== '') { $where .= ' AND i.status=:evolucao_status'; $params[':evolucao_status'] = $filters['status']; }
+        $stmt = $this->connection()->prepare("SELECT i.turma_id, DATE(i.created_at) AS dia, COUNT(*) AS total FROM inscricoes_turma i INNER JOIN turmas t ON t.id=i.turma_id WHERE $where AND i.created_at>=:evolucao_inicio AND i.created_at<:evolucao_fim GROUP BY i.turma_id, DATE(i.created_at) ORDER BY dia");
+        $stmt->execute($params);
+        $daily = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) $daily[(int)$row['turma_id']][$row['dia']] = (int)$row['total'];
+        $modalities = [];
+        foreach ($classes as $class) {
+            if ($filters['period'] !== '' && CourseInterestService::period((string)($class['hora_inicio'] ?? '')) !== $filters['period']) continue;
+            $id = (int)$class['modalidade_id'];
+            $modalities[$id] ??= ['id'=>$id, 'label'=>$class['modalidade_nome'], 'classes'=>[]];
+            $modalities[$id]['classes'][] = ['id'=>(int)$class['id'], 'label'=>'['.$class['id'].'] '.$class['nome'].' · '.$class['local_nome'], 'schedule'=>CourseInterestService::describeSchedule($class), 'days'=>$daily[(int)$class['id']] ?? []];
+        }
+        $modalities = array_values($modalities);
+        usort($modalities, static fn($a,$b)=>strnatcasecmp($a['label'],$b['label']));
+        return ['year'=>$year, 'modalities'=>$modalities];
     }
 
     public function aggregateDemand(array $classes, array $enrollments, array $clicks, array $filters): array
@@ -180,7 +221,7 @@ class AdminChartService
         $statuses = [];
         foreach (self::STATUSES as $key => $label) $statuses[$key] = ['id' => $key, 'label' => $label, 'count' => 0];
         $totals = ['classes' => 0, 'locations' => 0, 'modalities' => 0, 'offered' => 0, 'available' => 0, 'enrollments' => 0];
-        $locations = []; $modalities = []; $detailRows = []; $anomalies = 0;
+        $locations = []; $modalities = []; $detailRows = []; $anomalies = 0; $professors = [];
         foreach ($classes as $class) {
             $id = (int) $class['id']; $seasonId = (int) $class['temporada_id'];
             if (!isset($seasonMap[$seasonId])) continue;
@@ -217,6 +258,12 @@ class AdminChartService
             $totals['classes']++; $totals['offered'] += $offered; $totals['available'] += $available; $totals['enrollments'] += $count;
             $seasonMap[$seasonId]['classes']++; $seasonMap[$seasonId]['offered'] += $offered; $seasonMap[$seasonId]['available'] += $available; $seasonMap[$seasonId]['enrollments'] += $count;
             $detailRows[] = ['id' => $id, 'name' => (string) $class['nome'], 'season' => $seasonMap[$seasonId]['label'], 'location' => $localLabel, 'modality' => $modalityLabel, 'schedule' => CourseInterestService::describeSchedule($class), 'offered' => $offered, 'available' => $available, 'enrollments' => $count, 'enrolled' => $enrolled, 'awaiting_enrollment' => $awaiting, 'waiting_list' => $waitingList, 'capacity_mismatch' => $mismatch];
+            $professorId = (int) ($class['professor_conta_id'] ?? 0);
+            $professors[$professorId] ??= ['id'=>$professorId, 'label'=>$professorId ? ((string)($class['professor_nome'] ?? '') ?: 'Professor #'.$professorId) : 'Sem professor principal', 'classes'=>0, 'offered'=>0, 'available'=>0, 'enrollments'=>0, 'enrolled'=>0, 'awaiting_enrollment'=>0, 'waiting_list'=>0, 'rows'=>[]];
+            $professors[$professorId]['classes']++;
+            foreach (['offered'=>$offered,'available'=>$available,'enrollments'=>$count,'enrolled'=>$enrolled,'awaiting_enrollment'=>$awaiting,'waiting_list'=>$waitingList] as $key=>$value) $professors[$professorId][$key] += $value;
+            $professors[$professorId]['rows'][] = $detailRows[array_key_last($detailRows)] + ['auxiliares'=>$class['equipe']['auxiliares'] ?? [], 'estagiarios'=>$class['equipe']['estagiarios'] ?? []];
+
         }
         $sortGroups = static function (array $groups): array {
             $groups = array_values($groups);
@@ -230,6 +277,7 @@ class AdminChartService
         $pages = max(1, (int) ceil(count($detailRows) / self::DETAIL_PAGE_SIZE));
         $page = min($filters['page'], $pages);
         return [
+            'professors' => array_values($professors),
             'totals' => $totals, 'publics' => array_values($publics), 'statuses' => array_values($statuses),
             'locations' => $locations, 'modalities' => $modalities, 'comparison' => array_values($seasonMap),
             'anomalies' => $anomalies,

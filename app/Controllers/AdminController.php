@@ -2452,7 +2452,7 @@ class AdminController extends Controller
             $data['courseModalitiesManagement'] = $this->adminService->listModalitiesForManagement();
             $courseService = new CourseEnrollmentService();
             $data['courseSeasons'] = $courseService->listSeasonsForManagement();
-            $data['modalitySchedules'] = $courseService->listModalitySchedulesForManagement();
+            $data['modalitySchedules'] = \App\Services\ModalityScheduleHistoryService::attach($courseService->listModalitySchedulesForManagement());
             $data['modalityPopups'] = $this->modalityPopupService->listAll();
             $data['courseLocationsManagement'] = $this->adminService->listTrainingLocationsForSpaceForm();
         }
@@ -2628,6 +2628,14 @@ class AdminController extends Controller
         } catch (\Throwable $e) {
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
         }
+    }
+
+    public function modalityScheduleHistory(): void
+    {
+        $this->assertAdminAccess();
+        try {
+            $this->jsonResponse(['success'=>true, 'history'=>\App\Services\ModalityScheduleHistoryService::details((int)($_GET['id'] ?? 0))]);
+        } catch (\Throwable $e) { $this->jsonResponse(['success'=>false,'message'=>$e->getMessage()],422); }
     }
 
     public function storeModalitySchedule(): void

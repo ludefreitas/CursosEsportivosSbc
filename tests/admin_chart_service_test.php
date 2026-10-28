@@ -19,6 +19,20 @@ expectChart(array_sum(array_column($report['publics'], 'offered')) === 26, 'Ofer
 expectChart($report['locations'][0]['count'] === 2 && $report['locations'][0]['parts'][0]['count'] === 2, 'Agrupamento de turmas incorreto.');
 $details = array_column($report['details']['rows'], null, 'id');
 expectChart($details[1]['enrolled']===3 && $details[1]['awaiting_enrollment']===1 && $details[1]['waiting_list']===3 && $details[1]['available']===9, 'Quantidades por situação incorretas no detalhamento.');
+$teachers = array_column($report['professors'], null, 'id');
+expectChart($teachers[101]['classes']===2 && $teachers[101]['enrollments']===18 && $teachers[101]['enrolled']===9, 'Somar somente turmas do professor principal.');
+expectChart($teachers[102]['classes']===1 && $teachers[102]['enrollments']===4, 'Auxiliar não recebe os totais do professor principal.');
+expectChart($teachers[101]['rows'][0]['auxiliares']===['Professor Bruno'] && $teachers[101]['rows'][0]['estagiarios']===['Estagiária Clara'], 'Mostrar auxiliares e estagiários sem atribuir os totais a eles.');
+expectChart(array_sum(array_column($report['professors'],'enrollments'))===$report['totals']['enrollments'], 'Inscrições por professor devem reconciliar com o total.');
+$trend = $service->report($filters + ['evolucao_ano'=>2025])['enrollment_trend'];
+$trendClasses = array_column(array_merge(...array_column($trend['modalities'],'classes')),null,'id');
+expectChart($trendClasses[1]['days']['2025-06-15']===12 && $trendClasses[2]['days']['2025-06-15']===6, 'Evolução por data de criação, sem duplicar inscrições.');
+$trendPublic = $service->report($filters + ['evolucao_ano'=>2025,'publico'=>'pcd','status'=>'matriculada'])['enrollment_trend'];
+expectChart(array_sum($trendPublic['modalities'][0]['classes'][0]['days'])===1, 'Evolução deve respeitar público e status.');
+foreach ([1999,2101,'2025 OR 1=1',[]] as $year) {
+    try { $service->report($filters+['evolucao_ano'=>$year]); throw new LogicException('Ano inválido aceito.'); }
+    catch (RuntimeException $error) { if($error instanceof LogicException)throw $error; }
+}
 $status = $service->report($filters + ['status'=>'aguardando_matricula']);
 $filteredDetails = array_column($status['details']['rows'], null, 'id');
 expectChart($filteredDetails[1]['enrolled']===3 && $filteredDetails[1]['waiting_list']===3 && $filteredDetails[1]['enrollments']===1, 'Filtro de inscrições não deve adulterar a situação real das matrículas.');
@@ -82,6 +96,12 @@ expectChart($periods['madrugada']['count']===5,'Reclassificar cliques existentes
 expectChart(array_column($periods['madrugada']['modalities'],'label')===['Natação','Futsal'],'Ordenar modalidades do período por cliques.');
 expectChart(array_column($periods['madrugada']['modalities'],'count')===[3,2],'Preservar os totais por modalidade dentro do período.');
 expectChart($periods['manha']['count']===0,'Não contabilizar 05h59 como manhã.');
+
+$calendarDb=createChartTestDatabase();
+$calendarDb->exec("INSERT INTO inscricoes_turma(turma_id,publico_alvo,status,created_at) VALUES (1,'geral','matriculada','2024-01-01 00:00:00'),(1,'geral','matriculada','2024-02-29 12:00:00'),(1,'geral','matriculada','2024-12-31 23:59:59'),(1,'geral','matriculada','2025-01-01 00:00:00')");
+$calendarTrend=(new AdminChartService($calendarDb))->report($filters+['evolucao_ano'=>2024])['enrollment_trend'];
+$calendarClasses=array_column(array_merge(...array_column($calendarTrend['modalities'],'classes')),null,'id');
+expectChart(array_sum($calendarClasses[1]['days'])===3 && isset($calendarClasses[1]['days']['2024-02-29']), 'Incluir ano bissexto e bordas do ano sem contar o ano seguinte.');
 
 echo "OK: totais, públicos, status, reserva, capacidade excedida, intervalos, filtros inválidos, histórico, agrupamentos e paginação.\n";
 echo "OK: procura por data, limites do dia, período das aulas, cliques reais agregados e ausência de associação de cliques a público/status.\n";

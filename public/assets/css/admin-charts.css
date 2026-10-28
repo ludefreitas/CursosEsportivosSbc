@@ -13,6 +13,15 @@
     min-width: 0;
 }
 .admin-charts [hidden] { display: none !important; }
+.admin-charts .chart-trend-scroll { overflow-x: auto; max-width: 100%; margin-top: 12px; }
+.admin-charts .chart-enrollment-trend-svg { display: block; min-width: 620px; }
+.admin-charts .chart-enrollment-trend-svg text { fill: var(--chart-secondary); font-size: 12px; }
+.admin-charts [data-enrollment-trend-details] > details { margin-top: 12px; }
+.admin-charts [data-trend-table] th { min-width: 90px; }
+.admin-charts [data-trend-table] th:first-child { min-width: 240px; }
+.admin-charts .chart-professor-detail { margin-top: 12px; }
+.admin-charts .chart-professor-class { padding: 12px 0; border-top: 1px solid var(--chart-line); overflow-wrap: anywhere; }
+.admin-charts .chart-professor-class small { display: block; font-size: 12px; line-height: 1.45; color: var(--chart-secondary); }
 .admin-charts .attendance-monitor-location { margin-top: 12px; }
 .admin-charts [data-attendance-monitor-list] > summary,
 .admin-charts .attendance-monitor-location > summary { text-decoration: underline; }

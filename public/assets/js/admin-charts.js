@@ -37,7 +37,7 @@
     Controller.prototype.values = function (page) {
         const form = this.form;
         const get = name => form.elements.namedItem(name).value;
-        return { modo: get('modo'), max_temporadas: get('max_temporadas'), temporadas: Array.from(form.querySelectorAll('[name="temporadas[]"]:checked'), input => input.value), de: get('de'), ate: get('ate'), local_id: get('local_id'), modalidade_id: get('modalidade_id'), publico: get('publico'), status: get('status'), procura_de: get('procura_de'), procura_ate: get('procura_ate'), periodo: get('periodo'), pagina: page || 1, ...(this.find('[data-attendance-from]').value ? {frequencia_de:this.find('[data-attendance-from]').value}:{}), ...(this.find('[data-attendance-to]').value ? {frequencia_ate:this.find('[data-attendance-to]').value}:{}), ...(this.find('[data-attendance-monitor-from]').value ? {monitor_de:this.find('[data-attendance-monitor-from]').value}:{}), ...(this.find('[data-attendance-monitor-to]').value ? {monitor_ate:this.find('[data-attendance-monitor-to]').value}:{}), monitor_turma:this.find('[data-attendance-class]').value, monitor_situacao:this.find('[data-attendance-state]').value, monitor_pagina:this.attendanceUI?.page||1 };
+        return { evolucao_ano: this.find('[data-enrollment-trend-year]').value, modo: get('modo'), max_temporadas: get('max_temporadas'), temporadas: Array.from(form.querySelectorAll('[name="temporadas[]"]:checked'), input => input.value), de: get('de'), ate: get('ate'), local_id: get('local_id'), modalidade_id: get('modalidade_id'), publico: get('publico'), status: get('status'), procura_de: get('procura_de'), procura_ate: get('procura_ate'), periodo: get('periodo'), pagina: page || 1, ...(this.find('[data-attendance-from]').value ? {frequencia_de:this.find('[data-attendance-from]').value}:{}), ...(this.find('[data-attendance-to]').value ? {frequencia_ate:this.find('[data-attendance-to]').value}:{}), ...(this.find('[data-attendance-monitor-from]').value ? {monitor_de:this.find('[data-attendance-monitor-from]').value}:{}), ...(this.find('[data-attendance-monitor-to]').value ? {monitor_ate:this.find('[data-attendance-monitor-to]').value}:{}), monitor_turma:this.find('[data-attendance-class]').value, monitor_situacao:this.find('[data-attendance-state]').value, monitor_pagina:this.attendanceUI?.page||1 };
     };
 
     Controller.prototype.validate = function (values) {
@@ -58,6 +58,12 @@
     };
 
     Controller.prototype.change = function (event) {
+        if (event.target.matches('[data-enrollment-trend-year]')) { this.load(1); return; }
+        if (event.target.matches('[data-enrollment-trend-group], [data-enrollment-trend-type], [data-enrollment-trend-modality], [data-enrollment-trend-class]')) {
+            if (event.target.matches('[data-enrollment-trend-modality]')) this.find('[data-enrollment-trend-class]').value = '';
+            if (this.data) this.drawEnrollmentTrend(); return;
+        }
+        if (event.target.matches('[data-chart-professor]')) { if (this.data) this.drawProfessors(); return; }
         if (event.target.matches('[data-chart-group]')) { if (this.data) this.drawGroups(); return; }
         if (event.target.matches('[data-chart-demand-measure]')) { if (this.data) this.drawDemand(); return; }
         if (!this.form.contains(event.target)) return;
@@ -170,7 +176,75 @@
         this.find('[data-chart-status-list]').innerHTML = data.statuses.map((item, index) => '<div class="chart-status-row"><i class="chart-status-dot" style="background:' + (statusColors[item.id] || series[index % series.length]) + '"></i><span>' + escape(item.label) + '</span><span class="chart-numeric">' + number(item.count) + '</span></div>').join('');
         const maxEnrollments = Math.max(1, ...data.publics.map(item => item.enrollments));
         this.find('[data-chart-publics]').innerHTML = data.publics.map(item => '<div class="chart-bar-row"><div class="chart-bar-label"><span>' + escape(item.label) + '</span><span class="chart-numeric">' + number(item.enrollments) + '</span></div><div class="chart-track"><span class="chart-bar" style="background:var(--chart-enrollments);width:' + item.enrollments / maxEnrollments * 100 + '%"></span></div></div>').join('');
-        this.drawGroups(); this.drawComparison(); this.drawMatrix(); this.drawDetails(); this.drawDemand();
+        this.drawGroups(); this.drawComparison(); this.drawMatrix(); this.drawDetails(); this.drawDemand(); this.drawProfessors(); this.drawEnrollmentTrend();
+    };
+
+    Controller.prototype.drawEnrollmentTrend = function () {
+        const data=this.data.enrollment_trend;
+        if(!data)return;
+        const kind=this.find('[data-enrollment-trend-group]').value, type=this.find('[data-enrollment-trend-type]').value;
+        const modalitySelect=this.find('[data-enrollment-trend-modality]'), oldModality=modalitySelect.value;
+        modalitySelect.innerHTML='<option value="">Todas as modalidades</option>'+data.modalities.map(item=>'<option value="'+item.id+'">'+escape(item.label)+'</option>').join('');
+        modalitySelect.value=oldModality;if(modalitySelect.selectedIndex<0)modalitySelect.value='';
+        const modalities=data.modalities.filter(item=>!modalitySelect.value||String(item.id)===modalitySelect.value);
+        const classes=modalities.flatMap(item=>item.classes);
+        const classSelect=this.find('[data-enrollment-trend-class]'),oldClass=classSelect.value;
+        classSelect.innerHTML='<option value="">Todas as turmas</option>'+classes.map(item=>'<option value="'+item.id+'">'+escape(item.label+' · '+item.schedule)+'</option>').join('');
+        classSelect.value=oldClass;if(classSelect.selectedIndex<0)classSelect.value='';
+        const selected=classes.filter(item=>!classSelect.value||String(item.id)===classSelect.value);
+        const iso=date=>date.toISOString().slice(0,10), parse=date=>new Date(date+'T12:00:00Z');
+        const bucket=day=>{if(kind==='month')return day.slice(0,7);if(kind==='day')return day;const date=parse(day);date.setUTCDate(date.getUTCDate()-((date.getUTCDay()+6)%7));return iso(date);};
+        const keys=[],dayKeys=new Map();
+        for(let date=parse(data.year+'-01-01');date.getUTCFullYear()===data.year;date.setUTCDate(date.getUTCDate()+1)){
+            const day=iso(date),key=bucket(day);dayKeys.set(day,key);if(keys[keys.length-1]!==key)keys.push(key);
+        }
+        const months=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+        const format=key=>kind==='month'?months[Number(key.slice(5,7))-1]+'/'+key.slice(0,4):kind==='week'?'Semana de '+key.split('-').reverse().join('/'):key.split('-').reverse().join('/');
+        const values=items=>{const counts=Object.fromEntries(keys.map(key=>[key,0]));for(const item of items)for(const [day,count] of Object.entries(item.days)){const key=dayKeys.get(day);if(key!==undefined)counts[key]+=count;}return keys.map(key=>counts[key]);};
+        const counts=values(selected),total=counts.reduce((a,b)=>a+b,0),maximum=Math.max(1,...counts);
+        this.find('[data-enrollment-trend-title]').textContent=classSelect.value?selected[0].label:modalitySelect.value?modalities[0].label:'Todas as modalidades e turmas';
+        this.find('[data-enrollment-trend-summary]').textContent=data.year+' · '+number(total)+' inscrições recebidas · '+(kind==='month'?'por mês':kind==='week'?'por semana (segunda a domingo)':'por dia')+'.';
+        const width=Math.max(620,keys.length*25),height=290,left=52,right=20,top=24,bottom=60;
+        const step=(width-left-right)/keys.length,x=i=>left+step*(i+.5),y=value=>height-bottom-value/maximum*(height-top-bottom);
+        let svg='<svg width="'+width+'" height="'+height+'" viewBox="0 0 '+width+' '+height+'" class="chart-enrollment-trend-svg" role="img" aria-label="'+escape('Evolução das inscrições recebidas em '+data.year+'; '+number(total)+' inscrições. Valores na tabela de detalhamento.')+'"><title>'+escape('Inscrições por '+(kind==='month'?'mês':kind==='week'?'semana':'dia'))+'</title>';
+        const ticks=maximum<=4?Array.from({length:maximum+1},(_,i)=>i):Array.from({length:5},(_,i)=>Math.round(maximum*i/4));
+        for(const value of ticks)svg+='<line x1="'+left+'" x2="'+(width-right)+'" y1="'+y(value)+'" y2="'+y(value)+'" stroke="var(--chart-line)"/><text x="'+(left-8)+'" y="'+(y(value)+4)+'" text-anchor="end">'+number(value)+'</text>';
+        if(type==='line')svg+='<polyline fill="none" stroke="var(--chart-offered)" stroke-width="2.5" points="'+counts.map((value,i)=>x(i)+','+y(value)).join(' ')+'"/>';
+        counts.forEach((value,i)=>{const title=escape(format(keys[i])+': '+number(value)+' inscrições');svg+=type==='bar'?'<rect x="'+(x(i)-step*.35)+'" y="'+y(value)+'" width="'+step*.7+'" height="'+(height-bottom-y(value))+'" fill="var(--chart-offered)"><title>'+title+'</title></rect>':'<circle cx="'+x(i)+'" cy="'+y(value)+'" r="3" fill="var(--chart-offered)"><title>'+title+'</title></circle>';if(i%Math.max(1,Math.ceil(keys.length/12))===0||i===keys.length-1)svg+='<text x="'+x(i)+'" y="'+(height-bottom+23)+'" text-anchor="middle">'+escape(kind==='month'?months[i].slice(0,3):keys[i].slice(5).split('-').reverse().join('/'))+'</text>';});
+        svg+='<text x="'+left+'" y="14">Inscrições recebidas</text></svg>';
+        this.find('[data-enrollment-trend-chart]').innerHTML=svg;
+        const target=this.find('[data-enrollment-trend-details]');
+        target.innerHTML=modalities.map(item=>'<details data-trend-modality="'+item.id+'"><summary>'+escape(item.label)+' · '+number(values(item.classes).reduce((a,b)=>a+b,0))+' inscrições</summary><div class="chart-trend-scroll" data-trend-table></div></details>').join('')||'<p class="muted">Nenhuma turma nos filtros selecionados.</p>';
+        for(const detail of target.querySelectorAll('details'))detail.addEventListener('toggle',()=>{
+            const container=detail.querySelector('[data-trend-table]');if(!detail.open||container.childElementCount)return;
+            const item=modalities.find(item=>String(item.id)===detail.dataset.trendModality);
+            const row=(label,items)=>{const counts=values(items);return '<tr><th scope="row">'+escape(label)+'</th>'+counts.map(value=>'<td>'+number(value)+'</td>').join('')+'<td><strong>'+number(counts.reduce((a,b)=>a+b,0))+'</strong></td></tr>';};
+            container.innerHTML='<table class="data-table"><caption>'+escape(item.label+' · '+data.year)+'</caption><thead><tr><th scope="col">Modalidade / turma</th>'+keys.map(key=>'<th scope="col">'+escape(format(key))+'</th>').join('')+'<th scope="col">Total</th></tr></thead><tbody>'+row('Total da modalidade',item.classes)+item.classes.map(c=>row(c.label+' · '+c.schedule,[c])).join('')+'</tbody></table>';
+        });
+    };
+
+    Controller.prototype.drawProfessors = function () {
+        const all = this.data.professors || [], select = this.find('[data-chart-professor]'), selected = select.value;
+        select.innerHTML = '<option value="">Todos os professores</option>' + [...all].sort((a,b)=>a.label.localeCompare(b.label,'pt-BR')).map(row=>'<option value="'+row.id+'">'+escape(row.label)+'</option>').join('');
+        select.value = selected;
+        if (select.selectedIndex < 0) select.value = '';
+        const rows = all.filter(row=>select.value === '' || String(row.id) === select.value);
+        const total = key=>rows.reduce((sum,row)=>sum+row[key],0);
+        this.find('[data-chart-professor-stats]').innerHTML = [['Professores principais', rows.filter(row=>row.id>0).length],['Turmas',total('classes')],['Matrículas realizadas',total('enrolled')],['Aguardando matrícula',total('awaiting_enrollment')],['Fila de espera',total('waiting_list')],['Vagas disponíveis',total('available')]].map(([label,value])=>'<div class="chart-stat"><span>'+label+'</span><strong>'+number(value)+'</strong></div>').join('');
+        const attendance = this.data.attendance;
+        this.find('[data-chart-professor-frequency-range]').textContent = attendance?.available ? attendance.from.split('-').reverse().join('/')+' a '+attendance.to.split('-').reverse().join('/')+' · até 10 professores por gráfico' : 'Dados de frequência indisponíveis.';
+        for (const key of ['classes','enrollments','attendance']) {
+            const ranked = rows.filter(row=>key !== 'attendance' || row.frequency?.records>0).sort((a,b)=>((key==='attendance'?b.frequency.attendance:b[key])-(key==='attendance'?a.frequency.attendance:a[key])) || a.label.localeCompare(b.label,'pt-BR')).slice(0,10);
+            const maximum = key==='attendance'?100:Math.max(1,...ranked.map(row=>row[key]));
+            this.find('[data-chart-professor-ranking="'+key+'"]').innerHTML = ranked.map(row=>{
+                const value = key==='attendance'?row.frequency.attendance:row[key];
+                const context = key==='attendance' ? number(row.frequency.present)+' presentes · '+number(row.frequency.absent)+' ausentes · '+number(row.frequency.justified)+' justificados' : key==='enrollments' ? number(row.enrolled)+' matrículas · '+number(row.awaiting_enrollment)+' aguardando matrícula · '+number(row.waiting_list)+' em fila de espera' : number(row.offered)+' vagas oferecidas · '+number(row.available)+' disponíveis';
+                return '<div class="chart-bar-row"><div class="chart-bar-label"><span>'+escape(row.label)+'</span><span class="chart-numeric">'+number(value)+(key==='attendance'?'%':key==='classes'?' turmas':' inscrições')+'</span></div><small class="muted">'+escape(context)+'</small><div class="chart-track"><span class="chart-bar" style="width:'+value/maximum*100+'%;background:var(--chart-offered)"></span></div></div>';
+            }).join('') || '<p class="muted">'+(key==='attendance'?'Sem registros de frequência para os filtros selecionados.':'Nenhuma turma nos filtros selecionados.')+'</p>';
+        }
+        const target = this.find('[data-chart-professor-details]');
+        const expanded = new Set(Array.from(target.querySelectorAll('details[open]'),element=>element.dataset.professorDetail));
+        target.innerHTML = rows.map(row=>'<details class="chart-professor-detail" data-professor-detail="'+row.id+'"'+(expanded.has(String(row.id))?' open':'')+'><summary>'+escape(row.label)+' · '+number(row.classes)+' turmas</summary><p class="muted">'+(row.frequency?.records ? 'Presença: '+number(row.frequency.attendance)+'% · '+number(row.frequency.records)+' registros.' : row.frequency === null ? 'Frequência indisponível.' : 'Sem registros de frequência.')+'</p>'+row.rows.map(item=>'<div class="chart-professor-class"><strong>['+item.id+'] '+escape(item.name)+'</strong><small>'+escape(item.location+' · '+item.modality+' · '+item.season)+'</small><small>'+escape(item.schedule)+'</small><small>'+number(item.offered)+' vagas oferecidas · '+number(item.enrolled)+' matrículas · '+number(item.awaiting_enrollment)+' aguardando matrícula · '+number(item.available)+' vagas disponíveis · '+number(item.waiting_list)+' em fila de espera · '+number(item.enrollments)+' inscrições no filtro</small><small>'+ (item.frequency?.records ? 'Frequência da turma: '+number(item.frequency.attendance)+'% · '+number(item.frequency.records)+' registros' : item.frequency === null ? 'Frequência indisponível' : 'Sem registros de frequência') +'</small><small>Professores auxiliares: '+escape(item.auxiliares.join(', ') || 'Sem professores auxiliares')+'</small><small>Equipe de estagiários: '+escape(item.estagiarios.join(', ') || 'Sem estagiários')+'</small></div>').join('')+'</details>').join('') || '<p class="muted">Nenhuma turma nos filtros selecionados.</p>';
     };
 
     Controller.prototype.drawDemand = function () {

@@ -81,8 +81,8 @@ function renderPanel(bool $professorView, array $modalities): string {
     return (string) ob_get_clean();
 }
 $html = renderPanel(true, $modalities);
-check(!str_contains($html, '<th>Criador</th>'), 'Ocultar coluna de criador nas duas listas do professor.');
-check(!str_contains($html, '<td>Professora Ana</td>') && !str_contains($html, '<td>Professor João</td>'), 'Ocultar células de criador nas duas listas do professor.');
+check(!str_contains($html, '<th>Criador</th>') && !str_contains($html, 'Últimos usuários a alterar'), 'Ocultar autoria e histórico do professor.');
+check(!str_contains($html, 'data-schedule-history='), 'Histórico não deve aparecer para professores.');
 check(substr_count($html, 'class="btn btn-secondary admin-modality-edit"') === 1, 'Professor só edita sua modalidade.');
 check(substr_count($html, 'class="btn btn-secondary admin-modality-schedule-edit"') === 1, 'Professor só edita seu cronograma.');
 check(!str_contains($html, 'class="btn btn-danger admin-modality-delete"'), 'Não disponibilizar exclusão de modalidades.');

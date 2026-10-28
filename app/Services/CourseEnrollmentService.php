@@ -749,7 +749,7 @@ class CourseEnrollmentService
         $params[':data_inicio'] = $startDate;
         $params[':data_fim'] = $endDate;
         if ($id > 0) {
-            $current = $pdo->prepare('SELECT temporada_id, modalidade_id, permitir_multiplas_inscricoes_modalidade, limite_inscricoes_modalidade, data_liberacao_multiplas_inscricoes_modalidade FROM cronogramas_modalidade WHERE id=:id LIMIT 1');
+            $current = $pdo->prepare('SELECT * FROM cronogramas_modalidade WHERE id=:id LIMIT 1');
             $current->execute([':id' => $id]);
             $currentSchedule = $current->fetch(PDO::FETCH_ASSOC);
             if (!$currentSchedule) throw new RuntimeException('Cronograma não encontrado.');
@@ -774,10 +774,19 @@ class CourseEnrollmentService
             $stmt = $pdo->prepare('UPDATE cronogramas_modalidade SET observacao=:observacao, temporada_id=:temporada, modalidade_id=:modalidade, nome=:nome, abrangencia_semanal=:abrangencia_semanal, data_inicio=:data_inicio, data_fim=:data_fim, inscricoes_inicio=:inscricoes_inicio, inscricoes_fim=:inscricoes_fim, matriculas_inicio=:matriculas_inicio, matriculas_fim=:matriculas_fim, permitir_inscricao_periodo_matricula=:inscricao_matricula, inscricoes_abertas_inicio=:abertas_inicio, inscricoes_abertas_fim=:abertas_fim, aulas_inicio=:aulas_inicio, aulas_fim=:aulas_fim, possui_edital=:possui_edital, numero_edital=:numero_edital, link_edital=:link_edital, permitir_multiplas_inscricoes_modalidade=:multiplas_modalidade, limite_inscricoes_modalidade=:limite_modalidade, data_liberacao_multiplas_inscricoes_modalidade=:liberacao_modalidade WHERE id=:id LIMIT 1');
             $stmt->execute($params);
             if ($ruleChanged) {
+                $affected = $pdo->prepare('SELECT * FROM cronogramas_modalidade WHERE temporada_id=? AND modalidade_id=? AND id<>?');
+                $affected->execute([$seasonId,$modalityId,$id]);
+                $beforeSync = $affected->fetchAll(PDO::FETCH_ASSOC);
                 $sync = $pdo->prepare('UPDATE cronogramas_modalidade SET permitir_multiplas_inscricoes_modalidade=:permitir, limite_inscricoes_modalidade=:limite, data_liberacao_multiplas_inscricoes_modalidade=:liberacao WHERE temporada_id=:temporada AND modalidade_id=:modalidade');
                 $sync->execute([':permitir' => $allowMultipleByModality ? 1 : 0, ':limite' => $modalityLimit, ':liberacao' => $modalityRelease, ':temporada' => $seasonId, ':modalidade' => $modalityId]);
+                foreach ($beforeSync as $previous) {
+                    $after = array_replace($previous, ['permitir_multiplas_inscricoes_modalidade'=>$allowMultipleByModality ? 1 : 0, 'limite_inscricoes_modalidade'=>$modalityLimit, 'data_liberacao_multiplas_inscricoes_modalidade'=>$modalityRelease]);
+                    if ($after != $previous) AuditLogService::record('cronograma_modalidade.atualizado','cronogramas_modalidade',(int)$previous['id'],['conta_id'=>$accountId,'antes'=>$previous,'depois'=>$after]);
+                }
             }
-            AuditLogService::record('cronograma_modalidade.atualizado', 'cronogramas_modalidade', $id, ['conta_id' => $accountId]);
+            $saved = $pdo->prepare('SELECT * FROM cronogramas_modalidade WHERE id=?');
+            $saved->execute([$id]);
+            AuditLogService::record('cronograma_modalidade.atualizado', 'cronogramas_modalidade', $id, ['conta_id' => $accountId, 'antes'=>$currentSchedule, 'depois'=>$saved->fetch(PDO::FETCH_ASSOC)]);
         } else {
             $existingRule = $pdo->prepare('SELECT permitir_multiplas_inscricoes_modalidade, limite_inscricoes_modalidade, data_liberacao_multiplas_inscricoes_modalidade FROM cronogramas_modalidade WHERE temporada_id=:temporada AND modalidade_id=:modalidade LIMIT 1');
             $existingRule->execute([':temporada' => $seasonId, ':modalidade' => $modalityId]);
@@ -796,10 +805,19 @@ class CourseEnrollmentService
             $stmt = $pdo->prepare('INSERT INTO cronogramas_modalidade (observacao, temporada_id, modalidade_id, nome, abrangencia_semanal, data_inicio, data_fim, inscricoes_inicio, inscricoes_fim, matriculas_inicio, matriculas_fim, permitir_inscricao_periodo_matricula, inscricoes_abertas_inicio, inscricoes_abertas_fim, aulas_inicio, aulas_fim, possui_edital, numero_edital, link_edital, permitir_multiplas_inscricoes_modalidade, limite_inscricoes_modalidade, data_liberacao_multiplas_inscricoes_modalidade) VALUES (:observacao, :temporada, :modalidade, :nome, :abrangencia_semanal, :data_inicio, :data_fim, :inscricoes_inicio, :inscricoes_fim, :matriculas_inicio, :matriculas_fim, :inscricao_matricula, :abertas_inicio, :abertas_fim, :aulas_inicio, :aulas_fim, :possui_edital, :numero_edital, :link_edital, :multiplas_modalidade, :limite_modalidade, :liberacao_modalidade)');
             $stmt->execute($params); $id = (int) $pdo->lastInsertId();
             if ($ruleChanged) {
+                $affected = $pdo->prepare('SELECT * FROM cronogramas_modalidade WHERE temporada_id=? AND modalidade_id=? AND id<>?');
+                $affected->execute([$seasonId,$modalityId,$id]);
+                $beforeSync = $affected->fetchAll(PDO::FETCH_ASSOC);
                 $sync = $pdo->prepare('UPDATE cronogramas_modalidade SET permitir_multiplas_inscricoes_modalidade=:permitir, limite_inscricoes_modalidade=:limite, data_liberacao_multiplas_inscricoes_modalidade=:liberacao WHERE temporada_id=:temporada AND modalidade_id=:modalidade');
                 $sync->execute([':permitir' => $allowMultipleByModality ? 1 : 0, ':limite' => $modalityLimit, ':liberacao' => $modalityRelease, ':temporada' => $seasonId, ':modalidade' => $modalityId]);
+                foreach ($beforeSync as $previous) {
+                    $after = array_replace($previous, ['permitir_multiplas_inscricoes_modalidade'=>$allowMultipleByModality ? 1 : 0, 'limite_inscricoes_modalidade'=>$modalityLimit, 'data_liberacao_multiplas_inscricoes_modalidade'=>$modalityRelease]);
+                    if ($after != $previous) AuditLogService::record('cronograma_modalidade.atualizado','cronogramas_modalidade',(int)$previous['id'],['conta_id'=>$accountId,'antes'=>$previous,'depois'=>$after]);
+                }
             }
-            AuditLogService::record('cronograma_modalidade.criado', 'cronogramas_modalidade', $id, ['conta_id' => $accountId]);
+            $saved = $pdo->prepare('SELECT * FROM cronogramas_modalidade WHERE id=?');
+            $saved->execute([$id]);
+            AuditLogService::record('cronograma_modalidade.criado', 'cronogramas_modalidade', $id, ['conta_id' => $accountId, 'depois'=>$saved->fetch(PDO::FETCH_ASSOC)]);
         }
         return ['id' => $id];
     }
