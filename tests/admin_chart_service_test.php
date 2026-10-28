@@ -17,7 +17,11 @@ expectChart($report['anomalies'] === 1, 'Divergência de capacidade não sinaliz
 expectChart(array_sum(array_column($report['statuses'], 'count')) === 22, 'Status não reconciliados.');
 expectChart(array_sum(array_column($report['publics'], 'offered')) === 26, 'Oferta por público incorreta.');
 expectChart($report['locations'][0]['count'] === 2 && $report['locations'][0]['parts'][0]['count'] === 2, 'Agrupamento de turmas incorreto.');
+$details = array_column($report['details']['rows'], null, 'id');
+expectChart($details[1]['enrolled']===3 && $details[1]['awaiting_enrollment']===1 && $details[1]['waiting_list']===3 && $details[1]['available']===9, 'Quantidades por situação incorretas no detalhamento.');
 $status = $service->report($filters + ['status'=>'aguardando_matricula']);
+$filteredDetails = array_column($status['details']['rows'], null, 'id');
+expectChart($filteredDetails[1]['enrolled']===3 && $filteredDetails[1]['waiting_list']===3 && $filteredDetails[1]['enrollments']===1, 'Filtro de inscrições não deve adulterar a situação real das matrículas.');
 expectChart($status['totals']['enrollments'] === 1 && $status['totals']['available'] === 15, 'Filtrar status alterou a reserva real de vagas.');
 $general = $service->report($filters + ['publico'=>'geral']);
 expectChart($general['totals']['offered'] === 18 && $general['totals']['available'] === 8 && $general['totals']['enrollments'] === 18, 'Regra de público ou de excesso de ocupação incorreta.');

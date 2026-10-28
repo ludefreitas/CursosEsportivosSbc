@@ -193,10 +193,14 @@ class AdminChartService
             $modalities[$modalityId]['parts'][$localId] ??= ['id' => $localId, 'label' => $localLabel, 'count' => 0];
             $locations[$localId]['parts'][$modalityId]['count']++; $modalities[$modalityId]['parts'][$localId]['count']++;
             $offered = 0; $available = 0; $count = 0; $capacitySum = 0;
+            $enrolled = 0; $awaiting = 0; $waitingList = 0;
             foreach (self::PUBLICS as $public => $label) {
                 $capacity = max(0, (int) ($class['vagas_' . $public] ?? 0)); $capacitySum += $capacity;
                 if ($filters['public'] !== '' && $filters['public'] !== $public) continue;
                 $entries = $indexed[$id][$public] ?? [];
+                $enrolled += (int) ($entries['matriculada'] ?? 0);
+                $awaiting += (int) ($entries['aguardando_matricula'] ?? 0);
+                $waitingList += (int) ($entries['lista_espera'] ?? 0);
                 $occupied = (int) ($entries['matriculada'] ?? 0) + (int) ($entries['aguardando_matricula'] ?? 0) + (int) ($entries['suspensa'] ?? 0);
                 $free = max(0, $capacity - $occupied);
                 $offered += $capacity; $available += $free;
@@ -212,7 +216,7 @@ class AdminChartService
             if ($mismatch) $anomalies++;
             $totals['classes']++; $totals['offered'] += $offered; $totals['available'] += $available; $totals['enrollments'] += $count;
             $seasonMap[$seasonId]['classes']++; $seasonMap[$seasonId]['offered'] += $offered; $seasonMap[$seasonId]['available'] += $available; $seasonMap[$seasonId]['enrollments'] += $count;
-            $detailRows[] = ['id' => $id, 'name' => (string) $class['nome'], 'season' => $seasonMap[$seasonId]['label'], 'location' => $localLabel, 'modality' => $modalityLabel, 'offered' => $offered, 'available' => $available, 'enrollments' => $count, 'capacity_mismatch' => $mismatch];
+            $detailRows[] = ['id' => $id, 'name' => (string) $class['nome'], 'season' => $seasonMap[$seasonId]['label'], 'location' => $localLabel, 'modality' => $modalityLabel, 'schedule' => CourseInterestService::describeSchedule($class), 'offered' => $offered, 'available' => $available, 'enrollments' => $count, 'enrolled' => $enrolled, 'awaiting_enrollment' => $awaiting, 'waiting_list' => $waitingList, 'capacity_mismatch' => $mismatch];
         }
         $sortGroups = static function (array $groups): array {
             $groups = array_values($groups);
