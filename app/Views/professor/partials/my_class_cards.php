@@ -15,6 +15,7 @@
             <p><strong>Estagiários:</strong> <?php echo e((string) (($class['estagiarios_nomes'] ?? '') ?: 'Sem estagiário')); ?></p>
             <p><strong>Status:</strong> <span data-course-class-status-label="1"><?php echo e((string) ($class['status_label'] ?? '')); ?></span></p>
         </div>
+        <?php if (empty($internView)) { ?><button type="button" class="link-button course-enrollment-move-link" data-enrollment-move="<?php echo (int)$class['id']; ?>">Mover inscritos</button><?php } ?>
         <div class="course-row-actions admin-class-card-actions">
             <button type="button" class="btn btn-primary" data-professor-class-edit="<?php echo e((string) $class['id']); ?>">Editar</button>
             <?php if (empty($internView)) { ?><button type="button" class="btn btn-secondary" data-course-assign-professor="<?php echo e((string) $class['id']); ?>" data-course-main-professor="<?php echo e((string) ($class['professor_conta_id'] ?? '')); ?>" data-course-current-professors="<?php echo e((string) json_encode($class['professores_ids'] ?? [], JSON_UNESCAPED_UNICODE)); ?>" data-course-current-interns="<?php echo e((string) json_encode($class['estagiarios_ids'] ?? [], JSON_UNESCAPED_UNICODE)); ?>">Equipe</button><?php } ?>

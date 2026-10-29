@@ -319,7 +319,7 @@ class CourseEnrollmentService
                 p.cep, p.logradouro, p.numero_endereco, p.complemento, p.bairro, p.cidade, p.uf,
                 p.contato_emergencia_nome, p.contato_emergencia_telefone,
                 p.eh_pcd, p.eh_pvs, p.eh_plm,
-                t.nome AS turma_nome, t.modalidade_id, t.observacao AS turma_observacao, t.dias_semana, t.hora_inicio, t.hora_fim,
+                t.professor_conta_id AS professor_principal_conta_id,t.nome AS turma_nome, t.modalidade_id, t.observacao AS turma_observacao, t.dias_semana, t.hora_inicio, t.hora_fim,
                 te.nome AS temporada_nome, te.status AS temporada_status, m.nome AS modalidade_nome,
                 COALESCE(l.apelido_local, l.nome_local) AS local_nome,
                 l.logradouro AS local_logradouro, l.numero_endereco AS local_numero_endereco,
@@ -398,7 +398,7 @@ class CourseEnrollmentService
             }
         }
         unset($row);
-        return $rows;
+        return (new EnrollmentMovementService())->annotate($rows,(int)(Auth::id()??0));
     }
 
     /** Retorna o histórico completo das pessoas exibidas, sem reutilizar os filtros da listagem. */
@@ -1335,6 +1335,7 @@ class CourseEnrollmentService
 
     public function saveClassAttendance(int $classId, int $enrollmentId, string $date, string $status, string $justification, int $accountId): void
     {
+        (new EnrollmentMovementService())->withEnrollmentLock($enrollmentId, function () use ($classId, $enrollmentId, $date, $status, $justification, $accountId) {
         if (!in_array($status, ['presente', 'ausente', 'justificado'], true)) { throw new RuntimeException('Selecione um status válido para a chamada.'); }
         if ($status === 'justificado' && trim($justification) === '') { throw new RuntimeException('Informe a justificativa da ausência.'); }
         $pdo = Database::connection();
@@ -1344,13 +1345,16 @@ class CourseEnrollmentService
         $check = $pdo->prepare("SELECT 1 FROM inscricoes_turma WHERE id=:inscricao AND turma_id=:turma AND status='matriculada' LIMIT 1");
         $check->execute([':inscricao' => $enrollmentId, ':turma' => $classId]);
         if (!$check->fetchColumn()) { throw new RuntimeException('Matrícula não encontrada nesta turma.'); }
-        $stmt = $pdo->prepare('INSERT INTO turmas_chamadas (turma_id, inscricao_turma_id, pessoa_id, data_aula, status, justificativa, chamada_por_conta_id) SELECT :turma, i.id, i.pessoa_id, :data, :status, :justificativa, :conta FROM inscricoes_turma i WHERE i.id=:inscricao ON DUPLICATE KEY UPDATE status=VALUES(status), justificativa=VALUES(justificativa), chamada_por_conta_id=VALUES(chamada_por_conta_id), updated_at=CURRENT_TIMESTAMP');
-        $stmt->execute([':turma' => $classId, ':inscricao' => $enrollmentId, ':data' => $date, ':status' => $status, ':justificativa' => trim($justification) ?: null, ':conta' => $accountId]);
+        $stmt = $pdo->prepare('INSERT INTO turmas_chamadas (turma_id, inscricao_turma_id, pessoa_id, data_aula, status, justificativa, chamada_por_conta_id) SELECT :turma, i.id, i.pessoa_id, :data, :status, :justificativa, :conta FROM inscricoes_turma i WHERE i.id=:inscricao AND i.turma_id=:turma_atual AND i.status=\'matriculada\' ON DUPLICATE KEY UPDATE status=VALUES(status), justificativa=VALUES(justificativa), chamada_por_conta_id=VALUES(chamada_por_conta_id), updated_at=CURRENT_TIMESTAMP');
+        $stmt->execute([':turma_atual' => $classId, ':turma' => $classId, ':inscricao' => $enrollmentId, ':data' => $date, ':status' => $status, ':justificativa' => trim($justification) ?: null, ':conta' => $accountId]);
         AuditLogService::record('turma.chamada_atualizada', 'turmas_chamadas', $enrollmentId, ['conta_id' => $accountId, 'turma_id' => $classId, 'data_aula' => $date, 'status' => $status]);
+        });
     }
 
     public function changeAttendanceEnrollmentStatus(int $classId, int $enrollmentId, string $status, int $accountId): void
     {
+        (new EnrollmentMovementService())->withEnrollmentLock($enrollmentId, function () use ($classId, $enrollmentId, $status, $accountId) {
+        if (in_array($status, ['cancelada','excluida','excluida_por_falta','desistente'],true)) (new EnrollmentMovementService())->assertRemovalAllowed($enrollmentId);
         $allowed = ['matriculada' => ['suspensa'], 'suspensa' => ['matriculada', 'desistente'], 'excluida_por_falta' => ['matriculada']];
         $pdo = Database::connection();
         $stmt = $pdo->prepare('SELECT status FROM inscricoes_turma WHERE id=:id AND turma_id=:turma LIMIT 1');
@@ -1359,6 +1363,7 @@ class CourseEnrollmentService
         $pdo->prepare('UPDATE inscricoes_turma SET status=:status, updated_at=NOW() WHERE id=:id')->execute([':status'=>$status, ':id'=>$enrollmentId]);
         $pdo->prepare('INSERT INTO inscricoes_turma_historico (inscricao_turma_id,status_anterior,status_novo,motivo,alterado_por_conta_id) VALUES (:id,:anterior,:novo,:motivo,:conta)')->execute([':id'=>$enrollmentId,':anterior'=>$current,':novo'=>$status,':motivo'=>'Alteração realizada pela lista de chamada.',':conta'=>$accountId]);
         AuditLogService::record('turma.matricula_status_alterado','inscricoes_turma',$enrollmentId,['conta_id'=>$accountId,'turma_id'=>$classId,'status'=>$status]);
+        });
     }
 
     private function validateClassAttendanceDate(array $class, string $date): void
@@ -1681,6 +1686,8 @@ class CourseEnrollmentService
 
     public function cancel(int $enrollmentId): void
     {
+        (new EnrollmentMovementService())->withEnrollmentLock($enrollmentId, function () use ($enrollmentId) {
+        (new EnrollmentMovementService())->assertRemovalAllowed($enrollmentId);
         if (!Auth::check()) {
             throw new RuntimeException('Faça login para cancelar a inscrição.');
         }
@@ -1696,10 +1703,12 @@ class CourseEnrollmentService
         $history = $pdo->prepare('INSERT INTO inscricoes_turma_historico (inscricao_turma_id, status_anterior, status_novo, motivo, alterado_por_conta_id) VALUES (:id, :anterior, :novo, :motivo, :conta)');
         $history->execute([':id' => $enrollmentId, ':anterior' => $enrollment['status'], ':novo' => 'cancelada', ':motivo' => 'Cancelamento solicitado pelo responsável.', ':conta' => Auth::id()]);
         AuditLogService::record('inscricao_turma.cancelada', 'inscricoes_turma', $enrollmentId, ['conta_id' => Auth::id()]);
+        });
     }
 
     public function deletePermanentlyForProfessor(int $enrollmentId, int $accountId): void
     {
+        (new EnrollmentMovementService())->assertRemovalAllowed($enrollmentId);
         if ($enrollmentId <= 0 || $accountId <= 0) {
             throw new RuntimeException('Não foi possível identificar a inscrição para exclusão.');
         }
@@ -1730,6 +1739,7 @@ class CourseEnrollmentService
                 throw new RuntimeException('A exclusão é exclusiva para professores e somente alcança inscrições próprias ou de dependentes vinculados.');
             }
 
+            (new EnrollmentMovementService())->assertRemovalAllowed($enrollmentId);
             $attendance = $pdo->prepare('SELECT COUNT(*) FROM turmas_chamadas WHERE inscricao_turma_id = :id');
             $attendance->execute([':id' => $enrollmentId]);
             if ((int) $attendance->fetchColumn() > 0) {
@@ -1909,6 +1919,8 @@ class CourseEnrollmentService
 
     public function changeStatus(int $enrollmentId, string $status, int $accountId, string $reason = '', ?string $suspensionEnd = null, string $exceptionToken = '', ?string $vacancyNoticeAt = null, bool $vacancyNoticeConfirmed = false): array
     {
+        return (new EnrollmentMovementService())->withEnrollmentLock($enrollmentId, function () use ($enrollmentId, $status, $accountId, $reason, $suspensionEnd, $exceptionToken, $vacancyNoticeAt, $vacancyNoticeConfirmed) {
+        if (in_array($status, ['cancelada','excluida','excluida_por_falta','desistente'],true)) (new EnrollmentMovementService())->assertRemovalAllowed($enrollmentId);
         $allowedTransitions = [
             'lista_espera' => 'aguardando_matricula',
             'aguardando_matricula' => 'matriculada',
@@ -1990,6 +2002,7 @@ class CourseEnrollmentService
         }
 
         return ['capacity_warning' => $capacityWarning];
+        });
     }
 
     private function findClass(PDO $pdo, int $id): array

@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/fixtures/chart_database.php';
+require __DIR__ . '/../app/Services/EnrollmentMovementService.php';
 require __DIR__ . '/../app/Services/AdminChartService.php';
 require __DIR__ . '/../app/Services/CourseAttendanceChartService.php';
 require __DIR__ . '/../app/Services/CourseInterestService.php';

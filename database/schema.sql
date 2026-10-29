@@ -1082,3 +1082,37 @@ CREATE TABLE IF NOT EXISTS fechamentos_horario_semanal (
     INDEX idx_fechamento_horario_datas (horario_semanal_id, data_inicio, data_fim),
     CONSTRAINT fk_fechamento_horario FOREIGN KEY (horario_semanal_id) REFERENCES horarios_semanais(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- Executar separadamente antes de habilitar Mover inscritos.
+-- IDs e retratos permanecem no histórico mesmo após exclusão definitiva.
+CREATE TABLE IF NOT EXISTS movimentacoes_inscricoes (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    operacao_uuid CHAR(36) NOT NULL,
+    requisicao_hash CHAR(64) NOT NULL,
+    modo ENUM('copiar','substituir') NOT NULL,
+    turma_origem_id BIGINT UNSIGNED NOT NULL,
+    inscricao_origem_id BIGINT UNSIGNED NOT NULL,
+    turma_destino_id BIGINT UNSIGNED NOT NULL,
+    inscricao_destino_id BIGINT UNSIGNED NOT NULL,
+    temporada_destino_id BIGINT UNSIGNED NOT NULL,
+    modalidade_destino_id BIGINT UNSIGNED NOT NULL,
+    local_destino_id BIGINT UNSIGNED NOT NULL,
+    periodo_destino VARCHAR(20) NOT NULL,
+    pessoa_id BIGINT UNSIGNED NOT NULL,
+    publico_alvo VARCHAR(10) NOT NULL,
+    status_origem VARCHAR(40) NOT NULL,
+    status_destino VARCHAR(40) NOT NULL,
+    motivo VARCHAR(500) NOT NULL,
+    realizado_por_conta_id BIGINT UNSIGNED NOT NULL,
+    origem_json LONGTEXT NOT NULL,
+    destino_json LONGTEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    excluida_em DATETIME NULL,
+    excluida_por_conta_id BIGINT UNSIGNED NULL,
+    UNIQUE KEY uq_movimentacao_reenvio (operacao_uuid, inscricao_origem_id),
+    INDEX idx_movimentacao_destino (inscricao_destino_id, excluida_em),
+    INDEX idx_movimentacao_origem (inscricao_origem_id),
+    INDEX idx_movimentacao_relatorio (turma_destino_id, created_at),
+    INDEX idx_movimentacao_temporada (temporada_destino_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -90,6 +90,43 @@ class ProfessorController extends Controller
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
+    public function enrollmentMovementCopies(): void
+    {
+        $user=$this->assertProfessorMutationAccess();
+        try {
+            $result=(new \App\Services\EnrollmentMovementService())->copies((int)($_GET['inscricao_id']??0),(int)$user['conta_id'],false);
+            $this->jsonResponse(['success'=>true,'copies'=>$result]);
+        }catch(\Throwable $e){$this->jsonResponse(['success'=>false,'message'=>$e->getMessage()],422);}
+    }
+    public function enrollmentMovementContext(): void
+    {
+        $user=$this->assertProfessorMutationAccess();
+        try {
+            $_SESSION['enrollment_movement_csrf'] ??= bin2hex(random_bytes(32));
+            $context=(new \App\Services\EnrollmentMovementService())->context((int)($_GET['turma_id']??0),(int)$user['conta_id'],false);
+            $this->jsonResponse(['success'=>true,'context'=>$context,'csrf'=>$_SESSION['enrollment_movement_csrf']]);
+        }catch(\Throwable $e){$this->jsonResponse(['success'=>false,'message'=>$e->getMessage()],422);}
+    }
+    public function enrollmentMovementSave(): void
+    {
+        $user=$this->assertProfessorMutationAccess();
+        try {
+            if (empty($_SESSION['enrollment_movement_csrf']) || !is_string($_POST['csrf']??null) || !hash_equals($_SESSION['enrollment_movement_csrf'],$_POST['csrf'])) throw new \RuntimeException('Sessão de movimentação inválida. Abra novamente o modal.');
+            $result=(new \App\Services\EnrollmentMovementService())->move($_POST,(int)$user['conta_id'],false);
+            $this->jsonResponse(['success'=>true,'result'=>$result,'message'=>$result['quantidade'].' inscrições enviadas com sucesso.']);
+        }catch(\Throwable $e){$this->jsonResponse(['success'=>false,'message'=>$e->getMessage()],422);}
+    }
+    public function enrollmentMovementDelete(): void
+    {
+        $user=$this->assertProfessorMutationAccess();
+        try {
+            if (empty($_SESSION['enrollment_movement_csrf']) || !is_string($_POST['csrf']??null) || !hash_equals($_SESSION['enrollment_movement_csrf'],$_POST['csrf'])) throw new \RuntimeException('Sessão inválida. Atualize a lista de inscrições.');
+            if (empty($_POST['confirmar_exclusao'])) throw new \RuntimeException('Confirme a exclusão definitiva.');
+            (new \App\Services\EnrollmentMovementService())->delete((int)($_POST['inscricao_id']??0),(int)$user['conta_id']);
+            $this->jsonResponse(['success'=>true,'message'=>'Inscrição movida excluída definitivamente. O histórico da movimentação foi preservado.']);
+        }catch(\Throwable $e){$this->jsonResponse(['success'=>false,'message'=>$e->getMessage()],422);}
+    }
+
     public function modalityScheduleClasses(): void
     {
         $this->assertProfessorMutationAccess();

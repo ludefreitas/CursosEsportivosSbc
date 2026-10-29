@@ -176,7 +176,16 @@
         this.find('[data-chart-status-list]').innerHTML = data.statuses.map((item, index) => '<div class="chart-status-row"><i class="chart-status-dot" style="background:' + (statusColors[item.id] || series[index % series.length]) + '"></i><span>' + escape(item.label) + '</span><span class="chart-numeric">' + number(item.count) + '</span></div>').join('');
         const maxEnrollments = Math.max(1, ...data.publics.map(item => item.enrollments));
         this.find('[data-chart-publics]').innerHTML = data.publics.map(item => '<div class="chart-bar-row"><div class="chart-bar-label"><span>' + escape(item.label) + '</span><span class="chart-numeric">' + number(item.enrollments) + '</span></div><div class="chart-track"><span class="chart-bar" style="background:var(--chart-enrollments);width:' + item.enrollments / maxEnrollments * 100 + '%"></span></div></div>').join('');
-        this.drawGroups(); this.drawComparison(); this.drawMatrix(); this.drawDetails(); this.drawDemand(); this.drawProfessors(); this.drawEnrollmentTrend();
+        this.drawGroups(); this.drawComparison(); this.drawMatrix(); this.drawDetails(); this.drawDemand(); this.drawProfessors(); this.drawEnrollmentTrend(); this.drawMovements();
+    };
+
+    Controller.prototype.drawMovements = function () {
+        const data=this.data.movements;
+        this.find('[data-movement-chart-message]').textContent=data?.available?'':(data?.message||'Sem dados de movimentações.');
+        this.find('[data-movement-chart-stats]').innerHTML=data?.available?[['Inscrições copiadas',data.totals.copias],['Inscrições substituídas',data.totals.substituicoes],['Destinos excluídos',data.totals.excluidas],['Operações de envio',data.totals.operacoes]].map(([label,value])=>'<div class="chart-stat"><span>'+label+'</span><strong>'+number(value)+'</strong></div>').join(''):'';
+        const maximum=Math.max(1,...(data?.modalities||[]).map(item=>item.count));
+        this.find('[data-movement-chart-modalities]').innerHTML=(data?.modalities||[]).map(item=>'<div class="chart-bar-row"><div class="chart-bar-label"><span>'+escape(item.label)+'</span><strong>'+number(item.count)+'</strong></div><div class="chart-track"><span class="chart-bar" style="width:'+item.count/maximum*100+'%;background:var(--chart-offered)"></span></div></div>').join('')||'<p class="muted">Nenhuma movimentação nos filtros.</p>';
+        this.find('[data-movement-chart-recent]').innerHTML=(data?.recent||[]).map(item=>'<p>'+escape(item.created_at.split(' ')[0].split('-').reverse().join('/')+' · '+(item.modo==='copiar'?'Cópia':'Substituição')+' · ['+item.turma_origem_id+'] '+(item.origem||'Origem removida')+' → ['+item.turma_destino_id+'] '+item.destino+' · Inscrição ['+item.inscricao_origem_id+'] → ['+item.inscricao_destino_id+'] · '+(item.usuario||'Usuário não informado')+(item.excluida_em?' · Destino excluído definitivamente':''))+'</p>').join('')||'<p class="muted">Nenhum registro.</p>';
     };
 
     Controller.prototype.drawEnrollmentTrend = function () {

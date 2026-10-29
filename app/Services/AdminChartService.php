@@ -118,6 +118,7 @@ class AdminChartService
         $statement->execute($params+[':procura_de'=>$filters['demand_from'].' 00:00:00',':procura_fim'=>(new \DateTimeImmutable($filters['demand_to']))->modify('+1 day')->format('Y-m-d').' 00:00:00']);
         $result['demand'] = $this->aggregateDemand($classes,$statement->fetchAll(PDO::FETCH_ASSOC),(new CourseInterestService($pdo))->report($filters),$filters);
         $result['enrollment_trend'] = $this->enrollmentTrend($where, $params, $classes, $filters, $input);
+        $result['movements'] = (new EnrollmentMovementService($pdo))->report($filters);
         $result['attendance'] = (new CourseAttendanceChartService($pdo))->report($where,$params,$filters,$input);
         $attendance = array_column($result['attendance']['groups']['professors'] ?? [], null, 'id');
         $classAttendance = array_column($result['attendance']['groups']['classes'] ?? [], null, 'id');

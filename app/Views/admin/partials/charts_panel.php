@@ -46,6 +46,13 @@
             <article class="content-card chart-panel"><details data-chart-collapsible><summary>Oferta de turmas por modalidade</summary><div data-chart-modality-matrix class="chart-matrix"></div><p class="muted">Cada valor indica turmas, não vagas.</p></details></article>
             <article class="content-card chart-panel chart-panel-full"><details data-chart-details><summary data-chart-details-title>Detalhar turmas</summary><div data-chart-detail-rows class="chart-detail-rows"></div><nav class="chart-pagination" aria-label="Páginas de turmas"><button type="button" class="btn btn-secondary" data-chart-page="previous">Anterior</button><span data-chart-page-label></span><button type="button" class="btn btn-secondary" data-chart-page="next">Próxima</button></nav></details></article>
         </div>
+        <section class="chart-demand-section" aria-label="Movimentações de inscrições">
+            <h3>Movimentações de inscrições</h3>
+            <p class="muted">Cópias e substituições por data do envio. Segue o intervalo de procura e os filtros da turma de destino: temporada, local, modalidade e período de aula. Público e status refletem o momento do envio. Exclusões mostram quais destinos enviados nesse intervalo foram excluídos definitivamente. Uma operação pode incluir várias inscrições.</p>
+            <p data-movement-chart-message class="muted"></p><div class="chart-stats" data-movement-chart-stats></div>
+            <div class="chart-panel-grid"><article class="content-card chart-panel"><h3>Inscrições enviadas por modalidade de destino</h3><div class="chart-bars" data-movement-chart-modalities></div></article>
+            <article class="content-card chart-panel"><details><summary>Últimas 20 movimentações nos filtros</summary><div data-movement-chart-recent></div></details></article></div>
+        </section>
         <section class="chart-demand-section" aria-label="Evolução das inscrições recebidas">
             <h3>Evolução das inscrições recebidas</h3>
             <p class="muted">Inscrições pela data em que foram recebidas, e não pela data da matrícula. Segue temporadas, local, modalidade, público, status atual e período da aula selecionados. O ano abaixo é independente das datas de procura e frequência. Não representa pessoas únicas nem o histórico das mudanças de status.</p>
