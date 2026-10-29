@@ -2075,6 +2075,26 @@ class CourseEnrollmentService
         }
     }
 
+    public function movementCompatibilityReasons(array $person, array $class, string $public, array $validatedConditions): array
+    {
+        $reasons=[];$labels=['geral'=>'Geral','pcd'=>'PCD','plm'=>'PLM','pvs'=>'PVS'];
+        $matchesAge=$this->personMatchesClassAgeRule($person,$class,'geral');
+        foreach($validatedConditions as $condition)if(in_array($condition,['pcd','plm','pvs'],true)&&$this->personMatchesClassAgeRule($person,$class,$condition))$matchesAge=true;
+        if(empty($person['data_nascimento']))$reasons[]='Data de nascimento não informada: não é possível conferir a idade.';
+        elseif(!$matchesAge)$reasons[]='Idade fora da regra do destino: '.$this->describeClassAgeRule($class).'.';
+        $sex=trim((string)($class['sexo']??''));
+        if($sex!==''&&$sex!==(string)($person['sexo']??''))$reasons[]='Sexo incompatível com o destino, que aceita apenas '.($sex==='feminino'?'feminino':'masculino').'.';
+        if($public!=='geral'){
+            if(empty($person['eh_'.$public]))$reasons[]='A condição '.($labels[$public]??$public).' da inscrição não consta no cadastro da pessoa.';
+            if(!in_array($public,$validatedConditions,true))$reasons[]='A condição '.($labels[$public]??$public).' não possui comprovação validada e vigente.';
+        }
+        if((int)($class['vagas_'.$public]??0)<=0&&(int)($class['vagas_espera_'.$public]??0)<=0){
+            $available=[];foreach($labels as$key=>$label)if((int)($class['vagas_'.$key]??0)>0||(int)($class['vagas_espera_'.$key]??0)>0)$available[]=$label;
+            $reasons[]='A turma não possui cota configurada para '.($labels[$public]??$public).'. Cotas configuradas: '.($available?implode(', ',$available):'nenhuma').'.';
+        }
+        return $reasons;
+    }
+
     private function classAgeReferenceDate(array $class): DateTimeImmutable
     {
         $value = trim((string) ($class['aulas_inicio'] ?? $class['temporada_inicio'] ?? $class['data_inicio'] ?? ''));

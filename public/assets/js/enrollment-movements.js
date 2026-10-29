@@ -84,10 +84,20 @@
                 event.preventDefault();const chosen=[...selection.values()].filter(row=>row.$check.prop('checked')).map(row=>row.item);
                 if(!chosen.length){App.core.abrirPopup('erro','Selecione pelo menos uma inscrição.');return;}
                 const dest=context.destinos.find(item=>String(item.id)===$dest.val());if(!dest){App.core.abrirPopup('erro','Selecione a temporada, o local e a turma de destino.');return;}
+                const mode=$mode.val(),reason=$reason.val(),season=$season.val(),$review=$form.find('button[type=submit]').prop('disabled',true);
+                $.ajax({url:endpoint('mover/compatibilidade'),method:'POST',dataType:'json',data:{csrf:response.csrf,turma_origem_id:context.origem.id,turma_destino_id:dest.id,inscricoes:chosen.map(item=>item.id)}}).done(preview=>{
+                if(!preview?.success){App.core.abrirPopup('erro',preview?.message||'Não foi possível validar o destino.');return;}
                 const cross=Number(dest.modalidade_id)!==context.origem.modalidade_id;
                 const confirmView=modal('enrollment-movement-confirm','Confirmar movimentação');
-                $('<p>').text(chosen.length+' inscrição(ões) · '+($mode.val()==='copiar'?'Copiar':'Substituir')+' para '+dest.descricao).appendTo(confirmView.$body);
-                const checks=[];
+                $('<p>').text(chosen.length+' inscrição(ões) · '+(mode==='copiar'?'Copiar':'Substituir')+' para '+dest.descricao).appendTo(confirmView.$body);
+                const checks=[];let $compatibility=null;
+                if(preview.compatibility.avisos.length){
+                    $('<p>',{class:'field-error',text:'Atenção: há incompatibilidades com os critérios da turma de destino.'}).appendTo(confirmView.$body);
+                    const $warnings=$('<ul>',{'data-compatibility-warnings':'1'}).appendTo(confirmView.$body);
+                    preview.compatibility.avisos.forEach(item=>{const $item=$('<li>').appendTo($warnings);$('<strong>').text('['+item.inscricao_id+'] '+item.nome).appendTo($item);const $reasons=$('<ul>').appendTo($item);item.motivos.forEach(reason=>$('<li>').text(reason).appendTo($reasons));});
+                    $compatibility=$('<input>',{type:'checkbox','data-confirm-compatibility':'1'});checks.push($compatibility);
+                    $('<label>',{class:'checkbox-chip field-error'}).append($compatibility,$('<span>',{text:'Confirmo a movimentação mesmo com as incompatibilidades de idade, sexo ou condição/cota informadas acima. O público da inscrição será mantido.'})).appendTo(confirmView.$body);
+                }
                 [...new Set(chosen.map(item=>item.status))].forEach(status=>{const count=chosen.filter(item=>item.status===status).length;if(status==='matriculada')$('<p>').text(count+' matrícula(s) selecionada(s).').appendTo(confirmView.$body);else {const $check=$('<input>',{type:'checkbox','data-confirm-status':status});checks.push($check);$('<label>',{class:'checkbox-chip'}).append($check,$('<span>').text('Confirmo mover '+count+' inscrição(ões) em '+labels[status])).appendTo(confirmView.$body);}});
                 let $cross=null;if(cross){$cross=$('<input>',{type:'checkbox'});checks.push($cross);$('<label>',{class:'checkbox-chip field-error'}).append($cross,$('<span>',{text:'A modalidade do destino é diferente. Confirmo a cópia para outra modalidade.'})).appendTo(confirmView.$body);}
                 let $other=null;if(!dest.pertence_ao_professor){$other=$('<input>',{type:'checkbox'});checks.push($other);$('<label>',{class:'checkbox-chip field-error'}).append($other,$('<span>',{text:'A turma de destino é de outro professor. Confirmo o envio para essa turma.'})).appendTo(confirmView.$body);}
@@ -95,11 +105,12 @@
                 $('<button>',{type:'button',class:'btn btn-secondary',text:'Voltar'}).on('click',confirmView.close).appendTo(confirmView.$body);
                 const $send=$('<button>',{type:'button',class:'btn btn-primary',text:'Confirmar envio'}).appendTo(confirmView.$body).on('click',()=>{
                     if(checks.some(check=>!check.prop('checked'))){App.core.abrirPopup('erro','Marque todas as confirmações exigidas antes de enviar.');return;}
-                    const signature=JSON.stringify([chosen.map(item=>item.id),dest.id,$mode.val(),$reason.val()]);
+                    const signature=JSON.stringify([chosen.map(item=>item.id),dest.id,mode,reason]);
                     if(signature!==requestSignature){requestSignature=signature;requestUuid=window.crypto.randomUUID?window.crypto.randomUUID():Array.from(window.crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join('');}
                     $send.prop('disabled',true);
-                    $.ajax({url:endpoint('mover'),method:'POST',dataType:'json',data:{csrf:response.csrf,operacao_uuid:requestUuid,turma_origem_id:context.origem.id,turma_destino_id:dest.id,temporada_destino_id:$season.val(),confirmar_outro_professor:$other?.prop('checked')?1:0,modo:$mode.val(),inscricoes:chosen.map(item=>item.id),motivo:$reason.val(),status_confirmados:checks.filter(check=>check.attr('data-confirm-status')).map(check=>check.attr('data-confirm-status')),confirmar_modalidade_diferente:$cross?.prop('checked')?1:0,confirmar_exclusao_restrita:1}}).done(result=>{if(!result?.success){App.core.abrirPopup('erro',result?.message||'Não foi possível enviar.');return;}confirmView.close();view.close();reload();App.core.abrirPopup('sucesso',result.message);}).fail(error).always(()=>$send.prop('disabled',false));
+                    $.ajax({url:endpoint('mover'),method:'POST',dataType:'json',data:{csrf:response.csrf,operacao_uuid:requestUuid,turma_origem_id:context.origem.id,turma_destino_id:dest.id,temporada_destino_id:season,confirmar_outro_professor:$other?.prop('checked')?1:0,modo:mode,inscricoes:chosen.map(item=>item.id),motivo:reason,status_confirmados:checks.filter(check=>check.attr('data-confirm-status')).map(check=>check.attr('data-confirm-status')),confirmar_modalidade_diferente:$cross?.prop('checked')?1:0,confirmar_exclusao_restrita:1,confirmar_incompatibilidades:$compatibility?.prop('checked')?1:0,compatibilidade_hash:preview.compatibility.hash}}).done(result=>{if(!result?.success){App.core.abrirPopup('erro',result?.message||'Não foi possível enviar.');return;}confirmView.close();view.close();reload();App.core.abrirPopup('sucesso',result.message);}).fail(error).always(()=>$send.prop('disabled',false));
                 });
+                }).fail(error).always(()=>$review.prop('disabled',false));
             });
         }).fail(error).always(()=>$trigger.prop('disabled',false));
     });

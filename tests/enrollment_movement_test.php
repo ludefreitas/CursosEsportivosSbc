@@ -3,6 +3,7 @@ namespace App\Core { class Database {public static \PDO $pdo;public static funct
 namespace App\Services { class AuditLogService {public static int $count=0;public static int $failAt=0; public static function record(...$args): void {self::$count++;if(self::$failAt===self::$count)throw new \RuntimeException('Falha simulada');} } }
 namespace {
 require __DIR__.'/fixtures/enrollment_movement_database.php';
+require __DIR__.'/../app/Helpers/functions.php';
 require __DIR__.'/../app/Services/CourseInterestService.php';
 require __DIR__.'/../app/Services/EnrollmentMovementService.php';
 require __DIR__.'/../app/Services/CourseEnrollmentService.php';

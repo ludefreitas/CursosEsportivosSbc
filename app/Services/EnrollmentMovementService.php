@@ -81,6 +81,30 @@ class EnrollmentMovementService
             foreach($rows as $index=>$row)$stmt->execute([$index+1,$row['id']]);
         }
     }
+    private function compatibilityFor(array $ids,int $source,int $destination): array {
+        $locking=$this->db()->inTransaction()?$this->lock():'';
+        $class=$this->rows('SELECT t.*,te.data_inicio AS temporada_inicio,COALESCE(cm.aulas_inicio,te.aulas_inicio) AS aulas_inicio FROM turmas t INNER JOIN temporadas te ON te.id=t.temporada_id LEFT JOIN cronogramas_modalidade cm ON cm.id=t.cronograma_modalidade_id WHERE t.id=?'.$locking,[$destination])[0]??null;
+        if(!$class)throw new RuntimeException('Turma de destino não encontrada.');
+        $marks=implode(',',array_fill(0,count($ids),'?'));
+        $people=$this->rows("SELECT i.id,i.publico_alvo,i.pessoa_id,p.nome_completo,p.data_nascimento,p.sexo,p.eh_pcd,p.eh_plm,p.eh_pvs FROM inscricoes_turma i INNER JOIN pessoas p ON p.id=i.pessoa_id WHERE i.turma_id=? AND i.id IN ($marks) ORDER BY i.id".$locking,array_merge([$source],$ids));
+        if(count($people)!==count($ids))throw new RuntimeException('Uma inscrição selecionada não pertence mais à origem. Atualize a lista.');
+        $personIds=array_column($people,'pessoa_id');$personMarks=implode(',',array_fill(0,count($personIds),'?'));
+        $today=(new \DateTimeImmutable('today',new \DateTimeZone('America/Sao_Paulo')))->format('Y-m-d');
+        $certificates=$this->rows("SELECT DISTINCT cp.pessoa_id,tc.slug FROM certificados_pessoa cp INNER JOIN tipos_certificados tc ON tc.id=cp.tipo_certificado_id WHERE cp.pessoa_id IN ($personMarks) AND tc.slug IN ('pcd','plm','pvs') AND cp.status IN ('validado','validado_parcial') AND (cp.validade_certificado IS NULL OR cp.validade_certificado>=?) AND EXISTS (SELECT 1 FROM documentos_certificados dc WHERE dc.certificado_pessoa_id=cp.id) ORDER BY cp.pessoa_id,tc.slug".$locking,array_merge($personIds,[$today]));
+        $validated=[];foreach($certificates as$certificate)$validated[(int)$certificate['pessoa_id']][]=$certificate['slug'];
+        $warnings=[];$rules=new CourseEnrollmentService();
+        foreach($people as$person){$reasons=$rules->movementCompatibilityReasons($person,$class,$person['publico_alvo'],$validated[(int)$person['pessoa_id']]??[]);if($reasons)$warnings[]=['inscricao_id'=>(int)$person['id'],'nome'=>$person['nome_completo'],'motivos'=>$reasons];}
+        $criteria=array_intersect_key($class,array_fill_keys(['id','sexo','idade_minima','idade_maxima','criterio_faixa_etaria','excecoes_idade_json','aulas_inicio','temporada_inicio','vagas_geral','vagas_pcd','vagas_plm','vagas_pvs','vagas_espera_geral','vagas_espera_pcd','vagas_espera_plm','vagas_espera_pvs'],true));
+        return ['avisos'=>$warnings,'hash'=>hash('sha256',json_encode([$ids,$criteria,$people,$certificates],JSON_UNESCAPED_UNICODE))];
+    }
+    public function preview(array $data,int $actor,bool $admin): array {
+        $this->ready();$source=(int)($data['turma_origem_id']??0);$dest=(int)($data['turma_destino_id']??0);$ids=$data['inscricoes']??[];
+        if($source<=0||$dest<=0||!is_array($ids)||!$ids||count($ids)>500)throw new RuntimeException('Selecione a origem, o destino e até 500 inscrições.');
+        foreach($ids as$id)if(!is_scalar($id)||!ctype_digit((string)$id)||(int)$id<=0)throw new RuntimeException('Seleção inválida.');
+        $ids=array_values(array_unique(array_map('intval',$ids)));sort($ids);
+        $class=$this->rows('SELECT * FROM turmas WHERE id=?',[$source])[0]??null;if(!$class)throw new RuntimeException('Turma não encontrada.');$this->assertSource($class,$actor,$admin);
+        return $this->compatibilityFor($ids,$source,$dest);
+    }
     public function move(array $data,int $actor,bool $admin): array {
         $this->ready();
         $source=(int)($data['turma_origem_id']??0);$dest=(int)($data['turma_destino_id']??0);$mode=$data['modo']??'';
@@ -131,6 +155,9 @@ class EnrollmentMovementService
                 $people[$enrollment['pessoa_id']]=true;
                 $public=$enrollment['publico_alvo'];if(!in_array($public,['geral','pcd','plm','pvs'],true))throw new RuntimeException('Público da inscrição inválido.');
             }
+            $compatibility=$this->compatibilityFor($ids,$source,$dest);
+            if($compatibility['avisos'] && (empty($data['confirmar_incompatibilidades']) || !is_string($data['compatibilidade_hash']??null) || !hash_equals($compatibility['hash'],$data['compatibilidade_hash'])))throw new RuntimeException('Confirme as incompatibilidades de idade, sexo ou condição no modal antes de enviar. Se os dados mudaram, revise novamente.');
+            $compatibilityById=array_column($compatibility['avisos'],null,'inscricao_id');
             $order=(int)$this->rows('SELECT COALESCE(MAX(numero_ordem),0) AS numero FROM inscricoes_turma WHERE turma_id=?',[$dest])[0]['numero'];
             $now=date('Y-m-d H:i:s');
             foreach($enrollments as $enrollment){
@@ -143,7 +170,7 @@ class EnrollmentMovementService
                     $pdo->prepare('UPDATE inscricoes_turma SET turma_id=?,numero_ordem=?,posicao_lista_espera=NULL,updated_at=? WHERE id=?')->execute([$dest,$order,$now,$newId]);
                 }
                 $after=$this->rows('SELECT * FROM inscricoes_turma WHERE id=?',[$newId])[0];
-                $pdo->prepare('INSERT INTO movimentacoes_inscricoes (operacao_uuid,requisicao_hash,modo,turma_origem_id,inscricao_origem_id,turma_destino_id,inscricao_destino_id,temporada_destino_id,modalidade_destino_id,local_destino_id,periodo_destino,pessoa_id,publico_alvo,status_origem,status_destino,motivo,realizado_por_conta_id,origem_json,destino_json,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([$uuid,$hash,$mode,$source,$enrollment['id'],$dest,$newId,$classes[$dest]['temporada_id'],$classes[$dest]['modalidade_id'],$classes[$dest]['local_treino_id'],CourseInterestService::period((string)($classes[$dest]['hora_inicio']??'')),$enrollment['pessoa_id'],$enrollment['publico_alvo'],$enrollment['status'],$enrollment['status'],$reason,$actor,json_encode($before+['_turma'=>$classes[$source]],JSON_UNESCAPED_UNICODE),json_encode($after+['_turma'=>$classes[$dest],'_confirmacoes'=>['outra_modalidade'=>$cross,'outro_professor'=>!$belongs,'exclusao_restrita'=>true,'status'=>array_values(array_intersect(array_keys(self::STATUSES),$confirmed))]],JSON_UNESCAPED_UNICODE),$now]);
+                $pdo->prepare('INSERT INTO movimentacoes_inscricoes (operacao_uuid,requisicao_hash,modo,turma_origem_id,inscricao_origem_id,turma_destino_id,inscricao_destino_id,temporada_destino_id,modalidade_destino_id,local_destino_id,periodo_destino,pessoa_id,publico_alvo,status_origem,status_destino,motivo,realizado_por_conta_id,origem_json,destino_json,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([$uuid,$hash,$mode,$source,$enrollment['id'],$dest,$newId,$classes[$dest]['temporada_id'],$classes[$dest]['modalidade_id'],$classes[$dest]['local_treino_id'],CourseInterestService::period((string)($classes[$dest]['hora_inicio']??'')),$enrollment['pessoa_id'],$enrollment['publico_alvo'],$enrollment['status'],$enrollment['status'],$reason,$actor,json_encode($before+['_turma'=>$classes[$source]],JSON_UNESCAPED_UNICODE),json_encode($after+['_turma'=>$classes[$dest],'_confirmacoes'=>['outra_modalidade'=>$cross,'outro_professor'=>!$belongs,'exclusao_restrita'=>true,'status'=>array_values(array_intersect(array_keys(self::STATUSES),$confirmed)),'compatibilidade'=>['confirmada'=>isset($compatibilityById[(int)$enrollment['id']]),'motivos'=>$compatibilityById[(int)$enrollment['id']]['motivos']??[],'avaliacao_hash'=>$compatibility['hash']]]],JSON_UNESCAPED_UNICODE),$now]);
                 $pdo->prepare('INSERT INTO inscricoes_turma_historico (inscricao_turma_id,status_anterior,status_novo,motivo,alterado_por_conta_id) VALUES (?,?,?,?,?)')->execute([$newId,$mode==='copiar'?null:$enrollment['status'],$enrollment['status'],ucfirst($mode).' da turma ['.$source.']. '.mb_substr($reason,0,180),$actor]);
                 AuditLogService::record('inscricao_turma.movida','inscricoes_turma',$newId,['conta_id'=>$actor,'modo'=>$mode,'origem'=>$enrollment['id'],'turma_origem'=>$source,'turma_destino'=>$dest]);
             }

@@ -21,6 +21,12 @@ A aplicação não inspeciona nem altera a estrutura do banco durante requisiç�
 - A exclusão definitiva exige confirmação e remove a inscrição, chamadas, declaração e histórico de status; referências de tokens e notificações são desassociadas. A movimentação e seus retratos são preservados.
 - As posições das filas de origem e destino são reorganizadas sem promover outros alunos e preservando a ordem dos inscritos que já estavam na fila de destino.
 
+## Compatibilidade e confirmação de exceções
+
+Antes de confirmar o envio, uma requisição AJAX confere os critérios etários (idade exata ou ano de nascimento e exceções comprovadas), sexo, condição cadastrada, comprovação vigente de PCD/PLM/PVS e existência da cota do público da inscrição no destino. Cota configurada é diferente de saldo de vagas: uma turma cheia continua aceitando movimentações conforme a regra anterior.
+
+As divergências são listadas por inscrição, com uma confirmação específica para enviar mesmo assim. O público original é mantido; a confirmação não transforma uma inscrição Geral em PCD, PLM ou PVS. A validação é repetida no envio e uma avaliação desatualizada exige nova revisão. A confirmação e os motivos ficam no retrato de destino da movimentação, sem nova alteração estrutural no banco.
+
 ## Consultar as cópias
 
 A lista de inscrições identifica originais e destinos de cópias com **Copiada — ver turmas de destino**. O link abre por AJAX uma relação das turmas, dias, horários, local, IDs de origem/destino e status. Destinos excluídos continuam identificados no histórico. A consulta é autorizada somente para admins ou professores da turma da inscrição consultada.

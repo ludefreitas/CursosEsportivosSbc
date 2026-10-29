@@ -98,6 +98,15 @@ class ProfessorController extends Controller
             $this->jsonResponse(['success'=>true,'copies'=>$result]);
         }catch(\Throwable $e){$this->jsonResponse(['success'=>false,'message'=>$e->getMessage()],422);}
     }
+    public function enrollmentMovementPreview(): void
+    {
+        $user=$this->assertProfessorMutationAccess();
+        try {
+            if(empty($_SESSION['enrollment_movement_csrf'])||!is_string($_POST['csrf']??null)||!hash_equals($_SESSION['enrollment_movement_csrf'],$_POST['csrf']))throw new \RuntimeException('Sessão inválida. Abra novamente a movimentação.');
+            $result=(new \App\Services\EnrollmentMovementService())->preview($_POST,(int)$user['conta_id'],false);
+            $this->jsonResponse(['success'=>true,'compatibility'=>$result]);
+        }catch(\Throwable $e){$this->jsonResponse(['success'=>false,'message'=>$e->getMessage()],422);}
+    }
     public function enrollmentMovementContext(): void
     {
         $user=$this->assertProfessorMutationAccess();
