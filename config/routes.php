@@ -120,6 +120,8 @@ return [
     ['GET', '/admin/pessoas/responsabilidade', [AdminController::class, 'responsibilityContext']],
     ['GET', '/admin/pessoas/responsavel/consultar', [AdminController::class, 'responsibilityCandidate']],
     ['POST', '/admin/pessoas/responsabilidade', [AdminController::class, 'transferResponsibility']],
+    ['GET', '/admin/pessoas/pendencias', [AdminController::class, 'profilePending']],
+    ['GET', '/professor/pessoas/pendencias', [ProfessorController::class, 'profilePending']],
     ['GET', '/admin/pessoas/detalhe', [AdminController::class, 'personDetails']],
     ['GET', '/admin/pessoas/inscricoes', [AdminController::class, 'personEnrollments']],
     ['GET', '/admin/pessoas/lista', [AdminController::class, 'peoplePanel']],

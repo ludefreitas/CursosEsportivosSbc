@@ -96,7 +96,7 @@ class AdminChartService
         if ($filters['location']) { $where .= ' AND t.local_treino_id=:local'; $params[':local'] = $filters['location']; }
         if ($filters['modality']) { $where .= ' AND t.modalidade_id=:modalidade'; $params[':modalidade'] = $filters['modality']; }
         $pdo = $this->connection();
-        $statement = $pdo->prepare("SELECT t.professor_conta_id, principal.nome_completo AS professor_nome,t.id,t.temporada_id,t.nome,t.local_treino_id,t.modalidade_id,t.status,t.hora_inicio,t.hora_fim,t.dias_semana,t.vagas_totais,t.vagas_geral,t.vagas_pcd,t.vagas_plm,t.vagas_pvs,
+        $statement = $pdo->prepare("SELECT t.idade_minima,t.idade_maxima,t.criterio_faixa_etaria,t.professor_conta_id, principal.nome_completo AS professor_nome,t.id,t.temporada_id,t.nome,t.local_treino_id,t.modalidade_id,t.status,t.hora_inicio,t.hora_fim,t.dias_semana,t.vagas_totais,t.vagas_geral,t.vagas_pcd,t.vagas_plm,t.vagas_pvs,
             COALESCE(NULLIF(TRIM(l.apelido_local), ''),l.nome_local) AS local_nome,m.nome AS modalidade_nome
             FROM turmas t INNER JOIN locais_treino l ON l.id=t.local_treino_id INNER JOIN modalidades m ON m.id=t.modalidade_id LEFT JOIN contas principal_conta ON principal_conta.id=t.professor_conta_id LEFT JOIN pessoas principal ON principal.cpf=principal_conta.cpf
             WHERE $where ORDER BY local_nome,m.nome,t.nome,t.id");
@@ -117,6 +117,7 @@ class AdminChartService
         $statement = $pdo->prepare("SELECT i.turma_id,i.publico_alvo,i.status,COUNT(*) AS total FROM inscricoes_turma i INNER JOIN turmas t ON t.id=i.turma_id WHERE $where AND i.created_at>=:procura_de AND i.created_at<:procura_fim GROUP BY i.turma_id,i.publico_alvo,i.status");
         $statement->execute($params+[':procura_de'=>$filters['demand_from'].' 00:00:00',':procura_fim'=>(new \DateTimeImmutable($filters['demand_to']))->modify('+1 day')->format('Y-m-d').' 00:00:00']);
         $result['demand'] = $this->aggregateDemand($classes,$statement->fetchAll(PDO::FETCH_ASSOC),(new CourseInterestService($pdo))->report($filters),$filters);
+        $result['age_relationships'] = $this->ageRelationships($where, $params, $classes, $seasons, $filters, $result['professors']);
         $result['enrollment_trend'] = $this->enrollmentTrend($where, $params, $classes, $filters, $input);
         $result['movements'] = (new EnrollmentMovementService($pdo))->report($filters);
         $result['attendance'] = (new CourseAttendanceChartService($pdo))->report($where,$params,$filters,$input);
@@ -129,6 +130,54 @@ class AdminChartService
         }
         unset($professor);
         return $result;
+    }
+
+    private function ageRelationships(string $where, array $params, array $classes, array $seasons, array $filters, array $professors): array
+    {
+        $classMap = array_column($classes, null, 'id');
+        $seasonMap = array_column($seasons, null, 'id');
+        $groups = []; $classGroupKeys = [];
+        foreach ($professors as $professor) foreach ($professor['rows'] as $row) {
+            $class = $classMap[$row['id']];
+            $mode = $class['criterio_faixa_etaria'] ?? 'idade_exata';
+            $min = (int) $class['idade_minima']; $max = (int) $class['idade_maxima'];
+            $year = (int) substr((string) ($seasonMap[$class['temporada_id']]['data_inicio'] ?? date('Y')), 0, 4);
+            $age = $mode === 'ano_nascimento' ? 'Nascidos entre ' . ($year - $max) . ' e ' . ($year - $min) : $min . ' a ' . $max . ' anos (idade exata)';
+            $key = implode(':', [$class['local_treino_id'], $class['modalidade_id'], $mode, $min, $max, $mode === 'ano_nascimento' ? $year : '']);
+            $groups[$key] ??= ['location' => $row['location'], 'modality' => $row['modality'], 'age_rule' => $age, 'classes' => 0, 'offered' => 0, 'available' => 0, 'enrollments' => 0, 'enrolled' => 0, 'awaiting_enrollment' => 0, 'waiting_list' => 0, 'reserved' => 0];
+            $classGroupKeys[$class['id']] = $key;
+            $groups[$key]['classes']++;
+            foreach (['offered','available','enrollments','enrolled','awaiting_enrollment','waiting_list'] as $field) $groups[$key][$field] += $row[$field];
+        }
+        // Reserva inclui todos os status ocupantes, independentemente do filtro de status.
+        $statement = $this->connection()->prepare("SELECT i.turma_id,i.publico_alvo,i.status,p.data_nascimento,COUNT(*) AS total FROM inscricoes_turma i INNER JOIN turmas t ON t.id=i.turma_id LEFT JOIN pessoas p ON p.id=i.pessoa_id WHERE $where GROUP BY i.turma_id,i.publico_alvo,i.status,p.data_nascimento");
+        $statement->execute($params);
+        $reference = new \DateTimeImmutable('today', new \DateTimeZone('America/Sao_Paulo'));
+        $bands = ['0–5 anos','6–11 anos','12–17 anos','18–29 anos','30–44 anos','45–59 anos','60 anos ou mais','Sem idade válida'];
+        $ageGroups = []; $reservedByClass = [];
+        foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $entry) {
+            $class = $classMap[$entry['turma_id']] ?? null;
+            if (!$class || ($filters['public'] !== '' && $filters['public'] !== $entry['publico_alvo'])) continue;
+            if (in_array($entry['status'], ['matriculada','aguardando_matricula','suspensa'], true)) $reservedByClass[$class['id']] = ($reservedByClass[$class['id']] ?? 0) + (int) $entry['total'];
+            if ($filters['status'] !== '' && $filters['status'] !== $entry['status']) continue;
+            $date = substr((string) $entry['data_nascimento'], 0, 10);
+            $birth = \DateTimeImmutable::createFromFormat('!Y-m-d', $date, $reference->getTimezone());
+            $age = $birth && $birth->format('Y-m-d') === $date && $birth <= $reference ? $birth->diff($reference)->y : null;
+            $band = $age === null ? 7 : ($age <= 5 ? 0 : ($age <= 11 ? 1 : ($age <= 17 ? 2 : ($age <= 29 ? 3 : ($age <= 44 ? 4 : ($age <= 59 ? 5 : 6))))));
+            $key = $class['local_treino_id'] . ':' . $class['modalidade_id'] . ':' . $band;
+            $ageGroups[$key] ??= ['location' => $class['local_nome'], 'modality' => $class['modalidade_nome'], 'band' => $band, 'age' => $bands[$band], 'enrollments' => 0];
+            $ageGroups[$key]['enrollments'] += (int) $entry['total'];
+        }
+        foreach ($reservedByClass as $classId => $amount) if (isset($classGroupKeys[$classId])) $groups[$classGroupKeys[$classId]]['reserved'] += $amount;
+        foreach ($groups as &$group) {
+            $group['occupancy'] = $group['offered'] > 0 ? round(100 * $group['reserved'] / $group['offered'], 1) : null;
+        }
+        unset($group);
+        $groups = array_values($groups);
+        usort($groups, static fn(array $a, array $b): int => $b['enrollments'] <=> $a['enrollments'] ?: strnatcasecmp($a['location'] . $a['modality'] . $a['age_rule'], $b['location'] . $b['modality'] . $b['age_rule']));
+        $ageGroups = array_values($ageGroups);
+        usort($ageGroups, static fn(array $a, array $b): int => strnatcasecmp($a['location'] . $a['modality'], $b['location'] . $b['modality']) ?: $a['band'] <=> $b['band']);
+        return ['groups' => $groups, 'ages' => $ageGroups, 'age_reference' => $reference->format('d/m/Y')];
     }
 
     private function enrollmentTrend(string $where, array $params, array $classes, array $filters, array $input): array

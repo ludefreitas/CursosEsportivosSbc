@@ -273,6 +273,15 @@ class AdminController extends Controller
     }
 
     /** Retorna os dados completos de uma pessoa para edição inline. */
+    public function profilePending(): void
+    {
+        $this->assertAdminAccess();
+        try {
+            $report = (new \App\Services\ProfilePendingService())->report((int) ($_GET['id'] ?? 0), (string) ($_GET['tipo'] ?? 'pessoa'));
+            $this->jsonResponse(['success' => true, 'report' => $report]);
+        } catch (\Throwable $error) { $this->jsonResponse(['success' => false, 'message' => $error->getMessage()], 422); }
+    }
+
     public function personDetails(): void
     {
         $this->assertAdminAccess();

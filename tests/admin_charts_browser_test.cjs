@@ -25,6 +25,14 @@ const root=path.resolve(__dirname,'..');
  await page.goto(base+'/admin#admin-graficos');
  await page.locator('[data-chart-stats] strong').first().waitFor();await settle();
  assert.deepEqual(await values(),['20','14','10','3']);
+ assert.match(await page.locator('[data-chart-age-capacity]').innerText(),/Vagas:|Inscrições no filtro:/);
+ assert.match(await page.locator('[data-chart-student-ages]').innerText(),/Sem idade válida/);
+ const ageDetails = page.locator('details').filter({has:page.locator('[data-chart-age-table]')});
+ assert(!(await ageDetails.evaluate(e=>e.open)));
+ await ageDetails.locator('summary').click();
+ assert.match(await page.locator('[data-chart-age-table]').innerText(),/Ocupação/);
+ assert.match(await page.locator('[data-chart-age-table]').innerText(),/Idade exata|idade exata/);
+ await ageDetails.locator('summary').click();
  const cards = page.locator('[data-chart-collapsible]');
  assert.equal(await cards.count(), 3);
  for (const card of await cards.all()) {

@@ -1,0 +1,36 @@
+<?php
+require __DIR__ . '/fixtures/chart_database.php';
+require __DIR__ . '/../app/Services/EnrollmentMovementService.php';
+require __DIR__ . '/../app/Services/AdminChartService.php';
+require __DIR__ . '/../app/Services/CourseAttendanceChartService.php';
+require __DIR__ . '/../app/Services/CourseInterestService.php';
+function relationshipCheck(bool $condition, string $message): void { if (!$condition) throw new RuntimeException($message); }
+$pdo = createChartTestDatabase();
+$service = new App\Services\AdminChartService($pdo);
+$input = ['modo'=>'multi','temporadas'=>[1,2],'max_temporadas'=>6];
+$today = new DateTimeImmutable('today', new DateTimeZone('America/Sao_Paulo'));
+$insert = $pdo->prepare('INSERT INTO pessoas(cpf,nome_completo,id,data_nascimento) VALUES(?,?,?,?)');
+$insert->execute(['aluno1','Aluno de teste',201,$today->modify('-20 years')->format('Y-m-d')]);
+$insert->execute(['aluno2','Outro aluno',202,'2020-02-30']);
+$pdo->exec('UPDATE inscricoes_turma SET pessoa_id=201 WHERE id IN (1,2); UPDATE inscricoes_turma SET pessoa_id=202 WHERE id=3');
+$report = $service->report($input);
+$relations = $report['age_relationships'];
+relationshipCheck(array_sum(array_column($relations['groups'],'offered'))===26,'Não multiplicar capacidade pelas inscrições.');
+relationshipCheck(array_sum(array_column($relations['groups'],'available'))===15,'Disponibilidade deve reconciliar com o painel.');
+relationshipCheck(array_sum(array_column($relations['groups'],'enrollments'))===22,'Inscrições devem reconciliar com o painel.');
+relationshipCheck(array_sum(array_column($relations['ages'],'enrollments'))===22,'Todas as inscrições precisam de uma faixa, inclusive dados ausentes.');
+$young = array_values(array_filter($relations['ages'],fn($row)=>$row['age']==='18–29 anos'));
+relationshipCheck($young[0]['enrollments']===2,'Contar inscrições, mesmo quando pertencem à mesma pessoa.');
+$filtered=$service->report($input+['publico'=>'geral','status'=>'cancelada'])['age_relationships'];
+relationshipCheck(array_sum(array_column($filtered['groups'],'reserved'))===11,'Status cancelado não pode alterar as reservas atuais.');
+relationshipCheck(array_sum(array_column($filtered['groups'],'enrollments'))===1,'Respeitar filtro de status.');
+relationshipCheck(array_sum(array_column($filtered['ages'],'enrollments'))===1,'Filtro de status nas idades reais.');
+$pdo->exec("UPDATE turmas SET criterio_faixa_etaria='ano_nascimento',idade_minima=18,idade_maxima=40 WHERE id=1");
+$local=$service->report($input+['local_id'=>1,'modalidade_id'=>1])['age_relationships'];
+relationshipCheck(count($local['groups'])===2,'Regras por nascimento e idade exata não podem ser fundidas.');
+relationshipCheck(count(array_filter($local['groups'],fn($row)=>$row['age_rule']==='Nascidos entre 1984 e 2006'))===1,'Regra de nascimento deve usar ano da temporada.');
+relationshipCheck(max(array_column($local['groups'],'occupancy'))===100.0,'Ocupação por reservas da combinação.');
+$pdo->exec('UPDATE turmas SET vagas_geral=0,vagas_pcd=0,vagas_plm=0,vagas_pvs=0 WHERE id=2');
+$zero=$service->report($input)['age_relationships'];
+relationshipCheck(count(array_filter($zero['groups'],fn($row)=>$row['offered']===0 && $row['reserved']===6 && $row['occupancy']===null))===1,'Sem capacidade, taxa nula e reservas preservadas.');
+echo "OK: cruzamentos por local/modalidade/regra, capacidade sem duplicação, reservas, status, público, idade real, dados inválidos e capacidade zero.\n";

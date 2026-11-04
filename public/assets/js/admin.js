@@ -1656,7 +1656,7 @@
                     if ($row.length > 0) {
                         $row.find('[data-person-edit="1"]').text(String(person.nome_completo || ''));
                         $row.find('td').eq(1).text(person.cpf ? formatPersonCpf(person.cpf) : '');
-                        $row.find('[data-person-cadastro]').text(Number(person.cadastro_completo || 0) === 1 ? 'Completo' : 'Pendente');
+                        $row.find('[data-person-cadastro]').empty().append(Number(person.cadastro_completo || 0) === 1 ? document.createTextNode('Completo') : $('<button>', { type: 'button', class: 'link-button admin-person-link', 'data-profile-pending': person.id, 'data-profile-pending-type': 'pessoa', text: 'Pendente' }));
                     }
 
                     currentPerson = person;

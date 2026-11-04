@@ -68,7 +68,7 @@
                             <br><small class="muted"><?php echo e(format_birth_date_with_age($person['data_nascimento'] ?? null)); ?></small>
                         </td>
                         <td><?php echo e(!empty($professorView) ? format_cpf_professor((string) $person['cpf']) : format_cpf($person['cpf'])); ?></td>
-                        <td data-person-cadastro><?php echo (int) $person['cadastro_completo'] === 1 ? 'Completo' : 'Pendente'; ?></td>
+                        <td data-person-cadastro><?php if ((int) $person['cadastro_completo'] === 1) { ?>Completo<?php } elseif (empty($internView)) { ?><button type="button" class="link-button admin-person-link" data-profile-pending="<?php echo (int) $person['id']; ?>" data-profile-pending-type="pessoa">Pendente</button><?php } else { ?>Pendente<?php } ?></td>
                         <?php if (empty($internView)) { ?><td>
                             <?php if (empty($person['condition_indicators'])) { ?>
                                 <span class="muted">Nenhuma</span>
@@ -507,7 +507,7 @@
                         <td><?php echo e((string) ($userRow['nome_completo'] ?? '-')); ?></td>
                         <td><?php echo e(!empty($professorView) ? format_cpf_professor((string) ($userRow['cpf'] ?? '')) : format_cpf((string) ($userRow['cpf'] ?? ''))); ?></td>
                         <td><?php echo e((string) (($userRow['email'] ?? '') !== '' ? $userRow['email'] : '-')); ?></td>
-                        <td><?php echo (int) ($userRow['cadastro_completo'] ?? 0) === 1 ? 'Completo' : 'Pendente'; ?></td>
+                        <td><?php if ((int) ($userRow['cadastro_completo'] ?? 0) === 1) { ?>Completo<?php } elseif (empty($internView)) { ?><button type="button" class="link-button admin-person-link" data-profile-pending="<?php echo (int) $userRow['conta_id']; ?>" data-profile-pending-type="conta">Pendente</button><?php } else { ?>Pendente<?php } ?></td>
                         <td><?php echo (int) ($userRow['conta_ativa'] ?? 0) === 1 ? 'Ativa' : 'Inativa'; ?></td>
                         <td data-admin-user-roles-summary>
                             <span><?php echo e((string) (($userRow['papeis_nomes'] ?? '') !== '' ? $userRow['papeis_nomes'] : 'Sem papel')); ?></span>

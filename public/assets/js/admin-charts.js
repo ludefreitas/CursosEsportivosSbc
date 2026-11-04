@@ -176,7 +176,24 @@
         this.find('[data-chart-status-list]').innerHTML = data.statuses.map((item, index) => '<div class="chart-status-row"><i class="chart-status-dot" style="background:' + (statusColors[item.id] || series[index % series.length]) + '"></i><span>' + escape(item.label) + '</span><span class="chart-numeric">' + number(item.count) + '</span></div>').join('');
         const maxEnrollments = Math.max(1, ...data.publics.map(item => item.enrollments));
         this.find('[data-chart-publics]').innerHTML = data.publics.map(item => '<div class="chart-bar-row"><div class="chart-bar-label"><span>' + escape(item.label) + '</span><span class="chart-numeric">' + number(item.enrollments) + '</span></div><div class="chart-track"><span class="chart-bar" style="background:var(--chart-enrollments);width:' + item.enrollments / maxEnrollments * 100 + '%"></span></div></div>').join('');
-        this.drawGroups(); this.drawComparison(); this.drawMatrix(); this.drawDetails(); this.drawDemand(); this.drawProfessors(); this.drawEnrollmentTrend(); this.drawMovements();
+        this.drawGroups(); this.drawComparison(); this.drawMatrix(); this.drawDetails(); this.drawDemand(); this.drawProfessors(); this.drawEnrollmentTrend(); this.drawMovements(); this.drawAgeRelationships();
+    };
+
+    Controller.prototype.drawAgeRelationships = function () {
+        const target = this.find('[data-chart-age-capacity]');
+        if (!target) return;
+        const data = this.data.age_relationships || { groups: [], ages: [] };
+        const groups = data.groups, maximum = Math.max(1, ...groups.slice(0, 12).flatMap(row => [row.offered, row.enrollments]));
+        const bar = (value, color, max) => '<div class="chart-track"><span class="chart-bar" style="background:' + color + ';width:' + value / max * 100 + '%"></span></div>';
+        target.innerHTML = groups.slice(0, 12).map(row => '<div class="chart-bar-row"><strong>' + escape(row.location + ' · ' + row.modality) + '</strong><p class="muted">' + escape(row.age_rule) + '</p><small>Vagas: ' + number(row.offered) + '</small>' + bar(row.offered, 'var(--chart-offered)', maximum) + '<small>Inscrições no filtro: ' + number(row.enrollments) + '</small>' + bar(row.enrollments, 'var(--chart-enrollments)', maximum) + '</div>').join('') || '<p class="muted">Nenhuma turma nos filtros selecionados.</p>';
+        const bands = new Map();
+        data.ages.forEach(row => { const value = bands.get(row.band) || { label: row.age, count: 0 }; value.count += row.enrollments; bands.set(row.band, value); });
+        const ages = Array.from(bands).sort((a, b) => a[0] - b[0]).map(item => item[1]), maxAge = Math.max(1, ...ages.map(row => row.count));
+        this.find('[data-chart-student-ages]').innerHTML = ages.map(row => '<div class="chart-bar-row"><div class="chart-bar-label"><span>' + escape(row.label) + '</span><strong>' + number(row.count) + '</strong></div>' + bar(row.count, 'var(--chart-purple)', maxAge) + '</div>').join('') || '<p class="muted">Nenhuma inscrição nos filtros selecionados.</p>';
+        this.find('[data-chart-age-reference]').textContent = 'Idade completa em ' + (data.age_reference || 'data da consulta') + '.';
+        const table = (headers, rows) => rows.length ? '<table class="course-token-table"><thead><tr>' + headers.map(value => '<th scope="col">' + escape(value) + '</th>').join('') + '</tr></thead><tbody>' + rows.map(row => '<tr>' + row.map(value => '<td>' + escape(value) + '</td>').join('') + '</tr>').join('') + '</tbody></table>' : '<p class="muted">Nenhum registro nos filtros selecionados.</p>';
+        this.find('[data-chart-age-table]').innerHTML = table(['Local', 'Modalidade', 'Regra etária', 'Turmas', 'Vagas oferecidas', 'Matriculadas', 'Aguardando matrícula', 'Fila de espera', 'Reservas', 'Vagas disponíveis', 'Inscrições no filtro', 'Ocupação'], groups.map(row => [row.location, row.modality, row.age_rule, ...['classes','offered','enrolled','awaiting_enrollment','waiting_list','reserved','available','enrollments'].map(key => number(row[key])), row.occupancy === null ? 'Não se aplica' : number(row.occupancy) + '%']));
+        this.find('[data-chart-student-age-table]').innerHTML = table(['Local', 'Modalidade', 'Idade dos alunos', 'Inscrições no filtro'], data.ages.map(row => [row.location, row.modality, row.age, number(row.enrollments)]));
     };
 
     Controller.prototype.drawMovements = function () {
