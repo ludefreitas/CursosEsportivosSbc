@@ -47,7 +47,16 @@
             data: { turma_id: $card.attr('data-age-class'), criterio: criterion, criterio_anterior: previous, csrf: $panel.attr('data-csrf') }
         }).done(function (response) {
             if (!response.success) { failed(response.message); return; }
-            // O resumo e a lista permanecem como estavam; somente a seleção muda.
+            // Atualiza somente o trecho etário, sem recarregar ou remover o cartão.
+            const rule = response.age_rule;
+            if (rule) {
+                $card.find('[data-age-summary]').text((rule.criterio_faixa_etaria === 'ano_nascimento' ? 'Ano de nascimento: ' : '') + rule.faixa_etaria_descricao);
+                const $details = $card.find('[data-course-class-details]');
+                let record = {};
+                try { record = JSON.parse($details.attr('data-course-class-details') || '{}'); } catch (error) {}
+                Object.assign(record, rule);
+                $details.attr('data-course-class-details', JSON.stringify(record));
+            }
             $card.attr('data-criterion', criterion);
             $card.find('[data-age-save-status]').text('');
         }).fail(function (xhr) { failed((xhr.responseJSON || {}).message); })

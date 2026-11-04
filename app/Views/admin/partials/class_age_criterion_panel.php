@@ -27,7 +27,7 @@ foreach ($ageClasses as $class) { $ageSeasons[(int) $class['temporada_id']] = (s
                 <strong><?php echo e((string) $class['modalidade_nome']); ?></strong> -
                 <?php echo e((string) $class['local_nome']); ?>, <?php echo e((string) ($class['espaco_nome'] ?? '')); ?> -
                 <strong><?php echo e((string) ($class['dias_semana_descricao'] ?? 'Dias não informados')); ?><?php if (!empty($class['hora_inicio']) && !empty($class['hora_fim'])) { echo e(', ' . substr($class['hora_inicio'], 0, 5) . ' às ' . substr($class['hora_fim'], 0, 5)); } ?></strong> -
-                <?php if ($criterion === 'ano_nascimento') { ?>Ano de nascimento: <?php } ?><?php echo e((string) ($class['faixa_etaria_descricao'] ?? 'Faixa etária não informada')); ?> -
+                <span data-age-summary><?php if ($criterion === 'ano_nascimento') { ?>Ano de nascimento: <?php } ?><?php echo e((string) ($class['faixa_etaria_descricao'] ?? 'Faixa etária não informada')); ?></span> -
                 <strong>Professor: <?php echo e((string) (($class['professor_principal_nome'] ?? '') ?: 'Sem professor principal')); ?></strong> -
                 Status: <span class="class-status-badge class-status-<?php echo e((string) ($class['status'] ?? 'planejada')); ?>"><?php echo e((string) ($class['status_label'] ?? $class['status'] ?? 'Planejada')); ?></span> -
                 <button type="button" class="course-class-details-link" data-course-class-details='<?php echo e((string) json_encode($class, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>'>Detalhes</button>

@@ -761,11 +761,11 @@ class ProfessorController extends Controller
                 || !hash_equals($_SESSION['class_age_criterion_csrf'], $_POST['csrf'])) {
                 throw new \RuntimeException('Sessão inválida. Abra novamente a página de critério etário.');
             }
-            (new \App\Services\ClassAgeCriterionService())->change(
+            $ageRule = (new \App\Services\ClassAgeCriterionService())->change(
                 (int) ($_POST['turma_id'] ?? 0), (string) ($_POST['criterio'] ?? ''),
                 (string) ($_POST['criterio_anterior'] ?? ''), (int) $user['conta_id'], false
             );
-            $this->jsonResponse(['success' => true]);
+            $this->jsonResponse(['success' => true, 'age_rule' => $ageRule]);
         } catch (\Throwable $error) { $this->jsonResponse(['success' => false, 'message' => $error->getMessage()], 422); }
     }
 

@@ -13,7 +13,8 @@ $service = new App\Services\ClassAgeCriterionService();
 function ageCheck(bool $condition, string $message): void { if (!$condition) throw new RuntimeException($message); }
 function ageDenied(callable $action): void { try { $action(); } catch (RuntimeException $e) { return; } throw new RuntimeException('Alteração indevida aceita.'); }
 $before = $db->query('SELECT * FROM turmas WHERE id=1')->fetch(PDO::FETCH_ASSOC);
-$service->change(1, 'ano_nascimento', 'idade_exata', 10, false);
+$rule = $service->change(1, 'ano_nascimento', 'idade_exata', 10, false);
+ageCheck($rule['faixa_etaria_descricao'] === 'Nascidos entre 1906 e 2026', 'Retornar anos de nascimento calculados.');
 $after = $db->query('SELECT * FROM turmas WHERE id=1')->fetch(PDO::FETCH_ASSOC);
 ageCheck($after['criterio_faixa_etaria'] === 'ano_nascimento', 'Persistir o critério.');
 $after['criterio_faixa_etaria'] = $before['criterio_faixa_etaria'];
