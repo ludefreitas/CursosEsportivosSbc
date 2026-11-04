@@ -364,7 +364,7 @@
                 if (courseClass.status === 'planejada') {
                     const start = format(courseClass.inscricoes_inicio);
                     const end = format(courseClass.inscricoes_fim);
-                    if (start && end) return 'As inscrições iniciais para esta turma estão previstas para acontecer de ' + start + ' a ' + end + '.';
+                    if (start && end) return 'As inscrições iniciais 2026 de validação do novo sistema para esta turma estão previstas para acontecer de ' + start + ' a ' + end + '.';
                     return 'As datas das inscrições iniciais para esta turma ainda não foram definidas.';
                 }
                 if (courseClass.status === 'periodo_matricula' && !Number(courseClass.permitir_inscricao_periodo_matricula || 0)) {
@@ -838,7 +838,7 @@
                     appendClassPublicNotices($card, courseClass);
                     if (courseClass.cpf_aviso_excecao) $card.append($('<p>', { class: 'home-course-age-exception-notice', text: String(courseClass.cpf_aviso_excecao) }));
                     const scheduleMessage = classEnrollmentScheduleMessage(courseClass);
-                    const dateText = scheduleMessage || ((courseClass.cpf_periodo_inicial ? 'As inscrições iniciais para esta turma acontecem de ' : 'As inscrições para esta turma acontecem de ') + courseClass.cpf_inscricao_inicio_descricao + ' a ' + courseClass.cpf_inscricao_fim_descricao + '.');
+                    const dateText = scheduleMessage || ((courseClass.cpf_periodo_inicial ? 'As inscrições iniciais 2026 de validação do novo sistema para esta turma acontecem de ' : 'As inscrições para esta turma acontecem de ') + courseClass.cpf_inscricao_inicio_descricao + ' a ' + courseClass.cpf_inscricao_fim_descricao + '.');
                     $card.append($('<div>', { class: 'home-cpf-calendar', text: dateText }));
                     $card.append($('<p>', { class: 'home-cpf-seats' }).append($('<strong>', { text: 'Vagas disponíveis: ' + Number(courseClass.cpf_vagas_disponiveis || 0) })).append(document.createTextNode(' · Fila de espera: ' + Number(courseClass.cpf_vagas_espera_disponiveis || 0))));
                     $card.append($('<small>', { text: 'Quantidades para a condição selecionada. A disponibilidade será conferida ao confirmar a inscrição.' }));
