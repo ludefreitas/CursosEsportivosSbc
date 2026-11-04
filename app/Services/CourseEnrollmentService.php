@@ -41,7 +41,7 @@ class CourseEnrollmentService
         'inscricoes_encerradas' => 'Inscrições encerradas',
     ];
 
-    public function listOpenClasses(?int $locationId = null, ?int $modalityId = null): array
+    public function listOpenClasses(?int $locationId = null, ?int $modalityId = null, bool $onlyActive = false): array
     {
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
@@ -70,6 +70,7 @@ class CourseEnrollmentService
                   AND m.ativo=1 AND l.ativo=1 AND e.ativo=1
                   AND CURDATE() BETWEEN cm.data_inicio AND cm.data_fim
                   AND t.status NOT IN ('inscricoes_suspensas', 'inscricoes_encerradas')";
+        if ($onlyActive) { $sql .= ' AND t.ativo=1'; }
         $params = [];
         if (($locationId ?? 0) > 0) { $sql .= ' AND t.local_treino_id=:local_id'; $params[':local_id'] = $locationId; }
         if (($modalityId ?? 0) > 0) { $sql .= ' AND t.modalidade_id=:modalidade_id'; $params[':modalidade_id'] = $modalityId; }
@@ -166,10 +167,16 @@ class CourseEnrollmentService
 
         $locations = [];
         $classes = [];
-        foreach ($this->listOpenClasses() as $class) {
-            if (empty($class['permitir_inscricao_por_cpf']) || empty($class['permite_inscricao'])) { continue; }
+        foreach ($this->listOpenClasses(null, null, true) as $class) {
+            if (empty($class['permitir_inscricao_por_cpf'])) { continue; }
+            $window = $this->cpfEnrollmentWindow($class);
+            if ($window === null) { continue; }
+            $class = array_merge($class, $window);
             $eligibility = $this->cpfClassEligibility($pdo, $person, $class, $requestedPublic);
             if (!$eligibility['eligible']) { continue; }
+            $seatPublic = $eligibility['age_exception'] !== null ? 'geral' : $requestedPublic;
+            $class['cpf_vagas_disponiveis'] = $this->availableSeats($pdo, $class, $seatPublic);
+            $class['cpf_vagas_espera_disponiveis'] = $this->availableWaitlistSeats($pdo, $class, $seatPublic);
             $class['cpf_publico_alvo'] = $requestedPublic;
             $class['cpf_excecao_idade'] = $eligibility['age_exception'];
             $class['cpf_aviso_excecao'] = $eligibility['age_exception'] === 'plm'
@@ -183,6 +190,7 @@ class CourseEnrollmentService
                 'apelido_local' => (string) ($class['local_nome'] ?? $class['nome_local'] ?? ''),
             ];
         }
+        usort($classes, static fn(array $a, array $b): int => ((int) $b['cpf_inscricao_aberta'] <=> (int) $a['cpf_inscricao_aberta']) ?: strcmp($a['cpf_inscricao_inicio'], $b['cpf_inscricao_inicio']));
         $locations = array_values($locations);
         usort($locations, static fn(array $a, array $b): int => strcasecmp($a['apelido_local'], $b['apelido_local']));
         return [
@@ -200,6 +208,7 @@ class CourseEnrollmentService
         if (empty($options['registered'])) { throw new RuntimeException((string) $options['message']); }
         foreach ($options['classes'] as $class) {
             if ((int) $class['id'] === $classId) {
+                if (empty($class['cpf_inscricao_aberta'])) { throw new RuntimeException('As inscrições desta turma ainda não estão abertas. Consulte a data de início informada.'); }
                 return ['class' => $class, 'person' => $options['person'], 'publico_alvo' => $options['publico_alvo']];
             }
         }
@@ -2400,6 +2409,32 @@ class CourseEnrollmentService
         }
     }
 
+    public function cpfEnrollmentWindow(array $class, ?DateTimeImmutable $now = null): ?array
+    {
+        $now = $now ?? new DateTimeImmutable('now', new \DateTimeZone('America/Sao_Paulo'));
+        $windows = [['inscricoes_inicio', 'inscricoes_fim']];
+        if (!empty($class['permitir_inscricao_periodo_matricula'])) { $windows[] = ['matriculas_inicio', 'matriculas_fim']; }
+        $windows[] = ['inscricoes_abertas_inicio', 'inscricoes_abertas_fim'];
+        $available = [];
+        foreach ($windows as [$startKey, $endKey]) {
+            if (empty($class[$startKey]) || empty($class[$endKey])) { continue; }
+            $start = new DateTimeImmutable((string) $class[$startKey], new \DateTimeZone('America/Sao_Paulo'));
+            $end = new DateTimeImmutable((string) $class[$endKey], new \DateTimeZone('America/Sao_Paulo'));
+            if ($end < $start || $end < $now) { continue; }
+            $available[] = ['start' => $start, 'end' => $end, 'initial' => $startKey === 'inscricoes_inicio'];
+        }
+        usort($available, static fn(array $a, array $b): int => $a['start'] <=> $b['start']);
+        foreach ($available as $window) {
+            $open = $now >= $window['start'];
+            return ['cpf_inscricao_aberta' => $open, 'cpf_consulta_futura' => !$open, 'cpf_periodo_inicial' => $window['initial'],
+                'cpf_inscricao_inicio' => $window['start']->format('Y-m-d H:i:s'),
+                'cpf_inscricao_fim' => $window['end']->format('Y-m-d H:i:s'),
+                'cpf_inscricao_inicio_descricao' => $window['start']->format('d/m/Y, à\s H:i'),
+                'cpf_inscricao_fim_descricao' => $window['end']->format('d/m/Y, à\s H:i')];
+        }
+        return null;
+    }
+
     private function cpfClassEligibility(PDO $pdo, array $person, array $class, string $requestedPublic): array
     {
         $requiredSex = trim((string) ($class['sexo'] ?? ''));
@@ -2416,7 +2451,7 @@ class CourseEnrollmentService
             return ['eligible' => false, 'age_exception' => null];
         }
         $seatPublic = $ageException !== null ? 'geral' : $requestedPublic;
-        $hasCapacity = (string) $class['status'] === 'processo_inicial'
+        $hasCapacity = (!empty($class['cpf_periodo_inicial']) || (string) $class['status'] === 'processo_inicial')
             ? ($this->availableSeats($pdo, $class, $seatPublic) > 0 || $this->availableWaitlistSeats($pdo, $class, $seatPublic) > 0)
             : $this->availableWaitlistSeats($pdo, $class, $seatPublic) > 0;
         return ['eligible' => $hasCapacity, 'age_exception' => $ageException];

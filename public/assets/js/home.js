@@ -793,12 +793,23 @@
                 setCpfStep('Etapa 2 de 4', 'Escolha o local', 'Cursos compatíveis com ' + String(person.nome_completo || 'a pessoa informada') + '.');
                 const $content = $('#home-course-cpf-content').empty();
                 const records = Array.isArray(cpfFlow.options.locations) ? cpfFlow.options.locations : [];
-                if (!records.length) { $content.append($('<div>', { class: 'home-course-flow-state' }).append($('<p>', { text: 'Não há locais com turmas e vagas compatíveis com este perfil no momento.' }))); return; }
+                $content.append($('<div>', { class: 'home-cpf-upcoming-notice', text: 'Você também pode consultar turmas que abrirão em breve. A inscrição será liberada na data e no horário informados.' }));
+                if (!records.length) { $content.append($('<div>', { class: 'home-course-flow-state' }).append($('<p>', { text: 'Não há turmas publicadas com vagas compatíveis com este perfil, abertas ou com inscrições futuras.' }))); return; }
                 const $list = $('<div>', { class: 'home-modality-locations-list' });
                 records.forEach(function (location) {
-                    $list.append($('<button>', { type: 'button', class: 'home-all-location-button', 'data-home-cpf-location': String(location.id || '') })
+                    const items = (cpfFlow.options.classes || []).filter(function (item) { return String(item.local_treino_id) === String(location.id); });
+                    const open = items.filter(function (item) { return item.cpf_inscricao_aberta; }).length;
+                    const future = items.filter(function (item) { return !item.cpf_inscricao_aberta; });
+                    const $location = $('<button>', { type: 'button', class: 'home-all-location-button home-cpf-location-button', 'data-home-cpf-location': String(location.id || '') })
                         .append($('<strong>', { text: String(location.apelido_local || location.nome_local || '') }))
-                        .append($('<small>', { text: String(location.nome_local || '') })));
+                        .append($('<small>', { text: String(location.nome_local || '') }));
+                    const $badges = $('<span>', { class: 'home-cpf-location-badges' });
+                    if (open) $badges.append($('<span>', { class: 'home-cpf-status', text: open + (open === 1 ? ' turma com inscrições abertas' : ' turmas com inscrições abertas') }));
+                    if (future.length) $badges.append($('<span>', { class: 'home-cpf-status is-upcoming', text: future.length + (future.length === 1 ? ' turma em breve' : ' turmas em breve') }));
+                    $location.append($badges);
+                    if (future.length) $location.append($('<small>', { text: 'Próxima abertura: ' + future[0].cpf_inscricao_inicio_descricao }));
+                    $location.append($('<span>', { class: 'home-cpf-consult-link', text: 'clique aqui para consultar >' }));
+                    $list.append($location);
                 });
                 $content.append($list);
             }
@@ -807,11 +818,13 @@
                 cpfFlow.stage = 'classes';
                 const locations = cpfFlow.options.locations || [];
                 const location = locations.find(function (item) { return String(item.id) === cpfFlow.locationId; }) || {};
-                setCpfStep('Etapa 3 de 4', 'Turmas disponíveis', 'Turmas compatíveis em ' + String(location.apelido_local || location.nome_local || 'local selecionado') + '.');
+                setCpfStep('Etapa 3 de 4', 'Escolha a turma', 'Turmas compatíveis em ' + String(location.apelido_local || location.nome_local || 'local selecionado') + '.');
                 const classes = (cpfFlow.options.classes || []).filter(function (item) { return String(item.local_treino_id) === cpfFlow.locationId; });
                 const $content = $('#home-course-cpf-content').empty();
+                $content.append($('<div>', { class: 'home-cpf-upcoming-notice', text: 'Consulte também as turmas com inscrições futuras. A consulta não reserva vaga. Datas e horários de Brasília.' }));
                 classes.forEach(function (courseClass) {
-                    const $card = $('<article>', { class: 'home-course-class-card' });
+                    const $card = $('<article>', { class: 'home-course-class-card' }).toggleClass('home-cpf-upcoming-card', !courseClass.cpf_inscricao_aberta);
+                    $card.append($('<span>', { class: 'home-cpf-status' + (courseClass.cpf_inscricao_aberta ? '' : ' is-upcoming'), text: courseClass.cpf_inscricao_aberta ? 'Inscrições abertas' : 'Inscrições em breve' }));
                     $card.append($('<h4>', { text: String(courseClass.modalidade_nome || 'Modalidade') + ' - ' + String(courseClass.temporada_nome || '') }));
                     $card.append($('<p>').append($('<strong>', { text: '[' + String(courseClass.id || '') + '] - ' + String(courseClass.nome || '') })));
                     $card.append($('<p>').append($('<strong>', { text: 'Programa: ' })).append(document.createTextNode(String(courseClass.programa || 'Sem programa definido'))));
@@ -824,7 +837,13 @@
                     if (courseClass.sexo) $card.append($('<p>').append($('<strong>', { text: 'Sexo permitido: ' })).append(document.createTextNode(String(courseClass.sexo) === 'feminino' ? 'Feminino' : 'Masculino')));
                     appendClassPublicNotices($card, courseClass);
                     if (courseClass.cpf_aviso_excecao) $card.append($('<p>', { class: 'home-course-age-exception-notice', text: String(courseClass.cpf_aviso_excecao) }));
-                    $card.append($('<button>', { type: 'button', class: 'btn btn-primary', text: 'Inscrever-se', 'data-home-cpf-class': String(courseClass.id || '') }));
+                    const scheduleMessage = classEnrollmentScheduleMessage(courseClass);
+                    const dateText = scheduleMessage || ((courseClass.cpf_periodo_inicial ? 'As inscrições iniciais para esta turma acontecem de ' : 'As inscrições para esta turma acontecem de ') + courseClass.cpf_inscricao_inicio_descricao + ' a ' + courseClass.cpf_inscricao_fim_descricao + '.');
+                    $card.append($('<div>', { class: 'home-cpf-calendar', text: dateText }));
+                    $card.append($('<p>', { class: 'home-cpf-seats' }).append($('<strong>', { text: 'Vagas disponíveis: ' + Number(courseClass.cpf_vagas_disponiveis || 0) })).append(document.createTextNode(' · Fila de espera: ' + Number(courseClass.cpf_vagas_espera_disponiveis || 0))));
+                    $card.append($('<small>', { text: 'Quantidades para a condição selecionada. A disponibilidade será conferida ao confirmar a inscrição.' }));
+                    if (courseClass.cpf_inscricao_aberta) $card.append($('<button>', { type: 'button', class: 'btn btn-primary', text: 'Inscrever-se', 'data-home-cpf-class': String(courseClass.id || '') }));
+                    else $card.append($('<button>', { type: 'button', class: 'btn btn-secondary', text: 'Aguarde a abertura das inscrições', disabled: true }));
                     $content.append($card);
                 });
             }
