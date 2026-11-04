@@ -34,8 +34,8 @@ class ProfessorController extends Controller
     {
         $user = $this->assertProfessorAccess();
         $sectionName = (string) ($_GET['nome'] ?? 'inicio');
-        if (in_array($sectionName, ['inscricoes', 'modalidades'], true)) { $this->assertProfessorMutationAccess(); }
-        if (!in_array($sectionName, ['inicio', 'usuarios-pessoas', 'inscricoes', 'minhas-turmas', 'cronograma-turmas', 'status-turmas', 'agenda', 'modalidades'], true)) {
+        if (in_array($sectionName, ['inscricoes', 'modalidades', 'turmas-criterio-etario'], true)) { $this->assertProfessorMutationAccess(); }
+        if (!in_array($sectionName, ['inicio', 'usuarios-pessoas', 'inscricoes', 'minhas-turmas', 'cronograma-turmas', 'status-turmas', 'agenda', 'modalidades', 'turmas-criterio-etario'], true)) {
             $this->jsonResponse(['success' => false, 'message' => 'A seção não está disponível para professores.'], 403);
             return;
         }
@@ -752,8 +752,32 @@ class ProfessorController extends Controller
         ];
     }
 
+
+    public function changeClassAgeCriterion(): void
+    {
+        $user = $this->assertProfessorMutationAccess();
+        try {
+            if (empty($_SESSION['class_age_criterion_csrf']) || !is_string($_POST['csrf'] ?? null)
+                || !hash_equals($_SESSION['class_age_criterion_csrf'], $_POST['csrf'])) {
+                throw new \RuntimeException('Sessão inválida. Abra novamente a página de critério etário.');
+            }
+            (new \App\Services\ClassAgeCriterionService())->change(
+                (int) ($_POST['turma_id'] ?? 0), (string) ($_POST['criterio'] ?? ''),
+                (string) ($_POST['criterio_anterior'] ?? ''), (int) $user['conta_id'], false
+            );
+            $this->jsonResponse(['success' => true]);
+        } catch (\Throwable $error) { $this->jsonResponse(['success' => false, 'message' => $error->getMessage()], 422); }
+    }
+
     private function buildSectionData(string $sectionName, array $user): array
     {
+        if ($sectionName === 'turmas-criterio-etario') {
+            $_SESSION['class_age_criterion_csrf'] ??= bin2hex(random_bytes(32));
+            $service = new \App\Services\CourseEnrollmentService();
+            return ['sectionName' => $sectionName, 'professorView' => true,
+                'ageCriterionClasses' => $service->listClassesForProfessor((int) $user['conta_id'])];
+        }
+
         if ($sectionName === 'modalidades') {
             $courseService = new \App\Services\CourseEnrollmentService();
             $modalities = $this->adminService->listModalitiesForManagement();

@@ -100,6 +100,7 @@ class AdminController extends Controller
                 'temporadas',
                 'turmas',
                 'turmas-locais',
+                'turmas-criterio-etario',
                 'cronograma-turmas',
                 'status-turmas',
             ];
@@ -2217,8 +2218,32 @@ class AdminController extends Controller
     /**
      * Monta apenas os dados necessarios para a seção solicitada.
      */
+
+    public function changeClassAgeCriterion(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            if (empty($_SESSION['class_age_criterion_csrf']) || !is_string($_POST['csrf'] ?? null)
+                || !hash_equals($_SESSION['class_age_criterion_csrf'], $_POST['csrf'])) {
+                throw new \RuntimeException('Sessão inválida. Abra novamente a página de critério etário.');
+            }
+            (new \App\Services\ClassAgeCriterionService())->change(
+                (int) ($_POST['turma_id'] ?? 0), (string) ($_POST['criterio'] ?? ''),
+                (string) ($_POST['criterio_anterior'] ?? ''), (int) $user['conta_id'], true
+            );
+            $this->jsonResponse(['success' => true]);
+        } catch (\Throwable $error) { $this->jsonResponse(['success' => false, 'message' => $error->getMessage()], 422); }
+    }
+
     private function buildSectionData(string $sectionName, array $user): array
     {
+        if ($sectionName === 'turmas-criterio-etario') {
+            $_SESSION['class_age_criterion_csrf'] ??= bin2hex(random_bytes(32));
+            $service = new \App\Services\CourseEnrollmentService();
+            return ['sectionName' => $sectionName, 'professorView' => false,
+                'ageCriterionClasses' => $service->listClassesForManagement()];
+        }
+
         $data = [
             'sectionName' => $sectionName,
         ];

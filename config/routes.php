@@ -245,6 +245,8 @@ return [
     ['GET', '/professor/modalidades/cronogramas/turmas', [ProfessorController::class, 'modalityScheduleClasses']],
     ['POST', '/professor/modalidades/cronogramas', [ProfessorController::class, 'saveModalitySchedule']],
     ['GET', '/professor/secao', [ProfessorController::class, 'section']],
+    ['POST', '/admin/turmas/criterio-etario', [AdminController::class, 'changeClassAgeCriterion']],
+    ['POST', '/professor/turmas/criterio-etario', [ProfessorController::class, 'changeClassAgeCriterion']],
     ['GET', '/professor/minhas-turmas/filtro', [ProfessorController::class, 'classBrowser']],
     ['GET', '/professor/minhas-turmas/copiar', [ProfessorController::class, 'classCopyOptions']],
     ['POST', '/professor/minhas-turmas/salvar', [ProfessorController::class, 'saveAssignedClass']],

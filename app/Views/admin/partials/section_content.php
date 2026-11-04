@@ -1,6 +1,11 @@
 <?php
 $sectionName = (string) ($sectionName ?? 'inicio');
 
+if ($sectionName === 'turmas-criterio-etario') {
+    require ROOT_PATH . '/app/Views/admin/partials/class_age_criterion_panel.php';
+    return;
+}
+
 if ($sectionName === 'graficos-agendamento') {
     require ROOT_PATH . '/app/Views/admin/partials/agenda_charts_panel.php';
     return;

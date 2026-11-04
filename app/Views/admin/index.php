@@ -34,6 +34,7 @@
             <?php if (!empty($canAccessMasterSections)) { ?><a class="admin-nav-button" href="<?php echo e(url('/admin-recuperacao-dados')); ?>">Reversão de testes</a><?php } ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="temporadas">Temporadas</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="turmas-locais">Turmas por local</button>
+            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="turmas-criterio-etario">Turmas por critério etário</button><?php } ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="cronograma-turmas">Cronograma turmas</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="status-turmas">Status turmas</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="turmas">Turmas por modalidade</button>

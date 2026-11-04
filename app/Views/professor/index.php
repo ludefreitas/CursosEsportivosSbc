@@ -21,6 +21,7 @@
             <button type="button" class="admin-nav-button" data-staff-notifications-open="1">Minhas notificações</button>
             <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="modalidades">Modalidades</button><?php } ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="minhas-turmas">Minhas turmas</button>
+            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="turmas-criterio-etario">Turmas por critério etário</button><?php } ?>
             <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="cronograma-turmas">Cronograma turmas</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="status-turmas">Status turmas</button><?php } ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-pessoas">Pessoas - alunos</button>

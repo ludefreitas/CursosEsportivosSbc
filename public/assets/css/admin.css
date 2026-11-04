@@ -2358,3 +2358,14 @@
 #admin-agenda-day-modal .popup-card { width: min(620px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); }
 .admin-agenda-day-options { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
 .admin-agenda-day-options .btn { width: 100%; min-height: 52px; white-space: normal; text-align: left; justify-content: flex-start; padding: 14px 16px; font-size: 16px; line-height: 1.5; }
+
+.age-criterion-radios { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 14px; border: 1px solid #dfd4c4; border-radius: 12px; padding: 10px 14px; }
+.age-criterion-radios legend { font-size: 14px; font-weight: 700; padding: 0 5px; }
+.age-criterion-radios label { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+.age-criterion-radios input { width: auto; margin: 0; }
+[data-age-class][hidden] { display: none !important; }
+[data-age-class-list] { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
+[data-age-class] { min-width: 0; overflow-wrap: anywhere; }
+
+.age-criterion-filters .admin-class-filter-block + .admin-class-filter-block { border-top: 2px solid #15839a; padding-top: 12px; }
+.age-criterion-filters .professor-class-filter-buttons { flex-wrap: wrap; gap: 8px; margin-top: 8px; }
