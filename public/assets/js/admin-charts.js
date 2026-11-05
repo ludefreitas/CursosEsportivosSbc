@@ -37,7 +37,8 @@
     Controller.prototype.values = function (page) {
         const form = this.form;
         const get = name => form.elements.namedItem(name).value;
-        return { evolucao_ano: this.find('[data-enrollment-trend-year]').value, modo: get('modo'), max_temporadas: get('max_temporadas'), temporadas: Array.from(form.querySelectorAll('[name="temporadas[]"]:checked'), input => input.value), de: get('de'), ate: get('ate'), local_id: get('local_id'), modalidade_id: get('modalidade_id'), publico: get('publico'), status: get('status'), procura_de: get('procura_de'), procura_ate: get('procura_ate'), periodo: get('periodo'), pagina: page || 1, ...(this.find('[data-attendance-from]').value ? {frequencia_de:this.find('[data-attendance-from]').value}:{}), ...(this.find('[data-attendance-to]').value ? {frequencia_ate:this.find('[data-attendance-to]').value}:{}), ...(this.find('[data-attendance-monitor-from]').value ? {monitor_de:this.find('[data-attendance-monitor-from]').value}:{}), ...(this.find('[data-attendance-monitor-to]').value ? {monitor_ate:this.find('[data-attendance-monitor-to]').value}:{}), monitor_turma:this.find('[data-attendance-class]').value, monitor_situacao:this.find('[data-attendance-state]').value, monitor_pagina:this.attendanceUI?.page||1 };
+        const ageRange = this.customAgeRange || {};
+        return { ...ageRange, evolucao_ano: this.find('[data-enrollment-trend-year]').value, modo: get('modo'), max_temporadas: get('max_temporadas'), temporadas: Array.from(form.querySelectorAll('[name="temporadas[]"]:checked'), input => input.value), de: get('de'), ate: get('ate'), local_id: get('local_id'), modalidade_id: get('modalidade_id'), publico: get('publico'), status: get('status'), procura_de: get('procura_de'), procura_ate: get('procura_ate'), periodo: get('periodo'), pagina: page || 1, ...(this.find('[data-attendance-from]').value ? {frequencia_de:this.find('[data-attendance-from]').value}:{}), ...(this.find('[data-attendance-to]').value ? {frequencia_ate:this.find('[data-attendance-to]').value}:{}), ...(this.find('[data-attendance-monitor-from]').value ? {monitor_de:this.find('[data-attendance-monitor-from]').value}:{}), ...(this.find('[data-attendance-monitor-to]').value ? {monitor_ate:this.find('[data-attendance-monitor-to]').value}:{}), monitor_turma:this.find('[data-attendance-class]').value, monitor_situacao:this.find('[data-attendance-state]').value, monitor_pagina:this.attendanceUI?.page||1 };
     };
 
     Controller.prototype.validate = function (values) {
@@ -63,7 +64,12 @@
             if (event.target.matches('[data-enrollment-trend-modality]')) this.find('[data-enrollment-trend-class]').value = '';
             if (this.data) this.drawEnrollmentTrend(); return;
         }
-        if (event.target.matches('[data-chart-student-age-choice]')) { if (this.data) this.drawAgeRelationships(); return; }
+        if (event.target.matches('[name="chart_age_rule_mode"]')) { if (this.data) this.drawAgeRelationships(); return; }
+        if (event.target.matches('[data-chart-student-age-choice]')) {
+            if (this.customAgeRange && event.target.value !== 'custom') { this.customAgeRange = null; this.agePreset = event.target.value; this.load(1); }
+            else if (this.data) this.drawAgeRelationships();
+            return;
+        }
         if (event.target.matches('[data-chart-professor]')) { if (this.data) this.drawProfessors(); return; }
         if (event.target.matches('[data-chart-group]')) { if (this.data) this.drawGroups(); return; }
         if (event.target.matches('[data-chart-demand-measure]')) { if (this.data) this.drawDemand(); return; }
@@ -140,6 +146,13 @@
     };
 
     Controller.prototype.click = function (event) {
+        if (event.target.closest('[data-chart-age-apply]')) {
+            const from = this.find('[data-chart-age-from]').value, to = this.find('[data-chart-age-to]').value;
+            const valid = /^\d{1,3}$/.test(from) && /^\d{1,3}$/.test(to) && Number(from) <= Number(to) && Number(to) <= 150;
+            this.find('[data-chart-age-error]').textContent = valid ? '' : 'Informe um intervalo válido, com idades inteiras entre 0 e 150 anos.';
+            if (valid) { this.customAgeRange = { idade_de: from, idade_ate: to }; this.load(1); }
+            return;
+        }
         const group = event.target.closest('[data-chart-drill]');
         if (group) {
             const kind = this.find('[data-chart-group]').value;
@@ -184,11 +197,13 @@
         const target = this.find('[data-chart-student-ages]');
         if (!target) return;
         const data = this.data.age_relationships || { groups: [], ages: [], bands: [] };
-        const choice = this.find('[data-chart-student-age-choice]'), previous = choice.value;
-        choice.innerHTML = '<option value="">Todas as faixas etárias</option>' + (data.bands || []).map(band => '<option value="' + escape(band.id) + '">' + escape(band.label) + '</option>').join('');
-        choice.value = (data.bands || []).some(band => String(band.id) === previous) ? previous : '';
+        const choice = this.find('[data-chart-student-age-choice]'), previous = this.agePreset ?? choice.value;
+        this.agePreset = null;
+        const presets = [{id:0,label:'0–5 anos'}, ...Array.from({length:23}, (_, i) => ({id:i+1,label:(6+i*5)+'–'+(10+i*5)+' anos'})), {id:24,label:'121 anos ou mais'}, {id:25,label:'Sem idade válida'}];
+        choice.innerHTML = (data.custom_range ? '<option value="custom">' + escape(data.bands[0].label) + ' (intervalo digitado)</option>' : '') + presets.map(band => '<option value="' + band.id + '">' + escape(band.label) + '</option>').join('');
+        choice.value = data.custom_range ? 'custom' : (presets.some(band => String(band.id) === previous) ? previous : '1');
         const selected = choice.value;
-        const rows = data.ages.filter(row => selected === '' || String(row.band) === selected);
+        const rows = data.ages.filter(row => selected === 'custom' ? row.band === 0 : String(row.band) === selected);
         const bands = new Map();
         rows.forEach(row => {
             const value = bands.get(row.band) || { label: row.age, count: 0, offered: row.offered === null ? null : 0, available: row.available === null ? null : 0 };
@@ -213,6 +228,14 @@
         };
         this.find('[data-chart-age-table]').innerHTML = byLocation(data.groups, ['Modalidade', 'Regra etária', 'Turmas', 'Vagas oferecidas', 'Matriculadas', 'Aguardando matrícula', 'Fila de espera', 'Reservas', 'Vagas disponíveis', 'Inscrições no filtro', 'Ocupação'], row => [row.modality, row.age_rule, ...['classes','offered','enrolled','awaiting_enrollment','waiting_list','reserved','available','enrollments'].map(key => number(row[key])), row.occupancy === null ? 'Não se aplica' : number(row.occupancy) + '%']);
         this.find('[data-chart-student-age-table]').innerHTML = byLocation(rows, ['Modalidade', 'Idade dos alunos', 'Inscrições no filtro', 'Turmas compatíveis', 'Vagas oferecidas compartilhadas', 'Vagas disponíveis compartilhadas'], row => [row.modality, row.age, number(row.enrollments), row.offered === null ? 'Não se aplica' : number(row.classes), row.offered === null ? 'Não se aplica' : number(row.offered), row.available === null ? 'Não se aplica' : number(row.available)]);
+        const mode = this.find('[name="chart_age_rule_mode"]:checked')?.value || 'idade_exata', rules = new Map();
+        data.groups.filter(row => row.mode === mode).forEach(row => {
+            const key = row.age_rule;
+            if (!rules.has(key)) rules.set(key, {label:key,min:row.min,max:row.max,offered:0,available:0,enrollments:0,classes:0});
+            const rule = rules.get(key);
+            ['offered','available','enrollments','classes'].forEach(field => rule[field] += Number(row[field] || 0));
+        });
+        this.find('[data-chart-registered-age-rules]').innerHTML = Array.from(rules.values()).sort((a,b) => a.min-b.min || a.max-b.max || a.label.localeCompare(b.label,'pt-BR')).map(row => '<details><summary>' + escape(row.label) + '</summary><div class="chart-stats">' + [['Turmas',row.classes],['Vagas oferecidas',row.offered],['Inscrições no filtro',row.enrollments],['Vagas disponíveis',row.available]].map(([label,value]) => '<div class="chart-stat"><span>' + label + '</span><strong>' + number(value) + '</strong></div>').join('') + '</div></details>').join('') || '<p class="muted">Nenhuma faixa cadastrada com este critério nos filtros selecionados.</p>';
     };
 
     Controller.prototype.drawMovements = function () {

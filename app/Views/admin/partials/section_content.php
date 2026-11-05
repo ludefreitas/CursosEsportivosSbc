@@ -2546,6 +2546,8 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
     <?php require ROOT_PATH . '/app/Views/admin/partials/tutorial_page_editor.php'; ?>
 <?php } ?>
 
+<?php if ($sectionName === 'ajuda') { require ROOT_PATH . '/app/Views/admin/partials/staff_help_panel.php'; } ?>
+
 <?php if ($sectionName === 'modalidades') { ?>
     <section class="admin-section-panel" data-admin-section="modalidades" data-modality-seasons="<?php echo e((string) json_encode($courseSeasons ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>" data-modality-options="<?php echo e((string) json_encode($courseModalitiesManagement ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>" data-modality-schedules="<?php echo e((string) json_encode($modalitySchedules ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>">
         <div class="section-head admin-section-head">

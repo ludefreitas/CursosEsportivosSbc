@@ -57,3 +57,14 @@ $pdo->exec("UPDATE turmas SET criterio_faixa_etaria='ano_nascimento' WHERE id=4"
 $birthYearData = $service->report(['modo'=>'single','temporadas'=>[3],'max_temporadas'=>6])['age_relationships'];
 relationshipCheck(count(array_filter($birthYearData['ages'],fn($row)=>$row['age']==='6–10 anos' && $row['offered']===18))===1, 'Respeitar também o critério por ano de nascimento.');
 echo "OK: faixas de cinco anos, limites, vagas compartilhadas sem duplicação por aluno, disponibilidade e idade desconhecida.\n";
+
+$custom=$service->report(['modo'=>'single','temporadas'=>[3],'max_temporadas'=>6,'idade_de'=>'6','idade_ate'=>'11'])['age_relationships'];
+$customRows=array_filter($custom['ages'],fn($row)=>$row['band']===0);
+relationshipCheck($custom['custom_range'] && $custom['bands'][0]['label']==='6–11 anos','Intervalo personalizado preservado.');
+relationshipCheck(array_sum(array_column($customRows,'enrollments'))===3,'Intervalo inclui idades de ambas as faixas anteriores.');
+relationshipCheck(array_sum(array_column($customRows,'offered'))===18,'Não somar duas vezes a capacidade da turma que cruza faixas prontas.');
+relationshipCheck(count(array_filter($custom['groups'],fn($row)=>$row['mode']==='ano_nascimento'))===1,'Critério da regra cadastral informado.');
+foreach ([['idade_de'=>12,'idade_ate'=>6],['idade_de'=>'1.5','idade_ate'=>20],['idade_de'=>0,'idade_ate'=>151],['idade_de'=>[],'idade_ate'=>10]] as $invalid) {
+    try {$service->report(['modo'=>'single','temporadas'=>[3],'max_temporadas'=>6]+$invalid);throw new LogicException('Intervalo inválido aceito.');}catch(RuntimeException $error){}
+}
+echo "OK: intervalo digitado, contagem nas bordas, capacidade contada uma vez e validação no servidor.\n";

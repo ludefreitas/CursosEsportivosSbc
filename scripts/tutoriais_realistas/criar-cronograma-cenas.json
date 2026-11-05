@@ -1,0 +1,160 @@
+[
+  {
+    "id": "inicio",
+    "title": "Organização dos cursos",
+    "speech": "Neste tutorial usamos as telas reais do sistema, com dados fictícios e salvamento simulado. As datas são exemplos. A sequência de configuração é temporada, modalidade, cronograma e turma.",
+    "caption": "Organização dos cursos"
+  },
+  {
+    "id": "navegar",
+    "title": "Abrir a seção",
+    "speech": "No menu da área administrativa, clique na seção indicada. Na área do professor, modalidades e cronogramas ficam em Modalidades; a criação de turmas fica em Minhas turmas. Temporadas são configuradas pela administração.",
+    "caption": "Abrir a seção"
+  },
+  {
+    "id": "abrir",
+    "title": "Abrir o formulário de criação",
+    "speech": "Clique no botão Criar. O formulário abre em uma janela, sem sair da página. Percorra os campos e confira os dados antes de salvar.",
+    "caption": "Abrir o formulário de criação"
+  },
+  {
+    "id": "vinculos",
+    "title": "Temporada e modalidade",
+    "speech": "Selecione primeiro a temporada e depois a modalidade. Confira os dois vínculos, porque o cronograma será usado pelas turmas dessa combinação.",
+    "caption": "Temporada e modalidade",
+    "fields": [
+      [
+        "temporada_id",
+        "9001"
+      ],
+      [
+        "modalidade_id",
+        "9002"
+      ]
+    ]
+  },
+  {
+    "id": "copiar",
+    "title": "Utilizar o cronograma da temporada",
+    "speech": "Clique em Utilizar o cronograma da temporada indicada para preencher os períodos. Essa cópia é um ponto de partida. Revise todos os valores antes de salvar.",
+    "caption": "Utilizar o cronograma da temporada"
+  },
+  {
+    "id": "nome",
+    "title": "Nome e observação",
+    "speech": "Dê um nome que ajude a distinguir este cronograma. A observação sugerida da temporada pode ser ajustada. Ela poderá ser sugerida nas novas turmas; alterações posteriores não reescrevem turmas existentes.",
+    "caption": "Nome e observação",
+    "fields": [
+      [
+        "nome",
+        "Alongamento — novo cronograma demonstrativo"
+      ],
+      [
+        "observacao",
+        "Cronograma demonstrativo. Revise as datas antes da divulgação."
+      ]
+    ]
+  },
+  {
+    "id": "consulta",
+    "title": "Disponibilidade para consulta",
+    "speech": "Confira o início e o fim da disponibilidade para consulta. Publicar para consulta e abrir inscrições são momentos diferentes: o período inicial tem datas e horários próprios.",
+    "caption": "Disponibilidade para consulta",
+    "fields": [
+      [
+        "data_inicio",
+        "2027-01-01"
+      ],
+      [
+        "data_fim",
+        "2027-12-31"
+      ]
+    ]
+  },
+  {
+    "id": "inicial",
+    "title": "Inscrições iniciais",
+    "speech": "Revise as datas e os horários de inscrição inicial. Verifique se correspondem ao edital e à temporada selecionada. Não considere as datas desta demonstração como calendário oficial.",
+    "caption": "Inscrições iniciais",
+    "fields": [
+      [
+        "inscricoes_inicio",
+        "2027-02-01T08:00"
+      ],
+      [
+        "inscricoes_fim",
+        "2027-02-05T23:59"
+      ]
+    ]
+  },
+  {
+    "id": "matriculas",
+    "title": "Matrículas e abrangência semanal",
+    "speech": "Confira a abrangência semanal e o período de matrícula. O sistema exige a organização da semana conforme a abrangência escolhida. A autorização para receber inscrições durante a matrícula é opcional.",
+    "caption": "Matrículas e abrangência semanal",
+    "fields": [
+      [
+        "abrangencia_semanal",
+        "segunda_sexta"
+      ],
+      [
+        "matriculas_inicio",
+        "2027-02-08T08:00"
+      ],
+      [
+        "matriculas_fim",
+        "2027-02-12T23:59"
+      ]
+    ]
+  },
+  {
+    "id": "abertas",
+    "title": "Inscrições abertas e aulas",
+    "speech": "Revise o intervalo de inscrições abertas e o período das aulas. Datas copiadas precisam de conferência; não basta selecionar a temporada.",
+    "caption": "Inscrições abertas e aulas",
+    "fields": [
+      [
+        "inscricoes_abertas_inicio",
+        "2027-02-15T08:00"
+      ],
+      [
+        "inscricoes_abertas_fim",
+        "2027-11-30T23:59"
+      ],
+      [
+        "aulas_inicio",
+        "2027-02-15"
+      ],
+      [
+        "aulas_fim",
+        "2027-12-17"
+      ]
+    ]
+  },
+  {
+    "id": "regras",
+    "title": "Edital e inscrições por CPF",
+    "speech": "Se houver edital específico, informe os campos solicitados. A opção de aceitar mais de uma inscrição por CPF na mesma modalidade tem limite e data de liberação. Mudanças nessa regra podem alcançar outros cronogramas da mesma modalidade e temporada; leia o aviso antes de confirmar.",
+    "caption": "Edital e inscrições por CPF",
+    "selector": "$form [name=\"permitir_multiplas_inscricoes_modalidade\"]"
+  },
+  {
+    "id": "permissao",
+    "title": "Quem pode editar",
+    "speech": "Na área do professor, a edição do cronograma é permitida ao seu criador. Na administração, a lista também mostra a autoria e permite consultar as alterações registradas. Revise o cronograma antes de vinculá-lo às turmas.",
+    "caption": "Quem pode editar",
+    "selector": "$form [name=\"nome\"]"
+  },
+  {
+    "id": "salvar",
+    "title": "Salvar e conferir a confirmação",
+    "speech": "Depois da revisão, clique em Salvar. Aguarde a resposta do sistema. Se aparecer uma pendência, corrija o campo indicado e tente novamente. A mensagem de sucesso confirma o recebimento; nesta demonstração o salvamento é simulado.",
+    "caption": "Salvar e conferir a confirmação"
+  },
+  {
+    "id": "fim",
+    "title": "Próximo passo",
+    "speech": "No uso real, feche a mensagem e confira o registro na lista. A criação não substitui as demais configurações. Revise os vínculos, as permissões e as datas antes de divulgar as inscrições.",
+    "caption": "Próximo passo"
+  }
+]

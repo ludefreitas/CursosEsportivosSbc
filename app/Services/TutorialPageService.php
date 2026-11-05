@@ -11,6 +11,13 @@ class TutorialPageService
     public const MAX_VIDEOS = 30;
     public const MAX_VIDEO_BYTES = 40 * 1024 * 1024;
     private const UPLOAD_PREFIX = '/uploads/tutorial-videos/';
+    public function __construct(private string $area = 'publica')
+    {
+        if (!in_array($area, ['publica', 'admin', 'professor'], true)) throw new RuntimeException('Área de ajuda inválida.');
+    }
+
+    private function table(): string { return $this->area === 'publica' ? 'pagina_tutorial_config' : 'pagina_tutorial_equipe_config'; }
+    private function pageId(): int { return $this->area === 'professor' ? 2 : 1; }
 
     public static function uploadLimitBytes(): int
     {
@@ -32,7 +39,7 @@ class TutorialPageService
 
     public function get(): array
     {
-        $row = Database::connection()->query('SELECT * FROM pagina_tutorial_config WHERE id=1 LIMIT 1')->fetch(PDO::FETCH_ASSOC);
+        $row = Database::connection()->query('SELECT * FROM ' . $this->table() . ' WHERE id=' . $this->pageId() . ' LIMIT 1')->fetch(PDO::FETCH_ASSOC);
         if (!$row) return $this->defaults();
         $videos = json_decode((string) ($row['videos_json'] ?? '[]'), true) ?: [];
         $row['videos'] = array_values(array_map(function (array $video): array {
@@ -93,7 +100,7 @@ class TutorialPageService
                 }
                 $videos[] = ['titulo' => $videoTitle, 'tipo' => 'local', 'arquivo' => $stored['arquivo'], 'nome_arquivo' => $stored['nome_arquivo'] ?? basename($stored['arquivo'])];
             }
-            $statement = Database::connection()->prepare('INSERT INTO pagina_tutorial_config (id,titulo,texto_introdutorio,videos_json,atualizado_por_conta_id) VALUES (1,:titulo,:texto,:videos,:conta) ON DUPLICATE KEY UPDATE titulo=VALUES(titulo), texto_introdutorio=VALUES(texto_introdutorio), videos_json=VALUES(videos_json), atualizado_por_conta_id=VALUES(atualizado_por_conta_id), updated_at=NOW()');
+            $statement = Database::connection()->prepare('INSERT INTO ' . $this->table() . ' (id,titulo,texto_introdutorio,videos_json,atualizado_por_conta_id) VALUES (' . $this->pageId() . ',:titulo,:texto,:videos,:conta) ON DUPLICATE KEY UPDATE titulo=VALUES(titulo), texto_introdutorio=VALUES(texto_introdutorio), videos_json=VALUES(videos_json), atualizado_por_conta_id=VALUES(atualizado_por_conta_id), updated_at=NOW()');
             $statement->execute([
                 ':titulo' => $title,
                 ':texto' => $intro ?: null,
@@ -105,7 +112,7 @@ class TutorialPageService
             foreach (array_keys($knownFiles) as $oldPath) {
                 if (!in_array($oldPath, $retained, true)) $this->deleteLocalFile($oldPath);
             }
-            AuditLogService::record('pagina_tutorial.atualizada', 'pagina_tutorial_config', 1, ['conta_id' => $accountId, 'videos' => count($videos)]);
+            AuditLogService::record('pagina_tutorial.atualizada', $this->table(), $this->pageId(), ['conta_id' => $accountId, 'area' => $this->area, 'videos' => count($videos)]);
             return $this->get();
         } catch (\Throwable $error) {
             if (!$persisted) foreach ($createdFiles as $path) $this->deleteLocalFile($path);

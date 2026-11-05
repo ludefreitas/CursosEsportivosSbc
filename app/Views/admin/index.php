@@ -12,6 +12,7 @@
     <nav class="content-card admin-nav-card" aria-label="Menu da área administrativa">
         <div class="admin-nav">
             <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Início</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="ajuda">Ajuda e tutoriais</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="agenda">Agenda</button>
             <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="blog">Blog</button><?php } ?>
             <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="configuracoes">Configurações</button><?php } ?>

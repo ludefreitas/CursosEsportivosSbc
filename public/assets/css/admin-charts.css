@@ -199,3 +199,11 @@
 .admin-charts .chart-age-location { margin: 10px 0; }
 .admin-charts .chart-age-location > summary { text-decoration: underline; text-underline-offset: 3px; }
 .admin-charts .chart-age-location[open] > summary { margin-bottom: 8px; }
+.admin-charts .chart-panel > details, .admin-charts .chart-age-location, .admin-charts [data-chart-age-table], .admin-charts [data-chart-student-age-table] { min-width:0; max-width:100%; }
+.admin-charts .chart-trend-scroll { min-width:0; width:100%; box-sizing:border-box; overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; }
+.admin-charts .chart-trend-scroll .course-token-table { min-width:760px; width:100%; }
+.admin-charts .chart-age-range { display:flex; flex-wrap:wrap; align-items:end; gap:12px; min-width:0; }
+.admin-charts .chart-age-range label { min-width:0; }
+.admin-charts .chart-age-range input[type="number"] { width:120px; max-width:100%; }
+.admin-charts [data-chart-registered-age-rules] details { margin:12px 0; }
+.admin-charts [data-chart-registered-age-rules] summary { cursor:pointer; text-decoration:underline; text-underline-offset:3px; }

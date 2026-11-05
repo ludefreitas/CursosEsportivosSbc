@@ -34,8 +34,8 @@ class ProfessorController extends Controller
     {
         $user = $this->assertProfessorAccess();
         $sectionName = (string) ($_GET['nome'] ?? 'inicio');
-        if (in_array($sectionName, ['inscricoes', 'modalidades', 'turmas-criterio-etario'], true)) { $this->assertProfessorMutationAccess(); }
-        if (!in_array($sectionName, ['inicio', 'usuarios-pessoas', 'inscricoes', 'minhas-turmas', 'cronograma-turmas', 'status-turmas', 'agenda', 'modalidades', 'turmas-criterio-etario'], true)) {
+        if (in_array($sectionName, ['ajuda', 'inscricoes', 'modalidades', 'turmas-criterio-etario'], true)) { $this->assertProfessorMutationAccess(); }
+        if (!in_array($sectionName, ['ajuda', 'inicio', 'usuarios-pessoas', 'inscricoes', 'minhas-turmas', 'cronograma-turmas', 'status-turmas', 'agenda', 'modalidades', 'turmas-criterio-etario'], true)) {
             $this->jsonResponse(['success' => false, 'message' => 'A seção não está disponível para professores.'], 403);
             return;
         }
@@ -781,6 +781,7 @@ class ProfessorController extends Controller
 
     private function buildSectionData(string $sectionName, array $user): array
     {
+        if ($sectionName === 'ajuda') return ['sectionName' => 'ajuda', 'professorView' => true, 'tutorialHelp' => (new \App\Services\TutorialPageService('professor'))->get()];
         if ($sectionName === 'turmas-criterio-etario') {
             $_SESSION['class_age_criterion_csrf'] ??= bin2hex(random_bytes(32));
             $service = new \App\Services\CourseEnrollmentService();

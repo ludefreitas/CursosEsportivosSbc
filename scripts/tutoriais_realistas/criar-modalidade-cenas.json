@@ -1,0 +1,75 @@
+[
+  {
+    "id": "inicio",
+    "title": "Organização dos cursos",
+    "speech": "Neste tutorial usamos as telas reais do sistema, com dados fictícios e salvamento simulado. As datas são exemplos. A sequência de configuração é temporada, modalidade, cronograma e turma.",
+    "caption": "Organização dos cursos"
+  },
+  {
+    "id": "navegar",
+    "title": "Abrir a seção",
+    "speech": "No menu da área administrativa, clique na seção indicada. Na área do professor, modalidades e cronogramas ficam em Modalidades; a criação de turmas fica em Minhas turmas. Temporadas são configuradas pela administração.",
+    "caption": "Abrir a seção"
+  },
+  {
+    "id": "abrir",
+    "title": "Abrir o formulário de criação",
+    "speech": "Clique no botão Criar. O formulário abre em uma janela, sem sair da página. Percorra os campos e confira os dados antes de salvar.",
+    "caption": "Abrir o formulário de criação"
+  },
+  {
+    "id": "nome",
+    "title": "Nome da modalidade",
+    "speech": "Digite o nome da modalidade. Use uma denominação clara e confira a lista para evitar cadastros duplicados. Neste exemplo criamos Alongamento demonstrativo.",
+    "caption": "Nome da modalidade",
+    "fields": [
+      [
+        "nome",
+        "Alongamento demonstrativo"
+      ]
+    ]
+  },
+  {
+    "id": "ambiente",
+    "title": "Tipo de ambiente",
+    "speech": "Selecione Terrestre ou Aquática conforme a prática. O tipo de ambiente é parte da configuração da modalidade e deve corresponder às atividades oferecidas.",
+    "caption": "Tipo de ambiente",
+    "fields": [
+      [
+        "tipo_ambiente",
+        "terrestre"
+      ]
+    ]
+  },
+  {
+    "id": "status",
+    "title": "Status da modalidade",
+    "speech": "Selecione Ativa quando a modalidade estiver habilitada para o uso previsto. Uma modalidade sozinha não cria vagas nem abre inscrições; ainda serão necessários cronograma e turma.",
+    "caption": "Status da modalidade",
+    "fields": [
+      [
+        "ativo",
+        "1"
+      ]
+    ]
+  },
+  {
+    "id": "autoria",
+    "title": "Autoria e permissões",
+    "speech": "O sistema registra a autoria. O professor pode editar a modalidade que ele criou; o administrador tem a gestão administrativa. A criação de cronogramas é uma etapa separada, na mesma seção.",
+    "caption": "Autoria e permissões",
+    "selector": "$form [name=\"nome\"]"
+  },
+  {
+    "id": "salvar",
+    "title": "Salvar e conferir a confirmação",
+    "speech": "Depois da revisão, clique em Salvar. Aguarde a resposta do sistema. Se aparecer uma pendência, corrija o campo indicado e tente novamente. A mensagem de sucesso confirma o recebimento; nesta demonstração o salvamento é simulado.",
+    "caption": "Salvar e conferir a confirmação"
+  },
+  {
+    "id": "fim",
+    "title": "Próximo passo",
+    "speech": "No uso real, feche a mensagem e confira o registro na lista. A criação não substitui as demais configurações. Revise os vínculos, as permissões e as datas antes de divulgar as inscrições.",
+    "caption": "Próximo passo"
+  }
+]

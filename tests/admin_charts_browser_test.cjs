@@ -26,8 +26,10 @@ const root=path.resolve(__dirname,'..');
  await page.locator('[data-chart-stats] strong').first().waitFor();await settle();
  assert.deepEqual(await values(),['20','14','10','3']);
  assert.equal(await page.locator('[data-chart-age-capacity]').count(),0);
+ assert.doesNotMatch(await page.locator('[data-chart-student-ages]').innerText(),/Sem idade válida/);
+ assert.equal(await page.locator('[data-chart-student-age-choice]').inputValue(),'1');
+ await page.locator('[data-chart-student-age-choice]').selectOption({label:'21–25 anos'});
  assert.match(await page.locator('[data-chart-student-ages]').innerText(),/Vagas oferecidas nas turmas compatíveis/);
- assert.match(await page.locator('[data-chart-student-ages]').innerText(),/Sem idade válida/);
  const ageDetails = page.locator('details').filter({has:page.locator('[data-chart-age-table]')});
  assert(!(await ageDetails.evaluate(e=>e.open)));
  await ageDetails.locator(':scope > summary').click();
@@ -50,7 +52,22 @@ const root=path.resolve(__dirname,'..');
  assert.match(await studentLocation.innerText(),/Vagas oferecidas compartilhadas/);
  await studentLocation.locator('summary').click();
  await studentDetails.locator(':scope > summary').click();
- await page.locator('[data-chart-student-age-choice]').selectOption('');
+ await page.locator('[data-chart-age-from]').fill('18');
+ await page.locator('[data-chart-age-to]').fill('33');
+ await page.locator('[data-chart-age-apply]').click();await settle();
+ assert.match(await page.locator('[data-chart-student-ages]').innerText(),/18–33 anos/);
+ assert.equal(await page.locator('[data-chart-student-age-choice]').inputValue(),'custom');
+ assert.doesNotMatch(await page.locator('[data-chart-student-ages]').innerText(),/6–10 anos|Sem idade válida/);
+ await page.locator('[data-chart-age-from]').fill('50');await page.locator('[data-chart-age-to]').fill('10');
+ await page.locator('[data-chart-age-apply]').click();assert.match(await page.locator('[data-chart-age-error]').innerText(),/intervalo válido/);
+ await page.locator('[data-chart-student-age-choice]').selectOption('1');await settle();
+ assert.equal(await page.locator('[data-chart-student-age-choice]').inputValue(),'1');
+ assert.doesNotMatch(await page.locator('[data-chart-student-ages]').innerText(),/18–33 anos/);
+ const rules=page.locator('[data-chart-registered-age-rules]');
+ assert(await rules.locator('details').count()>0);
+ await rules.locator('summary').first().click();assert.match(await rules.innerText(),/Vagas oferecidas|Inscrições no filtro/);
+ await page.locator('[name="chart_age_rule_mode"][value="ano_nascimento"]').check();
+ assert.doesNotMatch(await rules.innerText(),/idade exata/);
  const cards = page.locator('[data-chart-collapsible]');
  assert.equal(await cards.count(), 3);
  for (const card of await cards.all()) {
@@ -136,7 +153,7 @@ const root=path.resolve(__dirname,'..');
  await page.locator('[name="max_temporadas"]').fill('6');await page.locator('[name="modo"]').selectOption('range');await settle();
  assert.deepEqual(await values(),['34','23','22','4']);
  await page.screenshot({path:path.join(root,'tmp/admin-charts-desktop.png'),fullPage:true});
- for(const width of [820,640,390,320]){await page.setViewportSize({width,height:900});await page.waitForTimeout(120);await ageDetails.locator(':scope > summary').click();const mobileLocation=page.locator('[data-chart-age-table] .chart-age-location').first();await mobileLocation.locator('summary').click();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Tabela aberta: '+width+'px');await mobileLocation.locator('summary').click();await ageDetails.locator(':scope > summary').click();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),width+'px');assert.equal(await page.locator('.chart-svg').evaluate(e=>e.outerHTML.includes('NaN')),false);}
+ for(const width of [820,640,390,320]){await page.setViewportSize({width,height:900});await page.waitForTimeout(120);await ageDetails.locator(':scope > summary').click();const mobileLocation=page.locator('[data-chart-age-table] .chart-age-location').first();await mobileLocation.locator('summary').click();const rail=mobileLocation.locator('.chart-trend-scroll');assert(await rail.evaluate(e=>{e.scrollLeft=e.scrollWidth;return e.scrollWidth>e.clientWidth && e.scrollLeft>0;}),'Rolagem horizontal real: '+width);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Tabela aberta: '+width+'px');await mobileLocation.locator('summary').click();await ageDetails.locator(':scope > summary').click();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),width+'px');assert.equal(await page.locator('.chart-svg').evaluate(e=>e.outerHTML.includes('NaN')),false);}
  await page.screenshot({path:path.join(root,'tmp/admin-charts-mobile.png'),fullPage:true});
  // O teste de captura usa apenas o banco SQLite isolado, sem criar cliques na aplicação real.
  await page.goto(base+'/');await page.locator('[data-home-location-select]').click();await page.locator('[data-home-course-modality-select]').click();await page.locator('[data-home-course-enroll]').dblclick();await settle();

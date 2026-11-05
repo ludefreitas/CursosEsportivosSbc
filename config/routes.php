@@ -117,6 +117,7 @@ return [
     ['GET', '/admin/graficos-agendamento/dados', [AdminController::class, 'agendaChartData']],
     ['POST', '/admin/pagina-professor', [AdminController::class, 'saveProfessorPage']],
     ['POST', '/admin/pagina-ajuda', [AdminController::class, 'saveTutorialPage']],
+    ['POST', '/admin/ajuda/videos', [AdminController::class, 'saveStaffTutorialPage']],
     ['GET', '/admin/pessoas/responsabilidade', [AdminController::class, 'responsibilityContext']],
     ['GET', '/admin/pessoas/responsavel/consultar', [AdminController::class, 'responsibilityCandidate']],
     ['POST', '/admin/pessoas/responsabilidade', [AdminController::class, 'transferResponsibility']],

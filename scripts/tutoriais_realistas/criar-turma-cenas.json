@@ -1,0 +1,192 @@
+[
+  {
+    "id": "inicio",
+    "title": "Organização dos cursos",
+    "speech": "Neste tutorial usamos as telas reais do sistema, com dados fictícios e salvamento simulado. As datas são exemplos. A sequência de configuração é temporada, modalidade, cronograma e turma.",
+    "caption": "Organização dos cursos"
+  },
+  {
+    "id": "navegar",
+    "title": "Abrir a seção",
+    "speech": "No menu da área administrativa, clique na seção indicada. Na área do professor, modalidades e cronogramas ficam em Modalidades; a criação de turmas fica em Minhas turmas. Temporadas são configuradas pela administração.",
+    "caption": "Abrir a seção"
+  },
+  {
+    "id": "abrir",
+    "title": "Abrir o formulário de criação",
+    "speech": "Clique no botão Criar. O formulário abre em uma janela, sem sair da página. Percorra os campos e confira os dados antes de salvar.",
+    "caption": "Abrir o formulário de criação"
+  },
+  {
+    "id": "temporada",
+    "title": "Selecionar a temporada",
+    "speech": "Selecione a temporada da turma. Antes desta etapa, a administração deve ter cadastrado a temporada, e a modalidade precisa ter um cronograma disponível.",
+    "caption": "Selecionar a temporada",
+    "fields": [
+      [
+        "temporada_id",
+        "9001"
+      ]
+    ]
+  },
+  {
+    "id": "modalidade",
+    "title": "Selecionar modalidade e cronograma",
+    "speech": "Selecione a modalidade e o cronograma correspondente. Confira o cartão com os períodos. O cronograma determina os momentos de consulta, inscrição, matrícula e aulas.",
+    "caption": "Selecionar modalidade e cronograma",
+    "fields": [
+      [
+        "modalidade_id",
+        "9002"
+      ],
+      [
+        "cronograma_modalidade_id",
+        "9003"
+      ]
+    ]
+  },
+  {
+    "id": "observacao",
+    "title": "Observação da turma",
+    "speech": "Confira a observação sugerida e ajuste quando necessário. O texto preenchido será destacado na área pública. Use apenas orientações próprias da turma, sem inserir dados pessoais dos alunos.",
+    "caption": "Observação da turma",
+    "fields": [
+      [
+        "observacao",
+        "Turma de demonstração. Trazer roupa confortável."
+      ]
+    ]
+  },
+  {
+    "id": "local",
+    "title": "Local e espaço",
+    "speech": "Selecione o local e, em seguida, um espaço desse local. Verifique a compatibilidade com a atividade e a disponibilidade antes de divulgar a oferta.",
+    "caption": "Local e espaço",
+    "fields": [
+      [
+        "local_treino_id",
+        "9004"
+      ],
+      [
+        "espaco_treino_id",
+        "9005"
+      ]
+    ]
+  },
+  {
+    "id": "nome",
+    "title": "Nome da turma e programa",
+    "speech": "Preencha um nome que identifique a atividade e o público. O programa é um vínculo adicional, quando aplicável. Neste exemplo deixamos sem programa definido.",
+    "caption": "Nome da turma e programa",
+    "fields": [
+      [
+        "nome",
+        "Alongamento adulto — demonstração"
+      ]
+    ]
+  },
+  {
+    "id": "dias",
+    "title": "Dias da semana",
+    "speech": "Marque os dias em que a turma terá aula. Neste exemplo usamos terça e quinta. As mesmas horas informadas abaixo serão aplicadas aos dias selecionados.",
+    "caption": "Dias da semana"
+  },
+  {
+    "id": "horario",
+    "title": "Horário de início e fim",
+    "speech": "Preencha o horário de início e de término. Aqui usamos nove horas até nove e cinquenta. Confirme que o término é posterior ao início e confira os dias marcados.",
+    "caption": "Horário de início e fim",
+    "fields": [
+      [
+        "hora_inicio",
+        "09:00"
+      ],
+      [
+        "hora_fim",
+        "09:50"
+      ]
+    ]
+  },
+  {
+    "id": "idade",
+    "title": "Idades e critério etário",
+    "speech": "Informe a idade mínima e máxima. Escolha explicitamente o critério: ano de nascimento ou idade exata pela data. No modo por ano, dia e mês não entram na regra principal. O critério altera a interpretação dos limites.",
+    "caption": "Idades e critério etário",
+    "fields": [
+      [
+        "idade_minima",
+        "18"
+      ],
+      [
+        "idade_maxima",
+        "59"
+      ],
+      [
+        "criterio_faixa_etaria",
+        "idade_exata"
+      ]
+    ]
+  },
+  {
+    "id": "publico",
+    "title": "Sexo e exceções de idade",
+    "speech": "Confira o sexo permitido. Todos mantém a turma sem restrição por sexo. Há exceções etárias específicas para PCD, PLM e PVS; ative somente quando houver uma regra definida para a oferta.",
+    "caption": "Sexo e exceções de idade",
+    "fields": [
+      [
+        "sexo",
+        ""
+      ]
+    ]
+  },
+  {
+    "id": "vagas",
+    "title": "Distribuir as vagas",
+    "speech": "Preencha separadamente as vagas gerais e as reservas PCD, PLM e PVS. Neste exemplo são vinte gerais e duas de cada condição, totalizando vinte e seis. Confira a soma apresentada pelo sistema.",
+    "caption": "Distribuir as vagas",
+    "fields": [
+      [
+        "vagas_geral",
+        "20"
+      ],
+      [
+        "vagas_pcd",
+        "2"
+      ],
+      [
+        "vagas_plm",
+        "2"
+      ],
+      [
+        "vagas_pvs",
+        "2"
+      ]
+    ]
+  },
+  {
+    "id": "espera",
+    "title": "Lista de espera",
+    "speech": "Confira a sugestão de espera de cada categoria. O sistema sugere vinte por cento, arredondando, com mínimo automático de um. É possível ajustar manualmente. Espera não entra no total de vagas da turma.",
+    "caption": "Lista de espera",
+    "selector": "$form [name=\"vagas_espera_geral\"]"
+  },
+  {
+    "id": "equipe",
+    "title": "Atribuição da equipe",
+    "speech": "Revise os dados antes de salvar. A atribuição do professor principal, dos auxiliares e dos estagiários é feita no comando Equipe da turma. Criar uma turma e atribuir a equipe são etapas distintas.",
+    "caption": "Atribuição da equipe",
+    "selector": "$form [name=\"nome\"]"
+  },
+  {
+    "id": "salvar",
+    "title": "Salvar e conferir a confirmação",
+    "speech": "Depois da revisão, clique em Salvar. Aguarde a resposta do sistema. Se aparecer uma pendência, corrija o campo indicado e tente novamente. A mensagem de sucesso confirma o recebimento; nesta demonstração o salvamento é simulado.",
+    "caption": "Salvar e conferir a confirmação"
+  },
+  {
+    "id": "fim",
+    "title": "Próximo passo",
+    "speech": "No uso real, feche a mensagem e confira o registro na lista. A criação não substitui as demais configurações. Revise os vínculos, as permissões e as datas antes de divulgar as inscrições.",
+    "caption": "Próximo passo"
+  }
+]

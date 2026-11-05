@@ -412,6 +412,15 @@ CREATE TABLE IF NOT EXISTS pagina_tutorial_config (
     INDEX idx_pagina_tutorial_conta (atualizado_por_conta_id)
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS pagina_tutorial_equipe_config (
+    id TINYINT UNSIGNED NOT NULL PRIMARY KEY COMMENT '1: admin; 2: professor',
+    titulo VARCHAR(180) NOT NULL,
+    texto_introdutorio TEXT NULL,
+    videos_json LONGTEXT NOT NULL,
+    atualizado_por_conta_id BIGINT UNSIGNED NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT IGNORE INTO origens_temporada (nome, ativo)
 VALUES ('Secretaria de Esportes e Lazer de São Bernardo do Campo', 1);
 

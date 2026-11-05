@@ -87,6 +87,7 @@ class AdminController extends Controller
 
         try {
             $commonSections = [
+                'ajuda',
                 'inicio',
                 'usuarios-online',
                 'graficos',
@@ -971,6 +972,24 @@ class AdminController extends Controller
         } catch (\Throwable $e) {
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
         }
+    }
+
+    public function saveStaffTutorialPage(): void
+    {
+        $user = $this->assertAdminAccess();
+        if (!$this->canAccessMasterSections($user)) {
+            $this->jsonResponse(['success' => false, 'message' => 'Somente o administrador master pode publicar tutoriais.'], 403);
+            return;
+        }
+        try {
+            if (empty($_SESSION['staff_help_csrf']) || !is_string($_POST['csrf'] ?? null) || !hash_equals($_SESSION['staff_help_csrf'], $_POST['csrf'])) throw new \RuntimeException('Sessão inválida. Abra novamente a ajuda antes de salvar.');
+            $area = (string) ($_POST['area'] ?? '');
+            if (!in_array($area, ['admin', 'professor'], true)) throw new \RuntimeException('Área de ajuda inválida.');
+            $limit = TutorialPageService::requestLimitBytes();
+            if ($limit > 0 && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > $limit) throw new \RuntimeException('Limite total de envio excedido. Salve menos vídeos de cada vez.');
+            (new TutorialPageService($area))->save((int) $user['conta_id'], $_POST, $_FILES['video_arquivo'] ?? []);
+            $this->jsonResponse(['success' => true, 'message' => 'Tutoriais da área do ' . $area . ' atualizados.']);
+        } catch (\Throwable $error) { $this->jsonResponse(['success' => false, 'message' => $error->getMessage()], 422); }
     }
 
     /**
@@ -2299,6 +2318,15 @@ class AdminController extends Controller
 
         if ($sectionName === 'pagina-ajuda') {
             $data['tutorialPage'] = (new TutorialPageService())->get();
+        }
+
+        if ($sectionName === 'ajuda') {
+            $data['tutorialHelp'] = (new TutorialPageService('admin'))->get();
+            $data['canManageTutorialHelp'] = $this->canAccessMasterSections($user);
+            if ($data['canManageTutorialHelp']) {
+                $_SESSION['staff_help_csrf'] ??= bin2hex(random_bytes(32));
+                $data['tutorialHelpLibraries'] = ['admin' => $data['tutorialHelp'], 'professor' => (new TutorialPageService('professor'))->get()];
+            }
         }
 
         if (in_array($sectionName, ['usuarios-pessoas', 'usuarios'], true)) {

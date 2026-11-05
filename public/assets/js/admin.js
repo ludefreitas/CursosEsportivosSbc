@@ -8088,7 +8088,7 @@
                         App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível salvar a página de ajuda.'));
                         return;
                     }
-                    App.admin.activateSection('pagina-ajuda', {}, { suppressGlobalLoading: true });
+                    App.admin.activateSection(String($form.attr('data-tutorial-refresh-section') || 'pagina-ajuda'), {}, { suppressGlobalLoading: true });
                     App.core.abrirPopup('sucesso', String(response.message || 'Página de ajuda salva com sucesso.'));
                 }).fail(function (xhr) {
                     if (App.auth && App.auth.tratarFalhaDeAcesso(xhr, function () { $form.trigger('submit'); }, $form.attr('action'))) return;

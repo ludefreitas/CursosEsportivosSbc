@@ -1,0 +1,200 @@
+[
+  {
+    "id": "inicio",
+    "title": "Organização dos cursos",
+    "speech": "Neste tutorial usamos as telas reais do sistema, com dados fictícios e salvamento simulado. As datas são exemplos. A sequência de configuração é temporada, modalidade, cronograma e turma.",
+    "caption": "Organização dos cursos"
+  },
+  {
+    "id": "navegar",
+    "title": "Abrir a seção",
+    "speech": "No menu da área administrativa, clique na seção indicada. Na área do professor, modalidades e cronogramas ficam em Modalidades; a criação de turmas fica em Minhas turmas. Temporadas são configuradas pela administração.",
+    "caption": "Abrir a seção"
+  },
+  {
+    "id": "abrir",
+    "title": "Abrir o formulário de criação",
+    "speech": "Clique no botão Criar. O formulário abre em uma janela, sem sair da página. Percorra os campos e confira os dados antes de salvar.",
+    "caption": "Abrir o formulário de criação"
+  },
+  {
+    "id": "identificacao",
+    "title": "Nome e instituição gestora",
+    "speech": "Informe um nome claro, que identifique o ano e o projeto. Selecione a instituição gestora. Neste exemplo usamos uma temporada anual demonstrativa de dois mil e vinte e sete.",
+    "caption": "Nome e instituição gestora",
+    "fields": [
+      [
+        "nome",
+        "Temporada demonstrativa 2027"
+      ],
+      [
+        "origem_temporada_id",
+        "9006"
+      ],
+      [
+        "tipo_periodicidade",
+        "anual"
+      ]
+    ]
+  },
+  {
+    "id": "edital",
+    "title": "Edital e observação",
+    "speech": "Se existir edital específico, marque essa opção e preencha número e link válidos. Não use dados de exemplo em produção. A observação será sugerida nos novos cronogramas, mas mudanças posteriores não reescrevem os já criados.",
+    "caption": "Edital e observação",
+    "fields": [
+      [
+        "observacao",
+        "Dados de demonstração. Datas ilustrativas."
+      ]
+    ],
+    "selector": "$form [name=\"possui_edital\"]"
+  },
+  {
+    "id": "vigencia",
+    "title": "Início e fim da temporada",
+    "speech": "Defina a vigência da temporada. O início deve ser anterior ao fim. Planeje os demais períodos dentro da vigência e confira sempre o ano.",
+    "caption": "Início e fim da temporada",
+    "fields": [
+      [
+        "data_inicio",
+        "2027-01-01"
+      ],
+      [
+        "data_fim",
+        "2027-12-31"
+      ]
+    ]
+  },
+  {
+    "id": "inicial",
+    "title": "Período inicial de inscrições",
+    "speech": "Informe a data e o horário de abertura e encerramento das inscrições iniciais. Aqui o período vai de primeiro a cinco de fevereiro. As datas ilustrativas não representam uma oferta oficial.",
+    "caption": "Período inicial de inscrições",
+    "fields": [
+      [
+        "inscricoes_inicio",
+        "2027-02-01T08:00"
+      ],
+      [
+        "inscricoes_fim",
+        "2027-02-05T23:59"
+      ]
+    ]
+  },
+  {
+    "id": "semana",
+    "title": "Abrangência semanal",
+    "speech": "Escolha se as aulas abrangem segunda a sexta ou segunda a domingo. Essa escolha orienta a semana completa do período de matrícula.",
+    "caption": "Abrangência semanal",
+    "fields": [
+      [
+        "abrangencia_semanal",
+        "segunda_sexta"
+      ]
+    ]
+  },
+  {
+    "id": "matriculas",
+    "title": "Período de matrícula",
+    "speech": "Configure a matrícula de segunda a sexta, respeitando a abrangência selecionada. Neste exemplo usamos oito a doze de fevereiro. A opção de aceitar inscrições durante a matrícula deve refletir a regra da oferta.",
+    "caption": "Período de matrícula",
+    "fields": [
+      [
+        "matriculas_inicio",
+        "2027-02-08T08:00"
+      ],
+      [
+        "matriculas_fim",
+        "2027-02-12T23:59"
+      ]
+    ]
+  },
+  {
+    "id": "abertas",
+    "title": "Inscrições abertas após a matrícula",
+    "speech": "Defina o período posterior de inscrições abertas. Evite inverter início e fim ou criar sobreposições indevidas. O sistema verifica a ordem dos períodos.",
+    "caption": "Inscrições abertas após a matrícula",
+    "fields": [
+      [
+        "inscricoes_abertas_inicio",
+        "2027-02-15T08:00"
+      ],
+      [
+        "inscricoes_abertas_fim",
+        "2027-11-30T23:59"
+      ]
+    ]
+  },
+  {
+    "id": "aulas",
+    "title": "Período das aulas",
+    "speech": "Informe o início e o fim das aulas. O cronograma da modalidade poderá receber estes dados como sugestão, e as turmas deverão ser vinculadas ao cronograma correto.",
+    "caption": "Período das aulas",
+    "fields": [
+      [
+        "aulas_inicio",
+        "2027-02-15"
+      ],
+      [
+        "aulas_fim",
+        "2027-12-17"
+      ]
+    ]
+  },
+  {
+    "id": "status",
+    "title": "Status e limite inicial",
+    "speech": "Revise o status. Planejada indica uma temporada em preparação. Configure o limite inicial por CPF de acordo com a regra administrativa, sem confundir esse limite com vagas de uma turma.",
+    "caption": "Status e limite inicial",
+    "fields": [
+      [
+        "status",
+        "planejada"
+      ],
+      [
+        "limite_inscricoes_periodo",
+        "1"
+      ]
+    ]
+  },
+  {
+    "id": "progressao",
+    "title": "Liberação das inscrições adicionais",
+    "speech": "Preencha os momentos de liberação da segunda inscrição e das inscrições adicionais, além do limite adicional. Os horários devem seguir a sequência do calendário. Neste exemplo a segunda é liberada em dezesseis de fevereiro e as adicionais em dezessete.",
+    "caption": "Liberação das inscrições adicionais",
+    "fields": [
+      [
+        "data_liberacao_segunda_inscricao",
+        "2027-02-16T08:00"
+      ],
+      [
+        "data_liberacao_inscricoes_adicionais",
+        "2027-02-17T08:00"
+      ],
+      [
+        "limite_inscricoes_adicionais",
+        "3"
+      ]
+    ]
+  },
+  {
+    "id": "canais",
+    "title": "Canais de inscrição e regra por modalidade",
+    "speech": "Confira as opções de inscrição logada e por CPF. A autorização do canal não abre inscrições antes do cronograma. A regra de múltiplas inscrições na mesma modalidade tem campos próprios; mantenha desmarcada se não houver essa liberação.",
+    "caption": "Canais de inscrição e regra por modalidade",
+    "selector": "$form [name=\"permitir_inscricao_logada\"]"
+  },
+  {
+    "id": "salvar",
+    "title": "Salvar e conferir a confirmação",
+    "speech": "Depois da revisão, clique em Salvar. Aguarde a resposta do sistema. Se aparecer uma pendência, corrija o campo indicado e tente novamente. A mensagem de sucesso confirma o recebimento; nesta demonstração o salvamento é simulado.",
+    "caption": "Salvar e conferir a confirmação"
+  },
+  {
+    "id": "fim",
+    "title": "Próximo passo",
+    "speech": "No uso real, feche a mensagem e confira o registro na lista. A criação não substitui as demais configurações. Revise os vínculos, as permissões e as datas antes de divulgar as inscrições.",
+    "caption": "Próximo passo"
+  }
+]
