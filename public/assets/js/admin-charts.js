@@ -63,6 +63,7 @@
             if (event.target.matches('[data-enrollment-trend-modality]')) this.find('[data-enrollment-trend-class]').value = '';
             if (this.data) this.drawEnrollmentTrend(); return;
         }
+        if (event.target.matches('[data-chart-student-age-choice]')) { if (this.data) this.drawAgeRelationships(); return; }
         if (event.target.matches('[data-chart-professor]')) { if (this.data) this.drawProfessors(); return; }
         if (event.target.matches('[data-chart-group]')) { if (this.data) this.drawGroups(); return; }
         if (event.target.matches('[data-chart-demand-measure]')) { if (this.data) this.drawDemand(); return; }
@@ -180,20 +181,38 @@
     };
 
     Controller.prototype.drawAgeRelationships = function () {
-        const target = this.find('[data-chart-age-capacity]');
+        const target = this.find('[data-chart-student-ages]');
         if (!target) return;
-        const data = this.data.age_relationships || { groups: [], ages: [] };
-        const groups = data.groups, maximum = Math.max(1, ...groups.slice(0, 12).flatMap(row => [row.offered, row.enrollments]));
-        const bar = (value, color, max) => '<div class="chart-track"><span class="chart-bar" style="background:' + color + ';width:' + value / max * 100 + '%"></span></div>';
-        target.innerHTML = groups.slice(0, 12).map(row => '<div class="chart-bar-row"><strong>' + escape(row.location + ' · ' + row.modality) + '</strong><p class="muted">' + escape(row.age_rule) + '</p><small>Vagas: ' + number(row.offered) + '</small>' + bar(row.offered, 'var(--chart-offered)', maximum) + '<small>Inscrições no filtro: ' + number(row.enrollments) + '</small>' + bar(row.enrollments, 'var(--chart-enrollments)', maximum) + '</div>').join('') || '<p class="muted">Nenhuma turma nos filtros selecionados.</p>';
+        const data = this.data.age_relationships || { groups: [], ages: [], bands: [] };
+        const choice = this.find('[data-chart-student-age-choice]'), previous = choice.value;
+        choice.innerHTML = '<option value="">Todas as faixas etárias</option>' + (data.bands || []).map(band => '<option value="' + escape(band.id) + '">' + escape(band.label) + '</option>').join('');
+        choice.value = (data.bands || []).some(band => String(band.id) === previous) ? previous : '';
+        const selected = choice.value;
+        const rows = data.ages.filter(row => selected === '' || String(row.band) === selected);
         const bands = new Map();
-        data.ages.forEach(row => { const value = bands.get(row.band) || { label: row.age, count: 0 }; value.count += row.enrollments; bands.set(row.band, value); });
-        const ages = Array.from(bands).sort((a, b) => a[0] - b[0]).map(item => item[1]), maxAge = Math.max(1, ...ages.map(row => row.count));
-        this.find('[data-chart-student-ages]').innerHTML = ages.map(row => '<div class="chart-bar-row"><div class="chart-bar-label"><span>' + escape(row.label) + '</span><strong>' + number(row.count) + '</strong></div>' + bar(row.count, 'var(--chart-purple)', maxAge) + '</div>').join('') || '<p class="muted">Nenhuma inscrição nos filtros selecionados.</p>';
+        rows.forEach(row => {
+            const value = bands.get(row.band) || { label: row.age, count: 0, offered: row.offered === null ? null : 0, available: row.available === null ? null : 0 };
+            value.count += row.enrollments;
+            if (value.offered !== null) { value.offered += row.offered || 0; value.available += row.available || 0; }
+            bands.set(row.band, value);
+        });
+        const ages = Array.from(bands).sort((a, b) => a[0] - b[0]).map(item => item[1]);
+        const maximum = Math.max(1, ...ages.flatMap(row => [row.count, row.offered || 0]));
+        const bar = (value, color) => '<div class="chart-track"><span class="chart-bar" style="background:' + color + ';width:' + value / maximum * 100 + '%"></span></div>';
+        target.innerHTML = ages.map(row => '<div class="chart-bar-row"><strong>' + escape(row.label) + '</strong>' + (row.offered === null ? '<p class="muted">Vagas: não se aplica sem idade válida.</p>' : '<div class="chart-bar-label"><span>Vagas oferecidas nas turmas compatíveis</span><strong>' + number(row.offered) + '</strong></div>' + bar(row.offered, 'var(--chart-offered)') + '<div class="chart-bar-label"><span>Vagas disponíveis nessas turmas</span><strong>' + number(row.available) + '</strong></div>' + bar(row.available, 'var(--chart-available)')) + '<div class="chart-bar-label"><span>Inscrições no filtro</span><strong>' + number(row.count) + '</strong></div>' + bar(row.count, 'var(--chart-purple)') + '</div>').join('') || '<p class="muted">Nenhuma turma ou inscrição nesta faixa etária nos filtros selecionados.</p>';
         this.find('[data-chart-age-reference]').textContent = 'Idade completa em ' + (data.age_reference || 'data da consulta') + '.';
-        const table = (headers, rows) => rows.length ? '<table class="course-token-table"><thead><tr>' + headers.map(value => '<th scope="col">' + escape(value) + '</th>').join('') + '</tr></thead><tbody>' + rows.map(row => '<tr>' + row.map(value => '<td>' + escape(value) + '</td>').join('') + '</tr>').join('') + '</tbody></table>' : '<p class="muted">Nenhum registro nos filtros selecionados.</p>';
-        this.find('[data-chart-age-table]').innerHTML = table(['Local', 'Modalidade', 'Regra etária', 'Turmas', 'Vagas oferecidas', 'Matriculadas', 'Aguardando matrícula', 'Fila de espera', 'Reservas', 'Vagas disponíveis', 'Inscrições no filtro', 'Ocupação'], groups.map(row => [row.location, row.modality, row.age_rule, ...['classes','offered','enrolled','awaiting_enrollment','waiting_list','reserved','available','enrollments'].map(key => number(row[key])), row.occupancy === null ? 'Não se aplica' : number(row.occupancy) + '%']));
-        this.find('[data-chart-student-age-table]').innerHTML = table(['Local', 'Modalidade', 'Idade dos alunos', 'Inscrições no filtro'], data.ages.map(row => [row.location, row.modality, row.age, number(row.enrollments)]));
+        const table = (headers, values) => '<table class="course-token-table"><thead><tr>' + headers.map(value => '<th scope="col">' + escape(value) + '</th>').join('') + '</tr></thead><tbody>' + values.map(row => '<tr>' + row.map(value => '<td>' + escape(value) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
+        const byLocation = (items, headers, cells) => {
+            const locations = new Map();
+            items.forEach(row => {
+                const key = row.location_id ?? row.location;
+                if (!locations.has(key)) locations.set(key, { label: row.location, rows: [] });
+                locations.get(key).rows.push(row);
+            });
+            return Array.from(locations.values()).sort((a, b) => a.label.localeCompare(b.label, 'pt-BR')).map(location => '<details class="chart-age-location"><summary>' + escape(location.label) + '</summary><div class="chart-trend-scroll">' + table(headers, location.rows.map(cells)) + '</div></details>').join('') || '<p class="muted">Nenhum registro nos filtros selecionados.</p>';
+        };
+        this.find('[data-chart-age-table]').innerHTML = byLocation(data.groups, ['Modalidade', 'Regra etária', 'Turmas', 'Vagas oferecidas', 'Matriculadas', 'Aguardando matrícula', 'Fila de espera', 'Reservas', 'Vagas disponíveis', 'Inscrições no filtro', 'Ocupação'], row => [row.modality, row.age_rule, ...['classes','offered','enrolled','awaiting_enrollment','waiting_list','reserved','available','enrollments'].map(key => number(row[key])), row.occupancy === null ? 'Não se aplica' : number(row.occupancy) + '%']);
+        this.find('[data-chart-student-age-table]').innerHTML = byLocation(rows, ['Modalidade', 'Idade dos alunos', 'Inscrições no filtro', 'Turmas compatíveis', 'Vagas oferecidas compartilhadas', 'Vagas disponíveis compartilhadas'], row => [row.modality, row.age, number(row.enrollments), row.offered === null ? 'Não se aplica' : number(row.classes), row.offered === null ? 'Não se aplica' : number(row.offered), row.available === null ? 'Não se aplica' : number(row.available)]);
     };
 
     Controller.prototype.drawMovements = function () {

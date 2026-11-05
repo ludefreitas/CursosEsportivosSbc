@@ -144,7 +144,7 @@ class AdminChartService
             $year = (int) substr((string) ($seasonMap[$class['temporada_id']]['data_inicio'] ?? date('Y')), 0, 4);
             $age = $mode === 'ano_nascimento' ? 'Nascidos entre ' . ($year - $max) . ' e ' . ($year - $min) : $min . ' a ' . $max . ' anos (idade exata)';
             $key = implode(':', [$class['local_treino_id'], $class['modalidade_id'], $mode, $min, $max, $mode === 'ano_nascimento' ? $year : '']);
-            $groups[$key] ??= ['location' => $row['location'], 'modality' => $row['modality'], 'age_rule' => $age, 'classes' => 0, 'offered' => 0, 'available' => 0, 'enrollments' => 0, 'enrolled' => 0, 'awaiting_enrollment' => 0, 'waiting_list' => 0, 'reserved' => 0];
+            $groups[$key] ??= ['location_id' => (int) $class['local_treino_id'], 'modality_id' => (int) $class['modalidade_id'], 'location' => $row['location'], 'modality' => $row['modality'], 'age_rule' => $age, 'classes' => 0, 'offered' => 0, 'available' => 0, 'enrollments' => 0, 'enrolled' => 0, 'awaiting_enrollment' => 0, 'waiting_list' => 0, 'reserved' => 0];
             $classGroupKeys[$class['id']] = $key;
             $groups[$key]['classes']++;
             foreach (['offered','available','enrollments','enrolled','awaiting_enrollment','waiting_list'] as $field) $groups[$key][$field] += $row[$field];
@@ -153,8 +153,41 @@ class AdminChartService
         $statement = $this->connection()->prepare("SELECT i.turma_id,i.publico_alvo,i.status,p.data_nascimento,COUNT(*) AS total FROM inscricoes_turma i INNER JOIN turmas t ON t.id=i.turma_id LEFT JOIN pessoas p ON p.id=i.pessoa_id WHERE $where GROUP BY i.turma_id,i.publico_alvo,i.status,p.data_nascimento");
         $statement->execute($params);
         $reference = new \DateTimeImmutable('today', new \DateTimeZone('America/Sao_Paulo'));
-        $bands = ['0–5 anos','6–11 anos','12–17 anos','18–29 anos','30–44 anos','45–59 anos','60 anos ou mais','Sem idade válida'];
+        $bands = [['id' => 0, 'min' => 0, 'max' => 5, 'label' => '0–5 anos']];
+        for ($min = 6; $min <= 116; $min += 5) $bands[] = ['id' => count($bands), 'min' => $min, 'max' => $min + 4, 'label' => $min . '–' . ($min + 4) . ' anos'];
+        $bands[] = ['id' => count($bands), 'min' => 121, 'max' => null, 'label' => '121 anos ou mais'];
+        $unknownBand = count($bands);
+        $bands[] = ['id' => $unknownBand, 'min' => null, 'max' => null, 'label' => 'Sem idade válida'];
         $ageGroups = []; $reservedByClass = [];
+        $emptyAgeRow = static fn(array $class, int $band): array => ['location_id' => (int) $class['local_treino_id'], 'modality_id' => (int) $class['modalidade_id'], 'location' => $class['local_nome'], 'modality' => $class['modalidade_nome'], 'band' => $band, 'age' => $bands[$band]['label'], 'enrollments' => 0, 'offered' => $band === $unknownBand ? null : 0, 'available' => $band === $unknownBand ? null : 0, 'classes' => 0];
+        // Cada turma entra uma vez em cada faixa compatível. As vagas são compartilhadas entre faixas.
+        foreach ($professors as $professor) foreach ($professor['rows'] as $row) {
+            $class = $classMap[$row['id']];
+            $classReference = new \DateTimeImmutable((string) $seasonMap[$class['temporada_id']]['data_inicio'], $reference->getTimezone());
+            $min = max(0, (int) $class['idade_minima']); $max = (int) $class['idade_maxima'];
+            if ($max < $min) continue;
+            if (($class['criterio_faixa_etaria'] ?? '') === 'ano_nascimento') {
+                $year = (int) $classReference->format('Y');
+                $firstBirth = $classReference->setDate($year - $max, 1, 1);
+                $lastBirth = $classReference->setDate($year - $min, 12, 31);
+            } else {
+                $firstBirth = $classReference->modify('-' . ($max + 1) . ' years')->modify('+1 day');
+                $lastBirth = $classReference->modify('-' . $min . ' years');
+            }
+            $lastBirth = min($lastBirth, $reference);
+            foreach ($bands as $definition) {
+                if ($definition['min'] === null) continue;
+                $first = $definition['max'] === null ? new \DateTimeImmutable('0001-01-01', $reference->getTimezone()) : $reference->modify('-' . ($definition['max'] + 1) . ' years')->modify('+1 day');
+                $last = $reference->modify('-' . $definition['min'] . ' years');
+                if ($firstBirth > $last || $lastBirth < $first) continue;
+                $band = $definition['id'];
+                $key = $class['local_treino_id'] . ':' . $class['modalidade_id'] . ':' . $band;
+                $ageGroups[$key] ??= $emptyAgeRow($class, $band);
+                $ageGroups[$key]['classes']++;
+                $ageGroups[$key]['offered'] += $row['offered'];
+                $ageGroups[$key]['available'] += $row['available'];
+            }
+        }
         foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $entry) {
             $class = $classMap[$entry['turma_id']] ?? null;
             if (!$class || ($filters['public'] !== '' && $filters['public'] !== $entry['publico_alvo'])) continue;
@@ -163,9 +196,9 @@ class AdminChartService
             $date = substr((string) $entry['data_nascimento'], 0, 10);
             $birth = \DateTimeImmutable::createFromFormat('!Y-m-d', $date, $reference->getTimezone());
             $age = $birth && $birth->format('Y-m-d') === $date && $birth <= $reference ? $birth->diff($reference)->y : null;
-            $band = $age === null ? 7 : ($age <= 5 ? 0 : ($age <= 11 ? 1 : ($age <= 17 ? 2 : ($age <= 29 ? 3 : ($age <= 44 ? 4 : ($age <= 59 ? 5 : 6))))));
+            $band = $age === null ? $unknownBand : ($age <= 5 ? 0 : ($age >= 121 ? $unknownBand - 1 : 1 + intdiv($age - 6, 5)));
             $key = $class['local_treino_id'] . ':' . $class['modalidade_id'] . ':' . $band;
-            $ageGroups[$key] ??= ['location' => $class['local_nome'], 'modality' => $class['modalidade_nome'], 'band' => $band, 'age' => $bands[$band], 'enrollments' => 0];
+            $ageGroups[$key] ??= $emptyAgeRow($class, $band);
             $ageGroups[$key]['enrollments'] += (int) $entry['total'];
         }
         foreach ($reservedByClass as $classId => $amount) if (isset($classGroupKeys[$classId])) $groups[$classGroupKeys[$classId]]['reserved'] += $amount;
@@ -177,7 +210,7 @@ class AdminChartService
         usort($groups, static fn(array $a, array $b): int => $b['enrollments'] <=> $a['enrollments'] ?: strnatcasecmp($a['location'] . $a['modality'] . $a['age_rule'], $b['location'] . $b['modality'] . $b['age_rule']));
         $ageGroups = array_values($ageGroups);
         usort($ageGroups, static fn(array $a, array $b): int => strnatcasecmp($a['location'] . $a['modality'], $b['location'] . $b['modality']) ?: $a['band'] <=> $b['band']);
-        return ['groups' => $groups, 'ages' => $ageGroups, 'age_reference' => $reference->format('d/m/Y')];
+        return ['groups' => $groups, 'ages' => $ageGroups, 'bands' => $bands, 'age_reference' => $reference->format('d/m/Y')];
     }
 
     private function enrollmentTrend(string $where, array $params, array $classes, array $filters, array $input): array

@@ -35,6 +35,18 @@
                 <small class="muted">A lista vai sendo atualizada enquanto você digita.</small>
             </label>
         </div>
+        <?php if (empty($internView)) { ?>
+        <fieldset class="people-condition-filter"><legend>Condição especial</legend>
+            <div class="chips-wrap">
+                <?php foreach (['pcd'=>'PCD','plm'=>'PLM','pvs'=>'PVS'] as $condition => $label) { ?>
+                <label class="checkbox-chip"><input type="checkbox" name="people_conditions[]" value="<?php echo e($condition); ?>" <?php echo in_array($condition, $peopleConditions ?? [], true) ? 'checked' : ''; ?>><span><?php echo e($label); ?></span></label>
+                <?php } ?>
+                <button type="button" class="link-button" data-people-condition-all>Qualquer condição especial</button>
+                <button type="button" class="link-button" data-people-condition-clear>Todas as pessoas</button>
+            </div>
+            <small class="muted">Selecione uma ou mais condições. Com várias selecionadas, aparecem pessoas com qualquer uma delas. Sem seleção, aparecem todas as pessoas. O filtro usa a condição declarada no cadastro.</small>
+        </fieldset>
+        <?php } ?>
     </form>
     <div class="table-wrap">
         <table class="data-table">

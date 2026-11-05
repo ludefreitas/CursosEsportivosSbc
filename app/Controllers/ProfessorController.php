@@ -748,7 +748,8 @@ class ProfessorController extends Controller
         $internView = \App\Services\InternPermissionService::isRestricted($this->userService->currentAccountWithRoles()['roles'] ?? []);
         $peopleLimit = max(1, min(AdminService::MAX_PEOPLE_LIMIT, (int) ($_GET['people_limit'] ?? AdminService::DEFAULT_PEOPLE_LIMIT)));
         return [
-            'people' => $this->adminService->listUsersAndDependents($peopleLimit, (string) ($_GET['people_search'] ?? '')),
+            'people' => $this->adminService->listUsersAndDependents($peopleLimit, (string) ($_GET['people_search'] ?? ''), $internView ? [] : AdminService::normalizePeopleConditions($_GET['people_conditions'] ?? [])),
+            'peopleConditions' => $internView ? [] : AdminService::normalizePeopleConditions($_GET['people_conditions'] ?? []),
             'usersOnly' => [],
             'peopleUsersTotals' => $this->adminService->peopleAndUsersTotals(),
             'conditionValidationRows' => $internView ? [] : $this->adminService->listPeopleRequiringConditionValidation(),

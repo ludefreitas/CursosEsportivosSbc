@@ -107,10 +107,20 @@ class AdminService
     /**
      * Lista usuarios e dependentes para a área administrativa inicial.
      */
-    public function listUsersAndDependents(int $limit = self::DEFAULT_PEOPLE_LIMIT, string $search = ''): array
+    public static function normalizePeopleConditions(mixed $conditions): array
+    {
+        if (!is_array($conditions) || count($conditions) > 3) { throw new RuntimeException('Selecione condições especiais válidas.'); }
+        foreach ($conditions as $condition) if (!is_string($condition) || !in_array($condition, ['pcd','plm','pvs'], true)) {
+            throw new RuntimeException('Selecione condições especiais válidas.');
+        }
+        return array_values(array_unique($conditions));
+    }
+
+    public function listUsersAndDependents(int $limit = self::DEFAULT_PEOPLE_LIMIT, string $search = '', array $specialConditions = []): array
     {
         $limit = max(1, min(self::MAX_PEOPLE_LIMIT, $limit));
         $search = trim($search);
+        $specialConditions = self::normalizePeopleConditions($specialConditions);
         $normalizedCpfSearch = preg_replace('/\D+/', '', $search) ?? '';
         $pdo = Database::connection();
         $sql = '
@@ -136,7 +146,7 @@ class AdminService
             LEFT JOIN pessoas r ON r.id = vr.responsavel_pessoa_id
         ';
 
-        $params = [];
+        $params = []; $where = [];
 
         if ($search !== '') {
             $conditions = [
@@ -149,10 +159,13 @@ class AdminService
                 $params[':search_cpf'] = '%' . $normalizedCpfSearch . '%';
             }
 
-            $sql .= '
-                WHERE (' . implode(' OR ', $conditions) . ')
-            ';
+            $where[] = '(' . implode(' OR ', $conditions) . ')';
         }
+
+        if ($specialConditions !== []) {
+            $where[] = '(' . implode(' OR ', array_map(static fn(string $condition): string => 'p.eh_' . $condition . '=1', $specialConditions)) . ')';
+        }
+        if ($where !== []) $sql .= ' WHERE ' . implode(' AND ', $where);
 
         $sql .= '
             ORDER BY p.created_at DESC, p.id DESC

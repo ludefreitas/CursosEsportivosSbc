@@ -1,0 +1,140 @@
+[
+  {
+    "id": "inicio",
+    "title": "Editar uma pessoa ou dependente",
+    "caption": "Acesse a conta do responsável e abra Meu painel.",
+    "speech": "Neste vídeo, vamos editar os dados de uma pessoa ou dependente já cadastrado. Entre na conta do responsável e acesse Meu painel. Usamos as telas reais do sistema com dados fictícios; nenhum cadastro será alterado no site."
+  },
+  {
+    "id": "lista",
+    "title": "Encontrar a pessoa correta",
+    "caption": "Meus dependentes → confira nome, CPF e nascimento.",
+    "speech": "Role até Meus dependentes. A própria pessoa responsável também aparece nesta lista. Antes de abrir qualquer formulário, confira o nome, o CPF e a data de nascimento da pessoa que você realmente deseja atualizar."
+  },
+  {
+    "id": "abrir",
+    "title": "Abrir os dados da pessoa",
+    "caption": "Clique para visualizar ou editar dados.",
+    "speech": "Na linha da pessoa escolhida, clique em Clique para visualizar ou editar dados. O sistema abre um modal. Essa primeira tela é de consulta: ainda não estamos alterando os dados."
+  },
+  {
+    "id": "consulta",
+    "title": "Conferir o cadastro atual",
+    "caption": "Confira os dados antes de abrir a edição.",
+    "speech": "Leia os dados cadastrados e confirme novamente a identidade da pessoa. Verifique contato, endereço e responsáveis. Os avisos sobre cartão SUS e documentos são orientações do sistema e não devem ser ignorados."
+  },
+  {
+    "id": "editar",
+    "title": "Entrar no modo de edição",
+    "caption": "Clique em Editar.",
+    "speech": "Na parte inferior do modal, clique em Editar. O formulário de alteração aparecerá na mesma janela. Agora você pode modificar os campos permitidos, sem criar uma nova pessoa nem duplicar o cadastro."
+  },
+  {
+    "id": "nome",
+    "title": "Atualizar o nome completo",
+    "caption": "Digite o nome completo, sem abreviações.",
+    "speech": "Se necessário, corrija o nome completo. Use apenas letras, espaços, hífen ou apóstrofo. O sistema exige pelo menos quatorze caracteres. Aqui acrescentamos uma parte do nome apenas para demonstrar a edição."
+  },
+  {
+    "id": "identidade",
+    "title": "CPF e nascimento protegidos",
+    "caption": "CPF e data de nascimento ficam bloqueados para o usuário comum.",
+    "speech": "O CPF e a data de nascimento não ficam livres para alteração pelo usuário comum. Se houver erro nesses dados, procure o suporte. Não tente resolver criando outro cadastro para a mesma pessoa."
+  },
+  {
+    "id": "email",
+    "title": "Atualizar o e-mail",
+    "caption": "Confira o endereço de e-mail antes de continuar.",
+    "speech": "Informe um e-mail válido e confira a digitação, inclusive o texto depois do arroba. Neste exemplo trocamos o e-mail do dependente. Esse endereço deve ser um contato que a família consiga acompanhar."
+  },
+  {
+    "id": "whatsapp",
+    "title": "Entender o WhatsApp do dependente",
+    "caption": "O WhatsApp do dependente é o do responsável.",
+    "speech": "O WhatsApp deste dependente aparece bloqueado porque é herdado do responsável. O próprio formulário oferece um link para abrir o cadastro do responsável. Salve primeiro as alterações em andamento antes de seguir esse link. Mostraremos a edição do responsável ao final."
+  },
+  {
+    "id": "sus",
+    "title": "Conferir o cartão SUS",
+    "caption": "Use o número verdadeiro do cartão; não invente dígitos.",
+    "speech": "O campo do cartão SUS permite atualizar os quinze dígitos quando você possui a informação. Confira no cartão ou procure uma UBS para obter ou confirmar o número. Não preencha um número aleatório apenas para retirar um aviso."
+  },
+  {
+    "id": "emergencia",
+    "title": "Conferir o contato de emergência",
+    "caption": "Nome e telefone de emergência devem estar atualizados.",
+    "speech": "Confira o nome e o telefone do contato de emergência. Esse telefone precisa ser diferente do WhatsApp do responsável. Para mostrar o bloqueio, vamos informar propositalmente o mesmo número e depois corrigir."
+  },
+  {
+    "id": "condicao",
+    "title": "Revisar a condição declarada",
+    "caption": "Declare apenas uma condição que corresponda à pessoa.",
+    "speech": "Revise as opções PCD, PLM e PVS. Apenas uma dessas condições pode ficar marcada por pessoa. Marcar a condição não valida documentos: o envio e a análise são feitos depois, nos tutoriais próprios de cada condição. Não altere esta informação sem necessidade."
+  },
+  {
+    "id": "endereco",
+    "title": "Atualizar o endereço",
+    "caption": "Confira CEP, rua, número, complemento, bairro, cidade e UF.",
+    "speech": "Confira o endereço completo. Se o CEP mudar, use a consulta e revise o endereço retornado. O sistema atende CEPs autorizados para São Bernardo do Campo. Atualize o número e use o complemento quando necessário, como casa ou apartamento."
+  },
+  {
+    "id": "responsaveis",
+    "title": "Conferir os responsáveis",
+    "caption": "Preencha nome e CPF válidos de pelo menos um responsável.",
+    "speech": "Verifique os responsáveis um e dois. É necessário informar ao menos um responsável com nome e CPF válidos; pode ser a própria pessoa. Preencher esses campos não transfere a responsabilidade do dependente para outra conta. A transferência tem um formulário específico."
+  },
+  {
+    "id": "erro",
+    "title": "Reconhecer o bloqueio do telefone",
+    "caption": "O sistema informa o motivo e mantém o formulário aberto.",
+    "speech": "Ao salvar com o telefone de emergência igual ao WhatsApp, o sistema mostra o motivo do bloqueio. Leia a mensagem. Os dados ainda não foram salvos. Feche o aviso e corrija o campo indicado antes de tentar novamente."
+  },
+  {
+    "id": "corrigir",
+    "title": "Corrigir o telefone de emergência",
+    "caption": "Informe um telefone diferente do WhatsApp do responsável.",
+    "speech": "Troque o telefone de emergência por um número diferente do WhatsApp. Confira também o nome da pessoa que atenderá essa ligação. O responsável não deve usar como WhatsApp o mesmo telefone de emergência de outro dependente vinculado."
+  },
+  {
+    "id": "salvar",
+    "title": "Salvar as alterações",
+    "caption": "Revise tudo e clique em Salvar alterações.",
+    "speech": "Antes de salvar, revise os dados alterados e confirme que escolheu a pessoa certa. Clique em Salvar alterações e aguarde a resposta do sistema. Evite clicar várias vezes ou fechar a janela durante o envio."
+  },
+  {
+    "id": "sucesso",
+    "title": "Confirmar que a alteração foi salva",
+    "caption": "Leia a confirmação de sucesso.",
+    "speech": "A mensagem de sucesso confirma que as alterações foram recebidas. Feche o aviso. A linha da pessoa é atualizada no painel. Se aparecer uma mensagem de erro, a atualização não deve ser considerada concluída: leia o motivo e corrija."
+  },
+  {
+    "id": "revisar",
+    "title": "Reabrir para conferir",
+    "caption": "Confira o nome, o e-mail e o endereço atualizados.",
+    "speech": "Para conferir, abra novamente os dados da mesma pessoa. Observe o nome completo, o novo e-mail, o endereço e o telefone de emergência. Essa conferência ajuda a perceber erros de digitação antes de usar o cadastro em inscrições ou agendamentos."
+  },
+  {
+    "id": "proprio",
+    "title": "Editar os dados do responsável",
+    "caption": "Abra a linha da própria pessoa responsável.",
+    "speech": "Para atualizar os seus próprios dados, feche o modal do dependente e abra a linha da própria pessoa responsável. Clique em Editar. O caminho é o mesmo, mas o WhatsApp do responsável fica disponível para alteração."
+  },
+  {
+    "id": "telefoneproprio",
+    "title": "Alterar o WhatsApp do responsável",
+    "caption": "Use DDD e um número diferente dos contatos de emergência.",
+    "speech": "Atualize seu WhatsApp com DDD. Esse número é usado como contato dos seus dependentes. Ele deve ser diferente dos telefones de emergência cadastrados para você e para seus dependentes. Revise o número antes de salvar."
+  },
+  {
+    "id": "salvarproprio",
+    "title": "Salvar os dados do responsável",
+    "caption": "Clique em Salvar alterações e aguarde a confirmação.",
+    "speech": "Salve as alterações do responsável e aguarde a mensagem de sucesso. Assim como na edição do dependente, o sistema pode bloquear um dado incompatível e explicar o motivo. Apenas considere a atualização concluída após a confirmação."
+  },
+  {
+    "id": "fim",
+    "title": "Cadastro conferido e atualizado",
+    "caption": "Mantenha seus dados e os dados dos dependentes atualizados.",
+    "speech": "Pronto. Você aprendeu a consultar, editar, corrigir um erro, salvar e conferir os dados de uma pessoa ou dependente. CPF e nascimento exigem atenção especial. Se houver condição PCD, PLM ou PVS declarada, acompanhe também o tutorial de documentação correspondente."
+  }
+]

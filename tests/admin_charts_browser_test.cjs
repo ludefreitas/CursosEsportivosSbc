@@ -25,14 +25,32 @@ const root=path.resolve(__dirname,'..');
  await page.goto(base+'/admin#admin-graficos');
  await page.locator('[data-chart-stats] strong').first().waitFor();await settle();
  assert.deepEqual(await values(),['20','14','10','3']);
- assert.match(await page.locator('[data-chart-age-capacity]').innerText(),/Vagas:|Inscrições no filtro:/);
+ assert.equal(await page.locator('[data-chart-age-capacity]').count(),0);
+ assert.match(await page.locator('[data-chart-student-ages]').innerText(),/Vagas oferecidas nas turmas compatíveis/);
  assert.match(await page.locator('[data-chart-student-ages]').innerText(),/Sem idade válida/);
  const ageDetails = page.locator('details').filter({has:page.locator('[data-chart-age-table]')});
  assert(!(await ageDetails.evaluate(e=>e.open)));
- await ageDetails.locator('summary').click();
- assert.match(await page.locator('[data-chart-age-table]').innerText(),/Ocupação/);
- assert.match(await page.locator('[data-chart-age-table]').innerText(),/Idade exata|idade exata/);
- await ageDetails.locator('summary').click();
+ await ageDetails.locator(':scope > summary').click();
+ const ageLocation = page.locator('[data-chart-age-table] .chart-age-location').first();
+ assert(!(await ageLocation.evaluate(e=>e.open)));
+ assert.equal(await ageLocation.locator('table').isVisible(),false);
+ await ageLocation.locator('summary').click();
+ assert.match(await ageLocation.innerText(),/Ocupação/);
+ assert.match(await ageLocation.innerText(),/Idade exata|idade exata/);
+ await ageLocation.locator('summary').click();
+ await ageDetails.locator(':scope > summary').click();
+ await page.locator('[data-chart-student-age-choice]').selectOption({label:'21–25 anos'});
+ assert.match(await page.locator('[data-chart-student-ages]').innerText(),/21–25 anos/);
+ assert.doesNotMatch(await page.locator('[data-chart-student-ages]').innerText(),/Sem idade válida/);
+ const studentDetails=page.locator('details').filter({has:page.locator('[data-chart-student-age-table]')});
+ await studentDetails.locator(':scope > summary').click();
+ const studentLocation=page.locator('[data-chart-student-age-table] .chart-age-location').first();
+ assert(!(await studentLocation.evaluate(e=>e.open)));
+ await studentLocation.locator('summary').click();
+ assert.match(await studentLocation.innerText(),/Vagas oferecidas compartilhadas/);
+ await studentLocation.locator('summary').click();
+ await studentDetails.locator(':scope > summary').click();
+ await page.locator('[data-chart-student-age-choice]').selectOption('');
  const cards = page.locator('[data-chart-collapsible]');
  assert.equal(await cards.count(), 3);
  for (const card of await cards.all()) {
@@ -118,7 +136,7 @@ const root=path.resolve(__dirname,'..');
  await page.locator('[name="max_temporadas"]').fill('6');await page.locator('[name="modo"]').selectOption('range');await settle();
  assert.deepEqual(await values(),['34','23','22','4']);
  await page.screenshot({path:path.join(root,'tmp/admin-charts-desktop.png'),fullPage:true});
- for(const width of [820,640,390,320]){await page.setViewportSize({width,height:900});await page.waitForTimeout(120);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),width+'px');assert.equal(await page.locator('.chart-svg').evaluate(e=>e.outerHTML.includes('NaN')),false);}
+ for(const width of [820,640,390,320]){await page.setViewportSize({width,height:900});await page.waitForTimeout(120);await ageDetails.locator(':scope > summary').click();const mobileLocation=page.locator('[data-chart-age-table] .chart-age-location').first();await mobileLocation.locator('summary').click();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Tabela aberta: '+width+'px');await mobileLocation.locator('summary').click();await ageDetails.locator(':scope > summary').click();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),width+'px');assert.equal(await page.locator('.chart-svg').evaluate(e=>e.outerHTML.includes('NaN')),false);}
  await page.screenshot({path:path.join(root,'tmp/admin-charts-mobile.png'),fullPage:true});
  // O teste de captura usa apenas o banco SQLite isolado, sem criar cliques na aplicação real.
  await page.goto(base+'/');await page.locator('[data-home-location-select]').click();await page.locator('[data-home-course-modality-select]').click();await page.locator('[data-home-course-enroll]').dblclick();await settle();

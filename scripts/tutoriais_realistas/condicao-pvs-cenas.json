@@ -1,0 +1,122 @@
+[
+  {
+    "id": "inicio",
+    "title": "Documentação de PVS",
+    "caption": "A condição já precisa estar marcada no cadastro.",
+    "speech": "Neste vídeo mostramos, nos detalhes, como enviar a documentação de Pessoa em Situação de Vulnerabilidade Social. O exemplo começa depois que essa condição já foi marcada no cadastro da pessoa. As telas são reais; os dados, documentos e envio desta gravação são demonstrativos."
+  },
+  {
+    "id": "lista",
+    "title": "Localizar a pessoa no painel",
+    "caption": "Meus dependentes → confira nome, CPF e nascimento.",
+    "speech": "Entre na conta do responsável e abra Meu painel. Em Meus dependentes, localize a pessoa correta. Ela pode ser o próprio responsável ou um dependente. Confira nome, CPF e nascimento para não enviar documentos na linha errada."
+  },
+  {
+    "id": "verificar",
+    "title": "Conferir a condição no cadastro",
+    "caption": "Abra os dados da pessoa e confira a condição declarada.",
+    "speech": "Abra os dados da pessoa e entre em Editar para conferir que PVS está marcada. Não é necessário marcar novamente nem mudar a condição. Se a opção não estiver declarada, a documentação correspondente não ficará disponível para envio."
+  },
+  {
+    "id": "voltar",
+    "title": "Voltar à lista sem mudar o cadastro",
+    "caption": "Feche os dados e procure Documentação por condição.",
+    "speech": "Neste exemplo a condição já está correta. Fechamos o formulário sem fazer alterações. Na linha da pessoa, procure a coluna Documentação por condição. Não confunda esse botão com os botões de atestado clínico ou dermatológico."
+  },
+  {
+    "id": "abrir",
+    "title": "Abrir a documentação de PVS",
+    "caption": "Clique em enviar/atualizar documentação.",
+    "speech": "Clique no botão Pessoa em Situação de Vulnerabilidade Social, enviar ou atualizar documentação. O modal Condições e documentação mostrará o nome da pessoa e a condição escolhida. Confira os dois antes de preencher qualquer campo."
+  },
+  {
+    "id": "estado",
+    "title": "Entender o estado inicial",
+    "caption": "Declarada não significa documentação validada.",
+    "speech": "A indicação Declarada significa que a condição está marcada no cadastro. Ela não significa que a documentação já foi analisada. No primeiro envio, você verá que ainda não há documentos nem resumo cadastrados."
+  },
+  {
+    "id": "substituicao",
+    "title": "Ler o aviso de substituição",
+    "caption": "Um novo envio substitui todos os PDFs atuais desta condição.",
+    "speech": "Leia o aviso de atualização. Ao enviar novos documentos, o sistema remove os PDFs atuais dessa condição e mantém somente os selecionados agora. Se precisar preservar um comprovante anterior, selecione esse comprovante novamente junto com os novos arquivos."
+  },
+  {
+    "id": "resumo",
+    "title": "Preencher o resumo da documentação",
+    "caption": "Descreva os documentos e as informações relevantes.",
+    "speech": "Preencha Resumo da documentação. Esse campo é obrigatório. Descreva de forma objetiva o conteúdo dos comprovantes e as informações relevantes para a análise. O resumo deve corresponder aos documentos enviados e não substitui os PDFs."
+  },
+  {
+    "id": "nis",
+    "title": "Informar o CadÚnico / NIS",
+    "caption": "Digite os 11 números do NIS da pessoa.",
+    "speech": "Informe o Número do CadÚnico, NIS. São onze dígitos numéricos da pessoa à qual os documentos se referem. Confira no comprovante. Este campo não é o CPF. O número mostrado aqui é fictício e não deve ser copiado para um cadastro real."
+  },
+  {
+    "id": "emissao",
+    "title": "Conferir a data de emissão",
+    "caption": "Use a data que consta no documento; a validade será definida na análise.",
+    "speech": "Quando houver data de emissão no documento, informe-a corretamente. Este campo não define a validade do certificado. A validade não é preenchida por você neste envio: ela será definida no processo de validação pela equipe responsável."
+  },
+  {
+    "id": "observacoes",
+    "title": "Acrescentar observações",
+    "caption": "Use este campo para informações úteis; ele é opcional.",
+    "speech": "O campo Observações é opcional. Use-o para explicar algo útil à análise que não esteja claro nos demais campos. Se não houver informação adicional, pode deixá-lo vazio. Neste exemplo, o texto identifica que os documentos são apenas demonstrativos."
+  },
+  {
+    "id": "pdf",
+    "title": "Selecionar os arquivos PDF",
+    "caption": "Escolher arquivos → selecione um ou mais PDFs legíveis.",
+    "speech": "Em Arquivos PDF da condição, clique para escolher os arquivos no seu computador ou celular. Selecione um ou mais PDFs legíveis da pessoa correta. Uma fotografia ou imagem precisa ser convertida em PDF antes do envio; não basta trocar o nome da extensão."
+  },
+  {
+    "id": "conferirpdf",
+    "title": "Conferir os PDFs selecionados",
+    "caption": "Confira os nomes dos arquivos antes de enviar.",
+    "speech": "Confira a seleção dos arquivos. Se forem necessários vários documentos, escolha todos no mesmo envio. No computador, a seleção múltipla pode ser feita com a tecla Control. No celular, use o seletor de arquivos disponível. Verifique nomes, legibilidade e todas as páginas antes de continuar."
+  },
+  {
+    "id": "ciencia",
+    "title": "Ler e marcar a ciência do prazo",
+    "caption": "Envio e validação são etapas diferentes.",
+    "speech": "Leia a declaração de ciência e marque a caixa somente depois de compreender as regras. Inscrições e agendamentos dependem do envio e da validação da documentação. O texto informa que a documentação e os atestados aplicáveis poderão ser analisados em até três dias úteis."
+  },
+  {
+    "id": "revisao",
+    "title": "Revisar antes do envio",
+    "caption": "Confira pessoa, resumo, dados obrigatórios e PDFs.",
+    "speech": "Antes de enviar, confira novamente o nome da pessoa, o resumo, os campos obrigatórios e todos os PDFs. Verifique a condição escolhida e a declaração de ciência. Se houver erro, corrija agora. Um novo envio substituirá os arquivos atuais desta condição."
+  },
+  {
+    "id": "enviar",
+    "title": "Enviar a documentação",
+    "caption": "Clique em Enviar documentação e aguarde.",
+    "speech": "Clique em Enviar documentação e aguarde o retorno do sistema. Não feche a janela e não pressione o botão repetidamente. Se aparecer um erro, leia a mensagem e corrija o que foi indicado. A seleção do arquivo, sozinha, ainda não representa o envio."
+  },
+  {
+    "id": "sucesso",
+    "title": "Conferir a confirmação",
+    "caption": "Leia a mensagem de sucesso.",
+    "speech": "A mensagem de sucesso confirma o recebimento da documentação pelo sistema. Feche o aviso para conferir o resumo e os arquivos que ficaram cadastrados. Essa confirmação não significa que a condição já foi aprovada pela equipe."
+  },
+  {
+    "id": "pendente",
+    "title": "Acompanhar a validação",
+    "caption": "Documentação pendente de validação: aguarde a análise.",
+    "speech": "Após o envio, o estado mostrado é Documentação pendente de validação. Confira os nomes dos PDFs e o resumo. Volte a esta tela para acompanhar a análise. Se a equipe solicitar correção ou houver reprovação, esclareça o motivo e envie os documentos corretos."
+  },
+  {
+    "id": "atualizar",
+    "title": "Como atualizar documentos depois",
+    "caption": "Atualizar documentação exige selecionar novamente os PDFs que devem permanecer.",
+    "speech": "Para uma atualização posterior, abra novamente o mesmo botão da mesma pessoa. Os dados atuais são carregados, mas os PDFs não são selecionados automaticamente. Escolha todos os arquivos que devem permanecer, revise os campos e a ciência do prazo e use Atualizar documentação."
+  },
+  {
+    "id": "fim",
+    "title": "Envio concluído, análise em andamento",
+    "caption": "Acompanhe a situação antes de tentar inscrições ou agendamentos.",
+    "speech": "Você concluiu o envio da documentação de Pessoa em Situação de Vulnerabilidade Social. Guarde os documentos originais e acompanhe o resultado no painel. O prazo, a validade e a liberação dependem da análise. O atestado clínico e o dermatológico, quando aplicáveis à atividade, continuam sendo documentos separados."
+  }
+]

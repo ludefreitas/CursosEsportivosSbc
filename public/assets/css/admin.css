@@ -2369,3 +2369,8 @@
 
 .age-criterion-filters .admin-class-filter-block + .admin-class-filter-block { border-top: 2px solid #15839a; padding-top: 12px; }
 .age-criterion-filters .professor-class-filter-buttons { flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+.people-condition-filter { border: 1px solid #dfd4c4; border-radius: 12px; padding: 12px 16px; }
+.people-condition-filter legend { font-weight: 700; padding: 0 6px; }
+.people-condition-filter small { display: block; margin-top: 10px; line-height: 1.5; }
+.people-condition-filter .checkbox-chip input { width: auto; }

@@ -522,7 +522,8 @@ class AdminController extends Controller
             $peopleSearch = (string) ($_GET['people_search'] ?? '');
             $usersSearch = (string) ($_GET['users_search'] ?? '');
             $usersRole = is_string($_GET['users_role'] ?? '') ? ($_GET['users_role'] ?? '') : '';
-            $people = $this->adminService->listUsersAndDependents($peopleLimit, $peopleSearch);
+            $peopleConditions = AdminService::normalizePeopleConditions($_GET['people_conditions'] ?? []);
+            $people = $this->adminService->listUsersAndDependents($peopleLimit, $peopleSearch, $peopleConditions);
             $usersOnly = $this->adminService->listUsersOnly($usersLimit, $usersSearch, $usersRole);
             $peopleUsersTotals = $this->adminService->peopleAndUsersTotals();
             $conditionValidationRows = $this->adminService->listPeopleRequiringConditionValidation();
@@ -2310,7 +2311,8 @@ class AdminController extends Controller
             $data['usersSearch'] = (string) ($_GET['users_search'] ?? '');
             $data['usersRole'] = is_string($_GET['users_role'] ?? '') ? ($_GET['users_role'] ?? '') : '';
 
-            $data['people'] = $this->adminService->listUsersAndDependents($peopleLimit, (string) $data['peopleSearch']);
+            $data['peopleConditions'] = AdminService::normalizePeopleConditions($_GET['people_conditions'] ?? []);
+            $data['people'] = $this->adminService->listUsersAndDependents($peopleLimit, (string) $data['peopleSearch'], $data['peopleConditions']);
             $data['usersOnly'] = $this->adminService->listUsersOnly($usersLimit, (string) $data['usersSearch'], $data['usersRole']);
             $data['peopleUsersTotals'] = $this->adminService->peopleAndUsersTotals();
             $data['conditionValidationRows'] = $this->adminService->listPeopleRequiringConditionValidation();

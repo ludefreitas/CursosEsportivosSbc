@@ -2212,6 +2212,7 @@
                     data: {
                         people_limit: peopleLimit,
                         people_search: peopleSearch,
+                        people_conditions: $peopleForm.find('[name="people_conditions[]"]:checked').map(function () { return this.value; }).get(),
                         users_limit: usersLimit,
                         users_search: usersSearch,
                         users_role: String($usersForm.find('select[name="users_role"]').val() || '')
@@ -2296,14 +2297,20 @@
                 $(this).trigger('input');
             });
 
-            $(document).on('change', '[data-admin-people-filter="1"] input[name="people_limit"], [data-admin-people-filter="1"] input[name="users_limit"], [data-admin-people-filter="1"] select[name="users_role"]', function () {
+            $(document).on('click', '[data-people-condition-all], [data-people-condition-clear]', function () {
+                const $form = $(this).closest('form');
+                $form.find('[name="people_conditions[]"]').prop('checked', $(this).is('[data-people-condition-all]'));
+                refreshPeoplePanel($form, { preserveSearchFocus: true });
+            });
+
+            $(document).on('change', '[data-admin-people-filter="1"] input[name="people_conditions[]"], [data-admin-people-filter="1"] input[name="people_limit"], [data-admin-people-filter="1"] input[name="users_limit"], [data-admin-people-filter="1"] select[name="users_role"]', function () {
                 const $form = $(this).closest('form');
 
                 if ($form.length === 0) {
                     return;
                 }
 
-                refreshPeoplePanel($form);
+                refreshPeoplePanel($form, { preserveSearchFocus: $(this).is('[name="people_conditions[]"]') });
             });
         },
 
