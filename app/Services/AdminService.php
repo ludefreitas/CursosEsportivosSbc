@@ -9,6 +9,8 @@ use RuntimeException;
 
 class AdminService
 {
+    public const ADMIN_ASSIGNABLE_ROLE_SLUGS = ['teacher', 'intern'];
+
     public const MAX_ONLINE_SESSIONS_LIMIT = 200;
     public const DEFAULT_PEOPLE_LIMIT = 10;
     public const MAX_PEOPLE_LIMIT = 40;
@@ -588,27 +590,24 @@ class AdminService
             $selectedRoleSlugs[] = (string) ($role['slug'] ?? '');
         }
 
-        $currentHasMasterAdmin = false;
-
-        foreach ($activeRoles as $role) {
-            if ((string) ($role['slug'] ?? '') === 'master_admin') {
-                $currentHasMasterAdmin = true;
-                break;
-            }
-        }
-
-        $willKeepMasterAdmin = in_array('master_admin', $selectedRoleSlugs, true);
-
         if (!$actorIsMasterAdmin) {
-            if (in_array('master_admin', $selectedRoleSlugs, true) || ($currentHasMasterAdmin && !$willKeepMasterAdmin)) {
-                throw new RuntimeException('Somente um Administrador Master pode alterar o papel Administrador Master.');
+            if (!has_role($actorRoles, 'admin')) {
+                throw new RuntimeException('Somente administradores podem gerenciar papéis de usuário.');
+            }
+
+            if (array_diff($selectedRoleSlugs, self::ADMIN_ASSIGNABLE_ROLE_SLUGS) !== []) {
+                throw new RuntimeException('O administrador só pode gerenciar os papéis Professor e Estagiário.');
             }
         }
 
         $rolesToAdd = array_values(array_filter($selectedRoleIds, static function (int $roleId) use ($activeRoleIdsMap): bool {
             return !isset($activeRoleIdsMap[$roleId]);
         }));
-        $rolesToRemove = array_values(array_filter($activeRoles, static function (array $role) use ($selectedRolesById): bool {
+        $rolesToRemove = array_values(array_filter($activeRoles, static function (array $role) use ($selectedRolesById, $actorIsMasterAdmin): bool {
+            if (!$actorIsMasterAdmin && !in_array($role['slug'], self::ADMIN_ASSIGNABLE_ROLE_SLUGS, true)) {
+                return false;
+            }
+
             return !isset($selectedRolesById[(int) ($role['id'] ?? 0)]);
         }));
 

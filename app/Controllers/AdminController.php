@@ -532,6 +532,7 @@ class AdminController extends Controller
             $peopleLimitMax = AdminService::MAX_PEOPLE_LIMIT;
             $currentAdmin = $this->userService->currentAccountWithRoles();
             $canManageRoles = $currentAdmin ? $this->canManageUserRoles($currentAdmin) : false;
+            $canManageAllRoles = $currentAdmin ? $this->canAccessMasterSections($currentAdmin) : false;
 
             ob_start();
             require ROOT_PATH . '/app/Views/admin/partials/people_panel.php';
@@ -2155,7 +2156,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Restringe a gestão de papéis ao Administrador Master.
+     * Restringe a gestão de papéis aos administradores.
      */
     private function assertRoleManagementAccess(): array
     {
@@ -2168,12 +2169,12 @@ class AdminController extends Controller
         if ($this->isAjaxRequest()) {
             $this->jsonResponse([
                 'success' => false,
-                'message' => 'Somente o Administrador Master pode gerenciar papéis de usuário.',
+                'message' => 'Somente administradores podem gerenciar papéis de usuário.',
                 'redirect' => url('/admin'),
             ], 403);
         }
 
-        flash('error', 'Somente o Administrador Master pode gerenciar papéis de usuário.');
+        flash('error', 'Somente administradores podem gerenciar papéis de usuário.');
         redirect('/admin');
     }
 
@@ -2190,7 +2191,7 @@ class AdminController extends Controller
      */
     private function canManageUserRoles(array $user): bool
     {
-        return $this->canAccessMasterSections($user);
+        return $this->canAccessMasterSections($user) || has_role($user['roles'] ?? [], 'admin');
     }
 
     public function assignWeeklyScheduleTeam(): void
@@ -2347,6 +2348,7 @@ class AdminController extends Controller
             $data['healthCertificateValidationRows'] = $this->adminService->listPeopleRequiringHealthCertificateValidation();
             $data['availableRoles'] = $this->adminService->listRolesForManagement();
             $data['canManageRoles'] = $this->canManageUserRoles($user);
+            $data['canManageAllRoles'] = $this->canAccessMasterSections($user);
             $data['peopleLimit'] = $peopleLimit;
             $data['usersLimit'] = $usersLimit;
             $data['peopleLimitMax'] = AdminService::MAX_PEOPLE_LIMIT;

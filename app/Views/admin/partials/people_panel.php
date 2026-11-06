@@ -670,12 +670,16 @@
 
                 <div class="admin-user-role-meta">
                     <p><strong>Usuário:</strong> <span id="admin-user-roles-account-name">-</span></p>
-                    <p><strong>Ultimo acesso conhecido:</strong> <span id="admin-user-roles-last-access">-</span></p>
+                    <p><strong>Último acesso conhecido:</strong> <span id="admin-user-roles-last-access">-</span></p>
                     <p><strong>Situação para atribuição:</strong> <span id="admin-user-roles-status">-</span></p>
                 </div>
 
                 <div class="admin-role-checkbox-grid">
-                    <?php foreach (($availableRoles ?? []) as $roleOption) { ?>
+                    <?php foreach (($availableRoles ?? []) as $roleOption) {
+                        if (empty($canManageAllRoles) && !in_array($roleOption['slug'], \App\Services\AdminService::ADMIN_ASSIGNABLE_ROLE_SLUGS, true)) {
+                            continue;
+                        }
+                    ?>
                         <label class="checkbox-chip admin-role-checkbox">
                             <input
                                 type="checkbox"
@@ -692,7 +696,7 @@
 
                 <label>
                     <span>Motivo da alteração</span>
-                    <textarea name="reason" id="admin-user-roles-reason" rows="3" placeholder="Explique por que os papéis deste usuário estao sendo alterados." required></textarea>
+                    <textarea name="reason" id="admin-user-roles-reason" rows="3" placeholder="Explique por que os papéis deste usuário estão sendo alterados." required></textarea>
                 </label>
 
                 <div class="popup-actions">
