@@ -10,8 +10,10 @@ Produção dos vídeos (sem conexão com banco ou servidor da aplicação):
 2. `node scripts/tutoriais_realistas/roteirizar-gestao.cjs` gera roteiros reproduzíveis.
 3. Para cada tipo, `powershell.exe -NoProfile -File scripts/tutoriais_realistas/narrar-acesso.ps1 TIPO` gera narração em português com a voz Maria.
 4. `node scripts/tutoriais_realistas/gravar-gestao.cjs TIPO --preflight` ensaia o formulário real. Sem `--preflight`, grava o vídeo. Todas as requisições são respondidas localmente; salvamentos são simulados.
-5. `python scripts/tutoriais_realistas/finalizar-edicao-condicoes.py TIPO` exporta MP4 H.264/AAC, versão leve, legendas, capítulos e player.
-6. `python scripts/tutoriais_realistas/empacotar-gestao.py` prepara a central de reprodução e o pacote de publicação, incluindo os uploads e SQL explícito para preencher somente bibliotecas vazias. Nenhum banco é alterado pelo empacotador.
+5. Antes de exportar os vídeos de gestão, executar `analisar-sincronia-gestao.py TIPO` e `corrigir-sincronia-gestao.py TIPO`. A edição usa os cabeçalhos realmente gravados, remove a abertura branca e os carregamentos, conserva os cliques e permite prolongar o último quadro limpo até terminar a fala. A captura original é preservada. O texto de loading é comparado com a referência mínima em `loading-referencia.json`.
+6. `python scripts/tutoriais_realistas/finalizar-edicao-condicoes.py TIPO` exporta MP4 H.264/AAC, versão leve, legendas, capítulos e player. Havendo `timeline-editado.json`, usa a linha do tempo corrigida. A fala começa 0,3 segundo depois da imagem de cada etapa.
+7. `python scripts/tutoriais_realistas/analisar-sincronia-gestao.py TIPO --edited` verifica no MP4 exportado que não há branco/loading e que o título da etapa está visível antes da fala.
+8. `python scripts/tutoriais_realistas/empacotar-gestao.py` prepara a central de reprodução e o pacote de publicação, incluindo os uploads e SQL explícito para preencher somente bibliotecas vazias. Quando o pacote anterior já existe, também gera `atualizar-videos.sql` para trocar somente os caminhos dos vídeos corrigidos. Nenhum banco é alterado pelo empacotador.
 
 Tipos: `criar-temporada`, `criar-modalidade`, `criar-cronograma`, `criar-turma`. Dependências e caminhos dos binários seguem os demais scripts desta pasta. Arquivos grandes em `output/`, `tmp/` e `public/uploads/` ficam fora do commit de código.
 

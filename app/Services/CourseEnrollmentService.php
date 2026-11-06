@@ -779,7 +779,7 @@ class CourseEnrollmentService
                 foreach ($related->fetchAll(PDO::FETCH_COLUMN) as $relatedId) ModalityCreatorService::assertScheduleOwner((int) $relatedId, $accountId);
             }
             if ($ruleChanged && (int) $siblings->fetchColumn() > 0 && empty($data['aplicar_regra_modalidade_todos_cronogramas'])) throw new RuntimeException('Esta regra deve ser alterada em todos os cronogramas da mesma modalidade nesta temporada. Confirme a aplicação conjunta para prosseguir.');
-            $this->validateScheduleClassesEnrollmentDays($pdo, $id, $values['matriculas_inicio'], $values['matriculas_fim']);
+            (new ModalityScheduleCompatibilityService())->assertUpdate($pdo, $id, $currentSchedule, $values + ['abrangencia_semanal'=>$weeklyCoverage]);
             $stmt = $pdo->prepare('UPDATE cronogramas_modalidade SET observacao=:observacao, temporada_id=:temporada, modalidade_id=:modalidade, nome=:nome, abrangencia_semanal=:abrangencia_semanal, data_inicio=:data_inicio, data_fim=:data_fim, inscricoes_inicio=:inscricoes_inicio, inscricoes_fim=:inscricoes_fim, matriculas_inicio=:matriculas_inicio, matriculas_fim=:matriculas_fim, permitir_inscricao_periodo_matricula=:inscricao_matricula, inscricoes_abertas_inicio=:abertas_inicio, inscricoes_abertas_fim=:abertas_fim, aulas_inicio=:aulas_inicio, aulas_fim=:aulas_fim, possui_edital=:possui_edital, numero_edital=:numero_edital, link_edital=:link_edital, permitir_multiplas_inscricoes_modalidade=:multiplas_modalidade, limite_inscricoes_modalidade=:limite_modalidade, data_liberacao_multiplas_inscricoes_modalidade=:liberacao_modalidade WHERE id=:id LIMIT 1');
             $stmt->execute($params);
             if ($ruleChanged) {
@@ -2279,18 +2279,6 @@ class CourseEnrollmentService
             if (in_array((int) $day->format('N'), $allowedDays, true)) { return true; }
         }
         return false;
-    }
-
-    private function validateScheduleClassesEnrollmentDays(PDO $pdo, int $scheduleId, ?string $startValue, ?string $endValue): void
-    {
-        $stmt = $pdo->prepare('SELECT nome, dias_semana FROM turmas WHERE cronograma_modalidade_id = :id AND ativo = 1');
-        $stmt->execute([':id' => $scheduleId]);
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $class) {
-            $weekdays = $this->normalizeClassWeekdays((string) ($class['dias_semana'] ?? ''));
-            if ($weekdays !== '' && !$this->enrollmentPeriodContainsClassDay($startValue, $endValue, $weekdays)) {
-                throw new RuntimeException('O novo período de matrícula não coincide com nenhum dia de aula da turma “' . (string) ($class['nome'] ?? '') . '”. Ajuste as datas ou crie outro cronograma antes de prosseguir.');
-            }
-        }
     }
 
     private function describeClassWeekdays(string $value): string

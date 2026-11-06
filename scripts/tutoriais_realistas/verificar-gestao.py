@@ -6,11 +6,14 @@ KINDS=['criar-temporada','criar-modalidade','criar-cronograma','criar-turma']
 ff=ROOT/'tmp/tutoriais-2026/ffmpeg.exe';results=[]
 for kind in KINDS:
  folder=ROOT/f'output/tutorial-{kind}-realista';temp=ROOT/f'tmp/tutorial-{kind}'
- meta=json.loads((temp/'timeline.json').read_text(encoding='utf-8'))
+ timeline=temp/'timeline-editado.json' if (temp/'timeline-editado.json').exists() else temp/'timeline.json'
+ meta=json.loads(timeline.read_text(encoding='utf-8'))
+ assert meta.get('synchronized'),'Execute a correção de sincronia antes de publicar.'
  assert meta['simulation'] and not meta['errors'] and not meta['blocked'] and len(meta['posts'])==1
  chapters=json.loads((folder/'capitulos.json').read_text(encoding='utf-8'));assert len(chapters)==len(meta['scenes'])
  assert (folder/'legendas.vtt').stat().st_size>1000
  for s in meta['scenes']:
+  assert s['audioStart'] >= s['start']+.25 and s['audioStart']+s['audioDuration'] <= s['end'],s['id']
   with wave.open(str(temp/(s['id']+'.wav')),'rb') as wav:
    samples=array.array('h');samples.frombytes(wav.readframes(wav.getnframes()));assert max(map(abs,samples))>1000
  for name in ['tutorial.mp4','versao-leve-celular.mp4']:

@@ -7,7 +7,8 @@ TITLES={'editar-pessoa':'Como editar os dados de uma pessoa ou dependente','cond
 TITLES.update({'criar-temporada':'Como criar uma temporada','criar-modalidade':'Como criar uma modalidade','criar-cronograma':'Como criar um cronograma de modalidade','criar-turma':'Como criar uma turma'})
 assert kind in TITLES
 TMP=ROOT/('tmp/tutorial-'+kind);OUT=ROOT/('output/tutorial-'+kind+'-realista');OUT.mkdir(parents=True,exist_ok=True)
-meta=json.loads((TMP/'timeline.json').read_text(encoding='utf-8-sig'));scenes=meta['scenes'];duration=scenes[-1]['end']+.6
+timeline=TMP/'timeline-editado.json' if (TMP/'timeline-editado.json').exists() else TMP/'timeline.json'
+meta=json.loads(timeline.read_text(encoding='utf-8-sig'));scenes=meta['scenes'];duration=scenes[-1]['end']+.6
 assert meta['simulation'] and not meta['errors'] and not meta['blocked']
 with wave.open(str(TMP/(scenes[0]['id']+'.wav')),'rb') as wav: rate=wav.getframerate();channels=wav.getnchannels();width=wav.getsampwidth()
 assert width==2
@@ -17,7 +18,7 @@ for scene in scenes:
   assert (wav.getframerate(),wav.getnchannels(),wav.getsampwidth())==(rate,channels,width)
   speech=array.array('h');speech.frombytes(wav.readframes(wav.getnframes()))
  assert scene['end']-scene['start']>=scene['audioDuration'],scene['id']
- start=int(scene['start']*rate*channels);samples[start:start+len(speech)]=speech
+ start=int(scene.get('audioStart',scene['start'])*rate*channels);samples[start:start+len(speech)]=speech
 with wave.open(str(TMP/'narracao-completa.wav'),'wb') as wav:
  wav.setnchannels(channels);wav.setsampwidth(width);wav.setframerate(rate);wav.writeframes(samples.tobytes())
 def stamp(value,comma=True):
@@ -31,14 +32,14 @@ for scene in scenes:
   if len(chunk)+len(word)>98:chunks.append(chunk);chunk=''
   chunk+=(' ' if chunk else '')+word
  if chunk:chunks.append(chunk)
- total=sum(map(len,chunks));elapsed=scene['start']
+ total=sum(map(len,chunks));elapsed=scene.get('audioStart',scene['start'])
  for chunk in chunks:
   end=elapsed+scene['audioDuration']*len(chunk)/total
   srt.append(f'{index}\n{stamp(elapsed)} --> {stamp(end)}\n{chunk}\n');vtt.append(f'{stamp(elapsed,False)} --> {stamp(end,False)}\n{chunk}\n');index+=1;elapsed=end
 (OUT/'legendas.srt').write_text('\n'.join(srt),encoding='utf-8');(OUT/'legendas.vtt').write_text('\n'.join(vtt),encoding='utf-8')
 (OUT/'capitulos.json').write_text(json.dumps(chapters,ensure_ascii=False,indent=2),encoding='utf-8')
 (OUT/'roteiro.txt').write_text('\n\n'.join(s['title']+'\n'+s['speech'] for s in scenes),encoding='utf-8')
-ff=ROOT/'tmp/tutoriais-2026/ffmpeg.exe';source=Path((TMP/'video-path.txt').read_text().strip());output=OUT/'tutorial.mp4'
+ff=ROOT/'tmp/tutoriais-2026/ffmpeg.exe';source=Path(meta.get('video_source') or (TMP/'video-path.txt').read_text().strip());output=OUT/'tutorial.mp4'
 args=[str(ff),'-y','-ss',str(meta['lead']),'-i',str(source),'-i',str(TMP/'narracao-completa.wav'),'-map','0:v:0','-map','1:a:0','-t',str(duration),'-r','25','-c:v','libx264','-threads','2','-preset','veryfast','-crf','24','-pix_fmt','yuv420p','-af','loudnorm=I=-16:TP=-1.5:LRA=11','-c:a','aac','-ar','44100','-b:a','128k','-movflags','+faststart',str(output)]
 subprocess.run(args,check=True,stdout=subprocess.DEVNULL,stderr=(TMP/'render.log').open('w'))
 print(kind+': vídeo principal exportado.',flush=True)
