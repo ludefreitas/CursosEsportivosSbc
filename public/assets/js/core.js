@@ -1561,7 +1561,7 @@
                             const $cell = $(this);
                             const colspan = Number($cell.attr('colspan') || 1);
 
-                            if (colspan > 1) {
+                            if (colspan > 1 || $cell.is('[data-responsive-full-cell]')) {
                                 $cell.addClass('responsive-table-full-cell').removeAttr('data-label');
                                 return;
                             }

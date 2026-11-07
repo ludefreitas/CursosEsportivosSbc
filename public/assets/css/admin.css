@@ -675,6 +675,25 @@
     gap: 8px;
     word-break: break-word;
 }
+.admin-validation-details,
+.admin-validation-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.55rem 1.25rem;
+    overflow-wrap: anywhere;
+}
+
+.admin-validation-details > * {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.admin-validation-table .admin-validation-actions .link-button {
+    width: auto;
+    text-align: left;
+}
+
 .admin-condition-row-partial td {
     background: rgba(245, 196, 65, 0.24);
 }
