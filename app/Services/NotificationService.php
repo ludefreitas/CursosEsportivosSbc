@@ -9,6 +9,7 @@ use RuntimeException;
 class NotificationService
 {
     private const ADMIN_ROLES = ['master_admin', 'admin', 'supervisor', 'coordinator'];
+    private const CONDITION_WITHDRAWAL_NOTE = 'Se preferir retirar a declaração dessa condição, você pode desmarcá-la no cadastro da pessoa indicada e salvar a alteração.';
     private const STATUS_LABELS = [
         'matriculada' => 'Matriculada',
         'aguardando_matricula' => 'Aguardando matrícula',
@@ -72,7 +73,7 @@ class NotificationService
             return $this->sendClassBatch($actorAccountId, $roles, (int) ($input['turma_id'] ?? 0), $ids, $statuses, $subject, $message);
         }
 
-        $target = $this->resolveSingleTarget($actorAccountId, $roles, $type, $input);
+        $target = $this->resolveSingleTarget($actorAccountId, $roles, $type, $input, $message);
         $recipient = $this->resolveResponsible((int) $target['pessoa_id']);
         if ((int) $recipient['conta_id'] <= 0) throw new RuntimeException((string) $recipient['erro']);
 
@@ -106,7 +107,7 @@ class NotificationService
         $admin = new AdminService();
         $isCondition = $type === 'condicao';
         $rows = $isCondition ? $admin->listPeopleRequiringConditionValidation() : $admin->listPeopleRequiringHealthCertificateValidation();
-        $guidance = $this->validationGuidance($type);
+        $guidance = $this->validationGuidance($type, $message);
         $valid = [];
         $ignored = [];
         foreach ($rows as $row) {
@@ -328,7 +329,7 @@ class NotificationService
         return ['enviadas' => count($valid), 'ignoradas' => $ignored, 'message' => count($valid) . ' notificação(ões) enviada(s) com sucesso.' . ($ignored !== [] ? ' ' . count($ignored) . ' inscrição(ões) foram ignoradas.' : '')];
     }
 
-    private function resolveSingleTarget(int $actorAccountId, array $roles, string $type, array $input): array
+    private function resolveSingleTarget(int $actorAccountId, array $roles, string $type, array $input, string $message = ''): array
     {
         $pdo = Database::connection();
         if ($type === 'inscricao') {
@@ -354,7 +355,7 @@ class NotificationService
         if (!$row) throw new RuntimeException('Pessoa não encontrada.');
         $row['orientacao_tipo'] = 'geral'; $row['orientacao_texto'] = ''; $row['orientacao_url'] = ''; $row['contexto_label'] = (string) $row['pessoa_nome']; $row['contexto'] = $row;
         if (in_array($type, ['condicao', 'atestado'], true)) {
-            $row = array_replace($row, $this->validationGuidance($type));
+            $row = array_replace($row, $this->validationGuidance($type, $message));
             if ($type === 'condicao') {
                 $conditionSlug = trim(strtolower((string) ($input['condicao_slug'] ?? '')));
                 $conditionFields = ['pcd' => 'eh_pcd', 'pvs' => 'eh_pvs', 'plm' => 'eh_plm'];
@@ -377,12 +378,12 @@ class NotificationService
         return $row;
     }
 
-    private function validationGuidance(string $type): array
+    private function validationGuidance(string $type, string $message = ''): array
     {
         $contact = (new HomeInfoService())->getContactContent();
         $text = 'Em caso de dúvida, entre em contato pelo WhatsApp disponível na página inicial.';
-        if ($type === 'condicao') {
-            $text = 'Se preferir retirar a declaração dessa condição, você pode desmarcá-la no cadastro da pessoa indicada e salvar a alteração. ' . $text;
+        if ($type === 'condicao' && !str_contains($message, self::CONDITION_WITHDRAWAL_NOTE)) {
+            $text = self::CONDITION_WITHDRAWAL_NOTE . ' ' . $text;
         }
 
         return [

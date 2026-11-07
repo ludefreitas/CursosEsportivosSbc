@@ -109,7 +109,8 @@
             const template = templates[$select.val()];
             if (!template) return;
             $modal.find('[name="assunto"]').val(template[0]);
-            $modal.find('[name="mensagem"]').val(template[1]);
+            const conditionNote = 'Se preferir retirar a declaração dessa condição, você pode desmarcá-la no cadastro da pessoa indicada e salvar a alteração.';
+            $modal.find('[name="mensagem"]').val(type === 'condicao' ? template[1] + '\n\n' + conditionNote : template[1]);
         });
         $field.append($('<span>', { text: 'Mensagem padrão (opcional)' }), $select).removeClass('hidden');
     }
