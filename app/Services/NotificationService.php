@@ -106,7 +106,7 @@ class NotificationService
         $admin = new AdminService();
         $isCondition = $type === 'condicao';
         $rows = $isCondition ? $admin->listPeopleRequiringConditionValidation() : $admin->listPeopleRequiringHealthCertificateValidation();
-        $guidance = $this->validationGuidance();
+        $guidance = $this->validationGuidance($type);
         $valid = [];
         $ignored = [];
         foreach ($rows as $row) {
@@ -354,7 +354,7 @@ class NotificationService
         if (!$row) throw new RuntimeException('Pessoa não encontrada.');
         $row['orientacao_tipo'] = 'geral'; $row['orientacao_texto'] = ''; $row['orientacao_url'] = ''; $row['contexto_label'] = (string) $row['pessoa_nome']; $row['contexto'] = $row;
         if (in_array($type, ['condicao', 'atestado'], true)) {
-            $row = array_replace($row, $this->validationGuidance());
+            $row = array_replace($row, $this->validationGuidance($type));
             if ($type === 'condicao') {
                 $conditionSlug = trim(strtolower((string) ($input['condicao_slug'] ?? '')));
                 $conditionFields = ['pcd' => 'eh_pcd', 'pvs' => 'eh_pvs', 'plm' => 'eh_plm'];
@@ -377,12 +377,17 @@ class NotificationService
         return $row;
     }
 
-    private function validationGuidance(): array
+    private function validationGuidance(string $type): array
     {
         $contact = (new HomeInfoService())->getContactContent();
+        $text = 'Em caso de dúvida, entre em contato pelo WhatsApp disponível na página inicial.';
+        if ($type === 'condicao') {
+            $text = 'Se preferir retirar a declaração dessa condição, você pode desmarcá-la no cadastro da pessoa indicada e salvar a alteração. ' . $text;
+        }
+
         return [
             'orientacao_tipo' => 'whatsapp_home',
-            'orientacao_texto' => 'Em caso de dúvida, entre em contato pelo WhatsApp disponível na página inicial.',
+            'orientacao_texto' => $text,
             'orientacao_url' => trim((string) ($contact['contato_url'] ?? '')),
         ];
     }
