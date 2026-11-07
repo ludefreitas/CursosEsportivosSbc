@@ -55,6 +55,14 @@ class NotificationService
         if ($subject === '' || mb_strlen($subject, 'UTF-8') > 160) throw new RuntimeException('Informe um assunto com até 160 caracteres.');
         if ($message === '' || mb_strlen($message, 'UTF-8') > 3000) throw new RuntimeException('Informe uma mensagem com até 3.000 caracteres.');
 
+        if (in_array($type, ['condicao', 'atestado'], true) && array_key_exists('validacoes', $input)) {
+            $selection = is_string($input['validacoes']) ? json_decode($input['validacoes'], true) : null;
+            if (!is_array($selection) || !array_is_list($selection) || $selection === []) {
+                throw new RuntimeException('Selecione pelo menos um registro para notificar.');
+            }
+            return $this->sendValidationBatch($actorAccountId, $type, $selection, $subject, $message);
+        }
+
         if ($type === 'turma_lote') {
             $ids = array_values(array_unique(array_filter(array_map('intval', (array) ($input['inscricao_ids'] ?? [])), static fn(int $id): bool => $id > 0)));
             $statuses = array_values(array_unique(array_filter(array_map(
@@ -83,6 +91,75 @@ class NotificationService
         }
 
         return ['enviadas' => 1, 'ignoradas' => [], 'message' => 'Notificação enviada ao responsável com sucesso.'];
+    }
+
+    private function sendValidationBatch(int $actorAccountId, string $type, array $selection, string $subject, string $message): array
+    {
+        $selected = [];
+        foreach ($selection as $key) {
+            if (!is_string($key) || !preg_match('/\A[1-9][0-9]*(?::(?:pcd|pvs|plm))?\z/', $key)) {
+                throw new RuntimeException('A seleção contém um registro inválido.');
+            }
+            $selected[$key] = true;
+        }
+
+        $admin = new AdminService();
+        $isCondition = $type === 'condicao';
+        $rows = $isCondition ? $admin->listPeopleRequiringConditionValidation() : $admin->listPeopleRequiringHealthCertificateValidation();
+        $guidance = $this->validationGuidance();
+        $valid = [];
+        $ignored = [];
+        foreach ($rows as $row) {
+            $personId = (int) $row[$isCondition ? 'person_id' : 'pessoa_id'];
+            $key = $isCondition ? $personId . ':' . $row['condicao_slug'] : (string) $row['id'];
+            if (!isset($selected[$key])) {
+                continue;
+            }
+            unset($selected[$key]);
+            $recipient = $this->resolveResponsible($personId);
+            if ((int) $recipient['conta_id'] <= 0) {
+                $ignored[] = ['nome' => $row['nome_completo'], 'motivo' => $recipient['erro']];
+                continue;
+            }
+            $person = ['pessoa_id' => $personId, 'pessoa_nome' => $row['nome_completo']];
+            $target = $person + $guidance + [
+                'contexto' => $person + ['validacao_label' => $row[$isCondition ? 'condicao_label' : 'tipo_label']],
+            ];
+            $target[$isCondition ? 'condicao_slug' : 'atestado_id'] = $row[$isCondition ? 'condicao_slug' : 'id'];
+            $valid[] = [$target, $recipient];
+        }
+
+        if ($selected !== []) {
+            throw new RuntimeException('A fila de validação mudou. Atualize a lista e faça a seleção novamente.');
+        }
+
+        if ($valid !== []) {
+            $pdo = Database::connection();
+            $pdo->beginTransaction();
+            try {
+                foreach ($valid as [$target, $recipient]) {
+                    $notificationId = $this->insertNotification($pdo, $actorAccountId, $type, $subject, $message, $target);
+                    $this->insertRecipient($pdo, $notificationId, $target, $recipient);
+                    AuditLogService::record('notificacao.enviada', 'notificacoes', $notificationId, [
+                        'tipo' => $type,
+                        'pessoa_id' => $target['pessoa_id'],
+                        'destinatario_conta_id' => (int) $recipient['conta_id'],
+                    ]);
+                }
+                $pdo->commit();
+            } catch (\Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                throw $e;
+            }
+        }
+
+        return [
+            'enviadas' => count($valid),
+            'ignoradas' => $ignored,
+            'message' => $valid === [] ? 'Nenhuma notificação foi enviada.' : 'Notificações enviadas: ' . count($valid) . '.',
+        ];
     }
 
     public function headerSummary(int $accountId): array
@@ -277,10 +354,7 @@ class NotificationService
         if (!$row) throw new RuntimeException('Pessoa não encontrada.');
         $row['orientacao_tipo'] = 'geral'; $row['orientacao_texto'] = ''; $row['orientacao_url'] = ''; $row['contexto_label'] = (string) $row['pessoa_nome']; $row['contexto'] = $row;
         if (in_array($type, ['condicao', 'atestado'], true)) {
-            $contact = (new HomeInfoService())->getContactContent();
-            $row['orientacao_tipo'] = 'whatsapp_home';
-            $row['orientacao_texto'] = 'Em caso de dúvida, entre em contato pelo WhatsApp disponível na página inicial.';
-            $row['orientacao_url'] = trim((string) ($contact['contato_url'] ?? ''));
+            $row = array_replace($row, $this->validationGuidance());
             if ($type === 'condicao') {
                 $conditionSlug = trim(strtolower((string) ($input['condicao_slug'] ?? '')));
                 $conditionFields = ['pcd' => 'eh_pcd', 'pvs' => 'eh_pvs', 'plm' => 'eh_plm'];
@@ -303,9 +377,19 @@ class NotificationService
         return $row;
     }
 
+    private function validationGuidance(): array
+    {
+        $contact = (new HomeInfoService())->getContactContent();
+        return [
+            'orientacao_tipo' => 'whatsapp_home',
+            'orientacao_texto' => 'Em caso de dúvida, entre em contato pelo WhatsApp disponível na página inicial.',
+            'orientacao_url' => trim((string) ($contact['contato_url'] ?? '')),
+        ];
+    }
+
     private function resolveResponsible(int $personId): array
     {
-        $stmt = Database::connection()->prepare('SELECT p.nome_completo AS aluno_nome, vr.responsavel_pessoa_id, r.nome_completo AS responsavel_nome, rc.id AS responsavel_conta_id, rc.ativo AS responsavel_conta_ativa, pc.id AS propria_conta_id, pc.ativo AS propria_conta_ativa FROM pessoas p LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id=p.id AND vr.data_fim IS NULL LEFT JOIN pessoas r ON r.id=vr.responsavel_pessoa_id LEFT JOIN contas rc ON rc.cpf=r.cpf LEFT JOIN contas pc ON pc.cpf=p.cpf WHERE p.id=:id LIMIT 1');
+        $stmt = Database::connection()->prepare('SELECT p.nome_completo AS aluno_nome, vr.responsavel_pessoa_id, r.nome_completo AS responsavel_nome, rc.id AS responsavel_conta_id, rc.ativo AS responsavel_conta_ativa, pc.id AS propria_conta_id, pc.ativo AS propria_conta_ativa FROM pessoas p LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id=p.id AND vr.data_fim IS NULL LEFT JOIN pessoas r ON r.id=vr.responsavel_pessoa_id LEFT JOIN contas rc ON rc.cpf=r.cpf LEFT JOIN contas pc ON pc.cpf=p.cpf WHERE p.id=:id ORDER BY vr.id DESC LIMIT 1');
         $stmt->execute([':id' => $personId]); $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) throw new RuntimeException('Pessoa não encontrada.');
         if ((int) ($row['responsavel_pessoa_id'] ?? 0) > 0) {

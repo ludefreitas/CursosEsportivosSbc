@@ -20,10 +20,22 @@ $buildWhatsappLink = static function (?string $phone): ?string {
     <h2>Condições que precisam de validação</h2>
     <p class="muted">Esta relação destaca cada condição declarada que ainda depende de envio de PDF ou de análise da documentação.</p>
 
+    <?php if ($conditionValidationRows !== []) { ?>
+        <div class="admin-inline-links top-gap">
+            <label class="checkbox-chip">
+                <input type="checkbox" data-validation-notify-all>
+                <span>Selecionar todos</span>
+            </label>
+            <button type="button" class="btn btn-primary" data-validation-notify="condicao" disabled>Notificar selecionados</button>
+            <span class="muted" data-validation-notify-count aria-live="polite"></span>
+        </div>
+    <?php } ?>
+
     <div class="table-wrap">
         <table class="data-table">
             <thead>
                 <tr>
+                    <th scope="col">Selecionar</th>
                     <th>Nome</th>
                     <th>Responsável</th>
                     <th>Idade</th>
@@ -37,7 +49,7 @@ $buildWhatsappLink = static function (?string $phone): ?string {
             <tbody>
                 <?php if ($conditionValidationRows === []) { ?>
                     <tr>
-                        <td colspan="8" class="muted">Nenhuma condição pendente de documentação ou validação neste momento.</td>
+                        <td colspan="9" class="muted">Nenhuma condição pendente de documentação ou validação neste momento.</td>
                     </tr>
                 <?php } ?>
 
@@ -48,6 +60,11 @@ $buildWhatsappLink = static function (?string $phone): ?string {
                     $documents = $row['documentos'] ?? [];
                     ?>
                     <tr class="<?php echo (string) ($row['certificado_status'] ?? '') === 'validado_parcial' ? 'admin-condition-row-partial' : ''; ?>">
+                        <td>
+                            <input type="checkbox" data-validation-notify-row value="<?php echo e((int) $row['person_id'] . ':' . $row['condicao_slug']); ?>"
+                                data-validation-notify-label="<?php echo e($row['nome_completo'] . ' · ' . $row['condicao_label']); ?>"
+                                aria-label="<?php echo e('Selecionar ' . $row['nome_completo'] . ' — ' . $row['condicao_label']); ?>">
+                        </td>
                         <td>
                             <strong><?php echo e((string) ($row['nome_completo'] ?? '')); ?></strong><br>
                             <span class="muted"><?php echo e(!empty($professorView) ? format_cpf_professor((string) ($row['cpf'] ?? '')) : format_cpf((string) ($row['cpf'] ?? ''))); ?></span>

@@ -2237,13 +2237,21 @@
                     if (!response || response.success === false) { $content.html($('<p>', { class: 'alert-inline', text: String((response && response.message) || 'Não foi possível abrir a notificação.') })); return; }
                     updateSummary(response.summary);
                     const item = response.notification || {};
+                    const validationNotice = item.tipo === 'condicao' || item.tipo === 'atestado';
+                    const validationLabel = validationNotice && item.contexto ? item.contexto.validacao_label : '';
                     const $detail = $('<div>', { class: 'user-notification-detail' })
                         .append($('<button>', { type: 'button', class: 'link-button', 'data-user-notifications-back': '1', text: '← Voltar às notificações' }))
                         .append($('<h4>', { text: String(item.assunto || '') }))
-                        .append($('<p>').append($('<strong>', { text: 'Aluno: ' }), document.createTextNode(String(item.aluno_nome || ''))))
+                        .append($('<p>').append($('<strong>', { text: validationNotice ? 'Pessoa a que se refere: ' : 'Aluno: ' }), document.createTextNode(String(item.aluno_nome || ''))))
                         .append($('<p>').append($('<strong>', { text: 'Enviada por: ' }), document.createTextNode(String(item.autor_nome || ''))))
                         .append($('<p>', { class: 'muted', text: formatDate(item.created_at) }))
                         .append($('<p>', { class: 'user-notification-message', text: String(item.mensagem || '') }));
+                    if (validationLabel) {
+                        $detail.find('.user-notification-message').before($('<p>').append(
+                            $('<strong>', { text: item.tipo === 'condicao' ? 'Condição: ' : 'Atestado: ' }),
+                            document.createTextNode(String(validationLabel))
+                        ));
+                    }
                     if (item.orientacao_texto) {
                         const $guidance = $('<p>', { class: 'alert-inline', text: String(item.orientacao_texto) });
                         if (item.orientacao_url) $guidance.append(document.createTextNode(' '), $('<a>', { href: String(item.orientacao_url), target: '_blank', rel: 'noopener noreferrer', text: 'Abrir WhatsApp' }));

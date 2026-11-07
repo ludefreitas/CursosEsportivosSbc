@@ -61,6 +61,7 @@
         const $form = $('<form>', { class: 'popup-body stack-form', 'data-notification-form': '1', 'data-manual-submit': '1' })
             .append($('<div>', { 'data-notification-target': '1' }))
             .append($('<div>', { 'data-notification-batch': '1' }))
+            .append($('<label>', { class: 'hidden', 'data-validation-templates': '1' }))
             .append($('<label>').append($('<span>', { text: 'Assunto' }), $('<input>', { name: 'assunto', maxlength: 160, required: true })))
             .append($('<label>').append($('<span>', { text: 'Mensagem' }), $('<textarea>', { name: 'mensagem', rows: 6, maxlength: 3000, required: true })))
             .append($('<p>', { class: 'muted', 'data-notification-guidance': '1' }))
@@ -72,6 +73,96 @@
             .append($('<div>', { class: 'popup-card popup-admin-card staff-notification-card', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'staff-notification-title' }).append($header, $form));
         $('body').append($modal); return $modal;
     }
+
+    function renderValidationTemplates($modal, type) {
+        const $field = $modal.find('[data-validation-templates]').empty().addClass('hidden');
+        if (type !== 'condicao' && type !== 'atestado') return;
+
+        const templates = [
+            ['Documento não enviado', 'A equipe precisa do documento solicitado para conferir os dados da pessoa indicada. Envie o PDF pelo cadastro. Sem o arquivo, a pendência continuará aberta. O documento enviado será analisado antes da validação.'],
+            ['Documentação incompleta', 'Faltam informações ou páginas necessárias para a equipe concluir a conferência. Envie o PDF completo pelo cadastro. Enquanto faltarem dados ou páginas, a pendência continuará aberta. A versão completa passará por nova análise.'],
+            ['Validação pendente', 'A documentação foi recebida e a equipe ainda precisa conferir se ela atende aos requisitos. A validação ficará pendente até o fim da análise. Acompanhe o resultado pelo cadastro da pessoa indicada e faça um novo envio se a equipe solicitar uma correção.'],
+            [type === 'atestado' ? 'Atestado reprovado' : 'Condição reprovada', 'A documentação foi reprovada pelo motivo registrado no cadastro. Consulte esse motivo e corrija o ponto indicado para que a equipe possa reavaliar o documento. Sem a correção, a reprovação permanece. O novo PDF passará por análise antes da validação.'],
+            ['Documento ilegível', 'A equipe não conseguiu conferir as informações porque o arquivo está ilegível. Envie um novo PDF com todas as páginas nítidas e sem cortes. Sem um arquivo legível, a pendência continuará aberta. O novo envio passará por análise antes da validação.'],
+            ['Documento de outra pessoa', 'Os dados do documento divergem dos dados da pessoa indicada. A equipe precisa confirmar que o arquivo pertence a ela. Sem o documento correto, a validação ficará pendente. Confira o cadastro e envie o PDF correspondente para nova análise.'],
+            ['Documento diferente do solicitado', 'O arquivo enviado é de um tipo diferente do solicitado e não permite verificar o requisito indicado no cadastro. Sem o documento correspondente, a pendência continuará aberta. Envie o PDF correto para a equipe analisar antes da validação.'],
+            ['Arquivo não abre', 'A equipe não conseguiu abrir o PDF para conferir seu conteúdo. Gere um novo arquivo, sem senha, e envie pelo cadastro. Enquanto o arquivo estiver inacessível, a pendência continuará aberta. O novo PDF será analisado antes da validação.'],
+            ['Documento sem assinatura', 'A assinatura é necessária para identificar quem emitiu o documento. Solicite a versão assinada e envie o PDF pelo cadastro. Sem a assinatura, a validação ficará pendente. A equipe analisará a versão corrigida.'],
+            ['Documento sem CRM', 'O documento médico está sem o número do CRM, necessário para identificar o registro do profissional que o emitiu. Solicite a versão com esse dado e envie o PDF pelo cadastro. Sem o CRM, a pendência continuará aberta. A equipe analisará o novo documento antes da validação.'],
+            ['Documento sem data de emissão', 'A data de emissão é necessária para conferir quando o documento foi emitido e verificar a validade, quando aplicável. Solicite a versão com a data e envie o PDF. Sem essa informação, a validação ficará pendente. O documento corrigido passará por análise.'],
+            ['Data de emissão divergente', 'A data de emissão no cadastro diverge da data no PDF. A equipe precisa da informação correta para conferir a emissão e a validade, quando aplicável. Confira o documento e corrija o cadastro. Até que a equipe confira a correção, a pendência continuará aberta.']
+        ];
+        if (type === 'atestado') {
+            templates.push(
+                ['Atestado prestes a vencer', 'A validade do atestado de saúde está próxima do fim. Envie um atestado atualizado para que a equipe possa verificar a nova validade. Após o vencimento, o atestado atual deixará de comprovar que a documentação está em dia. O novo PDF só será validado após análise.'],
+                ['Atestado vencido', 'A validade do atestado de saúde terminou. Envie um atestado atualizado para que a equipe possa conferir a nova validade. Até a aprovação do novo PDF, o cadastro ficará sem atestado válido.']
+            );
+        } else {
+            templates.push(['Documento sem comprovação da condição', 'A equipe não conseguiu confirmar a condição declarada com o documento enviado. Envie um PDF que comprove a condição indicada no cadastro. Sem essa comprovação, a condição permanecerá sem validação. A equipe analisará o novo documento antes de decidir.']);
+        }
+
+        const $select = $('<select>').append($('<option>', { value: '', text: 'Escrever mensagem manualmente' }));
+        templates.forEach(function (template, index) {
+            $select.append($('<option>', { value: String(index), text: template[0] }));
+        });
+        $select.on('change', function () {
+            const template = templates[$select.val()];
+            if (!template) return;
+            $modal.find('[name="assunto"]').val(template[0]);
+            $modal.find('[name="mensagem"]').val(template[1]);
+        });
+        $field.append($('<span>', { text: 'Mensagem padrão (opcional)' }), $select).removeClass('hidden');
+    }
+
+    function refreshValidationSelection($panel) {
+        const $rows = $panel.find('[data-validation-notify-row]');
+        const count = $rows.filter(':checked').length;
+        $panel.find('[data-validation-notify-all]').prop({
+            checked: count > 0 && count === $rows.length,
+            indeterminate: count > 0 && count < $rows.length
+        });
+        $panel.find('[data-validation-notify]').prop('disabled', count === 0);
+        $panel.find('[data-validation-notify-count]').text(count ? 'Selecionados: ' + count : '');
+    }
+
+    $(document).on('change', '[data-validation-notify-all], [data-validation-notify-row]', function () {
+        const $panel = $(this).closest('article');
+        if ($(this).is('[data-validation-notify-all]')) {
+            $panel.find('[data-validation-notify-row]').prop('checked', this.checked);
+        }
+        refreshValidationSelection($panel);
+    });
+
+    $(document).on('click', '[data-validation-notify]', function () {
+        if (internRestricted()) return;
+        const $panel = $(this).closest('article');
+        const $selected = $panel.find('[data-validation-notify-row]:checked');
+        if (!$selected.length) return;
+
+        const type = $(this).attr('data-validation-notify');
+        const request = {
+            tipo: type,
+            validacoes: JSON.stringify($selected.map(function () { return this.value; }).get())
+        };
+        const $modal = ensureNotificationSendModal();
+        $modal.data('notificationRequest', request).data('validationPanel', $panel)
+            .removeClass('hidden').attr('aria-hidden', 'false');
+        $modal.find('#staff-notification-title').text('Notificar selecionados');
+        $modal.find('[data-notification-context]').text($panel.find('h2').first().text());
+        $modal.find('[data-notification-guidance]').text('Cada aviso identifica a pessoa a que se refere. Revise o assunto e a mensagem antes de enviar.');
+        $modal.find('[data-notification-batch]').empty();
+        $modal.find('[name="assunto"], [name="mensagem"]').val('');
+        $modal.find('[type="submit"]').prop('disabled', false);
+
+        const $names = $('<ul>', { class: 'staff-notification-recipients' });
+        $selected.each(function () {
+            $names.append($('<li>', { text: $(this).attr('data-validation-notify-label') }));
+        });
+        $modal.find('[data-notification-target]').empty().append(
+            $('<details>').append($('<summary>', { text: 'Revisar seleção (' + $selected.length + ')' }), $names)
+        );
+        renderValidationTemplates($modal, type);
+    });
 
     function notificationRequestData($button) {
         return {
@@ -124,7 +215,8 @@
 
     $(document).on('click', '[data-notification-send]', function () {
         const request = notificationRequestData($(this)); const $modal = ensureNotificationSendModal();
-        $modal.data('notificationRequest', request).removeClass('hidden').attr('aria-hidden', 'false');
+        renderValidationTemplates($modal, request.tipo);
+        $modal.removeData('validationPanel').data('notificationRequest', request).removeClass('hidden').attr('aria-hidden', 'false');
         $modal.find('[data-notification-target]').html('<p class="muted">Carregando destinatário...</p>');
         $modal.find('[data-notification-batch]').empty(); $modal.find('[name="assunto"], [name="mensagem"]').val(''); $modal.find('[type="submit"]').prop('disabled', true);
         $.getJSON(App.core.buildUrl('/notificacoes/preparar'), request).done(function (response) {
@@ -162,7 +254,37 @@
     $(document).on('submit', '[data-notification-form="1"]', function (event) {
         event.preventDefault(); const $form=$(this), $modal=$form.closest('#staff-notification-modal'); const payload=$form.serializeArray(); const request=$modal.data('notificationRequest')||{};
         Object.keys(request).forEach(function(key){payload.push({name:key,value:request[key]});}); const $submit=$form.find('[type="submit"]').prop('disabled',true);
-        $.post(App.core.buildUrl('/notificacoes/enviar'), $.param(payload), function(response){ if(!response||response.success===false){App.core.abrirPopup('erro',String((response&&response.message)||'Não foi possível enviar.'));return;} $modal.addClass('hidden').attr('aria-hidden','true'); App.core.abrirPopup('sucesso',String(response.message||'Notificação enviada.')); },'json').fail(function(xhr){App.core.abrirPopup('erro',App.core.extrairMensagemErroAjax(xhr).mensagem);}).always(function(){$submit.prop('disabled',false);});
+        $.post(App.core.buildUrl('/notificacoes/enviar'), $.param(payload), function (response) {
+            if (!response || response.success === false) {
+                App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível enviar.'));
+                return;
+            }
+
+            $modal.addClass('hidden').attr('aria-hidden', 'true');
+            const $panel = $modal.data('validationPanel');
+            const message = String(response.message || 'Notificação enviada.');
+            if ($panel && response.enviadas > 0) {
+                $panel.find('[data-validation-notify-row]').prop('checked', false);
+                refreshValidationSelection($panel);
+            }
+            const ignored = $panel ? (response.ignoradas || []) : [];
+            if (!ignored.length) {
+                App.core.abrirPopup('sucesso', message);
+                return;
+            }
+
+            const $result = $('<div>').append($('<p>', { text: message }), $('<p>', { text: 'Registros sem envio:' }));
+            const $list = $('<ul>');
+            ignored.forEach(function (item) {
+                $list.append($('<li>', { text: item.nome + ' — ' + item.motivo }));
+            });
+            $result.append($list);
+            App.core.abrirPopupHtml(response.enviadas > 0 ? 'sucesso' : 'erro', $result.html());
+        }, 'json').fail(function (xhr) {
+            App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+        }).always(function () {
+            $submit.prop('disabled', false);
+        });
     });
 
     function ensureSentNotificationsModal() {
