@@ -28,6 +28,8 @@ use App\Services\AdminChartService;
 use App\Services\AgendaChartService;
 use DateTimeImmutable;
 
+use App\Services\IdentityCorrectionService;
+
 class AdminController extends Controller
 {
     private AdminService $adminService;
@@ -93,6 +95,9 @@ class AdminController extends Controller
                 'graficos',
                 'graficos-agendamento',
                 'usuarios-pessoas',
+                'validar-condicoes',
+                'validar-atestados',
+                'correcao-de-dados',
                 'usuarios',
                 'inscricoes',
                 'agenda',
@@ -527,7 +532,6 @@ class AdminController extends Controller
             $people = $this->adminService->listUsersAndDependents($peopleLimit, $peopleSearch, $peopleConditions);
             $usersOnly = $this->adminService->listUsersOnly($usersLimit, $usersSearch, $usersRole);
             $peopleUsersTotals = $this->adminService->peopleAndUsersTotals();
-            $conditionValidationRows = $this->adminService->listPeopleRequiringConditionValidation();
             $availableRoles = $this->adminService->listRolesForManagement();
             $peopleLimitMax = AdminService::MAX_PEOPLE_LIMIT;
             $currentAdmin = $this->userService->currentAccountWithRoles();
@@ -831,25 +835,67 @@ class AdminController extends Controller
         }
     }
 
+    public function identityCorrectionDocument(): void
+    {
+        $this->assertAdminAccess();
+        try {
+            $file = (new IdentityCorrectionService())->document((int) ($_GET['id'] ?? 0));
+        } catch (\RuntimeException $e) {
+            http_response_code(404);
+            echo 'Documento não encontrado.';
+            return;
+        }
+        header('Content-Type: ' . $file['documento_mime']);
+        header('X-Content-Type-Options: nosniff');
+        header('Cache-Control: private, no-store');
+        header('Content-Disposition: inline');
+        echo $file['documento'];
+    }
+
+    public function startIdentityCorrectionReview(): void
+    {
+        $this->assertAdminAccess();
+        try {
+            IdentityCorrectionService::assertToken($_POST);
+            (new IdentityCorrectionService())->review((int) ($_POST['id'] ?? 0), (int) ($_POST['revisao'] ?? 0), (string) ($_POST['status'] ?? ''));
+            $this->jsonResponse(['success' => true]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
     /**
      * Atualiza pessoa e usuário diretamente pela área administrativa.
      */
     public function updatePerson(): void
     {
-        $this->assertAdminAccess();
+        $actor = $this->assertAdminAccess();
 
         try {
-            $person = $this->adminService->updatePersonAndUser((int) ($_POST['person_id'] ?? 0), $_POST);
+            $correctionId = (int) ($_POST['solicitacao_correcao_id'] ?? 0);
+            $notify = ($_POST['notificar_correcao'] ?? '') === '1';
+            $complete = null;
+            if ($correctionId > 0) {
+                IdentityCorrectionService::assertToken($_POST);
+                $revision = (int) ($_POST['solicitacao_correcao_revisao'] ?? 0);
+                $complete = static function (array $person) use ($correctionId, $revision, $actor, $notify): void {
+                    (new IdentityCorrectionService())->complete($correctionId, $revision, (int) $actor['conta_id'], $person, $notify);
+                };
+            }
+            $person = $this->adminService->updatePersonAndUser((int) ($_POST['person_id'] ?? 0), $_POST, $complete);
+            $message = $correctionId > 0
+                ? ($notify ? 'Dados alterados com sucesso! Usuário notificado.' : 'Dados alterados com sucesso!')
+                : 'Dados atualizados com sucesso.';
 
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
-                    'message' => 'Dados atualizados com sucesso.',
+                    'message' => $message,
                     'person' => $person,
                 ]);
             }
 
-            flash('success', 'Dados atualizados com sucesso.');
+            flash('success', $message);
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -2330,6 +2376,16 @@ class AdminController extends Controller
             }
         }
 
+        if ($sectionName === 'validar-condicoes') {
+            $data['conditionValidationRows'] = $this->adminService->listPeopleRequiringConditionValidation();
+        }
+        if ($sectionName === 'validar-atestados') {
+            $data['healthCertificateValidationRows'] = $this->adminService->listPeopleRequiringHealthCertificateValidation();
+        }
+        if ($sectionName === 'correcao-de-dados') {
+            $data['identityCorrections'] = (new IdentityCorrectionService())->list();
+        }
+
         if (in_array($sectionName, ['usuarios-pessoas', 'usuarios'], true)) {
             (new AccountAccessService())->revokeExpiredRoles();
             $peopleLimit = (int) ($_GET['people_limit'] ?? AdminService::DEFAULT_PEOPLE_LIMIT);
@@ -2344,8 +2400,6 @@ class AdminController extends Controller
             $data['people'] = $this->adminService->listUsersAndDependents($peopleLimit, (string) $data['peopleSearch'], $data['peopleConditions']);
             $data['usersOnly'] = $this->adminService->listUsersOnly($usersLimit, (string) $data['usersSearch'], $data['usersRole']);
             $data['peopleUsersTotals'] = $this->adminService->peopleAndUsersTotals();
-            $data['conditionValidationRows'] = $this->adminService->listPeopleRequiringConditionValidation();
-            $data['healthCertificateValidationRows'] = $this->adminService->listPeopleRequiringHealthCertificateValidation();
             $data['availableRoles'] = $this->adminService->listRolesForManagement();
             $data['canManageRoles'] = $this->canManageUserRoles($user);
             $data['canManageAllRoles'] = $this->canAccessMasterSections($user);

@@ -34,8 +34,8 @@ class ProfessorController extends Controller
     {
         $user = $this->assertProfessorAccess();
         $sectionName = (string) ($_GET['nome'] ?? 'inicio');
-        if (in_array($sectionName, ['ajuda', 'inscricoes', 'modalidades', 'turmas-criterio-etario'], true)) { $this->assertProfessorMutationAccess(); }
-        if (!in_array($sectionName, ['ajuda', 'inicio', 'usuarios-pessoas', 'inscricoes', 'minhas-turmas', 'cronograma-turmas', 'status-turmas', 'agenda', 'modalidades', 'turmas-criterio-etario'], true)) {
+        if (in_array($sectionName, ['ajuda', 'inscricoes', 'modalidades', 'turmas-criterio-etario', 'validar-condicoes', 'validar-atestados'], true)) { $this->assertProfessorMutationAccess(); }
+        if (!in_array($sectionName, ['ajuda', 'inicio', 'usuarios-pessoas', 'validar-condicoes', 'validar-atestados', 'inscricoes', 'minhas-turmas', 'cronograma-turmas', 'status-turmas', 'agenda', 'modalidades', 'turmas-criterio-etario'], true)) {
             $this->jsonResponse(['success' => false, 'message' => 'A seção não está disponível para professores.'], 403);
             return;
         }
@@ -776,8 +776,6 @@ class ProfessorController extends Controller
             'peopleConditions' => $internView ? [] : AdminService::normalizePeopleConditions($_GET['people_conditions'] ?? []),
             'usersOnly' => [],
             'peopleUsersTotals' => $this->adminService->peopleAndUsersTotals(),
-            'conditionValidationRows' => $internView ? [] : $this->adminService->listPeopleRequiringConditionValidation(),
-            'healthCertificateValidationRows' => $internView ? [] : $this->adminService->listPeopleRequiringHealthCertificateValidation(),
             'availableRoles' => [], 'canManageRoles' => false,
             'peopleLimit' => $peopleLimit, 'usersLimit' => $peopleLimit,
             'peopleLimitMax' => AdminService::MAX_PEOPLE_LIMIT,
@@ -821,6 +819,12 @@ class ProfessorController extends Controller
                 'courseSeasons' => $courseService->listSeasonsForManagement(), 'modalitySchedules' => $courseService->listModalitySchedulesForManagement()];
         }
         if ($sectionName === 'inicio') { return ['sectionName' => $sectionName, 'professorView' => true]; }
+        if ($sectionName === 'validar-condicoes') {
+            return ['sectionName' => $sectionName, 'professorView' => true, 'conditionValidationRows' => $this->adminService->listPeopleRequiringConditionValidation()];
+        }
+        if ($sectionName === 'validar-atestados') {
+            return ['sectionName' => $sectionName, 'professorView' => true, 'healthCertificateValidationRows' => $this->adminService->listPeopleRequiringHealthCertificateValidation()];
+        }
         if ($sectionName === 'usuarios-pessoas') { return array_merge(['sectionName' => $sectionName, 'professorView' => true], $this->buildPeopleData()); }
         if ($sectionName === 'inscricoes') {
             $courseEnrollmentService = new \App\Services\CourseEnrollmentService();

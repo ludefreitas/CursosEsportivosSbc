@@ -3,6 +3,41 @@
 
     App.dashboard = Object.assign(App.dashboard || {}, {
         init: function () {
+            $(document).on('click', '[data-open-identity-correction]', function () {
+                const $trigger = $(this);
+                const $modal = $('#identity-correction-modal');
+                const form = $modal.find('form')[0];
+                if (!form) return;
+
+                const name = $trigger.attr('data-person-name');
+                const field = $trigger.attr('data-open-identity-correction');
+                const isCpf = field === 'cpf';
+                const label = isCpf ? 'CPF' : 'data de nascimento';
+                const personId = $trigger.attr('data-person-id');
+                const $previous = $('[data-correction-history-person]').filter(function () {
+                    return this.dataset.correctionHistoryPerson === personId && this.dataset.correctionHistoryField === field;
+                }).first();
+                form.reset();
+                form.elements.pessoa_id.value = personId;
+                form.elements.campo.value = field;
+                const input = form.elements.valor;
+                input.type = isCpf ? 'text' : 'date';
+                input.inputMode = isCpf ? 'numeric' : '';
+                input.placeholder = isCpf ? '000.000.000-00' : '';
+                input.maxLength = 14;
+                $modal.find('#identity-correction-title').text('Corrigir ' + label + ' de ' + name);
+                $modal.find('[data-identity-correction-field]').text(isCpf ? 'CPF correto' : 'Data de nascimento correta');
+                $modal.find('[data-identity-correction-document]').text('Foto do documento oficial de ' + name);
+                $modal.find('[data-identity-correction-history]').toggleClass('hidden', !$previous.length).text(
+                    $previous.length ? 'Último pedido para este dado em ' + $previous.attr('data-correction-history-date') +
+                    '. Andamento: ' + $previous.attr('data-correction-history-status') + '.' : ''
+                );
+                $modal.removeClass('hidden').attr('aria-hidden', 'false');
+                input.focus();
+            });
+            $(document).on('click', '[data-close-identity-correction]', function () {
+                $('#identity-correction-modal').addClass('hidden').attr('aria-hidden', 'true');
+            });
             let pendingEnrollmentCancellationForm = null;
             let susEditorSequence=0;
             $(document).on('click', '[data-booking-justification]', function () {

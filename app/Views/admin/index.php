@@ -31,6 +31,9 @@
             <?php if (!empty($canEditProfessorPage)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="pagina-professor">Página do professor</button><?php } ?>
             <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="pagina-home">Página home</button><?php } ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-pessoas">Pessoas - alunos</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="validar-condicoes">Condições que precisam de validação</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="validar-atestados">Atestados de saúde para validar</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="correcao-de-dados">Solicitações de correção de dados</button>
             <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="pop-ups">Pop-ups</button><?php } ?>
             <?php if (!empty($canAccessMasterSections)) { ?><a class="admin-nav-button" href="<?php echo e(url('/admin-recuperacao-dados')); ?>">Reversão de testes</a><?php } ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="temporadas">Temporadas</button>

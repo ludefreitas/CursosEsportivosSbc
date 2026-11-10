@@ -1450,6 +1450,7 @@
 
         iniciarEditorPessoaAdmin: function () {
             let currentPerson = null;
+            let currentCorrection = null;
 
             function getDetailsPanel() {
                 return $('#admin-person-details');
@@ -1637,6 +1638,7 @@
                 setValue('#admin-person-phone-whatsapp', person.telefone_whatsapp || '');
                 setValue('#admin-person-email', person.email || '');
                 setValue('#admin-person-numero-cartao-sus', person.numero_cartao_sus || '');
+                $('#admin-person-numero-cartao-sus').attr('data-sus-original', String(person.numero_cartao_sus || '').replace(/\D/g, ''));
                 setValue('#admin-person-zip-code', person.cep ? String(person.cep).replace(/(\d{5})(\d{3})/, '$1-$2') : '');
                 setValue('#admin-person-street', person.logradouro || '');
                 setValue('#admin-person-address-number', person.numero_endereco || '');
@@ -1675,6 +1677,66 @@
                 $('#admin-person-sexo').trigger('change');
             }
 
+            function changeCorrectionReview($row, status) {
+                const $queue = $row.closest('#admin-identity-corrections');
+                return $.post($queue.attr('data-correction-review-url'), {
+                    id: $row.attr('data-identity-correction-row'),
+                    revisao: $row.attr('data-correction-revision'),
+                    correcao_csrf: $queue.attr('data-correction-token'),
+                    status: status
+                }, null, 'json').fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                });
+            }
+
+            $(document).on('click', '[data-correction-request-document]', function () {
+                const $button = $(this);
+                const $row = $button.closest('tr');
+                $button.prop('disabled', true);
+                changeCorrectionReview($row, 'aguardando_documento').done(function () {
+                    $row.find('[data-identity-correction-status]').text('Aguardando novo documento');
+                    $row.find('[data-correction-id], [data-correction-request-document]').remove();
+                }).always(function () {
+                    $button.prop('disabled', false);
+                });
+            });
+
+            function confirmCorrectionNotice(correction, name) {
+                const $confirm = $('#admin-identity-correction-confirm');
+                const $editor = getPanel();
+                const $preview = $confirm.find('[data-correction-preview]');
+                const $question = $confirm.find('[data-correction-confirm-question]');
+                const $choices = $confirm.find('[data-correction-confirm="yes"], [data-correction-confirm="no"]');
+                const $confirmButton = $confirm.find('[data-correction-confirm="confirm"]');
+                $confirm.find('[data-correction-preview-text]').text(
+                    'A solicitação de correção de ' + correction.label + ' de ' + name +
+                    ' foi concluída. Por favor, confira o dado atualizado no cadastro.'
+                );
+                $preview.addClass('hidden');
+                $question.removeClass('hidden');
+                $choices.removeClass('hidden');
+                $confirmButton.addClass('hidden');
+                $editor.addClass('hidden').attr('aria-hidden', 'true');
+                $confirm.removeClass('hidden').attr('aria-hidden', 'false');
+
+                return new Promise(function (resolve) {
+                    $confirm.on('click.identityCorrection', '[data-correction-confirm]', function () {
+                        const option = $(this).attr('data-correction-confirm');
+                        if (option === 'yes') {
+                            $preview.removeClass('hidden');
+                            $question.addClass('hidden');
+                            $choices.addClass('hidden');
+                            $confirmButton.removeClass('hidden').trigger('focus');
+                            return;
+                        }
+                        $confirm.off('.identityCorrection').addClass('hidden').attr('aria-hidden', 'true');
+                        $editor.removeClass('hidden').attr('aria-hidden', 'false');
+                        resolve(option === 'cancel' ? null : option === 'confirm');
+                    });
+                });
+            }
+
+
             $(document).on('click', '[data-person-edit="1"]', function () {
                 const personId = Number($(this).data('personId') || 0);
 
@@ -1683,6 +1745,17 @@
                     return;
                 }
 
+                const $button = $(this);
+                const correctionId = Number($button.attr('data-correction-id') || 0);
+                const $queue = $button.closest('#admin-identity-corrections');
+                const correction = correctionId ? {
+                    id: correctionId,
+                    label: $button.attr('data-correction-label'),
+                    value: $button.attr('data-correction-value'),
+                    revision: $button.closest('tr').attr('data-correction-revision'),
+                    token: $queue.attr('data-correction-token'),
+                    $row: $button.closest('tr')
+                } : null;
                 $.getJSON(adminUrl('/admin/pessoas/detalhe'), { id: personId })
                     .done(function (response) {
                         if (!response || response.success === false || !response.person) {
@@ -1690,7 +1763,20 @@
                             return;
                         }
 
-                        fillDetails(response.person);
+                        if (!correction) {
+                            currentCorrection = null;
+                            fillDetails(response.person);
+                            return;
+                        }
+
+                        changeCorrectionReview(correction.$row, 'em_analise').done(function () {
+                            currentCorrection = correction;
+                            correction.$row.find('[data-identity-correction-status]').text('Em análise');
+                            fillDetails(response.person);
+                            $('#admin-person-details-subtitle').append(
+                                document.createTextNode(' Pedido de correção de ' + correction.label + ' para ' + correction.value + '.')
+                            );
+                        });
                     })
                     .fail(function (xhr) {
                         const erro = App.core.extrairMensagemErroAjax(xhr);
@@ -1744,11 +1830,12 @@
                 }
             });
 
-            $(document).on('submit', '#admin-person-form', function (event) {
+            $(document).on('submit', '#admin-person-form', async function (event) {
                 event.preventDefault();
 
                 const $form = $(this);
                 const $submitButton = $form.find('button[type="submit"]').first();
+                if ($submitButton.prop('disabled')) return;
                 const formData = new FormData($form[0]);
 
                 if ($('#admin-person-conta-ativa').is(':disabled')) {
@@ -1756,6 +1843,19 @@
                 }
 
                 $submitButton.prop('disabled', true);
+                const correction = currentCorrection;
+                if (correction) {
+                    const name = String(formData.get('full_name') || '').trim().replace(/\s+/g, ' ');
+                    const notify = await confirmCorrectionNotice(correction, name);
+                    if (notify === null) {
+                        $submitButton.prop('disabled', false);
+                        return;
+                    }
+                    formData.set('solicitacao_correcao_id', correction.id);
+                    formData.set('solicitacao_correcao_revisao', correction.revision);
+                    formData.set('correcao_csrf', correction.token);
+                    formData.set('notificar_correcao', notify ? '1' : '0');
+                }
 
                 $.ajax({
                     url: String($form.attr('action') || ''),
@@ -1782,6 +1882,11 @@
                         $row.find('[data-person-cadastro]').empty().append(Number(person.cadastro_completo || 0) === 1 ? document.createTextNode('Completo') : $('<button>', { type: 'button', class: 'link-button admin-person-link', 'data-profile-pending': person.id, 'data-profile-pending-type': 'pessoa', text: 'Pendente' }));
                     }
 
+                    if (correction) {
+                        correction.$row.find('[data-identity-correction-status]').text('Concluído');
+                        correction.$row.find('[data-correction-id], [data-correction-request-document]').remove();
+                        currentCorrection = null;
+                    }
                     currentPerson = person;
                     $('#admin-person-editor').addClass('hidden').attr('aria-hidden', 'true');
                     if ($form.length > 0 && $form[0]) {

@@ -1319,7 +1319,7 @@ class AdminService
     /**
      * Atualiza os dados de pessoa e, quando houver conta, os dados basicos do usuário.
      */
-    public function updatePersonAndUser(int $personId, array $data): array
+    public function updatePersonAndUser(int $personId, array $data, ?callable $beforeCommit = null): array
     {
         $person = $this->getPersonDetails($personId);
         $reason = trim((string) ($data['reason'] ?? ''));
@@ -1329,7 +1329,12 @@ class AdminService
         $birthDate = trim((string) ($data['birth_date'] ?? ''));
         $phoneWhatsapp = trim((string) ($data['phone_whatsapp'] ?? ''));
         $email = trim((string) ($data['email'] ?? ''));
-        $numeroCartaoSus = $this->normalizeNumeroCartaoSus((string) ($data['numero_cartao_sus'] ?? ''));
+        $storedSusCard = (string) ($person['numero_cartao_sus'] ?? '');
+        $submittedSusCard = (string) ($data['numero_cartao_sus'] ?? $storedSusCard);
+        $numeroCartaoSus = $this->normalizeNumeroCartaoSus($submittedSusCard);
+        $susCardUnchanged = $submittedSusCard === $storedSusCard
+            || (!preg_match('/[^0-9.\s-]/u', $submittedSusCard)
+                && $numeroCartaoSus === $this->normalizeNumeroCartaoSus($storedSusCard));
         $zipCode = normalize_cep((string) ($data['zip_code'] ?? ''));
         $street = trim((string) ($data['street'] ?? ''));
         $addressNumber = trim((string) ($data['address_number'] ?? ''));
@@ -1381,7 +1386,11 @@ class AdminService
             throw new RuntimeException('Informe uma data de nascimento válida.');
         }
 
-        SusCardService::assertOptional((string)($data['numero_cartao_sus'] ?? ''));
+        if ($susCardUnchanged) {
+            $numeroCartaoSus = $storedSusCard;
+        } else {
+            SusCardService::assertOptional($submittedSusCard);
+        }
 
         if ($zipCode !== '' && strlen($zipCode) !== 8) {
             throw new RuntimeException('Informe um CEP válido com 8 dígitos.');
@@ -1563,6 +1572,9 @@ class AdminService
                 ]);
             }
 
+            if ($beforeCommit !== null) {
+                $beforeCommit($this->getPersonDetails($personId));
+            }
             $pdo->commit();
         } catch (\Throwable $e) {
             $pdo->rollBack();

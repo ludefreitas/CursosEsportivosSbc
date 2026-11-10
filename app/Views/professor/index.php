@@ -26,6 +26,10 @@
             <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="cronograma-turmas">Cronograma turmas</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="status-turmas">Status turmas</button><?php } ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-pessoas">Pessoas - alunos</button>
+            <?php if (empty($internView)) { ?>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="validar-condicoes">Condições que precisam de validação</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="validar-atestados">Atestados de saúde para validar</button>
+            <?php } ?>
         </div>
     </nav>
 

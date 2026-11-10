@@ -118,6 +118,28 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
     </section>
 <?php } ?>
 
+<?php if ($sectionName === 'validar-condicoes' || $sectionName === 'validar-atestados') { ?>
+    <section class="admin-section-panel" data-admin-section="<?php echo e($sectionName); ?>">
+        <?php
+        $validationPartial = $sectionName === 'validar-condicoes' ? 'condition_validation' : 'health_certificate_validation';
+        require ROOT_PATH . '/app/Views/admin/partials/' . $validationPartial . '_panel.php';
+        ?>
+        <div class="popup-overlay hidden" id="admin-<?php echo e(str_replace('_', '-', $validationPartial)); ?>-modal" aria-hidden="true">
+            <div class="popup-card popup-admin-card admin-condition-validation-card" role="dialog" aria-modal="true"
+                aria-labelledby="admin-<?php echo e(str_replace('_', '-', $validationPartial)); ?>-title">
+                <div id="admin-<?php echo e(str_replace('_', '-', $validationPartial)); ?>-modal-content"></div>
+            </div>
+        </div>
+    </section>
+<?php } ?>
+
+<?php if ($sectionName === 'correcao-de-dados') { ?>
+    <section class="admin-section-panel" data-admin-section="correcao-de-dados">
+        <?php require ROOT_PATH . '/app/Views/admin/partials/identity_correction_panel.php'; ?>
+        <?php require ROOT_PATH . '/app/Views/admin/partials/person_editor_modals.php'; ?>
+    </section>
+<?php } ?>
+
 <?php if ($sectionName === 'migracao-cadastros') { ?>
     <section class="admin-section-panel" data-admin-section="migracao-cadastros">
         <div class="section-head admin-section-head">

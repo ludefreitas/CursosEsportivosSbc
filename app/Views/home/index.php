@@ -23,6 +23,8 @@ if (count($suggestedCourseModalities) > 1) {
 $suggestedCourseModalities = array_slice($suggestedCourseModalities, 0, 3);
 ?>
 
+<?php require ROOT_PATH . '/app/Views/dashboard/partials/identity_correction_status.php'; ?>
+
 <div class="home-banner-visual">
     <?php if ($homeAdminMode) { ?><div class="admin-home-inline-actions"><button type="button" class="btn btn-secondary admin-home-small-button" data-home-edit="logotipo">Editar</button><button type="button" class="btn btn-primary admin-home-small-button" data-home-publish="logotipo">Publicar</button></div><?php } ?>
     <img style="width: 40%"

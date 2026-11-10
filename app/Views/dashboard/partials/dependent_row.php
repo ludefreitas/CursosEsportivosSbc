@@ -5,6 +5,7 @@
     <td><?php echo e(format_cpf((string) ($dependent['cpf'] ?? ''))); ?></td>
     <td><?php echo e(format_birth_date_with_age($dependent['data_nascimento'] ?? null)); ?></td>
     <td>
+        <?php $correctionPerson = $dependent; require ROOT_PATH . '/app/Views/dashboard/partials/identity_correction_buttons.php'; ?>
         <button
             type="button"
             class="btn btn-compact dashboard-dependent-data-button"

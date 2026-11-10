@@ -566,7 +566,9 @@
                         message = 'Informe um CEP válido com 8 dígitos.';
                     }
                 } else if ($field.is('[data-sus-card="1"]') || name === 'numero_cartao_sus') {
-                    if (!window.SusCardValidator.isValid(value)) {
+                    const originalSus = $field.attr('data-sus-original');
+                    const unchangedSus = originalSus !== undefined && digits === originalSus && !/[^0-9.\s-]/u.test(value);
+                    if (!unchangedSus && !window.SusCardValidator.isValid(value)) {
                         message = 'Número do cartão SUS inválido. Confira os 15 dígitos no seu Cartão Nacional de Saúde (CNS) e corrija o número informado.';
                     }
                 } else if ($field.is('[data-nis-number="1"]') && digits.length !== 11) {

@@ -2385,6 +2385,25 @@ body.pagina-error label span {
 
 .pdf-brand-shortcuts{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:12px 16px;margin:12px 0;background:#eef6fc;border:1px solid #c7ddeb;border-radius:10px;font-size:13px}.pdf-brand-shortcuts a{color:#146f9b;text-decoration:underline}@media print{.pdf-brand-shortcuts,.pdf-brand-edit-link{display:none!important}}
 
+.identity-correction-buttons {
+    display: grid;
+    gap: 0.35rem;
+    justify-items: start;
+    margin-bottom: 0.4rem;
+}
+
+.identity-correction-button.identity-correction-cpf {
+    background: #fff;
+    border: 2px solid #b52535;
+    color: #721827;
+}
+
+.identity-correction-button.identity-correction-data_nascimento {
+    background: #fff8dd;
+    border: 2px solid #c49000;
+    color: #594300;
+}
+
 .par-q-link.par-q-valid { color: #176235; }
 .par-q-link.par-q-positive { color: #9a4500; }
 .par-q-link.par-q-expired { color: #a3212c; }

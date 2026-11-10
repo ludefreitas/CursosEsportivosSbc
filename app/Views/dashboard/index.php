@@ -5,6 +5,7 @@
         <h1><?php echo e($user['nome_completo'] ?? ''); ?></h1>
         <p class="muted">CPF <?php echo e(format_cpf($user['cpf'] ?? '')); ?>.  Mantenha seu cadastro atualizado. Seu cadastro completo libera agendamentos; inscrições; acesso aos seus dependentes; e demais módulos autenticados.
         </p>
+        <?php $correctionPerson = $person; require ROOT_PATH . '/app/Views/dashboard/partials/identity_correction_buttons.php'; ?>
         <p><?php $parQPersonId = (int) $person['id']; $parQStaff = false; $parQRecord = $parQRecords[$parQPersonId] ?? null; require ROOT_PATH . '/app/Views/partials/par_q_link.php'; ?></p>
         <div class="chips-wrap">
             <?php if (!empty($user['roles'])) { ?>
@@ -17,6 +18,9 @@
         </div>
     </div>
 </section>
+
+<?php require ROOT_PATH . '/app/Views/dashboard/partials/identity_correction_status.php'; ?>
+<?php require ROOT_PATH . '/app/Views/dashboard/partials/identity_correction_modal.php'; ?>
 
 <section class="metrics-grid">
     <article class="info-card"><h3><?php echo e((string) $metrics['dependentes']); ?></h3><p>Dependentes vinculados</p></article>

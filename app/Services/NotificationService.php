@@ -163,6 +163,16 @@ class NotificationService
         ];
     }
 
+    public function sendIdentityCorrectionNotice(int $actorId, int $accountId, array $person, string $field): void
+    {
+        $pdo = Database::connection();
+        $target = ['pessoa_id' => (int) $person['id']];
+        $id = $this->insertNotification($pdo, $actorId, 'pessoa', 'Correção de cadastro concluída',
+            IdentityCorrectionService::notice($field, $person['nome_completo']), $target);
+        $this->insertRecipient($pdo, $id, $target, ['conta_id' => $accountId]);
+        AuditLogService::record('notificacao.enviada', 'notificacoes', $id, $target);
+    }
+
     public function headerSummary(int $accountId): array
     {
         $pdo = Database::connection();

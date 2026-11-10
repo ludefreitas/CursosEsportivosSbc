@@ -84,6 +84,7 @@ class HomeController extends Controller
             'schedulablePeople' => $schedulablePeople,
             'specialSchedulePeople' => $specialSchedulePeople,
             'profile' => $profile,
+            'identityCorrections' => Auth::check() ? (new \App\Services\IdentityCorrectionService())->list((int) Auth::id()) : [],
             'registrationBlock' => $registrationBlock,
             'needsProfileCompletion' => $needsProfileCompletion,
             'agendaActionUrl' => $agendaActionUrl,
