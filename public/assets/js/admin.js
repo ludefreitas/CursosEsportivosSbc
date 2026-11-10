@@ -6332,6 +6332,24 @@
                 }
             }
 
+            function ensureClassCertificateFields($form) {
+                if ($form.find('[name="regra_atestado_clinico"]').length) return;
+
+                const $fields = $('<div>', { class: 'grid-two' });
+                [
+                    ['clinico', 'Atestado clínico', 'A regra global exige atestado clínico válido.'],
+                    ['dermatologico', 'Atestado dermatológico', 'A regra global exige atestado dermatológico válido nas modalidades aquáticas.']
+                ].forEach(function (type) {
+                    const $select = $('<select>', { name: 'regra_atestado_' + type[0] })
+                        .append($('<option>', { value: 'global', text: 'Seguir regra global' }))
+                        .append($('<option>', { value: 'exigir', text: 'Exigir nesta turma' }))
+                        .append($('<option>', { value: 'dispensar', text: 'Dispensar nesta turma' }));
+                    $fields.append($('<label>').append($('<span>', { text: type[1] }), $select, $('<small>', { class: 'muted', text: type[2] })));
+                });
+                $form.find('[name="idade_maxima"]').closest('.grid-two').after($fields);
+            }
+
+
             function ensureClassProgramField($form) {
                 if ($form.find('[name="programa"]').length) return;
                 const $nameField = $form.find('[name="nome"]').closest('label');
@@ -6925,7 +6943,7 @@
                 if ($form.find('[name="operacao"]').length === 0) {
                     $form.append($('<input>', { type: 'hidden', name: 'operacao' }));
                 }
-                if (type === 'class') { ensureClassScheduleField($form); ensureClassCopyFields($form); ensureClassProgramField($form); ensureClassAgeCriterionField($form); ensureClassAgeExceptionFields($form); ensureClassLevelFields($form); ensureClassFieldHelp($form); }
+                if (type === 'class') { ensureClassScheduleField($form); ensureClassCopyFields($form); ensureClassProgramField($form); ensureClassAgeCriterionField($form); ensureClassCertificateFields($form); ensureClassAgeExceptionFields($form); ensureClassLevelFields($form); ensureClassFieldHelp($form); }
                 if (type === 'season') { ensureSeasonNoticeFields($form); ensureSeasonWeeklyCoverageField($form); ensureSeasonFieldHelp($form); }
                 fillForm($form, record || {});
                 if (type === 'class' && !record) updateClassWaitlistSuggestion($form);

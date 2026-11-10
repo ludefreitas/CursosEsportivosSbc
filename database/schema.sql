@@ -510,6 +510,8 @@ CREATE TABLE IF NOT EXISTS turmas (
     criterio_faixa_etaria ENUM('idade_exata', 'ano_nascimento') NOT NULL DEFAULT 'idade_exata',
     excecoes_idade_json JSON NULL,
     sexo ENUM('masculino', 'feminino') NULL,
+    regra_atestado_clinico ENUM('global', 'exigir', 'dispensar') NOT NULL DEFAULT 'dispensar',
+    regra_atestado_dermatologico ENUM('global', 'exigir', 'dispensar') NOT NULL DEFAULT 'dispensar',
     vagas_totais INT NOT NULL DEFAULT 0,
     vagas_geral INT NOT NULL DEFAULT 0,
     vagas_pcd INT NOT NULL DEFAULT 0,

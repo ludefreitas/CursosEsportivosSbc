@@ -531,7 +531,7 @@
                     const $personOptions = $('<div>', { class: 'home-course-person-options' });
                     people.forEach(function (person) {
                         const selectedByToken = tokenContext && String(person.id) === String(tokenContext.pessoa_id);
-                        const blocked = tokenContext ? !selectedByToken : !person.elegivel;
+                        const blocked = tokenContext ? !selectedByToken || person.documentacao_pendente : !person.elegivel;
                         const $card = $('<label>', { class: 'home-course-person-card' + (blocked ? ' is-disabled' : '') });
                         const $line = $('<span>', { class: 'home-course-person-line' });
                         $line.append($('<input>', { type: 'radio', name: 'pessoa_id', value: String(person.id || ''), required: true, disabled: blocked, checked: selectedByToken, 'data-home-course-person-choice': '1', 'data-public': String(tokenContext && selectedByToken ? tokenContext.publico_alvo : (person.publico_alvo || 'geral')), 'data-person-name': String(person.nome_completo || ''), 'data-birth-date': String(person.data_nascimento || '') }));
