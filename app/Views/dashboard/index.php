@@ -19,7 +19,9 @@
     </div>
 </section>
 
-<?php require ROOT_PATH . '/app/Views/dashboard/partials/identity_correction_status.php'; ?>
+<div id="identity-correction-status-region">
+    <?php require ROOT_PATH . '/app/Views/dashboard/partials/identity_correction_status.php'; ?>
+</div>
 <?php require ROOT_PATH . '/app/Views/dashboard/partials/identity_correction_modal.php'; ?>
 
 <section class="metrics-grid">

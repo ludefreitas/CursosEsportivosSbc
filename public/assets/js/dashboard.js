@@ -18,6 +18,7 @@
                     return this.dataset.correctionHistoryPerson === personId && this.dataset.correctionHistoryField === field;
                 }).first();
                 form.reset();
+                $modal.find('[data-identity-correction-error]').addClass('hidden').empty();
                 form.elements.pessoa_id.value = personId;
                 form.elements.campo.value = field;
                 const input = form.elements.valor;
@@ -36,7 +37,36 @@
                 input.focus();
             });
             $(document).on('click', '[data-close-identity-correction]', function () {
-                $('#identity-correction-modal').addClass('hidden').attr('aria-hidden', 'true');
+                const $modal = $('#identity-correction-modal');
+                if ($modal.find('[type="submit"]').prop('disabled')) return;
+                $modal.addClass('hidden').attr('aria-hidden', 'true');
+            });
+            $(document).on('submit', '#identity-correction-modal form', function (event) {
+                event.preventDefault();
+                const form = this;
+                const $form = $(form);
+                const $button = $form.find('[type="submit"]');
+                const $error = $form.find('[data-identity-correction-error]');
+                if ($button.prop('disabled')) return;
+                $error.addClass('hidden').empty();
+                $button.prop('disabled', true);
+                $.ajax({
+                    url: form.action,
+                    method: 'POST',
+                    data: new FormData(form),
+                    processData: false,
+                    contentType: false,
+                    dataType: 'json'
+                }).done(function (response) {
+                    $('#identity-correction-status-region').html(response.status_html);
+                    form.reset();
+                    $('#identity-correction-modal').addClass('hidden').attr('aria-hidden', 'true');
+                    App.core.abrirPopup('sucesso', response.message);
+                }).fail(function (xhr) {
+                    $error.text(App.core.extrairMensagemErroAjax(xhr).mensagem).removeClass('hidden');
+                }).always(function () {
+                    $button.prop('disabled', false);
+                });
             });
             let pendingEnrollmentCancellationForm = null;
             let susEditorSequence=0;

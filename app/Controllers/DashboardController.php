@@ -13,17 +13,33 @@ class DashboardController extends Controller
     public function requestIdentityCorrection(): void
     {
         if (!Auth::check()) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse(['success' => false, 'message' => 'Faça login para enviar a solicitação.'], 401);
+            }
             redirect_to_login_modal('/dashboard');
         }
 
+        $service = new \App\Services\IdentityCorrectionService();
         try {
             \App\Services\IdentityCorrectionService::assertToken($_POST);
-            (new \App\Services\IdentityCorrectionService())->submit((int) Auth::id(), $_POST, $_FILES['documento'] ?? []);
+            $service->submit((int) Auth::id(), $_POST, $_FILES['documento'] ?? []);
+            if ($this->isAjaxRequest()) {
+                $identityCorrections = $service->list((int) Auth::id());
+                ob_start();
+                require ROOT_PATH . '/app/Views/dashboard/partials/identity_correction_status.php';
+                $this->jsonResponse(['success' => true, 'message' => 'Solicitação recebida. Acompanhe o andamento no seu painel.', 'status_html' => (string) ob_get_clean()]);
+            }
             flash('success', 'Solicitação recebida. Acompanhe o andamento no seu painel.');
         } catch (\PDOException $e) {
             error_log($e->getMessage());
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse(['success' => false, 'message' => 'Não foi possível registrar a solicitação. Tente novamente mais tarde.'], 500);
+            }
             flash('error', 'Não foi possível registrar a solicitação. Tente novamente mais tarde.');
         } catch (\RuntimeException $e) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+            }
             flash('error', $e->getMessage());
         }
 

@@ -16,6 +16,7 @@
                 <small class="muted">Envie uma foto do documento oficial com foto. A data de nascimento e o número do CPF devem estar legíveis. Formatos aceitos: JPEG, PNG, WebP, GIF e BMP. Limite de 5 MB.</small>
             </label>
             <p class="muted">A correção poderá ser feita em até três dias úteis. A equipe analisará o documento enviado.</p>
+            <p class="alert-inline hidden" role="alert" data-identity-correction-error></p>
             <div class="popup-actions">
                 <button type="button" class="btn btn-secondary" data-close-identity-correction>Cancelar</button>
                 <button type="submit" class="btn btn-primary">Enviar solicitação</button>
