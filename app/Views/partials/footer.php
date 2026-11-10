@@ -133,6 +133,16 @@
     </script>
     <script src="<?php echo e(asset_url('js/sus-card.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/core.js')); ?>"></script>
+    <div class="popup-overlay hidden" id="par-q-modal" aria-hidden="true">
+        <div class="popup-card par-q-modal-card" role="dialog" aria-modal="true" aria-labelledby="par-q-modal-title">
+            <div class="popup-head">
+                <h3 id="par-q-modal-title">Questionário de Prontidão para Atividade Física (PAR-Q)</h3>
+                <button type="button" class="popup-close-icon" data-par-q-close aria-label="Fechar">&times;</button>
+            </div>
+            <div class="popup-body" data-par-q-content></div>
+        </div>
+    </div>
+    <script src="<?php echo e(asset_url('js/par-q.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/auth.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/agenda.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/admin.js')); ?>"></script>

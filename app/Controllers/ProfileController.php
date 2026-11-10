@@ -69,17 +69,21 @@ class ProfileController extends Controller
         try {
             $this->profileService->completeOwnProfile($_POST);
             clear_old_input();
+            $person = $this->profileService->getAuthenticatedPerson();
+            $parQPath = \App\Services\ParQService::onboardingPath((int) $person['id'], $returnTo);
 
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
                     'message' => \App\Services\SusCardService::pending((string)($_POST['numero_cartao_sus'] ?? '')) ? 'Cadastro salvo com pendência do cartão SUS. Para regularizar, informe os 15 dígitos do Cartão Nacional de Saúde (CNS). Se precisar obter ou confirmar o número, procure uma Unidade Básica de Saúde (UBS) e atualize o cadastro.' : 'Cadastro complementado com sucesso.',
-                    'redirect' => url($returnTo),
+                    'redirect' => url($parQPath),
+                    'par_q_person_id' => (int) $person['id'],
+                    'header_alerts_html' => $this->renderHeaderCertificateAlertsHtml(),
                 ]);
             }
 
             flash('success', \App\Services\SusCardService::pending((string)($_POST['numero_cartao_sus'] ?? '')) ? 'Cadastro salvo com pendência do cartão SUS. Para regularizar, informe os 15 dígitos do Cartão Nacional de Saúde (CNS). Se precisar obter ou confirmar o número, procure uma Unidade Básica de Saúde (UBS) e atualize o cadastro.' : 'Cadastro complementado com sucesso.');
-            redirect($returnTo);
+            redirect($parQPath);
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
@@ -166,12 +170,13 @@ class ProfileController extends Controller
 
         try {
             $dependent = $this->profileService->saveDependent($_POST);
+            $parQPath = \App\Services\ParQService::onboardingPath((int) $dependent['id'], '/dashboard');
 
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([
                     'success' => true,
                     'message' => \App\Services\SusCardService::pending((string)($dependent['numero_cartao_sus'] ?? '')) ? 'Cadastro salvo com pendência do cartão SUS. Para regularizar, informe os 15 dígitos do Cartão Nacional de Saúde (CNS). Se precisar obter ou confirmar o número, procure uma Unidade Básica de Saúde (UBS) e atualize o cadastro.' : 'Dependente salvo com sucesso.',
-                    'redirect' => url('/dashboard'),
+                    'redirect' => url($parQPath),
                     'row_html' => $this->renderDependentRowHtml($dependent),
                     'option_html' => $this->renderDependentOptionHtml($dependent),
                     'header_alerts_html' => $this->renderHeaderCertificateAlertsHtml(),
@@ -180,6 +185,7 @@ class ProfileController extends Controller
             }
 
             flash('success', 'Dependente salvo com sucesso.');
+            redirect($parQPath);
         } catch (\Throwable $e) {
             if ($this->isAjaxRequest()) {
                 $this->jsonResponse([

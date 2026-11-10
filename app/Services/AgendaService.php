@@ -441,8 +441,14 @@ class AgendaService
             ];
         }
 
-        foreach ($this->listLinkedPeople() as $person) {
+        $linkedPeople = $this->listLinkedPeople();
+        $parQRecords = ParQService::summaries(array_column($linkedPeople, 'id'));
+        foreach ($linkedPeople as $person) {
             $reasons = $this->collectScheduleBlockReasons((int) $person['id'], $person, $schedule, $startDate);
+            $parQBlock = ParQService::blockReason($parQRecords[(int) $person['id']] ?? null);
+            if ($parQBlock !== null) {
+                $reasons[] = $parQBlock;
+            }
             $accessibilityWarning = (new SpaceAccessibilityService())->warningForPersonAndSpace(
                 (int) $person['id'],
                 (int) ($schedule['espaco_treino_id'] ?? 0)
@@ -533,6 +539,7 @@ class AgendaService
             throw new RuntimeException('A pessoa selecionada precisa estar vinculada ao responsável logado e com cadastro completo.');
         }
 
+        ParQService::assertEligible($personId);
         $this->validarCompatibilidadePublicoPessoa($person, $publico);
 
         $schedule = $this->findScheduleById($scheduleId);

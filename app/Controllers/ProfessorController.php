@@ -362,6 +362,30 @@ class ProfessorController extends Controller
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
+    public function classParQRoster(): void
+    {
+        $user = $this->assertProfessorAccess();
+        $accountId = (int) $user['conta_id'];
+        $classId = (int) ($_GET['turma_id'] ?? 0);
+        $page = max(1, (int) ($_GET['pagina'] ?? 1));
+        $service = new \App\Services\CourseEnrollmentService();
+        if (!$service->professorIsAssignedToClass($accountId, $classId)) {
+            http_response_code(403);
+            $this->view('par_q/class_roster', ['title' => 'PAR-Q dos inscritos', 'classId' => 0]);
+            return;
+        }
+
+        $rows = $service->listForManagement('alfabetica', classId: $classId, professorAccountId: $accountId, page: $page);
+        header('Cache-Control: private, no-store');
+        $this->view('par_q/class_roster', [
+            'title' => 'PAR-Q dos inscritos',
+            'classId' => $classId,
+            'page' => $page,
+            'rows' => $rows,
+            'parQRecords' => \App\Services\ParQService::summaries(array_column($rows, 'pessoa_id')),
+        ]);
+    }
+
     public function courseClassAttendance(): void
     {
         $user = $this->assertProfessorAccess();

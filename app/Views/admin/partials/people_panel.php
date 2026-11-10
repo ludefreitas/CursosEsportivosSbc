@@ -1,3 +1,4 @@
+<?php $parQRecords = \App\Services\ParQService::summaries(array_column($people ?? [], 'id')); ?>
 <div id="admin-people-panel-shell">
 <?php if (empty($professorView)) { ?>
 <div class="content-card admin-people-list-selector" data-people-list-selector="1">
@@ -58,14 +59,15 @@
 <?php if (empty($internView)) { ?>                    <th>Condição</th>
                     <th>Atestado clínico</th>
                     <th>Atestado dermatológico</th>
-<?php } ?>                    <th>Responsável</th>
+<?php } ?>                    <th>PAR-Q</th>
+                    <th>Responsável</th>
                     <?php if (empty($internView)) { ?><th>Inscrições</th><?php } ?>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($people)) { ?>
                     <tr>
-                        <td colspan="<?php echo !empty($internView) ? '4' : '8'; ?>" class="muted">Nenhuma pessoa encontrada para este filtro.</td>
+                        <td colspan="<?php echo !empty($internView) ? '5' : '9'; ?>" class="muted">Nenhuma pessoa encontrada para este filtro.</td>
                     </tr>
                 <?php } ?>
                 <?php foreach ($people as $person) { ?>
@@ -224,7 +226,8 @@
                                 </div>
                             <?php } ?>
                         </td>
-                        <?php } ?><td>
+                        <?php } ?><td><?php $parQPersonId = (int) $person['id']; $parQStaff = true; $parQRecord = $parQRecords[$parQPersonId] ?? null; require ROOT_PATH . '/app/Views/partials/par_q_link.php'; ?></td>
+                        <td>
                             <?php if (!empty($person['nome_responsavel'])) { ?>
                                 <span><?php echo e((string) $person['nome_responsavel']); ?></span>
                                 <?php if (!empty($person['cpf_responsavel'])) { ?>

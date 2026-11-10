@@ -1,9 +1,11 @@
+<?php $parQRecords = \App\Services\ParQService::summaries(array_column(array_merge([$person], $dependents ?? []), 'id')); ?>
 <section class="dashboard-hero">
     <div class="content-card">
         <span class="eyebrow">Painel autenticado</span>
         <h1><?php echo e($user['nome_completo'] ?? ''); ?></h1>
         <p class="muted">CPF <?php echo e(format_cpf($user['cpf'] ?? '')); ?>.  Mantenha seu cadastro atualizado. Seu cadastro completo libera agendamentos; inscrições; acesso aos seus dependentes; e demais módulos autenticados.
         </p>
+        <p><?php $parQPersonId = (int) $person['id']; $parQStaff = false; $parQRecord = $parQRecords[$parQPersonId] ?? null; require ROOT_PATH . '/app/Views/partials/par_q_link.php'; ?></p>
         <div class="chips-wrap">
             <?php if (!empty($user['roles'])) { ?>
                 <?php foreach ($user['roles'] as $role) { ?>
@@ -49,6 +51,7 @@
                         <th>Dados</th>
                         <th>Atestado clínico</th>
                         <th>Atestado dermatológico</th>
+                        <th>PAR-Q</th>
                         <th>Documentação por condição</th>
                     </tr>
                 </thead>

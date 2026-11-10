@@ -2384,3 +2384,22 @@ body.pagina-error label span {
 .enrollment-declaration-button{display:inline-flex!important;align-items:center;justify-content:center;white-space:nowrap!important;word-break:normal!important;overflow-wrap:normal!important;min-width:126px;box-sizing:border-box;padding:12px 16px!important}
 
 .pdf-brand-shortcuts{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:12px 16px;margin:12px 0;background:#eef6fc;border:1px solid #c7ddeb;border-radius:10px;font-size:13px}.pdf-brand-shortcuts a{color:#146f9b;text-decoration:underline}@media print{.pdf-brand-shortcuts,.pdf-brand-edit-link{display:none!important}}
+
+.par-q-link.par-q-valid { color: #176235; }
+.par-q-link.par-q-positive { color: #9a4500; }
+.par-q-link.par-q-expired { color: #a3212c; }
+
+#par-q-modal { z-index: 2400; }
+
+.par-q-modal-card {
+    display: flex;
+    flex-direction: column;
+    width: min(760px, 100%);
+    max-height: calc(100dvh - 48px);
+}
+
+.par-q-modal-card [data-par-q-content] {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}

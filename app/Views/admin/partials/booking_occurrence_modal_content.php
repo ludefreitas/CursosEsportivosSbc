@@ -1,6 +1,7 @@
 <?php
 $occurrence = $occurrence ?? [];
 $bookings = $bookings ?? [];
+$parQRecords = \App\Services\ParQService::summaries(array_column($bookings ?? [], 'pessoa_id'));
 $currentAdminName = (string) ($currentAdminName ?? '');
 ?>
 <div class="admin-popup-head">
@@ -24,6 +25,7 @@ $currentAdminName = (string) ($currentAdminName ?? '');
             <thead>
                 <tr>
                     <th>Pessoa</th>
+                    <th>PAR-Q</th>
                     <th>Chamada</th>
                     <th>Status</th>
                     <th>Motivo da justificativa</th>
@@ -50,6 +52,7 @@ $currentAdminName = (string) ($currentAdminName ?? '');
                                 <?php if (empty($internView)) { ?><button type="button" class="link-button" data-notification-send="agendamento" data-booking-id="<?php echo e((string) $booking['id']); ?>">Notificar responsável</button><?php } ?>
                             </div>
                         </td>
+                        <td data-label="PAR-Q"><?php $parQPersonId = (int) ($booking['pessoa_id'] ?? 0); $parQStaff = true; $parQRecord = $parQRecords[$parQPersonId] ?? null; require ROOT_PATH . '/app/Views/partials/par_q_link.php'; ?></td>
                         <td data-label="Chamada" data-booking-short-status="1"><strong><?php echo e((string) ($booking['status_sigla'] ?? '-')); ?></strong></td>
                         <td data-label="Status" data-booking-status-cell="1">
                             <span class="chip admin-booking-status-chip admin-booking-status-<?php echo e($bookingStatus); ?>" data-booking-status-chip="1">

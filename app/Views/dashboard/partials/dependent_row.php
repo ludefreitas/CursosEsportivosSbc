@@ -47,6 +47,7 @@
             >Atualizar atestado dermatológico</button>
         </div>
     </td>
+    <td><?php $parQPersonId = (int) $dependent['id']; $parQStaff = false; $parQRecord = isset($parQRecords) ? ($parQRecords[$parQPersonId] ?? null) : (\App\Services\ParQService::summaries([$parQPersonId])[$parQPersonId] ?? null); require ROOT_PATH . '/app/Views/partials/par_q_link.php'; ?></td>
     <td>
         <?php $hasConditionAction = false; ?>
         <div class="chips-wrap">

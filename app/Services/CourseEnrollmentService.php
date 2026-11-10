@@ -1471,7 +1471,9 @@ class CourseEnrollmentService
         $people = [];
         if (Auth::check()) {
             $tokenLookup = $pdo->prepare("SELECT numero_token FROM tokens_inscricao_turma WHERE turma_id=:turma AND cpf=:cpf AND status='ativo' AND validade>=NOW() ORDER BY id DESC LIMIT 1");
-            foreach ($this->listPeopleForAuthenticatedAccount() as $person) {
+            $linkedPeople = $this->listPeopleForAuthenticatedAccount();
+            $parQRecords = ParQService::summaries(array_column($linkedPeople, 'id'));
+            foreach ($linkedPeople as $person) {
                 $age = calculate_age((string) ($person['data_nascimento'] ?? ''));
                 $validatedPublic = $this->resolvePublic($pdo, (int) $person['id']);
                 $ageException = $this->classAgeExceptionUsed($person, $class, $validatedPublic);
@@ -1505,6 +1507,11 @@ class CourseEnrollmentService
                         : 'Não há lugares disponíveis na lista de espera para o público-alvo desta pessoa';
                 }
                 if ($person['possui_token_ativo']) { $reasons = []; }
+                $parQBlock = ParQService::blockReason($parQRecords[(int) $person['id']] ?? null);
+                if ($parQBlock !== null) {
+                    $reasons[] = $parQBlock;
+                    $person['elegivel_por_token'] = false;
+                }
                 $person['elegivel'] = $reasons === [];
                 $person['motivo_bloqueio'] = implode('; ', $reasons);
                 $people[] = $person;
@@ -1589,6 +1596,8 @@ class CourseEnrollmentService
         if (!$person || (int) ($person['cadastro_completo'] ?? 0) !== 1) {
             throw new RuntimeException('A pessoa precisa ter o cadastro completo para se inscrever.');
         }
+
+        ParQService::assertEligible((int) $person['id']);
 
         if ($token === null && !empty($season['permitir_inscricao_logada']) === false && Auth::check() && !$isCpfFlow) {
             throw new RuntimeException('Esta temporada não permite inscrições pelo sistema logado.');

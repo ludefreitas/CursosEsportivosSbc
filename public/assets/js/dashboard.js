@@ -746,14 +746,14 @@
                     }
 
                     $('section.dashboard-main-grid .data-table tbody').append(String(response.row_html));
-
                     if (response.option_html) {
                         $('select[name="dependent_person_id"]').append(String(response.option_html));
                     }
-
-                    if (typeof response.header_alerts_html==='string') replaceHeaderAlerts(response.header_alerts_html);
+                    if (typeof response.header_alerts_html === 'string') replaceHeaderAlerts(response.header_alerts_html);
                     closeDependentCreateModal();
-                    App.core.abrirPopup('sucesso', String(response.message || 'Dependente salvo com sucesso.'));
+                    App.core.abrirPopup('sucesso', String(response.message || 'Dependente salvo com sucesso.'), function () {
+                        App.parQ.open(response.person_id, false);
+                    });
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
                     App.core.abrirPopup('erro', erro.mensagem);

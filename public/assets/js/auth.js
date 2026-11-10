@@ -566,6 +566,16 @@
                             }
                         }
 
+                        if (response && response.par_q_person_id && App.parQ) {
+                            $('body').attr('data-profile-completion-required', '0');
+                            $('a[data-profile-completion-link]').attr('data-profile-completion-link', '0');
+                            if (typeof response.header_alerts_html === 'string') {
+                                $('#site-header-certificate-alerts-region').html(response.header_alerts_html);
+                            }
+                            App.parQ.open(response.par_q_person_id, false);
+                            return;
+                        }
+
                         if (shouldFollowRedirect && response && response.redirect && !response._protected_access_handled) {
                             if (normalizedAction === App.core.buildUrl('/perfil/completar').replace(/\/+$/, '')) {
                                 $('body').attr('data-profile-completion-required', '0');

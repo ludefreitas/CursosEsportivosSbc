@@ -19,6 +19,9 @@ use App\Controllers\ScheduleGridController;
 use App\Controllers\ModalityEvaluationController;
 
 return [
+    ['GET', '/par-q', [\App\Controllers\ParQController::class, 'show']],
+    ['POST', '/par-q', [\App\Controllers\ParQController::class, 'save']],
+    ['GET', '/professor/turma/par-q-inscritos', [ProfessorController::class, 'classParQRoster']],
     ['GET', '/admin/cartazes', [\App\Controllers\PosterController::class, 'index']],
     ['POST', '/admin/cartazes/salvar', [\App\Controllers\PosterController::class, 'save']],
     ['POST', '/admin/cartazes/imagem', [\App\Controllers\PosterController::class, 'upload']],

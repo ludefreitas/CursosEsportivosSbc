@@ -271,6 +271,6 @@ class UserService
             }
         }
 
-        return $alerts;
+        return array_merge($alerts, ParQService::alerts($people));
     }
 }
