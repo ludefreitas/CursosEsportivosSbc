@@ -1817,6 +1817,13 @@
                 });
             }
 
+            function showImportResult($form, record) {
+                const needsState = $form.find('[name="state"]').length > 0 && !record.uf;
+                App.core.abrirPopup('sucesso', needsState
+                    ? 'Dados preenchidos. Confira o endereço e informe a UF com duas letras antes de salvar.'
+                    : 'Dados preenchidos. Revise todas as informações antes de salvar.');
+            }
+
             $(document).on('click', '[data-external-person-search="1"]', function () {
                 const $button = $(this);
                 const $form = $button.closest('[data-external-person-form="1"]');
@@ -1895,7 +1902,7 @@
 
                     fillForm($form, response.registro);
                     $form.find('[data-external-person-results="1"]').addClass('hidden').empty();
-                    App.core.abrirPopup('sucesso', 'Dados preenchidos. Revise todas as informações antes de salvar.');
+                    showImportResult($form, response.registro);
                 }).fail(function (xhr) {
                     App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
                 }).always(function () {
@@ -2093,7 +2100,7 @@
 
                     fillForm($form, response.registro);
                     closeExternalPersonChoice();
-                    App.core.abrirPopup('sucesso', 'Dados encontrados e preenchidos. Revise todas as informações antes de salvar.');
+                    showImportResult($form, response.registro);
                 }).fail(function (xhr) {
                     App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
                 }).always(function () {

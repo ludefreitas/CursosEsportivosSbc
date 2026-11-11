@@ -11,6 +11,36 @@ class ExternalPersonService
 {
     public const DEFAULT_LIST_LIMIT = 20;
     public const MAX_LIST_LIMIT = 50;
+    private const STATE_CODES = [
+        'acre' => 'AC',
+        'alagoas' => 'AL',
+        'amapa' => 'AP',
+        'amazonas' => 'AM',
+        'bahia' => 'BA',
+        'ceara' => 'CE',
+        'distrito-federal' => 'DF',
+        'espirito-santo' => 'ES',
+        'goias' => 'GO',
+        'maranhao' => 'MA',
+        'mato-grosso' => 'MT',
+        'mato-grosso-do-sul' => 'MS',
+        'minas-gerais' => 'MG',
+        'para' => 'PA',
+        'paraiba' => 'PB',
+        'parana' => 'PR',
+        'pernambuco' => 'PE',
+        'piaui' => 'PI',
+        'rio-de-janeiro' => 'RJ',
+        'rio-grande-do-norte' => 'RN',
+        'rio-grande-do-sul' => 'RS',
+        'rondonia' => 'RO',
+        'roraima' => 'RR',
+        'santa-catarina' => 'SC',
+        'sao-paulo' => 'SP',
+        's-paulo' => 'SP',
+        'sergipe' => 'SE',
+        'tocantins' => 'TO',
+    ];
     private ?PDO $connection = null;
 
     /**
@@ -96,6 +126,13 @@ class ExternalPersonService
                 throw new RuntimeException('Registro não encontrado para o CPF informado.');
             }
 
+            $cep = normalize_cep((string) ($record['cep'] ?? ''));
+            $stateCode = $this->normalizeStateCode((string) ($record['uf'] ?? ''));
+            if ($stateCode === null && strlen($cep) === 8) {
+                $lookup = (new CepService())->buscarEndereco($cep);
+                $stateCode = $this->normalizeStateCode((string) ($lookup['address']['uf'] ?? ''));
+            }
+
             return [
                 'nome_completo' => trim((string) ($record['nome_completo'] ?? '')),
                 'cpf' => normalize_cpf((string) ($record['cpf'] ?? '')),
@@ -104,13 +141,13 @@ class ExternalPersonService
                 'telefone_whatsapp' => trim((string) ($record['telefone_whatsapp'] ?? '')),
                 'email' => trim((string) ($record['email'] ?? '')),
                 'numero_cartao_sus' => preg_replace('/\D+/', '', (string) ($record['numero_cartao_sus'] ?? '')) ?? '',
-                'cep' => normalize_cep((string) ($record['cep'] ?? '')),
+                'cep' => $cep,
                 'logradouro' => trim((string) ($record['logradouro'] ?? '')),
                 'numero_endereco' => trim((string) ($record['numero_endereco'] ?? '')),
                 'complemento' => trim((string) ($record['complemento'] ?? '')),
                 'bairro' => trim((string) ($record['bairro'] ?? '')),
                 'cidade' => trim((string) ($record['cidade'] ?? '')),
-                'uf' => strtoupper(substr(trim((string) ($record['uf'] ?? '')), 0, 2)),
+                'uf' => $stateCode ?? '',
                 'contato_emergencia_nome' => trim((string) ($record['contato_emergencia_nome'] ?? '')),
                 'contato_emergencia_telefone' => trim((string) ($record['contato_emergencia_telefone'] ?? '')),
                 'responsavel1_nome' => trim((string) ($record['responsavel1_nome'] ?? '')),
@@ -218,7 +255,7 @@ class ExternalPersonService
                     ':complemento' => trim((string) ($row['complemento'] ?? '')) ?: null,
                     ':bairro' => trim((string) ($row['bairro'] ?? '')) ?: null,
                     ':cidade' => trim((string) ($row['cidade'] ?? '')) ?: null,
-                    ':uf' => strtoupper(substr(trim((string) ($row['estado'] ?? '')), 0, 2)) ?: null,
+                    ':uf' => $this->normalizeStateCode((string) ($row['estado'] ?? '')),
                     ':contato_emergencia_nome' => trim((string) ($row['contato'] ?? '')) ?: null,
                     ':contato_emergencia_telefone' => trim((string) ($row['telemer'] ?? '')) ?: null,
                     ':responsavel1_nome' => trim((string) ($row['nomemae'] ?? '')) ?: null,
@@ -491,6 +528,16 @@ class ExternalPersonService
         }
 
         return $parts[3] . '/' . $parts[2] . '/' . $parts[1];
+    }
+
+    private function normalizeStateCode(string $state): ?string
+    {
+        $name = slugify(strtr(mb_strtolower($state, 'UTF-8'), [
+            'á' => 'a', 'ã' => 'a', 'é' => 'e', 'í' => 'i', 'ô' => 'o', 'ó' => 'o',
+        ]));
+        $code = strtoupper(str_replace('-', '', $name));
+
+        return self::STATE_CODES[$name] ?? (in_array($code, self::STATE_CODES, true) ? $code : null);
     }
 
     private function normalizeSex(string $sex): string
