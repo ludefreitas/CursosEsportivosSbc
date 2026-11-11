@@ -2240,11 +2240,12 @@
                     updateSummary(response.summary);
                     const item = response.notification || {};
                     const validationNotice = item.tipo === 'condicao' || item.tipo === 'atestado';
+                    const correctionDocumentNotice = item.tipo === 'correcao_documento';
                     const validationLabel = validationNotice && item.contexto ? item.contexto.validacao_label : '';
                     const $detail = $('<div>', { class: 'user-notification-detail' })
                         .append($('<button>', { type: 'button', class: 'link-button', 'data-user-notifications-back': '1', text: '← Voltar às notificações' }))
                         .append($('<h4>', { text: String(item.assunto || '') }))
-                        .append($('<p>').append($('<strong>', { text: validationNotice ? 'Pessoa a que se refere: ' : 'Aluno: ' }), document.createTextNode(String(item.aluno_nome || ''))))
+                        .append($('<p>').append($('<strong>', { text: validationNotice || correctionDocumentNotice ? 'Pessoa a que se refere: ' : 'Aluno: ' }), document.createTextNode(String(item.aluno_nome || ''))))
                         .append($('<p>').append($('<strong>', { text: 'Enviada por: ' }), document.createTextNode(String(item.autor_nome || ''))))
                         .append($('<p>', { class: 'muted', text: formatDate(item.created_at) }))
                         .append($('<p>', { class: 'user-notification-message', text: String(item.mensagem || '') }));
@@ -2256,7 +2257,17 @@
                     }
                     if (item.orientacao_texto) {
                         const $guidance = $('<p>', { class: 'alert-inline', text: String(item.orientacao_texto) });
-                        if (item.orientacao_url) $guidance.append(document.createTextNode(' '), $('<a>', { href: String(item.orientacao_url), target: '_blank', rel: 'noopener noreferrer', text: 'Abrir WhatsApp' }));
+                        if (item.orientacao_url) {
+                            const $link = $('<a>', { href: String(item.orientacao_url) });
+                            if (correctionDocumentNotice) {
+                                $link.text('Ir para a correção').on('click', function () {
+                                    $('#user-notifications-modal').addClass('hidden').attr('aria-hidden', 'true');
+                                });
+                            } else {
+                                $link.attr({ target: '_blank', rel: 'noopener noreferrer' }).text('Abrir WhatsApp');
+                            }
+                            $guidance.append(document.createTextNode(' '), $link);
+                        }
                         $detail.append($guidance);
                     }
                     const rematriculation = item.tipo === 'rematricula' ? (item.contexto || {}) : null;

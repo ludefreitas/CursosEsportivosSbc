@@ -16,6 +16,13 @@ class IdentityCorrectionService
         'aguardando_documento' => 'Aguardando novo documento',
         'concluido' => 'Concluído',
     ];
+    public const DOCUMENT_REASONS = [
+        'ilegivel' => ['Imagem ilegível', 'A imagem está ilegível. Envie uma foto nítida, com boa iluminação e sem reflexos.'],
+        'incompleto' => ['Imagem cortada ou incompleta', 'A imagem está cortada ou incompleta. Envie uma foto que mostre o documento inteiro e o lado em que aparece o dado a corrigir.'],
+        'sem_dado' => ['Dado ausente no documento', 'O documento enviado não mostra o dado a corrigir. Envie um documento oficial em que esse dado esteja visível.'],
+        'dado_divergente' => ['Dado diferente do informado', 'O dado no documento é diferente do valor informado no pedido. Confira o valor e envie um documento oficial que comprove o dado correto.'],
+        'documento_incorreto' => ['Documento de outra pessoa', 'O documento enviado é de outra pessoa. Envie um documento oficial da pessoa indicada no pedido que mostre o dado a corrigir.'],
+    ];
     private const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/bmp'];
 
     public static function token(): string
@@ -156,14 +163,17 @@ class IdentityCorrectionService
         return $row;
     }
 
-    public function review(int $id, int $revision, string $status): void
+    public function review(int $id, int $revision, string $status, bool $resume = false): void
     {
-        if (!in_array($status, ['em_analise', 'aguardando_documento'], true)) {
+        if ($status !== 'em_analise') {
             throw new RuntimeException('Etapa de análise inválida.');
         }
         $pdo = Database::connection();
+        $allowedStatuses = $resume
+            ? "'aguardando_documento'"
+            : "'recebido', 'em_analise'";
         $stmt = $pdo->prepare("UPDATE solicitacoes_correcao_dados SET status = ?
-            WHERE id = ? AND revisao = ? AND status IN ('recebido', 'em_analise')");
+            WHERE id = ? AND revisao = ? AND status IN ($allowedStatuses)");
         $stmt->execute([$status, $id, $revision]);
         if ($stmt->rowCount() === 0) {
             $check = $pdo->prepare('SELECT status FROM solicitacoes_correcao_dados WHERE id = ? AND revisao = ?');
@@ -172,6 +182,52 @@ class IdentityCorrectionService
                 throw new RuntimeException('O pedido mudou de etapa. Atualize a lista antes de continuar.');
             }
         }
+    }
+
+    public function requestNewDocument(int $id, int $revision, int $actorId, string $reason): void
+    {
+        if (!isset(self::DOCUMENT_REASONS[$reason])) {
+            throw new RuntimeException('Selecione o motivo do pedido de novo documento.');
+        }
+
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+        try {
+            $update = $pdo->prepare("UPDATE solicitacoes_correcao_dados SET status = 'aguardando_documento'
+                WHERE id = ? AND revisao = ? AND status IN ('recebido', 'em_analise')");
+            $update->execute([$id, $revision]);
+            if ($update->rowCount() !== 1) {
+                throw new RuntimeException('O pedido mudou de etapa ou de documento. Atualize a lista antes de continuar.');
+            }
+
+            $recipient = $pdo->prepare('SELECT s.solicitante_conta_id, s.pessoa_id, s.campo, p.nome_completo
+                FROM solicitacoes_correcao_dados s JOIN pessoas p ON p.id = s.pessoa_id
+                JOIN contas c ON c.id = s.solicitante_conta_id AND c.ativo = 1
+                JOIN pessoas titular ON titular.cpf = c.cpf
+                WHERE s.id = ? AND (titular.id = p.id OR EXISTS (
+                    SELECT 1 FROM vinculos_responsaveis v WHERE v.dependente_pessoa_id = p.id
+                    AND v.responsavel_pessoa_id = titular.id AND v.data_fim IS NULL
+                ))');
+            $recipient->execute([$id]);
+            $request = $recipient->fetch(PDO::FETCH_ASSOC);
+            if (!$request) {
+                throw new RuntimeException('A conta solicitante está inativa ou perdeu o vínculo com a pessoa do pedido.');
+            }
+
+            (new NotificationService())->sendIdentityCorrectionDocumentRequest($actorId, $request, self::DOCUMENT_REASONS[$reason][1]);
+            AuditLogService::record('cadastro.novo_documento_solicitado', 'solicitacoes_correcao_dados', $id, [
+                'revisao' => $revision, 'motivo' => $reason,
+            ]);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    public static function correctionAnchor(int $personId, string $field): string
+    {
+        return 'correcao-' . $personId . '-' . $field;
     }
 
     public function complete(int $id, int $revision, int $actorId, array $person, bool $notify): void

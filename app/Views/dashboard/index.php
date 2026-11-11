@@ -5,7 +5,6 @@
         <h1><?php echo e($user['nome_completo'] ?? ''); ?></h1>
         <p class="muted">CPF <?php echo e(format_cpf($user['cpf'] ?? '')); ?>.  Mantenha seu cadastro atualizado. Seu cadastro completo libera agendamentos; inscrições; acesso aos seus dependentes; e demais módulos autenticados.
         </p>
-        <?php $correctionPerson = $person; require ROOT_PATH . '/app/Views/dashboard/partials/identity_correction_buttons.php'; ?>
         <p><?php $parQPersonId = (int) $person['id']; $parQStaff = false; $parQRecord = $parQRecords[$parQPersonId] ?? null; require ROOT_PATH . '/app/Views/partials/par_q_link.php'; ?></p>
         <div class="chips-wrap">
             <?php if (!empty($user['roles'])) { ?>
@@ -17,23 +16,13 @@
             <?php } ?>
         </div>
     </div>
+    <div class="metrics-grid">
+        <article class="info-card"><h3><?php echo e((string) $metrics['dependentes']); ?></h3><p>Dependentes vinculados</p></article>
+        <article class="info-card"><h3><?php echo e((string) $metrics['agendamentos_futuros']); ?></h3><p>Agendamentos futuros</p></article>
+        <article class="info-card"><h3><?php echo e((string) $metrics['documentos_pendentes']); ?></h3><p>Documentos pendentes</p></article>
+        <article class="info-card"><h3><?php echo e((string) $metrics['postagens_blog']); ?></h3><p>Postagens ativas</p></article>
+    </div>
 </section>
-
-<div id="identity-correction-status-region">
-    <?php require ROOT_PATH . '/app/Views/dashboard/partials/identity_correction_status.php'; ?>
-</div>
-<?php require ROOT_PATH . '/app/Views/dashboard/partials/identity_correction_modal.php'; ?>
-
-<section class="metrics-grid">
-    <article class="info-card"><h3><?php echo e((string) $metrics['dependentes']); ?></h3><p>Dependentes vinculados</p></article>
-    <article class="info-card"><h3><?php echo e((string) $metrics['agendamentos_futuros']); ?></h3><p>Agendamentos futuros</p></article>
-    <article class="info-card"><h3><?php echo e((string) $metrics['documentos_pendentes']); ?></h3><p>Documentos pendentes</p></article>
-    <article class="info-card"><h3><?php echo e((string) $metrics['postagens_blog']); ?></h3><p>Postagens ativas</p></article>
-</section>
-
-<?php require ROOT_PATH . '/app/Views/dashboard/partials/booking_history.php'; ?>
-<?php require ROOT_PATH . '/app/Views/dashboard/partials/course_enrollment_rows.php'; ?>
-<section class="content-card"><h2>Meus níveis nas modalidades</h2><div data-evaluation-person-list="<?php echo e((string) ($person['id'] ?? 0)); ?>"></div></section>
 
 <section class="dashboard-main-grid">
     <article class="content-card">
@@ -70,6 +59,25 @@
         </div>
     </article>
 </section>
+
+<section class="content-card top-gap" id="solicitacoes-correcao">
+    <h2>Minhas solicitações de correção de dados</h2>
+    <?php
+    $correctionPerson = $person;
+    $ownCorrectionActions = true;
+    require ROOT_PATH . '/app/Views/dashboard/partials/identity_correction_buttons.php';
+    ?>
+    <div id="identity-correction-status-region">
+        <?php
+        $dashboardCorrectionHistory = true;
+        require ROOT_PATH . '/app/Views/dashboard/partials/identity_correction_status.php';
+        ?>
+    </div>
+</section>
+<?php require ROOT_PATH . '/app/Views/dashboard/partials/identity_correction_modal.php'; ?>
+<?php require ROOT_PATH . '/app/Views/dashboard/partials/course_enrollment_rows.php'; ?>
+<?php require ROOT_PATH . '/app/Views/dashboard/partials/booking_history.php'; ?>
+<section class="content-card"><h2>Meus níveis nas modalidades</h2><div data-evaluation-person-list="<?php echo e((string) ($person['id'] ?? 0)); ?>"></div></section>
 
 <div id="dashboard-certificates-modal" class="popup-overlay hidden" aria-hidden="true">
     <div class="popup-card popup-admin-card dashboard-certificates-modal-card" role="dialog" aria-modal="true">

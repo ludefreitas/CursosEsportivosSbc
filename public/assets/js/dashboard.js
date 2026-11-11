@@ -70,6 +70,56 @@
             });
             let pendingEnrollmentCancellationForm = null;
             let susEditorSequence=0;
+            let bookingFilterRequest = null;
+            $(document).on('click', '#meus-agendamentos [data-booking-filter] a', function (event) {
+                if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+
+                const filter = this.closest('[data-booking-filter]').dataset.bookingFilter;
+                const pageUrl = new URL(this.href);
+                const currentSeason = new URLSearchParams(window.location.search).get('temporada_inscricoes');
+                if (currentSeason) pageUrl.searchParams.set('temporada_inscricoes', currentSeason);
+                const requestUrl = new URL(pageUrl);
+                requestUrl.hash = '';
+                requestUrl.searchParams.set('painel', 'agendamentos');
+
+                if (bookingFilterRequest) bookingFilterRequest.abort();
+                const $panel = $('#meus-agendamentos').attr('aria-busy', 'true');
+                const request = $.getJSON(requestUrl.href);
+                bookingFilterRequest = request;
+                request.done(function (response) {
+                    if (!response || !response.success || !response.html) {
+                        App.core.abrirPopup('erro', 'Não foi possível consultar os agendamentos.');
+                        return;
+                    }
+                    const restoreFocus = $panel[0].contains(document.activeElement);
+                    $panel.replaceWith(response.html);
+                    window.history.replaceState(window.history.state, '', pageUrl.href);
+
+                    $('#minhas-inscricoes-cursos .dashboard-history-filters a').each(function () {
+                        const seasonUrl = new URL(this.href);
+                        ['ano_agendamentos', 'mes_agendamentos'].forEach(function (name) {
+                            if (pageUrl.searchParams.has(name)) {
+                                seasonUrl.searchParams.set(name, pageUrl.searchParams.get(name));
+                            } else {
+                                seasonUrl.searchParams.delete(name);
+                            }
+                        });
+                        this.href = seasonUrl.href;
+                    });
+
+                    if (restoreFocus) {
+                        const selected = document.querySelector('#meus-agendamentos [data-booking-filter="' + filter + '"] [aria-current="page"]');
+                        if (selected) selected.focus({ preventScroll: true });
+                    }
+                }).fail(function (xhr, status) {
+                    if (status !== 'abort') App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () {
+                    $panel.removeAttr('aria-busy');
+                    if (bookingFilterRequest === request) bookingFilterRequest = null;
+                });
+            });
+
             $(document).on('click', '[data-booking-justification]', function () {
                 App.core.abrirPopup('info', String($(this).attr('data-booking-justification') || 'Nenhum motivo informado.'));
             });
@@ -105,9 +155,22 @@
                 if (window.history && window.history.replaceState) {
                     const cleanUrl = new URL(window.location.href);
                     cleanUrl.searchParams.delete('inscricao_destaque');
+                    if ($highlightedEnrollment.length) {
+                        cleanUrl.searchParams.set('temporada_inscricoes', $('#dashboard-course-enrollments-panel').attr('data-selected-enrollment-season'));
+                    }
                     window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
                 }
             }
+
+            function enrollmentActionUrl(form) {
+                const url = new URL(form.action);
+                const filters = new URLSearchParams(window.location.search);
+                ['temporada_inscricoes', 'ano_agendamentos', 'mes_agendamentos'].forEach(function (name) {
+                    if (filters.has(name)) url.searchParams.set(name, filters.get(name));
+                });
+                return url.href;
+            }
+
             function getModal() {
                 return $('#dashboard-certificates-modal');
             }
@@ -264,7 +327,7 @@
                 const $button = $(this).prop('disabled', true);
                 const form = pendingEnrollmentCancellationForm;
                 $.ajax({
-                    url: String($(form).attr('action') || ''), method: 'POST', data: new FormData(form),
+                    url: enrollmentActionUrl(form), method: 'POST', data: new FormData(form),
                     processData: false, contentType: false, dataType: 'json',
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
                 }).done(function (response) {
@@ -302,7 +365,7 @@
                 const $button = $(this).prop('disabled', true);
                 const form = pendingEnrollmentDeletionForm;
                 $.ajax({
-                    url: String($(form).attr('action') || ''), method: 'POST', data: new FormData(form),
+                    url: enrollmentActionUrl(form), method: 'POST', data: new FormData(form),
                     processData: false, contentType: false, dataType: 'json',
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
                 }).done(function (response) {

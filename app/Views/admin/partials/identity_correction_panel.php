@@ -18,6 +18,7 @@ $correctionToken = IdentityCorrectionService::token();
                 <?php foreach ($identityCorrections as $correction) {
                     $id = (int) $correction['id'];
                     $personId = (int) $correction['pessoa_id'];
+                    $waitingForDocument = $correction['status'] === 'aguardando_documento';
                     $label = IdentityCorrectionService::FIELDS[$correction['campo']];
                     $value = $correction['campo'] === 'cpf'
                         ? format_cpf($correction['valor_solicitado'])
@@ -26,7 +27,7 @@ $correctionToken = IdentityCorrectionService::token();
                     <tr data-identity-correction-row="<?php echo $id; ?>" data-correction-revision="<?php echo (int) $correction['revisao']; ?>">
                         <td class="responsive-table-full-cell" data-responsive-full-cell>
                             <div class="admin-validation-details">
-                                <span>Pessoa: <strong><?php echo e($correction['nome_completo']); ?></strong></span>
+                                <span>Pessoa: <strong data-correction-person><?php echo e($correction['nome_completo']); ?></strong></span>
                                 <span>Solicitante: <strong><?php echo e($correction['solicitante']); ?></strong></span>
                                 <span>Dado solicitado: <strong><?php echo e($label); ?></strong></span>
                                 <span>Valor informado: <strong><?php echo e($value); ?></strong></span>
@@ -44,11 +45,12 @@ $correctionToken = IdentityCorrectionService::token();
                             <div class="admin-validation-actions">
                                 <a href="<?php echo e(url('/admin/correcao-de-dados/documento') . '?id=' . $id); ?>" target="_blank" rel="noopener noreferrer">Ver documento</a>
                                 <button type="button" class="link-button" data-notification-send="pessoa" data-person-id="<?php echo $personId; ?>">Notificar responsável</button>
-                                <?php if (in_array($correction['status'], ['recebido', 'em_analise'], true)) { ?>
+                                <?php if ($correction['status'] !== 'concluido') { ?>
                                     <button type="button" class="link-button" data-person-edit="1" data-person-id="<?php echo $personId; ?>"
                                         data-correction-id="<?php echo $id; ?>" data-correction-label="<?php echo e($label); ?>"
-                                        data-correction-value="<?php echo e($value); ?>">Corrigir dados</button>
-                                    <button type="button" class="link-button" data-correction-request-document>Solicitar novo documento</button>
+                                        data-correction-value="<?php echo e($value); ?>"
+                                        data-correction-resume="<?php echo $waitingForDocument ? '1' : '0'; ?>"><?php echo $waitingForDocument ? 'Retomar correção' : 'Corrigir dados'; ?></button>
+                                    <button type="button" class="link-button<?php echo $waitingForDocument ? ' hidden' : ''; ?>" data-correction-request-document>Solicitar novo documento</button>
                                 <?php } ?>
                             </div>
                         </td>
@@ -58,6 +60,27 @@ $correctionToken = IdentityCorrectionService::token();
         </table>
     </div>
 </article>
+<div class="popup-overlay hidden" id="admin-identity-document-request" aria-hidden="true">
+    <div class="popup-card" role="dialog" aria-modal="true" aria-labelledby="admin-identity-document-request-title">
+        <div class="popup-head"><h3 id="admin-identity-document-request-title">Solicitar novo documento</h3></div>
+        <form class="popup-body stack-form" data-manual-submit="1">
+            <p data-correction-document-context></p>
+            <label>Motivo a enviar ao solicitante
+                <select name="motivo" required>
+                    <option value="">Selecione uma mensagem</option>
+                    <?php foreach (IdentityCorrectionService::DOCUMENT_REASONS as $reason => [$label, $message]) { ?>
+                        <option value="<?php echo e($reason); ?>" data-correction-document-message="<?php echo e($message); ?>"><?php echo e($label); ?></option>
+                    <?php } ?>
+                </select>
+            </label>
+            <p class="alert-inline hidden" data-correction-document-preview aria-live="polite"></p>
+            <div class="popup-actions">
+                <button type="button" class="btn btn-secondary" data-correction-document-cancel>Cancelar</button>
+                <button type="submit" class="btn btn-primary">Enviar solicitação</button>
+            </div>
+        </form>
+    </div>
+</div>
 <div class="popup-overlay hidden" id="admin-identity-correction-confirm" aria-hidden="true">
     <div class="popup-card" role="dialog" aria-modal="true" aria-labelledby="admin-identity-confirm-title">
         <div class="popup-head"><h3 id="admin-identity-confirm-title">Avisar o responsável?</h3></div>

@@ -219,11 +219,10 @@ class CourseEnrollmentService
     {
         if (!Auth::check()) { return []; }
         $pdo = Database::connection();
-        $this->ensureCourseSeasonSchema($pdo);
         $this->synchronizeCalculatedSeasonStatuses($pdo);
         $stmt = $pdo->prepare("SELECT i.id, i.turma_id, i.numero_ordem, i.posicao_lista_espera, i.publico_alvo, i.excecao_condicao, i.tipo_inscricao, EXISTS (SELECT 1 FROM turmas_chamadas freq WHERE freq.inscricao_turma_id=i.id AND freq.status IN ('presente','ausente','justificado')) AS possui_frequencia, i.status, i.created_at, i.updated_at, i.motivo_status,
                    p.nome_completo, p.cpf, p.data_nascimento, t.nome AS turma_nome, t.modalidade_id, t.observacao AS turma_observacao, t.dias_semana, t.hora_inicio, t.hora_fim,
-                   te.nome AS temporada_nome, m.nome AS modalidade_nome,
+                   te.id AS temporada_id, te.nome AS temporada_nome, te.status AS temporada_status, m.nome AS modalidade_nome,
                    cm.matriculas_inicio AS cronograma_matriculas_inicio,
                    cm.matriculas_fim AS cronograma_matriculas_fim,
                    te.matriculas_inicio, te.matriculas_fim,
@@ -240,15 +239,13 @@ class CourseEnrollmentService
                 SELECT 1 FROM contas c INNER JOIN pessoas titular ON titular.cpf=c.cpf
                 LEFT JOIN vinculos_responsaveis vr ON vr.responsavel_pessoa_id=titular.id
                 WHERE c.id=:conta_id AND (p.id=titular.id OR p.id=vr.dependente_pessoa_id)
-            ) ORDER BY i.created_at DESC");
+            ) ORDER BY te.data_inicio DESC, te.id DESC, i.created_at DESC");
         $stmt->execute([':conta_id' => Auth::id()]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         foreach ($rows as &$row) {
             $row['tipo_inscricao_label'] = self::ENROLLMENT_TYPE_LABELS[(string) ($row['tipo_inscricao'] ?? '')] ?? 'Não identificado';
             $row['status_label'] = self::STATUS_LABELS[(string) $row['status']] ?? (string) $row['status'];
-            $seasonStmt = $pdo->prepare('SELECT te.status FROM inscricoes_turma i INNER JOIN turmas t ON t.id = i.turma_id INNER JOIN temporadas te ON te.id = t.temporada_id WHERE i.id = :id LIMIT 1');
-            $seasonStmt->execute([':id' => (int) $row['id']]);
-            $row['temporada_encerrada'] = $seasonStmt->fetchColumn() === 'encerrada';
+            $row['temporada_encerrada'] = $row['temporada_status'] === 'encerrada';
             $row['orientacao'] = $row['status'] === 'aguardando_matricula'
                 ? $this->registrationGuidance($row)
                 : ($row['status'] === 'lista_espera'
@@ -258,6 +255,26 @@ class CourseEnrollmentService
             $row['proximas_acoes'] = $this->userEnrollmentNextActions($row);
         }
         return $rows;
+    }
+
+    public function dashboardEnrollments(int $requestedSeason, int $highlightedEnrollment = 0): array
+    {
+        $rows = $this->listForAuthenticatedAccount();
+        $seasons = [];
+        foreach ($rows as $row) {
+            $seasonId = (int) $row['temporada_id'];
+            $seasons[$seasonId] = $row['temporada_nome'];
+            if ((int) $row['id'] === $highlightedEnrollment) {
+                $requestedSeason = $seasonId;
+            }
+        }
+
+        $selectedSeason = isset($seasons[$requestedSeason]) ? $requestedSeason : array_key_first($seasons);
+        return [
+            'seasons' => $seasons,
+            'season' => $selectedSeason,
+            'enrollments' => array_filter($rows, static fn(array $row): bool => (int) $row['temporada_id'] === $selectedSeason),
+        ];
     }
 
     public function listForManagement(string $sortBy = 'ordem_inscricao', string $sortDirection = 'asc', string $statusFilter = 'todos', string $conditionFilter = 'todas', int $classId = 0, int $professorAccountId = 0, int $seasonId = 0, string $groupBy = '', int $groupId = 0, int $secondaryGroupId = 0, int $page = 1, int $pageSize = 100): array

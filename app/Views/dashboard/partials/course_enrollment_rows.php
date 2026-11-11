@@ -1,12 +1,22 @@
-<div id="dashboard-course-enrollments-panel">
+<?php
+$courseEnrollments = $courseEnrollmentHistory['enrollments'];
+$enrollmentBookingFilters = array_filter([
+    'ano_agendamentos' => (int) ($_GET['ano_agendamentos'] ?? 0),
+    'mes_agendamentos' => (int) ($_GET['mes_agendamentos'] ?? 0),
+]);
+?>
+<div id="dashboard-course-enrollments-panel" data-selected-enrollment-season="<?php echo (int) $courseEnrollmentHistory['season']; ?>">
 <section class="content-card" id="minhas-inscricoes-cursos">
-    <div class="section-head"><div><h2>Minhas inscrições em cursos</h2>
-        <!-- <p class="muted">
-            A inscrição aguarda matrícula do professor ou permanece na lista de espera quando não há vaga.
-        </p>
-        -->
-    </div></div>
-    <?php if (($courseEnrollments ?? []) === []) { ?>
+    <h2>Minhas inscrições em cursos</h2>
+    <?php if ($courseEnrollmentHistory['seasons'] !== []) { ?>
+        <nav class="chips-wrap dashboard-history-filters" aria-label="Temporadas das inscrições">
+            <?php foreach ($courseEnrollmentHistory['seasons'] as $seasonId => $seasonName) { ?>
+                <?php $seasonUrl = url('/dashboard') . '?' . http_build_query($enrollmentBookingFilters + ['temporada_inscricoes' => $seasonId]) . '#minhas-inscricoes-cursos'; ?>
+                <a class="chip" href="<?php echo e($seasonUrl); ?>" <?php if ($seasonId === $courseEnrollmentHistory['season']) { ?>aria-current="page"<?php } ?>><?php echo e($seasonName); ?></a>
+            <?php } ?>
+        </nav>
+    <?php } ?>
+    <?php if ($courseEnrollments === []) { ?>
         <p class="muted">Nenhuma inscrição encontrada.</p>
     <?php } else { ?>
         <div class="table-wrap"><table class="data-table"><thead><tr><th>Ordem</th><th>Pessoa</th><th>Turma</th><th>Temporada</th><th>Status e orientações</th><th>Ação</th></tr></thead><tbody>

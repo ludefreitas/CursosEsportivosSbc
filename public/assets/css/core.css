@@ -2404,6 +2404,34 @@ body.pagina-error label span {
     color: #594300;
 }
 
+.identity-correction-button:target {
+    scroll-margin-block: 1rem;
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+}
+
+.dashboard-history-filters {
+    margin-bottom: 1rem;
+}
+
+.dashboard-history-filters [aria-current="page"] {
+    text-decoration: underline;
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+.dashboard-history-filters .booking-month-has-records {
+    background: #e0f2e7;
+    border-color: #42835e;
+    color: #175538;
+}
+
+.dashboard-history-filters .booking-month-empty {
+    background: #f1f3f5;
+    border-color: #bfc6cd;
+    color: #424d59;
+}
+
 .par-q-link.par-q-valid { color: #176235; }
 .par-q-link.par-q-positive { color: #9a4500; }
 .par-q-link.par-q-expired { color: #a3212c; }

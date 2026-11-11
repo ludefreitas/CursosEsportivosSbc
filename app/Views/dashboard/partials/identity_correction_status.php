@@ -1,6 +1,8 @@
 <?php if (!empty($identityCorrections)) { ?>
+    <?php if (empty($dashboardCorrectionHistory)) { ?>
     <section class="content-card top-gap" id="solicitacoes-correcao">
         <h2>Minhas solicitações de correção de dados</h2>
+    <?php } ?>
         <ul>
             <?php foreach ($identityCorrections as $correction) { ?>
                 <li data-correction-history-person="<?php echo (int) $correction['pessoa_id']; ?>"
@@ -12,10 +14,14 @@
                     · Solicitada em <?php echo e(date('d/m/Y', strtotime($correction['criado_em']))); ?>
                     · <strong><?php echo e(\App\Services\IdentityCorrectionService::STATUSES[$correction['status']]); ?></strong>
                     <?php if ($correction['status'] === 'aguardando_documento') { ?>
-                        <span>Use o botão de correção do mesmo dado no <a href="<?php echo e(url('/dashboard')); ?>">seu painel</a> para reenviar o documento.</span>
+                        <?php $correctionUrl = (empty($dashboardCorrectionHistory) ? url('/dashboard') : '')
+                            . '#' . \App\Services\IdentityCorrectionService::correctionAnchor((int) $correction['pessoa_id'], $correction['campo']); ?>
+                        <span><a href="<?php echo e($correctionUrl); ?>">Ir para a correção</a> para reenviar o documento.</span>
                     <?php } ?>
                 </li>
             <?php } ?>
         </ul>
-    </section>
+    <?php if (empty($dashboardCorrectionHistory)) { ?></section><?php } ?>
+<?php } elseif (!empty($dashboardCorrectionHistory)) { ?>
+    <p class="muted">Nenhuma solicitação de correção de dados.</p>
 <?php } ?>

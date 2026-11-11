@@ -159,7 +159,7 @@ class CourseEnrollmentController extends Controller
         try {
             $this->service->cancel((int) ($_POST['inscricao_id'] ?? 0));
             if ($this->isAjaxRequest()) {
-                $courseEnrollments = $this->service->listForAuthenticatedAccount();
+                $courseEnrollmentHistory = $this->service->dashboardEnrollments((int) ($_GET['temporada_inscricoes'] ?? 0));
                 $currentUser = (new UserService())->currentAccountWithRoles();
                 $professorEnrollmentDeletionEnabled = $currentUser && has_role($currentUser['roles'] ?? [], 'teacher');
                 ob_start();
@@ -251,7 +251,7 @@ class CourseEnrollmentController extends Controller
             $this->service->deletePermanentlyForProfessor($enrollmentId, (int) Auth::id());
 
             if ($this->isAjaxRequest()) {
-                $courseEnrollments = $this->service->listForAuthenticatedAccount();
+                $courseEnrollmentHistory = $this->service->dashboardEnrollments((int) ($_GET['temporada_inscricoes'] ?? 0));
                 $professorEnrollmentDeletionEnabled = true;
                 ob_start();
                 require ROOT_PATH . '/app/Views/dashboard/partials/course_enrollment_rows.php';

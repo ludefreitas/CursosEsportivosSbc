@@ -854,10 +854,19 @@ class AdminController extends Controller
 
     public function startIdentityCorrectionReview(): void
     {
-        $this->assertAdminAccess();
+        $actor = $this->assertAdminAccess();
         try {
             IdentityCorrectionService::assertToken($_POST);
-            (new IdentityCorrectionService())->review((int) ($_POST['id'] ?? 0), (int) ($_POST['revisao'] ?? 0), (string) ($_POST['status'] ?? ''));
+            $service = new IdentityCorrectionService();
+            $id = (int) ($_POST['id'] ?? 0);
+            $revision = (int) ($_POST['revisao'] ?? 0);
+            $status = (string) ($_POST['status'] ?? '');
+            if ($status === 'aguardando_documento') {
+                $reason = $_POST['motivo'] ?? '';
+                $service->requestNewDocument($id, $revision, (int) $actor['conta_id'], is_string($reason) ? $reason : '');
+            } else {
+                $service->review($id, $revision, $status, ($_POST['retomar'] ?? '') === '1');
+            }
             $this->jsonResponse(['success' => true]);
         } catch (\Throwable $e) {
             $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);

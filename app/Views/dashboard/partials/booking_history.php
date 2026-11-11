@@ -1,11 +1,39 @@
+<?php
+$bookingMonthNames = [1 => 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+$bookingSeason = (int) ($_GET['temporada_inscricoes'] ?? 0);
+$bookingFilterUrl = static function (int $year, int $month = 0) use ($bookingSeason): string {
+    $filters = array_filter([
+        'ano_agendamentos' => $year,
+        'mes_agendamentos' => $month,
+        'temporada_inscricoes' => $bookingSeason,
+    ]);
+    return url('/dashboard') . '?' . http_build_query($filters) . '#meus-agendamentos';
+};
+?>
 <section class="content-card" id="meus-agendamentos">
     <h2>Meus agendamentos e dos meus dependentes</h2>
-    <nav class="chips-wrap" aria-label="Anos dos agendamentos">
+    <nav class="chips-wrap dashboard-history-filters" data-booking-filter="year" aria-label="Anos dos agendamentos">
         <?php foreach ($bookingHistory['years'] as $year) { ?>
-        <a href="<?php echo e(url('/dashboard') . '?ano_agendamentos=' . $year . '#meus-agendamentos'); ?>" class="chip" <?php if ($year === $bookingHistory['year']) { ?>aria-current="page"<?php } ?>><?php echo e((string) $year); ?></a>
+        <a href="<?php echo e($bookingFilterUrl($year)); ?>" class="chip" <?php if ($year === $bookingHistory['year']) { ?>aria-current="page"<?php } ?>><?php echo e((string) $year); ?></a>
         <?php } ?>
     </nav>
-    <h3><?php echo e((string) $bookingHistory['year']); ?></h3>
+    <nav class="chips-wrap dashboard-history-filters" data-booking-filter="month" aria-label="Meses dos agendamentos">
+        <a class="chip" href="<?php echo e($bookingFilterUrl($bookingHistory['year'])); ?>" <?php if ($bookingHistory['month'] === 0) { ?>aria-current="page"<?php } ?>>Todos os meses</a>
+        <?php foreach ($bookingMonthNames as $month => $monthName) { ?>
+            <?php $hasBookings = isset($bookingHistory['monthsWithBookings'][$month]); ?>
+            <a class="chip <?php echo $hasBookings ? 'booking-month-has-records' : 'booking-month-empty'; ?>"
+                href="<?php echo e($bookingFilterUrl($bookingHistory['year'], $month)); ?>"
+                aria-label="<?php echo e($monthName . ($hasBookings ? ' com agendamentos' : ' sem agendamentos')); ?>"
+                <?php if ($month === $bookingHistory['month']) { ?>aria-current="page"<?php } ?>><?php echo e($monthName); ?></a>
+        <?php } ?>
+    </nav>
+    <?php if (!$bookingHistory['bookings']) { ?>
+        <?php if ($bookingHistory['month'] !== 0) { ?>
+            <p class="alert-inline" role="alert">Nenhum agendamento em <?php echo e($bookingMonthNames[$bookingHistory['month']]); ?> de <?php echo $bookingHistory['year']; ?>.</p>
+        <?php } else { ?>
+            <p class="muted">Nenhum agendamento neste ano.</p>
+        <?php } ?>
+    <?php } else { ?>
     <p class="muted">Você pode excluir um agendamento até duas horas antes do início. A exclusão cancela a reserva da vaga.</p>
     <div class="table-wrap"><table class="data-table">
         <thead><tr><th>Data</th><th>Dia</th><th>Horário</th><th>Nome</th><th>Local</th><th>Compareceu?</th><th>Excluir</th></tr></thead>
@@ -33,7 +61,7 @@
             <?php } else { ?><span class="muted">—</span><?php } ?></td>
         </tr>
         <?php } ?>
-        <?php if (!$bookingHistory['bookings']) { ?><tr><td colspan="7">Nenhum agendamento neste ano.</td></tr><?php } ?>
         </tbody>
     </table></div>
+    <?php } ?>
 </section>

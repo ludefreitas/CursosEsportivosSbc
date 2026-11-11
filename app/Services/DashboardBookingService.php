@@ -8,7 +8,7 @@ use PDO;
 
 class DashboardBookingService
 {
-    public function listForAccount(int $accountId, int $requestedYear): array
+    public function listForAccount(int $accountId, int $requestedYear, int $requestedMonth = 0): array
     {
         $scope = ' FROM agendamentos a INNER JOIN pessoas p ON p.id=a.pessoa_id
             INNER JOIN contas c ON c.id=:account_id
@@ -30,12 +30,26 @@ class DashboardBookingService
             . $scope . ' AND a.data_agendada >= :start AND a.data_agendada < :end ORDER BY a.data_agendada DESC, a.id DESC');
         $stmt->execute([':account_id'=>$accountId, ':start'=>sprintf('%04d-01-01 00:00:00',$year), ':end'=>sprintf('%04d-01-01 00:00:00',$year+1)]);
         $bookings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $month = $requestedMonth >= 1 && $requestedMonth <= 12 ? $requestedMonth : 0;
+        $monthsWithBookings = [];
+        $visibleBookings = [];
         $now = new DateTimeImmutable();
-        foreach ($bookings as &$booking) {
+        foreach ($bookings as $booking) {
+            $bookingMonth = (int) substr($booking['data_agendada'], 5, 2);
+            $monthsWithBookings[$bookingMonth] = true;
+            if ($month !== 0 && $bookingMonth !== $month) {
+                continue;
+            }
             $booking['pode_cancelar'] = self::canCancel($booking, $now);
+            $visibleBookings[] = $booking;
         }
-        unset($booking);
-        return ['years'=>$years, 'year'=>$year, 'bookings'=>$bookings];
+        return [
+            'years' => $years,
+            'year' => $year,
+            'month' => $month,
+            'monthsWithBookings' => $monthsWithBookings,
+            'bookings' => $visibleBookings,
+        ];
     }
 
     public static function canCancel(array $booking, DateTimeImmutable $now): bool

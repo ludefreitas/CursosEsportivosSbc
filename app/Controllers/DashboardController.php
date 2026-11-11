@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Services\CourseEnrollmentService;
+use App\Services\DashboardBookingService;
 use App\Services\ProfileService;
 use App\Services\UserService;
 
@@ -25,6 +26,7 @@ class DashboardController extends Controller
             $service->submit((int) Auth::id(), $_POST, $_FILES['documento'] ?? []);
             if ($this->isAjaxRequest()) {
                 $identityCorrections = $service->list((int) Auth::id());
+                $dashboardCorrectionHistory = true;
                 ob_start();
                 require ROOT_PATH . '/app/Views/dashboard/partials/identity_correction_status.php';
                 $this->jsonResponse(['success' => true, 'message' => 'Solicitação recebida. Acompanhe o andamento no seu painel.', 'status_html' => (string) ob_get_clean()]);
@@ -51,7 +53,11 @@ class DashboardController extends Controller
      */
     public function index(): void
     {
+        $bookingRequest = $this->isAjaxRequest() && ($_GET['painel'] ?? '') === 'agendamentos';
         if (!Auth::check()) {
+            if ($bookingRequest) {
+                $this->jsonResponse(['success' => false, 'message' => 'Faça login para consultar seus agendamentos.'], 401);
+            }
             redirect_to_login_modal('/dashboard');
         }
 
@@ -59,14 +65,22 @@ class DashboardController extends Controller
         $person = $profileService->getAuthenticatedPerson();
         $registrationBlock = $profileService->getRegistrationBlockForAuthenticatedPerson();
 
-        if ($registrationBlock !== null) {
-            flash('error', $registrationBlock['mensagem']);
+        if ($registrationBlock !== null || !$person || (int) $person['cadastro_completo'] !== 1) {
+            $message = $registrationBlock['mensagem'] ?? 'Complete primeiro seu cadastro para acessar as páginas autenticadas.';
+            if ($bookingRequest) {
+                $this->jsonResponse(['success' => false, 'message' => $message], 403);
+            }
+            flash('error', $message);
             redirect_to_profile_completion_modal('/dashboard');
         }
 
-        if (!$person || (int) $person['cadastro_completo'] !== 1) {
-            flash('error', 'Complete primeiro seu cadastro para acessar as páginas autenticadas.');
-            redirect_to_profile_completion_modal('/dashboard');
+        $bookingHistory = (new DashboardBookingService())->listForAccount(
+            (int) Auth::id(), (int) ($_GET['ano_agendamentos'] ?? 0), (int) ($_GET['mes_agendamentos'] ?? 0)
+        );
+        if ($bookingRequest) {
+            ob_start();
+            require ROOT_PATH . '/app/Views/dashboard/partials/booking_history.php';
+            $this->jsonResponse(['success' => true, 'html' => (string) ob_get_clean()]);
         }
 
         $userService = new UserService();
@@ -81,9 +95,11 @@ class DashboardController extends Controller
             'person' => $person,
             'identityCorrections' => (new \App\Services\IdentityCorrectionService())->list((int) Auth::id()),
             'dependents' => $profileService->listDependents(),
-            'bookingHistory' => (new \App\Services\DashboardBookingService())->listForAccount((int) \App\Core\Auth::id(), (int) ($_GET['ano_agendamentos'] ?? 0)),
+            'bookingHistory' => $bookingHistory,
             'metrics' => $userService->dashboardMetrics((int) $person['id']),
-            'courseEnrollments' => $courseEnrollmentService->listForAuthenticatedAccount(),
+            'courseEnrollmentHistory' => $courseEnrollmentService->dashboardEnrollments(
+                (int) ($_GET['temporada_inscricoes'] ?? 0), (int) ($_GET['inscricao_destaque'] ?? 0)
+            ),
             'professorEnrollmentDeletionEnabled' => $professorEnrollmentDeletionEnabled,
         ]);
     }

@@ -1677,13 +1677,15 @@
                 $('#admin-person-sexo').trigger('change');
             }
 
-            function changeCorrectionReview($row, status) {
+            function changeCorrectionReview($row, status, resume = false, reason = '') {
                 const $queue = $row.closest('#admin-identity-corrections');
                 return $.post($queue.attr('data-correction-review-url'), {
                     id: $row.attr('data-identity-correction-row'),
                     revisao: $row.attr('data-correction-revision'),
                     correcao_csrf: $queue.attr('data-correction-token'),
-                    status: status
+                    status: status,
+                    retomar: resume ? '1' : '0',
+                    motivo: reason
                 }, null, 'json').fail(function (xhr) {
                     App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
                 });
@@ -1692,12 +1694,55 @@
             $(document).on('click', '[data-correction-request-document]', function () {
                 const $button = $(this);
                 const $row = $button.closest('tr');
-                $button.prop('disabled', true);
-                changeCorrectionReview($row, 'aguardando_documento').done(function () {
+                const $dialog = $('#admin-identity-document-request');
+                const $form = $dialog.find('form');
+                if (!$form.length) return;
+                $form[0].reset();
+                $form.find('[data-correction-document-preview]').addClass('hidden').empty();
+                $form.data('requestButton', $button);
+                $form.find('[data-correction-document-context]').text(
+                    'Correção de ' + $row.find('[data-correction-id]').attr('data-correction-label') +
+                    ' de ' + $row.find('[data-correction-person]').text() + '.'
+                );
+                $dialog.removeClass('hidden').attr('aria-hidden', 'false');
+                $form.find('[name="motivo"]').trigger('focus');
+            });
+
+            $(document).on('change', '#admin-identity-document-request [name="motivo"]', function () {
+                const message = $(this).find('option:selected').attr('data-correction-document-message') || '';
+                $(this).closest('form').find('[data-correction-document-preview]').text(message).toggleClass('hidden', !message);
+            });
+
+            $(document).on('click', '[data-correction-document-cancel]', function () {
+                const $dialog = $('#admin-identity-document-request');
+                const $form = $dialog.find('form');
+                $dialog.addClass('hidden').attr('aria-hidden', 'true');
+                $form.data('requestButton')?.trigger('focus');
+                $form.removeData('requestButton');
+            });
+
+            $(document).on('submit', '#admin-identity-document-request form', function (event) {
+                event.preventDefault();
+                const $form = $(this);
+                const $button = $form.data('requestButton');
+                const reason = $form.find('[name="motivo"]').val();
+                const $controls = $form.find('button, select');
+                if (!$button || $button.prop('disabled') || !reason) {
+                    return;
+                }
+                const $row = $button.closest('tr');
+                const $correctionButton = $row.find('[data-correction-id]');
+                $controls.prop('disabled', true);
+                $button.add($correctionButton).prop('disabled', true);
+                changeCorrectionReview($row, 'aguardando_documento', false, reason).done(function () {
                     $row.find('[data-identity-correction-status]').text('Aguardando novo documento');
-                    $row.find('[data-correction-id], [data-correction-request-document]').remove();
+                    $button.addClass('hidden');
+                    $correctionButton.attr('data-correction-resume', '1').text('Retomar correção');
+                    $form.removeData('requestButton').closest('.popup-overlay').addClass('hidden').attr('aria-hidden', 'true');
+                    App.core.abrirPopup('sucesso', 'Solicitação enviada. O solicitante foi notificado.');
                 }).always(function () {
-                    $button.prop('disabled', false);
+                    $controls.prop('disabled', false);
+                    $button.add($correctionButton).prop('disabled', false);
                 });
             });
 
@@ -1754,6 +1799,7 @@
                     value: $button.attr('data-correction-value'),
                     revision: $button.closest('tr').attr('data-correction-revision'),
                     token: $queue.attr('data-correction-token'),
+                    resume: $button.attr('data-correction-resume') === '1',
                     $row: $button.closest('tr')
                 } : null;
                 $.getJSON(adminUrl('/admin/pessoas/detalhe'), { id: personId })
@@ -1769,13 +1815,28 @@
                             return;
                         }
 
-                        changeCorrectionReview(correction.$row, 'em_analise').done(function () {
+                        if ($button.prop('disabled') || correction.resume !== ($button.attr('data-correction-resume') === '1')) {
+                            return;
+                        }
+
+                        if (!getDetailsPanel().length) {
+                            App.core.abrirPopup('erro', 'O modal de consulta de pessoa não está disponível nesta tela.');
+                            return;
+                        }
+
+                        const $requestDocument = correction.$row.find('[data-correction-request-document]');
+                        $button.add($requestDocument).prop('disabled', true);
+                        changeCorrectionReview(correction.$row, 'em_analise', correction.resume).done(function () {
                             currentCorrection = correction;
                             correction.$row.find('[data-identity-correction-status]').text('Em análise');
+                            $button.attr('data-correction-resume', '0').text('Corrigir dados');
+                            $requestDocument.removeClass('hidden');
                             fillDetails(response.person);
                             $('#admin-person-details-subtitle').append(
                                 document.createTextNode(' Pedido de correção de ' + correction.label + ' para ' + correction.value + '.')
                             );
+                        }).always(function () {
+                            $button.add($requestDocument).prop('disabled', false);
                         });
                     })
                     .fail(function (xhr) {

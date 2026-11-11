@@ -173,6 +173,26 @@ class NotificationService
         AuditLogService::record('notificacao.enviada', 'notificacoes', $id, $target);
     }
 
+    public function sendIdentityCorrectionDocumentRequest(int $actorId, array $request, string $reason): void
+    {
+        $pdo = Database::connection();
+        $personId = (int) $request['pessoa_id'];
+        $accountId = (int) $request['solicitante_conta_id'];
+        $field = $request['campo'];
+        $target = [
+            'pessoa_id' => $personId,
+            'orientacao_texto' => 'Abra o painel e use o botão de correção indicado para reenviar o documento.',
+            'orientacao_url' => url('/dashboard#' . IdentityCorrectionService::correctionAnchor($personId, $field)),
+        ];
+        $message = 'Precisamos de um novo documento para analisar a correção de '
+            . IdentityCorrectionService::FIELDS[$field] . ' de ' . $request['nome_completo'] . '. ' . $reason;
+        $id = $this->insertNotification($pdo, $actorId, 'correcao_documento', 'Envie um novo documento para corrigir o cadastro', $message, $target);
+        $this->insertRecipient($pdo, $id, $target, ['conta_id' => $accountId]);
+        AuditLogService::record('notificacao.enviada', 'notificacoes', $id, [
+            'tipo' => 'correcao_documento', 'pessoa_id' => $personId, 'destinatario_conta_id' => $accountId,
+        ]);
+    }
+
     public function headerSummary(int $accountId): array
     {
         $pdo = Database::connection();

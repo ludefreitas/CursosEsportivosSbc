@@ -694,6 +694,19 @@
     text-align: left;
 }
 
+@media (max-width: 760px) {
+    #admin-identity-corrections .admin-validation-actions {
+        display: grid;
+        justify-items: start;
+    }
+
+    #admin-identity-corrections .admin-validation-actions > :not(.hidden) {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
+}
+
 .admin-condition-row-partial td {
     background: rgba(245, 196, 65, 0.24);
 }
