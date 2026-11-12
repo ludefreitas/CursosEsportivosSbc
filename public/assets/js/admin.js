@@ -3435,12 +3435,32 @@
             function syncValidationNoteRequirement() {
                 const status = String($('#admin-condition-validation-status').val() || '').trim();
                 const $note = $('#admin-condition-validation-note');
+                const requiresValidity = status === 'validado' || status === 'validado_parcial';
+                const $issueDate = $('#admin-condition-validation-issue-date');
+                const $term = $('#admin-condition-validation-validity-term');
+                const $preview = $('[data-condition-validity-preview]');
 
                 if ($note.length === 0) {
                     return;
                 }
 
                 $note.prop('required', status === 'reprovado' || status === 'validado_parcial');
+                $issueDate.prop('required', requiresValidity);
+                $term.prop('required', requiresValidity);
+
+                const issueDate = String($issueDate.val() || '').trim();
+                const months = Number($term.val() || 0);
+                if (!requiresValidity) {
+                    $preview.text('A data de emissão e o prazo são exigidos somente para certificados validados ou validados parcialmente.');
+                } else if (String($term.val() || '') === 'indeterminado') {
+                    $preview.text('Prazo indeterminado: não será definida uma data de expiração.');
+                } else if (issueDate !== '' && [6, 12, 18, 24, 36].indexOf(months) !== -1) {
+                    const expiry = new Date(issueDate + 'T12:00:00');
+                    expiry.setMonth(expiry.getMonth() + months);
+                    $preview.text('Validade calculada: ' + expiry.toLocaleDateString('pt-BR') + '.');
+                } else {
+                    $preview.text('Selecione a data de emissão e o prazo para conferir a validade calculada.');
+                }
             }
 
             $(document).on('click', '[data-open-condition-validation="1"]', function () {
@@ -3471,6 +3491,10 @@
             });
 
             $(document).on('change', '#admin-condition-validation-status', function () {
+                syncValidationNoteRequirement();
+            });
+
+            $(document).on('change input', '#admin-condition-validation-issue-date, #admin-condition-validation-validity-term', function () {
                 syncValidationNoteRequirement();
             });
 
@@ -6843,6 +6867,7 @@
                     idade_maxima: 'Informe a maior idade aceita na turma, conforme o critério etário selecionado.',
                     regra_atestado_clinico: 'Seguir regra global exige atestado clínico válido em todas as modalidades. Exigir nesta turma torna o atestado clínico válido obrigatório para a inscrição nesta turma. Dispensar nesta turma permite a inscrição sem esse atestado.',
                     regra_atestado_dermatologico: 'Seguir regra global exige atestado dermatológico válido apenas nas modalidades aquáticas. Exigir nesta turma torna o atestado dermatológico válido obrigatório para a inscrição, inclusive em modalidades terrestres. Dispensar nesta turma permite a inscrição sem esse atestado, inclusive em modalidades aquáticas.',
+                    exigir_token_inscricao: 'Quando ativado, a inscrição nesta turma só é permitida para pessoas que tenham um token válido vinculado ao próprio CPF.',
                     sexo: 'Defina se a turma aceita todos os sexos ou se possui uma restrição específica.',
                     vagas_geral: 'Informe a quantidade de vagas reservadas ao público geral.',
                     vagas_pcd: 'Informe a quantidade de vagas reservadas a Pessoas com Deficiência (PCD).',
@@ -7128,8 +7153,9 @@
                         .append($('<option>', { value: '0', text: 'Não' }))
                         .append($('<option>', { value: '1', text: 'Sim' }));
                     $form.find('[name="sexo"]').closest('label').after($('<label>')
-                        .append($('<span>', { text: 'Exigir token para inscrição?' }), $tokenRequirement)
+                        .append($('<span>', { text: 'Exigir token para inscrição' }), $tokenRequirement)
                         .append($('<small>', { class: 'muted', text: 'Somente pessoas com token válido para seu CPF nesta turma poderão se inscrever.' })));
+                    ensureClassFieldHelp($form);
                 }
                 fillForm($form, record || {});
                 if (type === 'class' && !record) updateClassWaitlistSuggestion($form);

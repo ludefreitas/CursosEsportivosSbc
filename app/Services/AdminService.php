@@ -1061,7 +1061,8 @@ class AdminService
         }
 
         $status = trim((string) ($data['status'] ?? ''));
-        $validityDate = trim((string) ($data['validade_certificado'] ?? ''));
+        $issueDate = trim((string) ($data['data_emissao'] ?? ''));
+        $validityTerm = trim((string) ($data['prazo_validade_meses'] ?? ''));
         $validationNote = trim((string) ($data['observacao_validacao'] ?? ''));
         $validatedCidCode = strtoupper(trim((string) ($data['codigo_cid_validado'] ?? '')));
         $validatedDisease = trim((string) ($data['doenca_validada'] ?? ''));
@@ -1071,9 +1072,21 @@ class AdminService
             throw new RuntimeException('Selecione um status válido para o certificado.');
         }
 
-        if (in_array($status, ['validado', 'validado_parcial'], true) && $validityDate !== '' && !$this->isValidDate($validityDate)) {
-            throw new RuntimeException('Informe uma data de validade válida para o certificado.');
+        $isValidated = in_array($status, ['validado', 'validado_parcial'], true);
+        $validityTerms = ['6' => 6, '12' => 12, '18' => 18, '24' => 24, '36' => 36, 'indeterminado' => null];
+        if ($isValidated && ($issueDate === '' || !$this->isValidDate($issueDate))) {
+            throw new RuntimeException('Informe uma data de emissão válida para o documento.');
         }
+        if ($isValidated && !array_key_exists($validityTerm, $validityTerms)) {
+            throw new RuntimeException('Selecione um prazo de validade válido para o documento.');
+        }
+
+        $validityMonths = $isValidated ? $validityTerms[$validityTerm] : null;
+        $validityDate = null;
+        if ($isValidated && $validityMonths !== null) {
+            $validityDate = (new \DateTimeImmutable($issueDate))->add(new \DateInterval('P' . $validityMonths . 'M'))->format('Y-m-d');
+        }
+        $issueDateForStorage = $isValidated ? $issueDate : (string) ($certificate['data_emissao'] ?? '');
 
         if (in_array($status, ['reprovado', 'validado_parcial'], true) && $validationNote === '') {
             throw new RuntimeException('Ao reprovar ou validar parcialmente o certificado, informe a observação explicando a decisão.');
@@ -1095,6 +1108,8 @@ class AdminService
         $stmt = $pdo->prepare('
             UPDATE certificados_pessoa
             SET status = :status,
+                data_emissao = :data_emissao,
+                prazo_validade_meses = :prazo_validade_meses,
                 validade_certificado = :validade_certificado,
                 codigo_cid_validado = :codigo_cid_validado,
                 doenca_validada = :doenca_validada,
@@ -1109,6 +1124,8 @@ class AdminService
         ');
         $stmt->execute([
             ':status' => $status,
+            ':data_emissao' => $issueDateForStorage !== '' ? $issueDateForStorage : null,
+            ':prazo_validade_meses' => $isValidated && $validityMonths !== null ? $validityMonths : null,
             ':validade_certificado' => $validityDate !== '' ? $validityDate : null,
             ':codigo_cid_validado' => $validatedCidCode !== '' ? $validatedCidCode : null,
             ':doenca_validada' => $validatedDisease !== '' ? $validatedDisease : null,
@@ -1122,6 +1139,8 @@ class AdminService
             'pessoa_id' => $personId,
             'condicao' => $conditionSlug,
             'status' => $status,
+            'data_emissao' => $issueDateForStorage !== '' ? $issueDateForStorage : null,
+            'prazo_validade_meses' => $isValidated && $validityMonths !== null ? $validityMonths : ($isValidated ? 'indeterminado' : null),
             'validade_certificado' => $validityDate !== '' ? $validityDate : null,
             'codigo_cid_validado' => $validatedCidCode !== '' ? $validatedCidCode : null,
             'doenca_validada' => $validatedDisease !== '' ? $validatedDisease : null,

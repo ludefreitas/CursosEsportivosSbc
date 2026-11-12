@@ -6,7 +6,11 @@ $documents = $documents ?? [];
 $pendingReason = $pending_reason ?? null;
 $currentStatus = (string) ($certificate['status'] ?? 'pendente');
 $currentValidationNote = (string) ($certificate['observacao_validacao'] ?? '');
-$currentValidityDate = (string) ($certificate['validade_certificado'] ?? '');
+$currentIssueDate = (string) ($certificate['data_emissao'] ?? '');
+$currentValidityTerm = (string) ($certificate['prazo_validade_meses'] ?? '');
+if ($currentValidityTerm === '' && in_array($currentStatus, ['validado', 'validado_parcial'], true) && empty($certificate['validade_certificado'])) {
+    $currentValidityTerm = 'indeterminado';
+}
 $currentValidatedCid = (string) ($certificate['codigo_cid_validado'] ?? '');
 $currentValidatedDisease = (string) ($certificate['doenca_validada'] ?? '');
 $disabilityTypeOptions = $disability_type_options ?? [];
@@ -83,7 +87,7 @@ foreach ($selectedDisabilityTypes as $selectedType) {
 
         <div class="grid-two">
             <label>
-                <span>Status do certificado</span>
+                <span>Status do certificado <button type="button" class="field-help-button" aria-label="Ajuda sobre status do certificado" data-field-help-message="Selecione Validado quando toda a documentação comprovar a condição. Use Validado parcial quando houver alguma limitação ou pendência descrita na observação. Use Reprovado quando os documentos não comprovarem a condição.">?</button></span>
                 <select name="status" id="admin-condition-validation-status" <?php echo $documents === [] ? 'disabled' : ''; ?> required>
                     <option value="pendente" <?php echo $currentStatus === 'pendente' ? 'selected' : ''; ?>>Pendente</option>
                     <option value="reprovado" <?php echo $currentStatus === 'reprovado' ? 'selected' : ''; ?>>Reprovado</option>
@@ -92,9 +96,19 @@ foreach ($selectedDisabilityTypes as $selectedType) {
                 </select>
             </label>
             <label>
-                <span>Validade do certificado</span>
-                <input type="date" name="validade_certificado" id="admin-condition-validation-validity" value="<?php echo e($currentValidityDate); ?>" <?php echo $documents === [] ? 'disabled' : ''; ?>>
-                <small class="muted">Preencha quando a análise resultar em certificado válido ou validado parcialmente.</small>
+                <span>Data de emissão do documento <button type="button" class="field-help-button" aria-label="Ajuda sobre data de emissão do documento" data-field-help-message="Informe a data que consta no documento analisado. O sistema calculará a validade a partir desta data e do prazo selecionado.">?</button></span>
+                <input type="date" name="data_emissao" id="admin-condition-validation-issue-date" value="<?php echo e($currentIssueDate); ?>" <?php echo $documents === [] ? 'disabled' : ''; ?>>
+                <small class="muted">Obrigatória para certificado validado ou validado parcialmente.</small>
+            </label>
+            <label>
+                <span>Prazo de validade <button type="button" class="field-help-button" aria-label="Ajuda sobre prazo de validade" data-field-help-message="Escolha por quanto tempo o documento será aceito a partir da data de emissão. No prazo indeterminado, a condição permanece vigente até que seja alterada ou reavaliada.">?</button></span>
+                <select name="prazo_validade_meses" id="admin-condition-validation-validity-term" <?php echo $documents === [] ? 'disabled' : ''; ?>>
+                    <option value="">Selecione o prazo</option>
+                    <?php foreach ([6, 12, 18, 24, 36] as $months) { ?><option value="<?php echo $months; ?>" <?php echo $currentValidityTerm === (string) $months ? 'selected' : ''; ?>><?php echo str_pad((string) $months, 2, '0', STR_PAD_LEFT); ?> meses</option><?php } ?>
+                    <option value="indeterminado" <?php echo $currentValidityTerm === 'indeterminado' ? 'selected' : ''; ?>>Prazo indeterminado</option>
+                </select>
+                <small class="muted">Obrigatório para certificado validado ou validado parcialmente.</small>
+                <small class="muted" data-condition-validity-preview>Selecione a data de emissão e o prazo para conferir a validade calculada.</small>
             </label>
         </div>
 

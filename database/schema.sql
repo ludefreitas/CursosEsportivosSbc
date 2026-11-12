@@ -224,6 +224,7 @@ CREATE TABLE IF NOT EXISTS certificados_pessoa (
     numero_nis VARCHAR(30) NULL,
     beneficio_social VARCHAR(180) NULL,
     data_emissao DATE NULL,
+    prazo_validade_meses TINYINT UNSIGNED NULL,
     validade_certificado DATE NULL,
     validado_por_conta_id BIGINT UNSIGNED NULL,
     validado_em DATETIME NULL,
