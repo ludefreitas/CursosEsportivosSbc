@@ -988,6 +988,9 @@ class CourseEnrollmentService
 
     public function createClass(int $accountId, array $data): array
     {
+        if (!in_array($data['criterio_faixa_etaria'] ?? null, ['ano_nascimento', 'idade_exata'], true)) {
+            throw new RuntimeException('Selecione o critério da faixa etária da turma.');
+        }
         $required = ['temporada_id', 'modalidade_id', 'local_treino_id', 'espaco_treino_id', 'nome'];
         foreach ($required as $field) { if (trim((string) ($data[$field] ?? '')) === '') { throw new RuntimeException('Preencha todos os campos obrigatórios da turma.'); } }
         $pdo = Database::connection();
@@ -1020,7 +1023,8 @@ class CourseEnrollmentService
         foreach ($ageExceptions as $condition => $range) {
             if ($range['min'] > $range['max']) { throw new RuntimeException('Na exceção de idade para ' . strtoupper($condition) . ', a idade máxima deve ser igual ou superior à idade mínima.'); }
         }
-        $params = [':temporada' => (int) $data['temporada_id'], ':modalidade' => (int) $data['modalidade_id'], ':local' => (int) $data['local_treino_id'], ':espaco' => (int) $data['espaco_treino_id'], ':nivel' => (int) ($data['nivel_modalidade_id'] ?? 0) ?: null, ':nome' => trim((string) $data['nome']), ':programa' => $program !== '' ? $program : null, ':observacao' => trim((string) ($data['observacao'] ?? '')) !== '' ? trim((string) $data['observacao']) : null, ':excecoes_idade' => json_encode($ageExceptions, JSON_UNESCAPED_UNICODE), ':idade_minima' => max(0, (int) ($data['idade_minima'] ?? 0)), ':idade_maxima' => max(0, (int) ($data['idade_maxima'] ?? 120)), ':criterio_faixa_etaria' => normalize_age_rule_mode((string) ($data['criterio_faixa_etaria'] ?? 'idade_exata')), ':vagas_totais' => max(0, (int) ($data['vagas_totais'] ?? 0)), ':vagas_geral' => max(0, (int) ($data['vagas_geral'] ?? 0)), ':vagas_pcd' => max(0, (int) ($data['vagas_pcd'] ?? 0)), ':vagas_plm' => max(0, (int) ($data['vagas_plm'] ?? 0)), ':vagas_pvs' => max(0, (int) ($data['vagas_pvs'] ?? 0)), ':espera_geral' => max(0, (int) ($data['vagas_espera_geral'] ?? 0)), ':espera_pcd' => max(0, (int) ($data['vagas_espera_pcd'] ?? 0)), ':espera_plm' => max(0, (int) ($data['vagas_espera_plm'] ?? 0)), ':espera_pvs' => max(0, (int) ($data['vagas_espera_pvs'] ?? 0))];
+        $params = [':temporada' => (int) $data['temporada_id'], ':modalidade' => (int) $data['modalidade_id'], ':local' => (int) $data['local_treino_id'], ':espaco' => (int) $data['espaco_treino_id'], ':nivel' => (int) ($data['nivel_modalidade_id'] ?? 0) ?: null, ':nome' => trim((string) $data['nome']), ':programa' => $program !== '' ? $program : null, ':observacao' => trim((string) ($data['observacao'] ?? '')) !== '' ? trim((string) $data['observacao']) : null, ':excecoes_idade' => json_encode($ageExceptions, JSON_UNESCAPED_UNICODE), ':idade_minima' => max(0, (int) ($data['idade_minima'] ?? 0)), ':idade_maxima' => max(0, (int) ($data['idade_maxima'] ?? 120)), ':criterio_faixa_etaria' => normalize_age_rule_mode((string) ($data['criterio_faixa_etaria'] ?? 'idade_exata')), ':vagas_geral' => max(0, (int) ($data['vagas_geral'] ?? 0)), ':vagas_pcd' => max(0, (int) ($data['vagas_pcd'] ?? 0)), ':vagas_plm' => max(0, (int) ($data['vagas_plm'] ?? 0)), ':vagas_pvs' => max(0, (int) ($data['vagas_pvs'] ?? 0)), ':espera_geral' => max(0, (int) ($data['vagas_espera_geral'] ?? 0)), ':espera_pcd' => max(0, (int) ($data['vagas_espera_pcd'] ?? 0)), ':espera_plm' => max(0, (int) ($data['vagas_espera_plm'] ?? 0)), ':espera_pvs' => max(0, (int) ($data['vagas_espera_pvs'] ?? 0))];
+        $params[':vagas_totais'] = $params[':vagas_geral'] + $params[':vagas_pcd'] + $params[':vagas_plm'] + $params[':vagas_pvs'];
         $params[':exigir_token_inscricao'] = array_key_exists('exigir_token_inscricao', $data) || $id === 0
             ? (int) ((string) ($data['exigir_token_inscricao'] ?? '0') === '1')
             : null;

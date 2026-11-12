@@ -153,6 +153,7 @@ class ProfileService
 
             AuditLogService::record('pessoa.cadastro_completo', 'pessoas', (int) $person['id'], [
                 'cpf' => $person['cpf'],
+                'condicoes_declaradas' => $this->newlyDeclaredConditions($data, $person),
             ]);
         } catch (\Throwable $e) {
             $pdo->rollBack();
@@ -282,6 +283,7 @@ class ProfileService
             AuditLogService::record('dependente.salvo', 'pessoas', $dependentId, [
                 'responsavel_pessoa_id' => (int) $responsible['id'],
                 'cpf' => $cpf,
+                'condicoes_declaradas' => $this->newlyDeclaredConditions($data),
             ]);
         } catch (\Throwable $e) {
             $pdo->rollBack();
@@ -440,6 +442,7 @@ class ProfileService
         AuditLogService::record('dependente.atualizado', 'pessoas', (int) $dependent['id'], [
             'responsavel_pessoa_id' => (int) $responsible['id'],
             'cpf' => (string) $dependent['cpf'],
+            'condicoes_declaradas' => $this->newlyDeclaredConditions($data, $dependent),
         ]);
 
         return $this->getManagedDependent((int) $dependent['id']);
@@ -924,6 +927,14 @@ class ProfileService
     /**
      * Garante que no maximo uma condicao especial seja marcada por pessoa.
      */
+    private function newlyDeclaredConditions(array $data, array $previous = []): array
+    {
+        return array_values(array_filter(['pcd', 'pvs', 'plm'], static function (string $slug) use ($data, $previous): bool {
+            $key = 'eh_' . $slug;
+            return (int) ($data[$key] ?? 0) === 1 && (int) ($previous[$key] ?? 0) !== 1;
+        }));
+    }
+
     private function validarSelecaoUnicaCondicao(array $data): void
     {
         $selected = 0;

@@ -1306,6 +1306,14 @@ body.pagina-error label span {
 .dashboard-secondary-grid {
     align-items: start;
 }
+.dashboard-dependent-create-button {
+    font-size: 0.875rem;
+    line-height: 1.15;
+    text-align: center;
+}
+#dashboard-dependent-modal[inert] {
+    visibility: hidden;
+}
 .table-wrap {
     width: 100%;
     max-width: 100%;
@@ -2435,6 +2443,29 @@ body.pagina-error label span {
 .par-q-link.par-q-valid { color: #176235; }
 .par-q-link.par-q-positive { color: #9a4500; }
 .par-q-link.par-q-expired { color: #a3212c; }
+
+.date-entry-native-hidden,
+.date-entry-tools[hidden],
+.date-entry-tools > [hidden],
+input:disabled + .date-entry-tools,
+input[readonly] + .date-entry-tools {
+    display: none !important;
+}
+
+.date-entry-tools {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.date-entry-tools .date-entry-toggle {
+    justify-self: start;
+    font-size: 0.85rem;
+}
+
+.date-entry-error {
+    color: #a3212c;
+}
 
 #par-q-modal { z-index: 2400; }
 

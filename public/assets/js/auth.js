@@ -203,21 +203,16 @@
 
         iniciarFormulariosAjax: function () {
             const recoveryDateIsValid = function (value) {
-                const match = String(value || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+                const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
                 if (!match) return false;
-                const day = Number(match[1]);
+                const day = Number(match[3]);
                 const month = Number(match[2]);
-                const year = Number(match[3]);
+                const year = Number(match[1]);
                 const date = new Date(year, month - 1, day);
-                return year >= 1900 && year <= new Date().getFullYear() && date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+                return year >= 1900 && date <= new Date() && date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
             };
 
-            $(document).on('input', '[data-birth-date-mask="1"]', function () {
-                const digits = String($(this).val() || '').replace(/\D+/g, '').slice(0, 8);
-                let masked = digits.slice(0, 2);
-                if (digits.length > 2) masked += '/' + digits.slice(2, 4);
-                if (digits.length > 4) masked += '/' + digits.slice(4, 8);
-                $(this).val(masked);
+            $(document).on('input', '[data-password-recovery-form="1"] [name="birth_date"]', function () {
                 $(this).removeClass('is-invalid').removeAttr('aria-invalid');
                 $(this).siblings('[data-birth-date-error="1"]').addClass('hidden').text('');
             });

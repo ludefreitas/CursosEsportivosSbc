@@ -17,56 +17,36 @@
         </div>
     </div>
     <div class="metrics-grid">
-        <article class="info-card"><h3><?php echo e((string) $metrics['dependentes']); ?></h3><p>Dependentes vinculados</p></article>
+        <article class="info-card"><h3 data-dashboard-dependent-count><?php echo e((string) $metrics['dependentes']); ?></h3><p>Dependentes vinculados</p></article>
         <article class="info-card"><h3><?php echo e((string) $metrics['agendamentos_futuros']); ?></h3><p>Agendamentos futuros</p></article>
         <article class="info-card"><h3><?php echo e((string) $metrics['documentos_pendentes']); ?></h3><p>Documentos pendentes</p></article>
         <article class="info-card"><h3><?php echo e((string) $metrics['postagens_blog']); ?></h3><p>Postagens ativas</p></article>
     </div>
 </section>
 
-<section class="dashboard-main-grid">
+<section class="content-card" id="meu-cadastro" aria-labelledby="meu-cadastro-titulo">
+    <h2 id="meu-cadastro-titulo">Meu cadastro</h2>
+    <?php $peopleRows = [$person]; require ROOT_PATH . '/app/Views/dashboard/partials/people_table.php'; ?>
+</section>
+
+<section class="dashboard-main-grid" id="meus-dependentes" aria-labelledby="meus-dependentes-titulo">
     <article class="content-card">
         <div class="section-head">
             <div>
-                <h2>Meus dependentes</h2>
+                <h2 id="meus-dependentes-titulo">Meus dependentes</h2>
                 <p class="muted">Você pode cadastrar dependentes maiores ou menores de idade, sempre sem duplicar CPF.</p>
             </div>
             <div class="chips-wrap">
-                <button type="button" class="btn btn-primary" data-open-dependent-create-modal="1">Novo dependente</button>
+                <button type="button" class="btn btn-primary dashboard-dependent-create-button" data-open-dependent-create-modal="1"><span>Inserir/cadastrar<br>novo dependente</span></button>
                 <a href="<?php echo e(url('/#home-training-locations')); ?>" class="btn btn-secondary">Abrir agendamento</a>
             </div>
         </div>
-        <div class="table-wrap">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Nome</th>
-                        <th>CPF</th>
-                        <th>Data de nascimento</th>
-                        <th>Dados</th>
-                        <th>Atestado clínico</th>
-                        <th>Atestado dermatológico</th>
-                        <th>PAR-Q</th>
-                        <th>Documentação por condição</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($dependents as $dependent) { ?>
-                        <?php require ROOT_PATH . '/app/Views/dashboard/partials/dependent_row.php'; ?>
-                    <?php } ?>
-                </tbody>
-            </table>
-        </div>
+        <?php $peopleRows = $dependents; require ROOT_PATH . '/app/Views/dashboard/partials/people_table.php'; ?>
     </article>
 </section>
 
 <section class="content-card top-gap" id="solicitacoes-correcao">
     <h2>Minhas solicitações de correção de dados</h2>
-    <?php
-    $correctionPerson = $person;
-    $ownCorrectionActions = true;
-    require ROOT_PATH . '/app/Views/dashboard/partials/identity_correction_buttons.php';
-    ?>
     <div id="identity-correction-status-region">
         <?php
         $dashboardCorrectionHistory = true;

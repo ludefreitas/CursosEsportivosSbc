@@ -20,7 +20,7 @@ $db->exec('CREATE TABLE conta_papeis (conta_id INTEGER, papel_id INTEGER)');
 $db->exec('CREATE TABLE papeis (id INTEGER, slug TEXT)');
 $db->exec('CREATE TABLE contas (id INTEGER, ativo INTEGER)');
 $service=new \App\Services\CourseEnrollmentService();
-$base=['temporada_id'=>1,'modalidade_id'=>1,'local_treino_id'=>1,'espaco_treino_id'=>1,'cronograma_modalidade_id'=>1,'nome'=>'Turma de teste'];
+$base=['temporada_id'=>1,'modalidade_id'=>1,'local_treino_id'=>1,'espaco_treino_id'=>1,'cronograma_modalidade_id'=>1,'nome'=>'Turma de teste','criterio_faixa_etaria'=>'ano_nascimento'];
 foreach (['Texto editado com acentuação: observação.','', '0', null] as $note) {
     $data=$base;if($note!==null)$data['observacao']=$note;
     $result=$service->createClass(8,$data);

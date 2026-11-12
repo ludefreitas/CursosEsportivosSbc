@@ -133,6 +133,7 @@
     </script>
     <script src="<?php echo e(asset_url('js/sus-card.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/core.js')); ?>"></script>
+    <script src="<?php echo e(asset_url('js/date-entry.js')); ?>"></script>
     <div class="popup-overlay hidden" id="par-q-modal" aria-hidden="true">
         <div class="popup-card par-q-modal-card" role="dialog" aria-modal="true" aria-labelledby="par-q-modal-title">
             <div class="popup-head">

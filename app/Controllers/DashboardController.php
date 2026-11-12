@@ -87,6 +87,12 @@ class DashboardController extends Controller
         $courseEnrollmentService = new CourseEnrollmentService();
         $user = $userService->currentAccountWithRoles();
         $professorEnrollmentDeletionEnabled = $user && has_role($user['roles'] ?? [], 'teacher');
+        $personId = (int) $person['id'];
+        $dependents = array_column($profileService->listDependents(), null, 'id');
+        $person = $dependents[$personId] ?? $profileService->getManagedDependent($personId);
+        unset($dependents[$personId]);
+        $metrics = $userService->dashboardMetrics($personId);
+        $metrics['dependentes'] = count($dependents);
 
         $this->view('dashboard/index', [
             'title' => 'Painel do Usuário',
@@ -94,9 +100,9 @@ class DashboardController extends Controller
             'user' => $user,
             'person' => $person,
             'identityCorrections' => (new \App\Services\IdentityCorrectionService())->list((int) Auth::id()),
-            'dependents' => $profileService->listDependents(),
+            'dependents' => array_values($dependents),
             'bookingHistory' => $bookingHistory,
-            'metrics' => $userService->dashboardMetrics((int) $person['id']),
+            'metrics' => $metrics,
             'courseEnrollmentHistory' => $courseEnrollmentService->dashboardEnrollments(
                 (int) ($_GET['temporada_inscricoes'] ?? 0), (int) ($_GET['inscricao_destaque'] ?? 0)
             ),

@@ -801,6 +801,20 @@ class AdminService
         $personIds = array_values(array_unique(array_map(static fn (array $person): int => (int) $person['id'], $people)));
         $placeholders = implode(', ', array_fill(0, count($personIds), '?'));
 
+        $declarationDates = [];
+        $declarations = $pdo->prepare('SELECT entidade_id, created_at, JSON_EXTRACT(payload_json, "$.condicoes_declaradas") AS condicoes
+            FROM logs_auditoria
+            WHERE tipo_entidade = "pessoas" AND entidade_id IN (' . $placeholders . ')
+              AND tipo_evento IN ("pessoa.cadastro_completo", "dependente.salvo", "dependente.atualizado")
+              AND JSON_LENGTH(JSON_EXTRACT(payload_json, "$.condicoes_declaradas")) > 0
+            ORDER BY created_at DESC, id DESC');
+        $declarations->execute($personIds);
+        foreach ($declarations->fetchAll(PDO::FETCH_ASSOC) as $declaration) {
+            foreach (json_decode($declaration['condicoes'], true) ?? [] as $condition) {
+                $declarationDates[(int) $declaration['entidade_id']][$condition] ??= $declaration['created_at'];
+            }
+        }
+
         $stmtCertificates = $pdo->prepare('
             SELECT
                 cp.*,
@@ -893,6 +907,7 @@ class AdminService
                     'condicao_label' => $meta['label'],
                     'certificado_id' => $certificate['id'] ?? null,
                     'certificado_status' => $status,
+                    'solicitado_em' => $certificate['created_at'] ?? $declarationDates[$personId][$slug] ?? null,
                     'status_ordenacao' => $this->resolveConditionValidationSortStatus($certificate, $documents),
                     'data_ordenacao' => (string) ($certificate['created_at'] ?? $person['created_at'] ?? ''),
                     'documentos' => $documents,
@@ -1135,6 +1150,18 @@ class AdminService
                 a.status_validacao,
                 a.created_at,
                 a.updated_at,
+                COALESCE((
+                    SELECT MAX(l.created_at)
+                    FROM logs_auditoria l
+                    WHERE l.tipo_entidade = "atestados_saude" AND l.entidade_id = a.id
+                      AND l.tipo_evento = "atestado_saude.documento_atualizado"
+                ), a.created_at) AS documento_enviado_em,
+                COALESCE((
+                    SELECT MAX(l.created_at)
+                    FROM logs_auditoria l
+                    WHERE l.tipo_entidade = "atestados_saude" AND l.entidade_id = a.id
+                      AND l.tipo_evento IN ("atestado_saude.atualizado", "atestado_saude.documento_atualizado")
+                ), a.created_at) AS solicitado_em,
                 p.nome_completo,
                 p.cpf,
                 p.data_nascimento,

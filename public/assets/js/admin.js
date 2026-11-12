@@ -6480,6 +6480,7 @@
                     const $field = $('<label>', { class: 'course-age-criterion-field' })
                         .append($('<span>', { text: 'Critério da faixa etária' }))
                         .append($('<select>', { name: 'criterio_faixa_etaria', required: true })
+                            .append($('<option>', { value: '', text: 'Selecione o critério da faixa etária' }))
                             .append($('<option>', { value: 'ano_nascimento', text: 'Usar apenas o ano de nascimento' }))
                             .append($('<option>', { value: 'idade_exata', text: 'Usar idade exata pela data de nascimento' })))
                         .append($('<small>', { class: 'muted', text: 'No modo por ano, o sistema ignora o dia e o mês de nascimento.' }));
@@ -6512,7 +6513,7 @@
                         .append($('<option>', { value: 'dispensar', text: 'Dispensar nesta turma' }));
                     $fields.append($('<label>').append($('<span>', { text: type[1] }), $select, $('<small>', { class: 'muted', text: type[2] })));
                 });
-                $form.find('[name="idade_maxima"]').closest('.grid-two').after($fields);
+                $form.find('[name="criterio_faixa_etaria"]').closest('label').after($fields);
             }
 
 
@@ -6840,6 +6841,8 @@
                     criterio_faixa_etaria: 'Escolha se a faixa etária será conferida pela idade exata na data de referência ou apenas pelo ano de nascimento.',
                     idade_minima: 'Informe a menor idade aceita na turma, conforme o critério etário selecionado.',
                     idade_maxima: 'Informe a maior idade aceita na turma, conforme o critério etário selecionado.',
+                    regra_atestado_clinico: 'Seguir regra global exige atestado clínico válido em todas as modalidades. Exigir nesta turma torna o atestado clínico válido obrigatório para a inscrição nesta turma. Dispensar nesta turma permite a inscrição sem esse atestado.',
+                    regra_atestado_dermatologico: 'Seguir regra global exige atestado dermatológico válido apenas nas modalidades aquáticas. Exigir nesta turma torna o atestado dermatológico válido obrigatório para a inscrição, inclusive em modalidades terrestres. Dispensar nesta turma permite a inscrição sem esse atestado, inclusive em modalidades aquáticas.',
                     sexo: 'Defina se a turma aceita todos os sexos ou se possui uma restrição específica.',
                     vagas_geral: 'Informe a quantidade de vagas reservadas ao público geral.',
                     vagas_pcd: 'Informe a quantidade de vagas reservadas a Pessoas com Deficiência (PCD).',
@@ -6849,7 +6852,7 @@
                     vagas_espera_pcd: 'Informe o limite da lista de espera destinado a Pessoas com Deficiência (PCD).',
                     vagas_espera_plm: 'Informe o limite da lista de espera destinado a Pessoas com Laudo Médico de Doença.',
                     vagas_espera_pvs: 'Informe o limite da lista de espera destinado a Pessoas em Vulnerabilidade Social.',
-                    vagas_totais: 'Confira o total de vagas da turma. O valor deve corresponder à soma das vagas distribuídas entre os públicos.'
+                    vagas_totais: 'O total é calculado pela soma das vagas gerais, PCD, PLM e PVS. As listas de espera não entram na soma.'
                 };
                 Object.keys(help).forEach(function (name) {
                     const $field = $form.find('[name="' + name + '"]').first();
@@ -6918,6 +6921,14 @@
                 if (!$select.val()) $select.val('');
             }
 
+            function updateClassTotalSlots($form) {
+                const total = ['geral', 'pcd', 'plm', 'pvs'].reduce(function (sum, category) {
+                    const slots = Number($form.find('[name="vagas_' + category + '"]').val());
+                    return sum + (Number.isFinite(slots) ? Math.max(0, Math.trunc(slots)) : 0);
+                }, 0);
+                $form.find('[name="vagas_totais"]').prop('readonly', true).val(String(total));
+            }
+
             function updateClassWaitlistSuggestion($form, publicType) {
                 if (String($form.find('[name="id"]').val() || '').trim() !== '') return;
                 (publicType ? [publicType] : ['geral', 'pcd', 'plm', 'pvs']).forEach(function (category) {
@@ -6942,6 +6953,7 @@
                         $field.val(record[name] == null ? '' : String(record[name]));
                     }
                 });
+                if ($form.is('[data-course-form="class"]')) updateClassTotalSlots($form);
                 const selectedDays = String((record || {}).dias_semana || '').split(',');
                 $form.find('[name="dias_semana[]"]').each(function () {
                     $(this).prop('checked', selectedDays.indexOf(String($(this).val())) !== -1);
@@ -7109,14 +7121,14 @@
                 if ($form.find('[name="operacao"]').length === 0) {
                     $form.append($('<input>', { type: 'hidden', name: 'operacao' }));
                 }
-                if (type === 'class') { ensureClassScheduleField($form); ensureClassCopyFields($form); ensureClassProgramField($form); ensureClassAgeCriterionField($form); ensureClassCertificateFields($form); ensureClassAgeExceptionFields($form); ensureClassLevelFields($form); ensureClassFieldHelp($form); }
+                if (type === 'class') { ensureClassScheduleField($form); ensureClassCopyFields($form); ensureClassProgramField($form); ensureClassAgeCriterionField($form); ensureClassAgeExceptionFields($form); ensureClassCertificateFields($form); ensureClassLevelFields($form); ensureClassFieldHelp($form); }
                 if (type === 'season') { ensureSeasonNoticeFields($form); ensureSeasonWeeklyCoverageField($form); ensureSeasonFieldHelp($form); }
                 if (type === 'class' && !$form.find('[name="exigir_token_inscricao"]').length) {
                     const $tokenRequirement = $('<select>', { name: 'exigir_token_inscricao' })
                         .append($('<option>', { value: '0', text: 'Não' }))
                         .append($('<option>', { value: '1', text: 'Sim' }));
                     $form.find('[name="sexo"]').closest('label').after($('<label>')
-                        .append($('<span>', { text: 'Exigir token para inscrição' }), $tokenRequirement)
+                        .append($('<span>', { text: 'Exigir token para inscrição?' }), $tokenRequirement)
                         .append($('<small>', { class: 'muted', text: 'Somente pessoas com token válido para seu CPF nesta turma poderão se inscrever.' })));
                 }
                 fillForm($form, record || {});
@@ -7410,7 +7422,9 @@
                 }).always(function () { $button.prop('disabled', false); });
             });
             $(document).on('input', '[data-course-form="class"] [name="vagas_geral"], [data-course-form="class"] [name="vagas_pcd"], [data-course-form="class"] [name="vagas_plm"], [data-course-form="class"] [name="vagas_pvs"]', function () {
-                updateClassWaitlistSuggestion($(this).closest('form'), String(this.name).replace('vagas_', ''));
+                const $form = $(this).closest('form');
+                updateClassTotalSlots($form);
+                updateClassWaitlistSuggestion($form, String(this.name).replace('vagas_', ''));
             });
             $(document).on('change', '[data-course-form="class"] [name="temporada_id"], [data-course-form="class"] [name="modalidade_id"], [data-course-form="class"] [name="local_treino_id"]', function () {
                 const $form = $(this).closest('form');

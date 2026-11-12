@@ -55,9 +55,12 @@ class AuthService
             throw new RuntimeException('Informe um CPF válido no formato 000.000.000-00.');
         }
 
-        $birth = \DateTimeImmutable::createFromFormat('!d/m/Y', trim($birthDate));
+        $birthDate = trim($birthDate);
+        $format = str_contains($birthDate, '/') ? 'd/m/Y' : 'Y-m-d';
+        $birth = \DateTimeImmutable::createFromFormat('!' . $format, $birthDate);
         $birthErrors = \DateTimeImmutable::getLastErrors();
-        if (!$birth || ($birthErrors !== false && (($birthErrors['warning_count'] ?? 0) > 0 || ($birthErrors['error_count'] ?? 0) > 0)) || $birth->format('d/m/Y') !== trim($birthDate)) {
+        if (!$birth || ($birthErrors !== false && (($birthErrors['warning_count'] ?? 0) > 0 || ($birthErrors['error_count'] ?? 0) > 0))
+            || $birth->format($format) !== $birthDate || $birth > new \DateTimeImmutable('today')) {
             throw new RuntimeException('Informe uma data de nascimento válida no formato dia/mês/ano.');
         }
         if (strlen($newPassword) < 6) {

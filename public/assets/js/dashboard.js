@@ -3,11 +3,24 @@
 
     App.dashboard = Object.assign(App.dashboard || {}, {
         init: function () {
-            $(document).on('click', '[data-open-identity-correction]', function () {
+            let correctionTrigger = null;
+
+            function closeIdentityCorrection($modal) {
+                $modal.addClass('hidden').attr('aria-hidden', 'true');
+                if (correctionTrigger) {
+                    const $editor = $(correctionTrigger).closest('#dashboard-dependent-modal');
+                    $editor.prop('inert', false);
+                    correctionTrigger.focus({ preventScroll: true });
+                    correctionTrigger = null;
+                }
+            }
+
+            $(document).on('click', '[data-open-identity-correction]', function (event) {
                 const $trigger = $(this);
                 const $modal = $('#identity-correction-modal');
                 const form = $modal.find('form')[0];
                 if (!form) return;
+                event.preventDefault();
 
                 const name = $trigger.attr('data-person-name');
                 const field = $trigger.attr('data-open-identity-correction');
@@ -33,13 +46,15 @@
                     $previous.length ? 'Último pedido para este dado em ' + $previous.attr('data-correction-history-date') +
                     '. Andamento: ' + $previous.attr('data-correction-history-status') + '.' : ''
                 );
+                correctionTrigger = this;
+                $trigger.closest('#dashboard-dependent-modal').prop('inert', true);
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
                 input.focus();
             });
             $(document).on('click', '[data-close-identity-correction]', function () {
                 const $modal = $('#identity-correction-modal');
                 if ($modal.find('[type="submit"]').prop('disabled')) return;
-                $modal.addClass('hidden').attr('aria-hidden', 'true');
+                closeIdentityCorrection($modal);
             });
             $(document).on('submit', '#identity-correction-modal form', function (event) {
                 event.preventDefault();
@@ -60,7 +75,7 @@
                 }).done(function (response) {
                     $('#identity-correction-status-region').html(response.status_html);
                     form.reset();
-                    $('#identity-correction-modal').addClass('hidden').attr('aria-hidden', 'true');
+                    closeIdentityCorrection($('#identity-correction-modal'));
                     App.core.abrirPopup('sucesso', response.message);
                 }).fail(function (xhr) {
                     $error.text(App.core.extrairMensagemErroAjax(xhr).mensagem).removeClass('hidden');
@@ -759,17 +774,8 @@
                 showDependentPanel('edit');
             });
 
-            $(document).on('click', '[data-locked-support-alert="1"]', function () {
-                const customMessage = String($(this).attr('data-locked-message') || '').trim();
-                if (customMessage) {
-                    App.core.abrirPopup('informacao', customMessage);
-                    return;
-                }
-                const fieldLabel = String($(this).data('lockedFieldLabel') || 'esse dado');
-                App.core.abrirPopup(
-                    'erro',
-                    'Para alterar ' + fieldLabel + ', entre em contato com o suporte pelo WhatsApp e envie uma imagem do documento da pessoa para validação da mudança.'
-                );
+            $(document).on('click', '[data-locked-message]', function () {
+                App.core.abrirPopup('informacao', $(this).attr('data-locked-message'));
             });
 
             $(document).on('submit', '.dashboard-certificate-form', function (event) {
@@ -873,7 +879,10 @@
                         return;
                     }
 
-                    $('section.dashboard-main-grid .data-table tbody').append(String(response.row_html));
+                    const $dependents = $('#meus-dependentes .data-table tbody');
+                    $dependents.find('[data-empty-dependents]').remove();
+                    $dependents.append(String(response.row_html));
+                    $('[data-dashboard-dependent-count]').text($dependents.children('[data-dependent-row-id]').length);
                     if (response.option_html) {
                         $('select[name="dependent_person_id"]').append(String(response.option_html));
                     }

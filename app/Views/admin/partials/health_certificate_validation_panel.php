@@ -47,6 +47,12 @@ $healthCertificateValidationRows = $healthCertificateValidationRows ?? [];
                                 <span>Responsável: <strong><?php echo e((string) (($row['nome_responsavel'] ?? '') !== '' ? $row['nome_responsavel'] : '-')); ?></strong></span>
                                 <span>Tipo: <strong><?php echo e((string) ($row['tipo_label'] ?? 'Atestado')); ?></strong></span>
                                 <span>Emissão declarada: <strong><?php echo e(!empty($row['data_emissao']) ? date('d/m/Y', strtotime((string) $row['data_emissao'])) : '-'); ?></strong></span>
+                                <?php if (!empty($row['caminho_arquivo']) && !empty($row['documento_enviado_em'])) { ?>
+                                    <span>Documento enviado em: <strong><?php echo e(date('d/m/Y', strtotime($row['documento_enviado_em']))); ?></strong></span>
+                                <?php } ?>
+                                <span>Solicitação de validação: <strong><?php echo !empty($row['solicitado_em'])
+                                    ? e(date('d/m/Y', strtotime($row['solicitado_em'])))
+                                    : 'Data não registrada'; ?></strong></span>
                                 <span>CRM: <strong><?php echo e((string) (($row['crm_medico'] ?? '') !== '' ? $row['crm_medico'] : '-')); ?></strong></span>
                                 <span>Atendimento: <strong><?php echo e((string) ($row['local_atendimento_label'] ?? '-')); ?></strong></span>
                                 <span>Status: <strong><?php echo e(ucfirst((string) ($row['status_validacao'] ?? 'pendente'))); ?></strong></span>

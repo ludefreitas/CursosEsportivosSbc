@@ -11,7 +11,7 @@
     <div class="dashboard-dependent-panel" data-dependent-modal-panel="view">
         <?php if (\App\Services\SusCardService::pending((string)($dependent['numero_cartao_sus'] ?? ''))) { ?><p class="alert-inline"><?php echo e(\App\Services\SusCardService::label((string)($dependent['numero_cartao_sus'] ?? ''))); ?>. <?php echo e(\App\Services\SusCardService::HELP); ?></p><?php } ?>
         <div class="alert-inline dashboard-dependent-attention">
-            Confira com atenção o CPF e a data de nascimento. Para corrigir qualquer um desses dados, entre em contato com o suporte.
+            Confira o CPF e a data de nascimento. Se precisar corrigir um desses dados, abra a edição e use o link junto ao campo.
         </div>
         <div class="dashboard-dependent-details-grid">
             <div><strong>Nome completo:</strong><span><?php echo e((string) ($dependent['nome_completo'] ?? '')); ?></span></div>
@@ -43,45 +43,46 @@
     <div class="dashboard-dependent-panel hidden" data-dependent-modal-panel="edit">
         <div class="alert-inline dashboard-dependent-attention">
             <?php echo !empty($canEditBirthDate)
-                ? 'O CPF permanece bloqueado. Como professor autenticado, você pode corrigir a data de nascimento.'
-                : 'CPF e data de nascimento ficam bloqueados nesta edição. Somente administradores podem corrigir esses dados.'; ?>
+                ? 'Para corrigir o CPF, use o link junto ao campo. Você também pode editar a data de nascimento diretamente.'
+                : 'Para corrigir o CPF ou a data de nascimento, use o link junto ao campo e envie uma foto do documento oficial.'; ?>
         </div>
         <form method="POST" action="<?php echo e(url('/dependentes/atualizar')); ?>" class="stack-form dashboard-dependent-edit-form" id="dashboard-dependent-edit-form" data-manual-submit="1">
             <input type="hidden" name="person_id" value="<?php echo e((string) ($dependent['id'] ?? '0')); ?>">
 
             <section class="dashboard-dependent-edit-section">
-                <h4>Identificacao</h4>
+                <h4>Identificação</h4>
                 <div class="dashboard-dependent-edit-grid dashboard-dependent-edit-grid-2">
                     <label>
                         <span>Nome completo</span>
                         <input type="text" name="full_name" value="<?php echo e((string) ($dependent['nome_completo'] ?? '')); ?>" required>
                     </label>
-                    <label>
-                        <span>CPF</span>
-                        <input
-                            type="text"
-                            value="<?php echo e(format_cpf((string) ($dependent['cpf'] ?? ''))); ?>"
-                            readonly
-                            data-help-field="cpf"
-                            data-locked-support-alert="1"
-                            data-locked-field-label="CPF"
-                        >
-                    </label>
-                    <label>
-                        <span>Data de nascimento</span>
-                        <?php if (!empty($canEditBirthDate)) { ?>
-                        <input type="date" name="birth_date" value="<?php echo e((string) ($dependent['data_nascimento'] ?? '')); ?>" required>
-                        <?php } else { ?>
-                        <input
-                            type="text"
-                            value="<?php echo e(!empty($dependent['data_nascimento']) ? date('d/m/Y', strtotime((string) $dependent['data_nascimento'])) : '-'); ?>"
-                            readonly
-                            data-help-field="birth_date"
-                            data-locked-support-alert="1"
-                            data-locked-field-label="data de nascimento"
-                        >
-                        <?php } ?>
-                    </label>
+                    <div>
+                        <label>
+                            <span>CPF</span>
+                            <input type="text" value="<?php echo e(format_cpf((string) ($dependent['cpf'] ?? ''))); ?>"
+                                readonly data-help-field="cpf"
+                                data-locked-message="Para corrigir o CPF desta pessoa, clique em «Solicitar correção de CPF» logo abaixo do campo. Informe o CPF correto, anexe uma foto legível do documento oficial da pessoa e envie a solicitação.">
+                        </label>
+                        <a href="#identity-correction-modal" data-open-identity-correction="cpf"
+                            data-person-id="<?php echo (int) $dependent['id']; ?>"
+                            data-person-name="<?php echo e($dependent['nome_completo']); ?>">Solicitar correção de CPF</a>
+                    </div>
+                    <div>
+                        <label>
+                            <span>Data de nascimento</span>
+                            <?php if (!empty($canEditBirthDate)) { ?>
+                                <input type="date" name="birth_date" value="<?php echo e((string) ($dependent['data_nascimento'] ?? '')); ?>" required>
+                            <?php } else { ?>
+                                <input type="text"
+                                    value="<?php echo e(!empty($dependent['data_nascimento']) ? date('d/m/Y', strtotime((string) $dependent['data_nascimento'])) : '-'); ?>"
+                                    readonly data-help-field="birth_date"
+                                    data-locked-message="Para corrigir a data de nascimento desta pessoa, clique em «Solicitar correção de data de nascimento» logo abaixo do campo. Informe a data correta, anexe uma foto legível do documento oficial da pessoa e envie a solicitação.">
+                            <?php } ?>
+                        </label>
+                        <a href="#identity-correction-modal" data-open-identity-correction="data_nascimento"
+                            data-person-id="<?php echo (int) $dependent['id']; ?>"
+                            data-person-name="<?php echo e($dependent['nome_completo']); ?>">Solicitar correção de data de nascimento</a>
+                    </div>
                     <label>
                         <span>Sexo</span>
                         <select name="sexo" data-sexo-select="1" required>

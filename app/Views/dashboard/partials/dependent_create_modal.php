@@ -11,7 +11,7 @@
         O comprovante de endereço será exigido na matrícula e no dia do agendamento.
     </div>
     <div class="alert-inline dashboard-dependent-attention">
-        Preencha CPF e data de nascimento com muita atenção. Esses dados identificam a pessoa no sistema e, se precisarem de correção depois, será necessário acionar o suporte técnico.
+        Confira o CPF e a data de nascimento antes de cadastrar. Se precisar corrigir algum desses dados depois, vá a Meu painel, encontre a pessoa em «Meus dependentes» e abra o formulário de correção do dado.
     </div>
 
     <form method="POST" action="<?php echo e(url('/dependentes/salvar')); ?>" class="stack-form dashboard-dependent-create-form" id="dashboard-dependent-create-form" data-manual-submit="1" data-external-person-form="1" data-confirm-modal-exit="1">
@@ -34,7 +34,7 @@
             </label>
             <label>
                 <span>WhatsApp</span>
-                <input type="text" name="phone_whatsapp" value="<?php echo e((string) ($person['telefone_whatsapp'] ?? '')); ?>" readonly required data-locked-support-alert="1" data-locked-field-label="o WhatsApp" data-locked-message="O WhatsApp do dependente é preenchido automaticamente com o número do responsável autenticado e não pode ser alterado neste formulário.">
+                <input type="text" name="phone_whatsapp" value="<?php echo e((string) ($person['telefone_whatsapp'] ?? '')); ?>" readonly required data-locked-message="O WhatsApp do dependente é preenchido automaticamente com o número do responsável autenticado e não pode ser alterado neste formulário.">
                 <small class="muted">Preenchido automaticamente com o WhatsApp do responsável autenticado.</small>
             </label>
             <label><span>E-mail</span><input type="email" name="email" required></label>

@@ -3,7 +3,6 @@
         <h1>Completar Cadastro Obrigatório</h1>
         <p class="muted">
             Para acessar agendas, inscrições, perfis e demais áreas autenticadas, complete agora seu cadastro.
-            Nesta etapa você também passa a existir como seu próprio dependente dentro do sistema.
         </p>
         <?php if (!empty($registrationBlock)) { ?>
             <div class="alert-inline" style="margin-bottom: 16px;">
@@ -32,7 +31,7 @@
         >
         <input type="hidden" name="return_to" value="<?php echo e($returnTo ?? '/dashboard'); ?>">
         <div class="alert-inline dashboard-dependent-attention">
-            Confira com atenção o CPF e a data de nascimento ao concluir este cadastro. Esses dados identificam a pessoa no sistema e eventuais correções posteriores podem depender do suporte.
+            Confira o CPF e a data de nascimento antes de concluir o cadastro. Se precisar corrigir algum desses dados depois, vá a «Meu cadastro» no Meu painel e clique no botão de solicitação do dado que deseja corrigir.
         </div>
         <div class="grid-two">
             <label>
@@ -49,7 +48,7 @@
             <label>
                 <span>Data de nascimento</span>
                 <input type="date" <?php echo !empty($canEditBirthDate) ? 'name="birth_date"' : 'disabled'; ?> value="<?php echo e((string) old('birth_date', $person['data_nascimento'] ?? '')); ?>" required>
-                <small class="muted"><?php echo !empty($canEditBirthDate) ? 'Como professor autenticado, você pode corrigir sua data de nascimento.' : 'Somente administradores podem alterar a data de nascimento.'; ?></small>
+                <small class="muted"><?php echo !empty($canEditBirthDate) ? 'Você pode corrigir a data de nascimento neste campo.' : 'Depois de concluir o cadastro, você pode solicitar a correção no Meu painel.'; ?></small>
             </label>
             <label>
                 <span>Sexo</span>

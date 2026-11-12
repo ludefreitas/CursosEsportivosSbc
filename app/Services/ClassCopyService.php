@@ -191,6 +191,8 @@ class ClassCopyService
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) throw new RuntimeException('A turma selecionada não pertence à temporada de origem.');
         $record = $row;
+        $record['criterio_faixa_etaria'] = in_array($row['criterio_faixa_etaria'] ?? null, ['ano_nascimento', 'idade_exata'], true)
+            ? $row['criterio_faixa_etaria'] : '';
         unset($record['id'], $record['professor_conta_id'], $record['status'], $record['ativo'], $record['inscricoes_abertas'], $record['created_at'], $record['updated_at']);
         $record['temporada_id'] = $destinationSeasonId;
         $record['cronograma_modalidade_id'] = $this->destinationSchedule($destinationSeasonId, (int) $row['modalidade_id']);
@@ -229,7 +231,7 @@ class ClassCopyService
             'programa' => $program, 'dias_semana' => $this->weekdays((string) ($row['diasemana'] ?? '')),
             'hora_inicio' => $this->time((string) ($row['horainicio'] ?? '')), 'hora_fim' => $this->time((string) ($row['horatermino'] ?? '')),
             'idade_minima' => max(0, (int) ($row['initidade'] ?? 0)), 'idade_maxima' => max(0, (int) ($row['fimidade'] ?? 120)),
-            'criterio_faixa_etaria' => 'idade_exata', 'sexo' => $this->sex((string) ($row['geneativ'] ?? '')),
+            'criterio_faixa_etaria' => '', 'sexo' => $this->sex((string) ($row['geneativ'] ?? '')),
             'vagas_totais' => $general + $pcd + $plm + $pvs, 'vagas_geral' => $general,
             'vagas_pcd' => $pcd, 'vagas_plm' => $plm, 'vagas_pvs' => $pvs,
             'vagas_espera_geral' => 0, 'vagas_espera_pcd' => 0, 'vagas_espera_plm' => 0, 'vagas_espera_pvs' => 0,
@@ -279,7 +281,7 @@ class ClassCopyService
 
     private function requiredMissing(array $record): array
     {
-        $labels = ['modalidade_id' => 'Modalidade', 'cronograma_modalidade_id' => 'Cronograma da modalidade', 'local_treino_id' => 'Local', 'espaco_treino_id' => 'Espaço', 'nome' => 'Nome da turma'];
+        $labels = ['modalidade_id' => 'Modalidade', 'cronograma_modalidade_id' => 'Cronograma da modalidade', 'local_treino_id' => 'Local', 'espaco_treino_id' => 'Espaço', 'nome' => 'Nome da turma', 'criterio_faixa_etaria' => 'Critério da faixa etária'];
         $missing = [];
         foreach ($labels as $field => $label) if (trim((string) ($record[$field] ?? '')) === '' || (is_numeric($record[$field] ?? null) && (int) $record[$field] <= 0)) $missing[] = ['campo' => $field, 'rotulo' => $label];
         return $missing;

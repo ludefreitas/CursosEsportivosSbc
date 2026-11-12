@@ -603,8 +603,11 @@ function calculate_age(?string $birthDate): ?int
     }
 
     try {
-        $birth = new DateTimeImmutable($birthDate);
+        $birth = DateTimeImmutable::createFromFormat('!Y-m-d', $birthDate);
         $today = new DateTimeImmutable('today');
+        if (!$birth || $birth->format('Y-m-d') !== $birthDate || $birth > $today) {
+            return null;
+        }
         return (int) $birth->diff($today)->y;
     } catch (Exception $e) {
         return null;

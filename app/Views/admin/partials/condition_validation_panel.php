@@ -85,9 +85,15 @@ $buildWhatsappLink = static function (?string $phone): ?string {
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                             ><span class="dashboard-certificate-file-icon" aria-hidden="true">PDF</span> <?php echo e((string) ($document['nome_original'] ?? 'documento.pdf')); ?></a></strong>
+                                            <?php if (!empty($document['created_at'])) { ?>
+                                                <small>(enviado em <?php echo e(date('d/m/Y', strtotime($document['created_at']))); ?>)</small>
+                                            <?php } ?>
                                         <?php } ?>
                                     <?php } ?>
                                 </span>
+                                <span>Solicitação de validação: <strong><?php echo !empty($row['solicitado_em'])
+                                    ? e(date('d/m/Y', strtotime($row['solicitado_em'])))
+                                    : 'Data não registrada'; ?></strong></span>
                                 <span>Falta para validar: <strong><?php echo e((string) ($row['pendencia_validacao'] ?? '')); ?></strong></span>
                             </div>
                         </td>

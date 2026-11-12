@@ -213,6 +213,10 @@ body.pagina-home .page-shell #home-locations-card {
     --card-accent: #1f76b5;
     --card-tint: #dfedf8;
 }
+body.pagina-dashboard .page-shell #meu-cadastro {
+    --card-accent: #68469b;
+    --card-tint: #eee5f7;
+}
 body:is(.pagina-home, .pagina-dashboard) .page-shell
 :is(.hero-copy, .hero-card, .content-card, .info-card, .post-card):has(.btn-secondary):not(:has(.btn-primary)) {
     --card-accent: var(--accent-orange);
