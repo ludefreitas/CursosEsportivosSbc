@@ -512,6 +512,7 @@ CREATE TABLE IF NOT EXISTS turmas (
     sexo ENUM('masculino', 'feminino') NULL,
     regra_atestado_clinico ENUM('global', 'exigir', 'dispensar') NOT NULL DEFAULT 'dispensar',
     regra_atestado_dermatologico ENUM('global', 'exigir', 'dispensar') NOT NULL DEFAULT 'dispensar',
+    exigir_token_inscricao TINYINT(1) NOT NULL DEFAULT 0,
     vagas_totais INT NOT NULL DEFAULT 0,
     vagas_geral INT NOT NULL DEFAULT 0,
     vagas_pcd INT NOT NULL DEFAULT 0,

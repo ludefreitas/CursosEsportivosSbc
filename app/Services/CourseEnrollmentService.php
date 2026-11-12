@@ -168,6 +168,9 @@ class CourseEnrollmentService
         $locations = [];
         $classes = [];
         foreach ($this->listOpenClasses(null, null, true) as $class) {
+            if (!empty($class['exigir_token_inscricao'])) {
+                continue;
+            }
             if (empty($class['permitir_inscricao_por_cpf'])) { continue; }
             $window = $this->cpfEnrollmentWindow($class);
             if ($window === null) { continue; }
@@ -1018,6 +1021,9 @@ class CourseEnrollmentService
             if ($range['min'] > $range['max']) { throw new RuntimeException('Na exceção de idade para ' . strtoupper($condition) . ', a idade máxima deve ser igual ou superior à idade mínima.'); }
         }
         $params = [':temporada' => (int) $data['temporada_id'], ':modalidade' => (int) $data['modalidade_id'], ':local' => (int) $data['local_treino_id'], ':espaco' => (int) $data['espaco_treino_id'], ':nivel' => (int) ($data['nivel_modalidade_id'] ?? 0) ?: null, ':nome' => trim((string) $data['nome']), ':programa' => $program !== '' ? $program : null, ':observacao' => trim((string) ($data['observacao'] ?? '')) !== '' ? trim((string) $data['observacao']) : null, ':excecoes_idade' => json_encode($ageExceptions, JSON_UNESCAPED_UNICODE), ':idade_minima' => max(0, (int) ($data['idade_minima'] ?? 0)), ':idade_maxima' => max(0, (int) ($data['idade_maxima'] ?? 120)), ':criterio_faixa_etaria' => normalize_age_rule_mode((string) ($data['criterio_faixa_etaria'] ?? 'idade_exata')), ':vagas_totais' => max(0, (int) ($data['vagas_totais'] ?? 0)), ':vagas_geral' => max(0, (int) ($data['vagas_geral'] ?? 0)), ':vagas_pcd' => max(0, (int) ($data['vagas_pcd'] ?? 0)), ':vagas_plm' => max(0, (int) ($data['vagas_plm'] ?? 0)), ':vagas_pvs' => max(0, (int) ($data['vagas_pvs'] ?? 0)), ':espera_geral' => max(0, (int) ($data['vagas_espera_geral'] ?? 0)), ':espera_pcd' => max(0, (int) ($data['vagas_espera_pcd'] ?? 0)), ':espera_plm' => max(0, (int) ($data['vagas_espera_plm'] ?? 0)), ':espera_pvs' => max(0, (int) ($data['vagas_espera_pvs'] ?? 0))];
+        $params[':exigir_token_inscricao'] = array_key_exists('exigir_token_inscricao', $data) || $id === 0
+            ? (int) ((string) ($data['exigir_token_inscricao'] ?? '0') === '1')
+            : null;
         foreach (HealthCertificateRules::TYPES as $type => $label) {
             $field = 'regra_atestado_' . $type;
             $mode = $data[$field] ?? ($id > 0 ? null : 'global');
@@ -1049,11 +1055,11 @@ class CourseEnrollmentService
         }
         if ($id > 0) {
             $params[':id'] = $id;
-            $stmt = $pdo->prepare('UPDATE turmas SET temporada_id=:temporada, modalidade_id=:modalidade, cronograma_modalidade_id=:cronograma, local_treino_id=:local, espaco_treino_id=:espaco, nivel_modalidade_id=:nivel, niveis_aceitos_json=:niveis_aceitos, professor_conta_id=:professor, nome=:nome, programa=:programa, observacao=:observacao, excecoes_idade_json=:excecoes_idade, dias_semana=:dias_semana, hora_inicio=:hora_inicio, hora_fim=:hora_fim, idade_minima=:idade_minima, idade_maxima=:idade_maxima, criterio_faixa_etaria=:criterio_faixa_etaria, sexo=:sexo, regra_atestado_clinico=COALESCE(:regra_atestado_clinico, regra_atestado_clinico), regra_atestado_dermatologico=COALESCE(:regra_atestado_dermatologico, regra_atestado_dermatologico), vagas_totais=:vagas_totais, vagas_geral=:vagas_geral, vagas_pcd=:vagas_pcd, vagas_plm=:vagas_plm, vagas_pvs=:vagas_pvs, vagas_espera_geral=:espera_geral, vagas_espera_pcd=:espera_pcd, vagas_espera_plm=:espera_plm, vagas_espera_pvs=:espera_pvs WHERE id=:id LIMIT 1');
+            $stmt = $pdo->prepare('UPDATE turmas SET temporada_id=:temporada, modalidade_id=:modalidade, cronograma_modalidade_id=:cronograma, local_treino_id=:local, espaco_treino_id=:espaco, nivel_modalidade_id=:nivel, niveis_aceitos_json=:niveis_aceitos, professor_conta_id=:professor, nome=:nome, programa=:programa, observacao=:observacao, excecoes_idade_json=:excecoes_idade, dias_semana=:dias_semana, hora_inicio=:hora_inicio, hora_fim=:hora_fim, idade_minima=:idade_minima, idade_maxima=:idade_maxima, criterio_faixa_etaria=:criterio_faixa_etaria, sexo=:sexo, exigir_token_inscricao=COALESCE(:exigir_token_inscricao, exigir_token_inscricao), regra_atestado_clinico=COALESCE(:regra_atestado_clinico, regra_atestado_clinico), regra_atestado_dermatologico=COALESCE(:regra_atestado_dermatologico, regra_atestado_dermatologico), vagas_totais=:vagas_totais, vagas_geral=:vagas_geral, vagas_pcd=:vagas_pcd, vagas_plm=:vagas_plm, vagas_pvs=:vagas_pvs, vagas_espera_geral=:espera_geral, vagas_espera_pcd=:espera_pcd, vagas_espera_plm=:espera_plm, vagas_espera_pvs=:espera_pvs WHERE id=:id LIMIT 1');
             $stmt->execute($params);
             AuditLogService::record('turma.atualizada', 'turmas', $id, ['conta_id' => $accountId]);
         } else {
-            $stmt = $pdo->prepare('INSERT INTO turmas (temporada_id, modalidade_id, cronograma_modalidade_id, local_treino_id, espaco_treino_id, nivel_modalidade_id, niveis_aceitos_json, professor_conta_id, nome, programa, observacao, excecoes_idade_json, dias_semana, hora_inicio, hora_fim, idade_minima, idade_maxima, criterio_faixa_etaria, sexo, regra_atestado_clinico, regra_atestado_dermatologico, vagas_totais, vagas_geral, vagas_pcd, vagas_plm, vagas_pvs, vagas_espera_geral, vagas_espera_pcd, vagas_espera_plm, vagas_espera_pvs, ativo) VALUES (:temporada, :modalidade, :cronograma, :local, :espaco, :nivel, :niveis_aceitos, :professor, :nome, :programa, :observacao, :excecoes_idade, :dias_semana, :hora_inicio, :hora_fim, :idade_minima, :idade_maxima, :criterio_faixa_etaria, :sexo, :regra_atestado_clinico, :regra_atestado_dermatologico, :vagas_totais, :vagas_geral, :vagas_pcd, :vagas_plm, :vagas_pvs, :espera_geral, :espera_pcd, :espera_plm, :espera_pvs, 1)');
+            $stmt = $pdo->prepare('INSERT INTO turmas (temporada_id, modalidade_id, cronograma_modalidade_id, local_treino_id, espaco_treino_id, nivel_modalidade_id, niveis_aceitos_json, professor_conta_id, nome, programa, observacao, excecoes_idade_json, dias_semana, hora_inicio, hora_fim, idade_minima, idade_maxima, criterio_faixa_etaria, sexo, exigir_token_inscricao, regra_atestado_clinico, regra_atestado_dermatologico, vagas_totais, vagas_geral, vagas_pcd, vagas_plm, vagas_pvs, vagas_espera_geral, vagas_espera_pcd, vagas_espera_plm, vagas_espera_pvs, ativo) VALUES (:temporada, :modalidade, :cronograma, :local, :espaco, :nivel, :niveis_aceitos, :professor, :nome, :programa, :observacao, :excecoes_idade, :dias_semana, :hora_inicio, :hora_fim, :idade_minima, :idade_maxima, :criterio_faixa_etaria, :sexo, :exigir_token_inscricao, :regra_atestado_clinico, :regra_atestado_dermatologico, :vagas_totais, :vagas_geral, :vagas_pcd, :vagas_plm, :vagas_pvs, :espera_geral, :espera_pcd, :espera_plm, :espera_pvs, 1)');
             $stmt->execute($params);
             $id = (int) $pdo->lastInsertId();
             if ((int) ($params[':professor'] ?? 0) > 0) {
@@ -1496,7 +1502,7 @@ class CourseEnrollmentService
 
         $people = [];
         if (Auth::check()) {
-            $tokenLookup = $pdo->prepare("SELECT numero_token FROM tokens_inscricao_turma WHERE turma_id=:turma AND cpf=:cpf AND status='ativo' AND validade>=NOW() ORDER BY id DESC LIMIT 1");
+            $tokenLookup = $pdo->prepare("SELECT numero_token, publico_alvo FROM tokens_inscricao_turma WHERE turma_id=:turma AND cpf=:cpf AND status='ativo' AND ativo=1 AND validade>=NOW() ORDER BY id DESC LIMIT 1");
             $linkedPeople = $this->listPeopleForAuthenticatedAccount();
             $parQRecords = ParQService::summaries(array_column($linkedPeople, 'id'));
             foreach ($linkedPeople as $person) {
@@ -1517,7 +1523,17 @@ class CourseEnrollmentService
                 if ((int) $duplicate->fetchColumn() > 0) $reasons[] = 'Pessoa já inscrita nesta turma';
                 $person['idade'] = $age;
                 $tokenLookup->execute([':turma' => $classId, ':cpf' => normalize_cpf((string) ($person['cpf'] ?? ''))]);
-                $person['possui_token_ativo'] = (bool) $tokenLookup->fetchColumn();
+                $personToken = $tokenLookup->fetch(PDO::FETCH_ASSOC);
+                $person['possui_token_ativo'] = (bool) $personToken;
+                if (!empty($class['exigir_token_inscricao'])) {
+                    if ($personToken) {
+                        $person['token_inscricao'] = $personToken['numero_token'];
+                        $person['publico_alvo'] = $personToken['publico_alvo'];
+                        $person['condicao_excecao_idade'] = null;
+                    } else {
+                        $reasons[] = 'Sem token válido para esta turma';
+                    }
+                }
                 if ($person['possui_token_ativo']) { $person['elegivel_por_token'] = true; }
                 $levelBlock = $this->classLevelBlockReason($pdo, $class, (int) $person['id']);
                 if ($levelBlock !== '') { $reasons[] = $levelBlock; }
@@ -1630,6 +1646,11 @@ class CourseEnrollmentService
             throw new RuntimeException('A pessoa precisa ter o cadastro completo para se inscrever.');
         }
 
+        if ($token !== null && ($isCpfFlow || !Auth::check()
+            || normalize_cpf((string) $person['cpf']) !== (string) $token['cpf'])) {
+            throw new RuntimeException('Use um token válido para o CPF da pessoa selecionada, pela sua conta.');
+        }
+
         ParQService::assertEligible((int) $person['id']);
 
         if ($token === null && !empty($season['permitir_inscricao_logada']) === false && Auth::check() && !$isCpfFlow) {
@@ -1638,10 +1659,17 @@ class CourseEnrollmentService
 
         $pdo->beginTransaction();
         try {
-            $lock = $pdo->prepare('SELECT id FROM turmas WHERE id=:id FOR UPDATE');
+            $lock = $pdo->prepare('SELECT exigir_token_inscricao FROM turmas WHERE id=:id FOR UPDATE');
             $lock->execute([':id' => $classId]);
+            $requiresToken = $lock->fetchColumn();
+            if ($requiresToken === false) {
+                throw new RuntimeException('Turma não encontrada.');
+            }
+            if ((int) $requiresToken === 1 && $token === null) {
+                throw new RuntimeException('Esta turma aceita inscrições somente com token válido para o CPF da pessoa selecionada.');
+            }
             if ($token !== null) {
-                $tokenLock = $pdo->prepare("SELECT id FROM tokens_inscricao_turma WHERE id=:id AND status='ativo' AND validade>=NOW() FOR UPDATE");
+                $tokenLock = $pdo->prepare("SELECT id FROM tokens_inscricao_turma WHERE id=:id AND status='ativo' AND ativo=1 AND validade>=NOW() FOR UPDATE");
                 $tokenLock->execute([':id' => (int) $token['id']]);
                 if (!$tokenLock->fetchColumn()) { throw new RuntimeException('Este token já foi utilizado, cancelado, excluído ou expirou.'); }
             }
@@ -1926,7 +1954,8 @@ class CourseEnrollmentService
         if ($accountId <= 0) { return []; }
         $pdo = Database::connection();
         $pdo->exec("UPDATE tokens_inscricao_turma SET status='expirado', ativo=0 WHERE status='ativo' AND validade<NOW()");
-        $stmt = $pdo->prepare("SELECT tk.id, tk.numero_token, tk.cpf, tk.publico_alvo, tk.validade, p.id AS pessoa_id, p.nome_completo, p.cadastro_completo, t.id AS turma_id, t.nome AS turma_nome, t.programa, t.dias_semana, t.hora_inicio, t.hora_fim, te.nome AS temporada_nome, m.nome AS modalidade_nome, COALESCE(l.apelido_local,l.nome_local) AS local_nome FROM tokens_inscricao_turma tk INNER JOIN pessoas p ON p.cpf=tk.cpf INNER JOIN turmas t ON t.id=tk.turma_id INNER JOIN temporadas te ON te.id=t.temporada_id INNER JOIN modalidades m ON m.id=t.modalidade_id INNER JOIN locais_treino l ON l.id=t.local_treino_id INNER JOIN contas conta ON conta.id=:conta INNER JOIN pessoas titular ON titular.cpf=conta.cpf LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id=p.id AND vr.data_fim IS NULL WHERE tk.status='ativo' AND tk.validade>=NOW() AND p.cadastro_completo=1 AND (p.id=titular.id OR vr.responsavel_pessoa_id=titular.id) ORDER BY tk.id");
+        $stmt = $pdo->prepare("SELECT tk.id, tk.numero_token, tk.cpf, tk.publico_alvo, tk.validade, t.exigir_token_inscricao,
+            EXISTS (SELECT 1 FROM rematricula_convites rc WHERE rc.token_id = tk.id) AS token_rematricula, p.id AS pessoa_id, p.nome_completo, p.cadastro_completo, t.id AS turma_id, t.nome AS turma_nome, t.programa, t.dias_semana, t.hora_inicio, t.hora_fim, te.nome AS temporada_nome, m.nome AS modalidade_nome, COALESCE(l.apelido_local,l.nome_local) AS local_nome FROM tokens_inscricao_turma tk INNER JOIN pessoas p ON p.cpf=tk.cpf INNER JOIN turmas t ON t.id=tk.turma_id INNER JOIN temporadas te ON te.id=t.temporada_id INNER JOIN modalidades m ON m.id=t.modalidade_id INNER JOIN locais_treino l ON l.id=t.local_treino_id INNER JOIN contas conta ON conta.id=:conta INNER JOIN pessoas titular ON titular.cpf=conta.cpf LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id=p.id AND vr.data_fim IS NULL WHERE tk.status='ativo' AND tk.ativo=1 AND tk.validade>=NOW() AND p.cadastro_completo=1 AND (p.id=titular.id OR vr.responsavel_pessoa_id=titular.id) ORDER BY tk.id");
         $stmt->execute([':conta' => $accountId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -1943,7 +1972,7 @@ class CourseEnrollmentService
     {
         if ($token === '') { return null; }
         if (!preg_match('/^\d{4}$/', $token)) { throw new RuntimeException('O token deve conter quatro dígitos.'); }
-        $stmt = $pdo->prepare("SELECT * FROM tokens_inscricao_turma WHERE numero_token = :token AND turma_id = :turma AND cpf = :cpf AND status='ativo' AND validade >= NOW() LIMIT 1");
+        $stmt = $pdo->prepare("SELECT * FROM tokens_inscricao_turma WHERE numero_token = :token AND turma_id = :turma AND cpf = :cpf AND status='ativo' AND ativo=1 AND validade >= NOW() LIMIT 1");
         $stmt->execute([':token' => $token, ':turma' => $classId, ':cpf' => $cpf]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) { throw new RuntimeException('Token inválido, expirado ou não autorizado para este CPF e turma.'); }

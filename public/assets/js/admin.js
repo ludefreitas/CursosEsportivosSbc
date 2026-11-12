@@ -7111,6 +7111,14 @@
                 }
                 if (type === 'class') { ensureClassScheduleField($form); ensureClassCopyFields($form); ensureClassProgramField($form); ensureClassAgeCriterionField($form); ensureClassCertificateFields($form); ensureClassAgeExceptionFields($form); ensureClassLevelFields($form); ensureClassFieldHelp($form); }
                 if (type === 'season') { ensureSeasonNoticeFields($form); ensureSeasonWeeklyCoverageField($form); ensureSeasonFieldHelp($form); }
+                if (type === 'class' && !$form.find('[name="exigir_token_inscricao"]').length) {
+                    const $tokenRequirement = $('<select>', { name: 'exigir_token_inscricao' })
+                        .append($('<option>', { value: '0', text: 'Não' }))
+                        .append($('<option>', { value: '1', text: 'Sim' }));
+                    $form.find('[name="sexo"]').closest('label').after($('<label>')
+                        .append($('<span>', { text: 'Exigir token para inscrição' }), $tokenRequirement)
+                        .append($('<small>', { class: 'muted', text: 'Somente pessoas com token válido para seu CPF nesta turma poderão se inscrever.' })));
+                }
                 fillForm($form, record || {});
                 if (type === 'class' && !record) updateClassWaitlistSuggestion($form);
                 if (type === 'class') {
