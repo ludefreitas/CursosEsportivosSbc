@@ -371,10 +371,12 @@ class CourseEnrollmentService
                 COALESCE(IF(aic.id IS NOT NULL, 'validado', NULL), ac.status_validacao) AS atestado_clinico_status,
                 COALESCE(aic.validade_certificado, ac.validade_certificado) AS atestado_clinico_validade,
                 CASE WHEN aic.id IS NOT NULL THEN 'importado' WHEN ac.id IS NOT NULL THEN 'interno' ELSE '' END AS atestado_clinico_origem,
+                CASE WHEN ac.id IS NOT NULL AND (ac.validado_em IS NULL OR ac.validado_em < COALESCE(ac.updated_at, ac.created_at)) THEN 1 ELSE 0 END AS atestado_clinico_novo_envio,
                 CASE WHEN aid.id IS NULL THEN ad.id ELSE NULL END AS atestado_dermatologico_id,
                 COALESCE(IF(aid.id IS NOT NULL, 'validado', NULL), ad.status_validacao) AS atestado_dermatologico_status,
                 COALESCE(aid.validade_certificado, ad.validade_certificado) AS atestado_dermatologico_validade,
-                CASE WHEN aid.id IS NOT NULL THEN 'importado' WHEN ad.id IS NOT NULL THEN 'interno' ELSE '' END AS atestado_dermatologico_origem
+                CASE WHEN aid.id IS NOT NULL THEN 'importado' WHEN ad.id IS NOT NULL THEN 'interno' ELSE '' END AS atestado_dermatologico_origem,
+                CASE WHEN ad.id IS NOT NULL AND (ad.validado_em IS NULL OR ad.validado_em < COALESCE(ad.updated_at, ad.created_at)) THEN 1 ELSE 0 END AS atestado_dermatologico_novo_envio
             FROM inscricoes_turma i
             INNER JOIN pessoas p ON p.id = i.pessoa_id
             INNER JOIN turmas t ON t.id = i.turma_id
@@ -1265,6 +1267,39 @@ class CourseEnrollmentService
         ];
     }
 
+    /** Lista mensal: somente dias para os quais já houve chamada registrada. */
+    public function monthlyAttendanceList(int $classId, string $requestedMonth = ''): array
+    {
+        if ($classId <= 0) throw new RuntimeException('Não foi possível identificar a turma.');
+        $pdo = Database::connection();
+        $classStmt = $pdo->prepare("SELECT t.id, t.nome, t.dias_semana, t.hora_inicio, t.hora_fim, te.nome AS temporada_nome, te.data_inicio AS temporada_inicio, te.data_fim AS temporada_fim, m.nome AS modalidade_nome, COALESCE(l.apelido_local, l.nome_local) AS local_nome, e.nome AS espaco_nome FROM turmas t INNER JOIN temporadas te ON te.id=t.temporada_id INNER JOIN modalidades m ON m.id=t.modalidade_id INNER JOIN locais_treino l ON l.id=t.local_treino_id INNER JOIN espacos_treino e ON e.id=t.espaco_treino_id WHERE t.id=:turma LIMIT 1");
+        $classStmt->execute([':turma' => $classId]);
+        $class = $classStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$class) throw new RuntimeException('Turma não encontrada ou indisponível.');
+        $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? ''));
+
+        $monthsStmt = $pdo->prepare("SELECT DATE_FORMAT(data_aula, '%Y-%m') AS mes FROM turmas_chamadas WHERE turma_id=:turma AND data_aula<=CURDATE() GROUP BY DATE_FORMAT(data_aula, '%Y-%m') ORDER BY mes ASC");
+        $monthsStmt->execute([':turma' => $classId]);
+        $months = array_values(array_filter($monthsStmt->fetchAll(PDO::FETCH_COLUMN) ?: [], static fn ($value): bool => preg_match('/^\\d{4}-\\d{2}$/', (string) $value) === 1));
+        $month = in_array($requestedMonth, $months, true) ? $requestedMonth : (string) end($months);
+        if ($month === '') $month = (new DateTimeImmutable('today'))->format('Y-m');
+
+        $daysStmt = $pdo->prepare("SELECT DISTINCT data_aula FROM turmas_chamadas WHERE turma_id=:turma AND DATE_FORMAT(data_aula, '%Y-%m')=:mes AND data_aula<=CURDATE() ORDER BY data_aula ASC");
+        $daysStmt->execute([':turma' => $classId, ':mes' => $month]);
+        $days = $daysStmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+        $studentsStmt = $pdo->prepare("SELECT i.id AS inscricao_id, i.status AS inscricao_status, i.motivo_status, p.nome_completo FROM inscricoes_turma i INNER JOIN pessoas p ON p.id=i.pessoa_id WHERE i.turma_id=:turma AND (i.status IN ('matriculada','suspensa','excluida_por_falta') OR EXISTS (SELECT 1 FROM turmas_chamadas ch WHERE ch.inscricao_turma_id=i.id)) ORDER BY CASE i.status WHEN 'matriculada' THEN 1 WHEN 'suspensa' THEN 2 WHEN 'excluida_por_falta' THEN 3 ELSE 4 END, p.nome_completo ASC");
+        $studentsStmt->execute([':turma' => $classId]);
+        $students = $studentsStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $records = [];
+        if ($days !== []) {
+            $recordsStmt = $pdo->prepare("SELECT inscricao_turma_id, data_aula, status FROM turmas_chamadas WHERE turma_id=:turma AND DATE_FORMAT(data_aula, '%Y-%m')=:mes AND data_aula<=CURDATE()");
+            $recordsStmt->execute([':turma' => $classId, ':mes' => $month]);
+            foreach ($recordsStmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $record) $records[(int) $record['inscricao_turma_id']][(string) $record['data_aula']] = (string) $record['status'];
+        }
+        return compact('class', 'months', 'month', 'days', 'students', 'records');
+    }
+
     public function printableAddressList(int $classId): array
     {
         if ($classId <= 0) {
@@ -1353,17 +1388,19 @@ class CourseEnrollmentService
         $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? ''));
         $this->validateClassAttendanceDate($class, $date);
         $stmt = $pdo->prepare("SELECT i.id AS inscricao_id, i.status AS matricula_status, p.id AS pessoa_id, p.nome_completo, p.data_nascimento,
-                COALESCE(ch.status, '') AS chamada_status, COALESCE(ch.justificativa, '') AS justificativa,
+                COALESCE(ch.status, '') AS chamada_status, COALESCE(ch.justificativa, '') AS justificativa, i.motivo_status,
                 COALESCE(aic.id, ac.id) AS atestado_clinico_validado_id,
                 COALESCE(aic.validade_certificado, ac.validade_certificado) AS atestado_clinico_validade,
                 CASE WHEN aic.id IS NOT NULL THEN 'importado' WHEN ac.id IS NOT NULL THEN 'interno' ELSE '' END AS atestado_clinico_origem,
                 CASE WHEN aic.id IS NOT NULL THEN 'validado' ELSE ac.status_validacao END AS atestado_clinico_status,
                 CASE WHEN aic.id IS NULL THEN ac.id ELSE NULL END AS atestado_clinico_arquivo_id,
+                CASE WHEN ac.id IS NOT NULL AND (ac.validado_em IS NULL OR ac.validado_em < COALESCE(ac.updated_at, ac.created_at)) THEN 1 ELSE 0 END AS atestado_clinico_novo_envio,
                 COALESCE(aid.id, ad.id) AS atestado_dermatologico_validado_id,
                 COALESCE(aid.validade_certificado, ad.validade_certificado) AS atestado_dermatologico_validade,
                 CASE WHEN aid.id IS NOT NULL THEN 'importado' WHEN ad.id IS NOT NULL THEN 'interno' ELSE '' END AS atestado_dermatologico_origem,
                 CASE WHEN aid.id IS NOT NULL THEN 'validado' ELSE ad.status_validacao END AS atestado_dermatologico_status,
-                CASE WHEN aid.id IS NULL THEN ad.id ELSE NULL END AS atestado_dermatologico_arquivo_id
+                CASE WHEN aid.id IS NULL THEN ad.id ELSE NULL END AS atestado_dermatologico_arquivo_id,
+                CASE WHEN ad.id IS NOT NULL AND (ad.validado_em IS NULL OR ad.validado_em < COALESCE(ad.updated_at, ad.created_at)) THEN 1 ELSE 0 END AS atestado_dermatologico_novo_envio
             FROM inscricoes_turma i INNER JOIN pessoas p ON p.id=i.pessoa_id
             LEFT JOIN turmas_chamadas ch ON ch.inscricao_turma_id=i.id AND ch.data_aula=:data
             LEFT JOIN atestados_saude ac ON ac.id=(SELECT a.id FROM atestados_saude a WHERE a.pessoa_id=p.id AND a.tipo_atestado='clinico' ORDER BY a.id DESC LIMIT 1)
@@ -1378,9 +1415,9 @@ class CourseEnrollmentService
         return ['class' => $class, 'date' => $date, 'students' => $stmt->fetchAll(PDO::FETCH_ASSOC) ?: []];
     }
 
-    public function saveClassAttendance(int $classId, int $enrollmentId, string $date, string $status, string $justification, int $accountId): void
+    public function saveClassAttendance(int $classId, int $enrollmentId, string $date, string $status, string $justification, int $accountId): ?string
     {
-        (new EnrollmentMovementService())->withEnrollmentLock($enrollmentId, function () use ($classId, $enrollmentId, $date, $status, $justification, $accountId) {
+        return (new EnrollmentMovementService())->withEnrollmentLock($enrollmentId, function () use ($classId, $enrollmentId, $date, $status, $justification, $accountId) {
         if (!in_array($status, ['presente', 'ausente', 'justificado'], true)) { throw new RuntimeException('Selecione um status válido para a chamada.'); }
         if ($status === 'justificado' && trim($justification) === '') { throw new RuntimeException('Informe a justificativa da ausência.'); }
         $pdo = Database::connection();
@@ -1393,7 +1430,32 @@ class CourseEnrollmentService
         $stmt = $pdo->prepare('INSERT INTO turmas_chamadas (turma_id, inscricao_turma_id, pessoa_id, data_aula, status, justificativa, chamada_por_conta_id) SELECT :turma, i.id, i.pessoa_id, :data, :status, :justificativa, :conta FROM inscricoes_turma i WHERE i.id=:inscricao AND i.turma_id=:turma_atual AND i.status=\'matriculada\' ON DUPLICATE KEY UPDATE status=VALUES(status), justificativa=VALUES(justificativa), chamada_por_conta_id=VALUES(chamada_por_conta_id), updated_at=CURRENT_TIMESTAMP');
         $stmt->execute([':turma_atual' => $classId, ':turma' => $classId, ':inscricao' => $enrollmentId, ':data' => $date, ':status' => $status, ':justificativa' => trim($justification) ?: null, ':conta' => $accountId]);
         AuditLogService::record('turma.chamada_atualizada', 'turmas_chamadas', $enrollmentId, ['conta_id' => $accountId, 'turma_id' => $classId, 'data_aula' => $date, 'status' => $status]);
+        return $status === 'ausente' ? $this->excludeForAbsencesIfRequired($pdo, $classId, $enrollmentId, $date, $accountId) : null;
         });
+    }
+
+    private function excludeForAbsencesIfRequired(PDO $pdo, int $classId, int $enrollmentId, string $date, int $accountId): ?string
+    {
+        $monthStart = substr($date, 0, 7) . '-01';
+        $monthEnd = (new DateTimeImmutable($monthStart))->modify('last day of this month')->format('Y-m-d');
+        $monthly = $pdo->prepare("SELECT SUM(status='presente') AS presentes, SUM(status='ausente') AS ausentes FROM turmas_chamadas WHERE inscricao_turma_id=:inscricao AND data_aula BETWEEN :inicio AND :fim");
+        $monthly->execute([':inscricao' => $enrollmentId, ':inicio' => $monthStart, ':fim' => $monthEnd]);
+        $summary = $monthly->fetch(PDO::FETCH_ASSOC) ?: [];
+        $presences = (int) ($summary['presentes'] ?? 0); $absences = (int) ($summary['ausentes'] ?? 0); $total = $presences + $absences;
+        $belowSeventyFive = $total >= 4 && ($presences / $total) < 0.75;
+        $recent = $pdo->prepare('SELECT status FROM turmas_chamadas WHERE inscricao_turma_id=:inscricao ORDER BY data_aula DESC LIMIT 3');
+        $recent->execute([':inscricao' => $enrollmentId]);
+        $recentStatuses = array_column($recent->fetchAll(PDO::FETCH_ASSOC) ?: [], 'status');
+        $threeConsecutive = count($recentStatuses) === 3 && count(array_filter($recentStatuses, static fn ($value): bool => $value === 'ausente')) === 3;
+        if (!$belowSeventyFive && !$threeConsecutive) return null;
+        $reason = $belowSeventyFive && $threeConsecutive ? 'auto_faltas_percentual_consecutivas' : ($belowSeventyFive ? 'auto_faltas_percentual' : 'auto_faltas_consecutivas');
+        $update = $pdo->prepare("UPDATE inscricoes_turma SET status='excluida_por_falta', motivo_status=:motivo, updated_at=NOW() WHERE id=:id AND turma_id=:turma AND status='matriculada'");
+        $update->execute([':motivo' => $reason, ':id' => $enrollmentId, ':turma' => $classId]);
+        if ($update->rowCount() === 0) return null;
+        $history = $pdo->prepare("INSERT INTO inscricoes_turma_historico (inscricao_turma_id,status_anterior,status_novo,motivo,alterado_por_conta_id) VALUES (:id,'matriculada','excluida_por_falta',:motivo,:conta)");
+        $history->execute([':id' => $enrollmentId, ':motivo' => $reason, ':conta' => $accountId]);
+        AuditLogService::record('turma.matricula_excluida_por_falta', 'inscricoes_turma', $enrollmentId, ['conta_id' => $accountId, 'turma_id' => $classId, 'motivo' => $reason]);
+        return $reason;
     }
 
     public function changeAttendanceEnrollmentStatus(int $classId, int $enrollmentId, string $status, int $accountId): void

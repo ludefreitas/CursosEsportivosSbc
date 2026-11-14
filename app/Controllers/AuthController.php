@@ -129,12 +129,12 @@ class AuthController extends Controller
                     'admin_access_allowed' => $adminAccessAllowed,
                     'professor_access_allowed' => $professorAccessAllowed,
                     'intern_access_allowed' => $internAccessAllowed,
+                    'authenticated_user_name' => (string) (($person['nome_completo'] ?? '') !== '' ? $person['nome_completo'] : ($account['nome_completo'] ?? 'Usuário')),
                     'header_certificate_alerts_html' => $this->renderHeaderCertificateAlertsHtml(),
                     'header_notifications_html' => $this->renderHeaderNotificationsHtml(),
                 ]);
             }
 
-            flash('success', $successMessage);
             header('Location: ' . $redirectUrl);
             exit;
         } catch (\Throwable $e) {

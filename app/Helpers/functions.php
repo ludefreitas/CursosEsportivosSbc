@@ -495,12 +495,6 @@ function validar_nome_pessoa(string $nome, bool $obrigatorio = false): bool
 
 function validar_nome_cadastro(string $nome): bool
 {
-    $nome = normalize_nome_completo($nome);
-
-    if (mb_strlen($nome, 'UTF-8') < 14) {
-        return false;
-    }
-
     return validar_nome_pessoa($nome, true);
 }
 

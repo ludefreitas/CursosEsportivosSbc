@@ -1405,7 +1405,7 @@ class AdminService
         }
 
         if (!validar_nome_cadastro($fullName)) {
-            throw new RuntimeException('Informe um nome completo com no mínimo 14 caracteres, usando apenas letras, espaços, hífen ou apóstrofo.');
+            throw new RuntimeException('Informe um nome completo usando apenas letras, espaços, hífen ou apóstrofo.');
         }
 
         if (!validar_nome_pessoa($emergencyContactName, true)) {

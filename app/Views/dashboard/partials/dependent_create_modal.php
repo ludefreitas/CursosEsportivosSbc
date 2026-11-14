@@ -16,7 +16,7 @@
 
     <form method="POST" action="<?php echo e(url('/dependentes/salvar')); ?>" class="stack-form dashboard-dependent-create-form" id="dashboard-dependent-create-form" data-manual-submit="1" data-external-person-form="1" data-confirm-modal-exit="1">
         <div class="grid-two">
-            <label><span>Nome completo</span><input type="text" name="full_name" required></label>
+            <label><span>Nome completo <small class="name-document-hint">( preencha este campo com o nome e o sobrenome igual ao que consta no documento oficial )</small></span><input type="text" name="full_name" required></label>
             <label><span>CPF</span><input type="text" name="cpf" placeholder="000.000.000-00" required></label>
         </div>
 

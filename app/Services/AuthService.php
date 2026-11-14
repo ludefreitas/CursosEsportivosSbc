@@ -94,7 +94,7 @@ class AuthService
         $password = (string) ($data['password'] ?? '');
 
         if (!validar_nome_cadastro($name) || !validar_cpf($cpf) || strlen($password) < 6) {
-            throw new RuntimeException('Informe um nome completo com no mínimo 14 caracteres, usando apenas letras, espaços, hífen ou apóstrofo, além de CPF válido e senha com ao menos 6 caracteres.');
+            throw new RuntimeException('Informe um nome completo usando apenas letras, espaços, hífen ou apóstrofo, além de CPF válido e senha com ao menos 6 caracteres.');
         }
 
         $birthDate = $this->validateAdultBirthDate($birthDate);

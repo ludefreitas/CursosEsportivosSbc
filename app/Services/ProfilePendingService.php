@@ -52,7 +52,7 @@ class ProfilePendingService
     public static function diagnose(array $person, bool $ownAccount, ?callable $evaluateCep = null): array
     {
         $pending = [];
-        if (!validar_nome_cadastro((string) ($person['nome_completo'] ?? ''))) $pending[] = 'Nome completo: informe no mínimo 14 caracteres, usando apenas letras, espaços, hífen ou apóstrofo.';
+        if (!validar_nome_cadastro((string) ($person['nome_completo'] ?? ''))) $pending[] = 'Nome completo: use apenas letras, espaços, hífen ou apóstrofo.';
         if (!validar_cpf((string) ($person['cpf'] ?? ''))) $pending[] = 'CPF inválido. Solicite a correção do cadastro.';
         $date = (string) ($person['data_nascimento'] ?? '');
         $birth = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);

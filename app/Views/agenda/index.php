@@ -135,7 +135,7 @@
                 <div class="grid-two">
                     <label>
                         <span>Nome da pessoa</span>
-                        <input type="text" name="nome_completo" id="agenda-special-name" required>
+                        <span class="name-document-hint">( preencha este campo com o nome e o sobrenome igual ao que consta no documento oficial )</span><input type="text" name="nome_completo" id="agenda-special-name" required>
                     </label>
                     <label>
                         <span>CPF</span>

@@ -30,7 +30,7 @@
     data-intern-access-allowed="<?php echo !empty($headerInternAccessAllowed) ? '1' : '0'; ?>"
     data-profile-completion-message="<?php echo e($profileCompletionBlockMessage ?: 'Antes de acessar esta área, você precisa completar seu cadastro.'); ?>"
 >
-    <?php $isAuthenticated = \App\Core\Auth::check(); ?>
+    <?php $isAuthenticated = \App\Core\Auth::check(); $headerUserName = $isAuthenticated ? (string) ((new \App\Services\UserService())->currentAccountWithRoles()['nome_completo'] ?? 'Usuário') : ''; ?>
     <div class="page-shell">
         <header class="site-header">
             <div class="site-header-access">
@@ -60,6 +60,8 @@
                         <button type="submit" class="header-login-submit" aria-label="Entrar">Ir <span aria-hidden="true">➜</span></button>
                         <a href="<?php echo e(url('/recuperar-senha')); ?>" class="header-login-recovery">Recuperar senha</a>
                     </form>
+                <?php } else { ?>
+                    <span class="header-authenticated-name">Olá, <strong><?php echo e($headerUserName); ?></strong></span>
                 <?php } ?>
             </div>
             <button

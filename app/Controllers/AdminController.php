@@ -3107,6 +3107,21 @@ class AdminController extends Controller
         $this->outputAttendanceListPdf((int) ($_GET['turma_id'] ?? 0));
     }
 
+    public function monthlyCourseClassAttendance(): void
+    {
+        $this->assertAdminAccess();
+        try {
+            $attendance = (new CourseEnrollmentService())->monthlyAttendanceList((int) ($_GET['turma_id'] ?? 0), trim((string) ($_GET['mes'] ?? '')));
+            $attendance['backUrl'] = url('/admin') . '#admin-temporadas-turmas';
+            extract($attendance, EXTR_SKIP);
+            require ROOT_PATH . '/app/Views/courses/monthly_attendance_list.php';
+        } catch (\Throwable $e) {
+            http_response_code(422);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo $e->getMessage();
+        }
+    }
+
     public function printableCourseClassAddresses(): void
     {
         $this->assertAdminAccess();
@@ -3199,7 +3214,9 @@ class AdminController extends Controller
                 $attendance=$service->classAttendanceRoster($classId,$date); ob_start(); require ROOT_PATH.'/app/Views/admin/partials/course_class_attendance.php';
                 $this->jsonResponse(['success'=>true,'message'=>'Matrícula atualizada.','html'=>(string)ob_get_clean()]); return;
             }
-            $service->saveClassAttendance((int) ($_POST['turma_id'] ?? 0), (int) ($_POST['inscricao_id'] ?? 0), trim((string) ($_POST['data'] ?? '')), trim((string) ($_POST['status'] ?? '')), trim((string) ($_POST['justificativa'] ?? '')), (int) $user['conta_id']);
+            $classId = (int) ($_POST['turma_id'] ?? 0); $date = trim((string) ($_POST['data'] ?? ''));
+            $absenceReason = $service->saveClassAttendance($classId, (int) ($_POST['inscricao_id'] ?? 0), $date, trim((string) ($_POST['status'] ?? '')), trim((string) ($_POST['justificativa'] ?? '')), (int) $user['conta_id']);
+            if ($absenceReason !== null) { $attendance = $service->classAttendanceRoster($classId, $date); ob_start(); require ROOT_PATH . '/app/Views/admin/partials/course_class_attendance.php'; $this->jsonResponse(['success' => true, 'message' => 'Chamada atualizada e matrícula excluída automaticamente por faltas.', 'auto_excluded' => true, 'html' => (string) ob_get_clean()]); }
             $this->jsonResponse(['success' => true, 'message' => 'Chamada atualizada.']);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }

@@ -541,11 +541,6 @@
 
                     if (!/^[\p{L}]+(?:[ '\u2019-][\p{L}]+)*$/u.test(normalizedName)) {
                         message = 'Use apenas letras, espaços, hífen ou apóstrofo.';
-                    } else if (
-                        ['full_name', 'nome_completo'].indexOf(name) >= 0 &&
-                        normalizedName.length < 14
-                    ) {
-                        message = 'Informe o nome completo com no mínimo 14 caracteres.';
                     }
                 } else if ([
                     'cpf',

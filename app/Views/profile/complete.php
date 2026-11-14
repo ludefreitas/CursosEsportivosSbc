@@ -35,7 +35,7 @@
         </div>
         <div class="grid-two">
             <label>
-                <span>Nome completo</span>
+                <span>Nome completo <small class="name-document-hint">( preencha este campo com o nome e o sobrenome igual ao que consta no documento oficial )</small></span>
                 <input type="text" name="full_name" value="<?php echo old('full_name', $person['nome_completo'] ?? ''); ?>" required>
             </label>
             <label>

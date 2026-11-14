@@ -98,7 +98,7 @@ class ProfileService
         $data['birth_date'] = $birthDate;
 
         if (!validar_nome_cadastro((string) ($data['full_name'] ?? ''))) {
-            throw new RuntimeException('Informe um nome completo com no mínimo 14 caracteres, usando apenas letras, espaços, hífen ou apóstrofo.');
+            throw new RuntimeException('Informe um nome completo usando apenas letras, espaços, hífen ou apóstrofo.');
         }
 
         $this->validarSelecaoUnicaCondicao($data);
@@ -218,7 +218,7 @@ class ProfileService
         }
 
         if (!validar_nome_cadastro((string) ($data['full_name'] ?? ''))) {
-            throw new RuntimeException('Informe um nome completo com no mínimo 14 caracteres para o dependente, usando apenas letras, espaços, hífen ou apóstrofo.');
+            throw new RuntimeException('Informe um nome completo para o dependente usando apenas letras, espaços, hífen ou apóstrofo.');
         }
 
         $this->validarSelecaoUnicaCondicao($data);
@@ -370,7 +370,7 @@ class ProfileService
         }
 
         if (!validar_nome_cadastro((string) ($data['full_name'] ?? ''))) {
-            throw new RuntimeException('Informe um nome completo com no mínimo 14 caracteres para o dependente, usando apenas letras, espaços, hífen ou apóstrofo.');
+            throw new RuntimeException('Informe um nome completo para o dependente usando apenas letras, espaços, hífen ou apóstrofo.');
         }
 
         $this->validarSelecaoUnicaCondicao($data);

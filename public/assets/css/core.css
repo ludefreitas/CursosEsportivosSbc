@@ -448,16 +448,33 @@ body.pagina-error .site-header::after {
     text-decoration: underline;
 }
 
+.header-authenticated-name {
+    color: #fff;
+    font-size: clamp(0.86rem, 1.4vw, 1rem);
+    line-height: 1.25;
+}
+
+.header-authenticated-name strong {
+    font-weight: 800;
+}
+
+.name-document-hint {
+    color: #9c1f1f;
+    font-size: 0.78em;
+    font-weight: 500;
+}
+
 .site-header-register-invite {
     width: min(1180px, calc(100% - 32px));
     margin: 3px auto 0;
-    font-size: clamp(0.72rem, 1.2vw, 0.88rem);
+    font-size: clamp(0.82rem, 1.35vw, 0.96rem);
     font-weight: 700;
     line-height: 1.25;
 }
 
 .site-header-register-invite a {
     color: var(--color-primary, #14536a);
+    font-size: 1.08em;
     text-decoration: underline;
     text-underline-offset: 2px;
 }
@@ -2454,16 +2471,29 @@ input[readonly] + .date-entry-tools {
 
 .date-entry-tools {
     display: grid;
-    gap: 4px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
     min-width: 0;
 }
 
-.date-entry-tools .date-entry-toggle {
-    justify-self: start;
-    font-size: 0.85rem;
+.date-entry-tools .date-entry-text {
+    width: 100%;
+    min-width: 0;
+}
+
+.date-entry-tools .date-entry-calendar-toggle {
+    min-width: 42px;
+    min-height: 42px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 1.1rem;
 }
 
 .date-entry-error {
+    grid-column: 1 / -1;
     color: #a3212c;
 }
 

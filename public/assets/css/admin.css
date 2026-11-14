@@ -213,6 +213,8 @@
 .health-certificate-summary { display:inline-flex; align-items:flex-start; gap:5px; vertical-align:middle; }
 .health-certificate-summary-text { display:inline-flex; flex-direction:column; align-items:flex-start; line-height:1.2; }
 .health-certificate-summary-text small { display:flex; align-items:center; gap:5px; white-space:nowrap; }
+.health-certificate-new-submission { display:block; margin-top:3px; color:#c92828; font-weight:700; }
+.health-certificate-new-submission strong { color:#1767c4; }
 .course-certificate-line .health-certificate-summary { margin:2px 12px 2px 4px; }
 .class-certificate-state { display:inline-grid; place-items:center; margin-left:4px; font-weight:900; }.class-certificate-state.is-expired { width:18px;height:18px;border-radius:50%;background:#c92828;color:#fff; }.class-certificate-state.is-warning { color:#e87800; }.class-certificate-state.is-valid { color:#16843d; }
 .class-attendance-suspended { margin-top:18px;border:1px solid var(--line);border-radius:10px;overflow:hidden}.class-attendance-suspended h3{text-align:center;margin:0;padding:10px;background:#f5f6f6}.class-attendance-suspended>div{display:flex;justify-content:space-between;gap:12px;padding:12px;border-top:1px solid var(--line)}.class-enrollment-action.is-danger{color:#c92828}

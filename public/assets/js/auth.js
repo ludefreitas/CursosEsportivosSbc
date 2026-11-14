@@ -91,7 +91,7 @@
             return true;
         },
 
-        sincronizarCabecalhoAutenticado: function (adminAccessAllowed, professorAccessAllowed, internAccessAllowed) {
+        sincronizarCabecalhoAutenticado: function (adminAccessAllowed, professorAccessAllowed, internAccessAllowed, userName) {
             const $nav = $('.site-nav').first();
             const profileCompletionRequired = App.core.pageRequiresProfileCompletion() ? '1' : '0';
             const canAccessAdmin = typeof adminAccessAllowed === 'boolean'
@@ -110,6 +110,8 @@
 
             $('.header-login-form').remove();
             $('.site-header-register-invite').remove();
+            $('.header-authenticated-name').remove();
+            $('.site-header-access').append($('<span>', { class: 'header-authenticated-name' }).append('Olá, ', $('<strong>', { text: String(userName || 'Usuário') })));
 
             const navItems = [
                 '<a href="' + App.core.buildUrl('/') + '" class="nav-color-orange">Cursos</a>',
@@ -474,7 +476,8 @@
                         App.auth.sincronizarCabecalhoAutenticado(
                             !!response.admin_access_allowed,
                             !!response.professor_access_allowed,
-                            !!response.intern_access_allowed
+                            !!response.intern_access_allowed,
+                            String(response.authenticated_user_name || 'Usuário')
                         );
                         $('#site-header-certificate-alerts-region').html(String(response.header_certificate_alerts_html || ''));
                         $('#site-header-notifications-region, #user-notifications-modal').remove();
@@ -532,7 +535,7 @@
                         App.core.fecharPopupCustomizado('#popup-route-modal');
                     }
 
-                    App.core.abrirPopup('sucesso', mensagem, function () {
+                    const finalizarSucesso = function () {
                         if (removeClosestSelector !== '') {
                             $form.closest(removeClosestSelector).remove();
                         }
@@ -619,7 +622,12 @@
 
                             window.location.href = String(response.redirect);
                         }
-                    });
+                    };
+                    if (authenticatedSessionStarted) {
+                        finalizarSucesso();
+                    } else {
+                        App.core.abrirPopup('sucesso', mensagem, finalizarSucesso);
+                    }
                 }).fail(function (xhr) {
                     const erro = App.core.extrairMensagemErroAjax(xhr);
 

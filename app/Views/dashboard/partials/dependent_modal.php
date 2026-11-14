@@ -53,7 +53,7 @@
                 <h4>Identificação</h4>
                 <div class="dashboard-dependent-edit-grid dashboard-dependent-edit-grid-2">
                     <label>
-                        <span>Nome completo</span>
+                        <span>Nome completo <small class="name-document-hint">( preencha este campo com o nome e o sobrenome igual ao que consta no documento oficial )</small></span>
                         <input type="text" name="full_name" value="<?php echo e((string) ($dependent['nome_completo'] ?? '')); ?>" required>
                     </label>
                     <div>
