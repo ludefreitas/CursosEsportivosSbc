@@ -2497,7 +2497,7 @@ input[readonly] + .date-entry-tools {
     color: #a3212c;
 }
 
-#par-q-modal { z-index: 2400; }
+#par-q-modal { z-index: 10040; }
 
 .par-q-modal-card {
     display: flex;

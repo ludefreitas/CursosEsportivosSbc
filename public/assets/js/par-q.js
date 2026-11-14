@@ -48,7 +48,10 @@
     });
 
     $modal.on('click', '[data-par-q-close]', close).on('keydown', function (event) {
-        if (event.key === 'Escape') close();
+        if (event.key === 'Escape') {
+            event.stopPropagation();
+            close();
+        }
     }).on('change', 'input', function () {
         $(this).closest('[data-par-q-question], [data-par-q-term]').find('[data-par-q-inline-error]').remove();
     });
