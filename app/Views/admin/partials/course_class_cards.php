@@ -30,7 +30,7 @@ foreach (($courseClasses ?? []) as $class) {
             <strong>Temporadas</strong>
             <div class="admin-class-filter-line" data-class-filter-line="season">
                 <div class="admin-class-filter-options" data-class-filter-options="season">
-                    <?php $firstSeason = true; foreach ($availableSeasons as $seasonId => $seasonName) { ?>
+                    <?php $firstSeason = empty($focusedClasses); foreach ($availableSeasons as $seasonId => $seasonName) { ?>
                         <button type="button" class="btn btn-secondary admin-class-filter-button<?php echo $firstSeason ? ' is-active' : ''; ?>" data-class-season="<?php echo e($seasonId); ?>"><?php echo e($seasonName); ?></button>
                     <?php $firstSeason = false; } ?>
                 </div>
@@ -54,6 +54,13 @@ foreach (($courseClasses ?? []) as $class) {
             </div>
         </div>
         <p class="muted admin-class-result-summary" data-class-result-summary></p>
-        <div class="professor-classes-grid admin-classes-grid" data-class-results><p class="muted">Selecione <?php echo $groupByLocation ? 'um local' : 'uma modalidade'; ?> para consultar as turmas.</p></div>
+        <div class="professor-classes-grid admin-classes-grid" data-class-results>
+            <?php if (!empty($focusedClasses)) {
+                $courseClasses = $focusedClasses;
+                require ROOT_PATH . '/app/Views/admin/partials/course_class_card_list.php';
+            } else { ?>
+                <p class="muted">Selecione <?php echo $groupByLocation ? 'um local' : 'uma modalidade'; ?> para consultar as turmas.</p>
+            <?php } ?>
+        </div>
     <?php } ?>
 </article>

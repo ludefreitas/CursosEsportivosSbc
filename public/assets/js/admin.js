@@ -396,6 +396,10 @@
                 if (window.history && typeof window.history.replaceState === 'function') {
                     const currentUrl = new URL(window.location.href);
                     courseEnrollmentUrlKeys.forEach(function (key) { currentUrl.searchParams.delete(key); });
+                    currentUrl.searchParams.delete('visualizar_turma');
+                    if ((target === 'minhas-turmas' || target === 'turmas') && sectionParams && sectionParams.visualizar_turma) {
+                        currentUrl.searchParams.set('visualizar_turma', sectionParams.visualizar_turma);
+                    }
                     if (String(target || '') === 'inscricoes') {
                         const params = sectionParams || {};
                         courseEnrollmentUrlKeys.forEach(function (key) {
@@ -1440,7 +1444,10 @@
             const hash = String(window.location.hash || '').replace(/^#admin-/, '').trim();
 
             if (hash !== '') {
-                activateSection(hash, hash === 'inscricoes' ? courseEnrollmentParamsFromUrl() : undefined);
+                const focusedClass = new URLSearchParams(window.location.search).get('visualizar_turma');
+                const params = hash === 'inscricoes' ? courseEnrollmentParamsFromUrl() :
+                    ((hash === 'minhas-turmas' || hash === 'turmas') && focusedClass ? { visualizar_turma: focusedClass } : undefined);
+                activateSection(hash, params);
                 return;
             }
 

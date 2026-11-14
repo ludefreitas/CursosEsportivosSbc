@@ -443,7 +443,7 @@ class ProfessorController extends Controller
         }
         try {
             $attendance = $service->monthlyAttendanceList($classId, trim((string) ($_GET['mes'] ?? '')));
-            $attendance['backUrl'] = url('/professor') . '#admin-minhas-turmas';
+            $attendance['backUrl'] = url('/professor?visualizar_turma=' . $classId) . '#admin-minhas-turmas';
             extract($attendance, EXTR_SKIP);
             require ROOT_PATH . '/app/Views/courses/monthly_attendance_list.php';
         } catch (\Throwable $e) {
@@ -900,8 +900,12 @@ class ProfessorController extends Controller
         }
         if ($sectionName === 'minhas-turmas') {
             $courseService = new \App\Services\CourseEnrollmentService();
+            $focusedClassId = (int) ($_GET['visualizar_turma'] ?? 0);
+            $focusedClasses = $focusedClassId > 0
+                ? array_values(array_filter($courseService->listClassesForProfessor((int) $user['conta_id']), static fn(array $class): bool => (int) $class['id'] === $focusedClassId))
+                : [];
             $browser = $courseService->professorClassBrowser((int) ($user['conta_id'] ?? 0));
-            return ['sectionName' => $sectionName, 'professorView' => true, 'professorClassSeasons' => (array) ($browser['items'] ?? []),
+            return ['sectionName' => $sectionName, 'professorView' => true, 'professorClassSeasons' => (array) ($browser['items'] ?? []), 'focusedClasses' => $focusedClasses,
                 'courseSeasons' => $courseService->listSeasonsForManagement(), 'courseSeasonOrigins' => [],
                 'modalitySchedules' => $courseService->listModalitySchedulesForManagement(), 'courseProfessors' => $courseService->listProfessors(),
                 'courseInterns' => $courseService->listInterns(), 'courseModalitiesManagement' => $this->adminService->listModalitiesForManagement(),

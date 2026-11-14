@@ -2592,6 +2592,10 @@ class AdminController extends Controller
             $data['courseSeasons'] = $courseService->listSeasonsForManagement();
             $data['courseSeasonOrigins'] = $courseService->listSeasonOriginsForManagement();
             $data['courseClasses'] = $courseService->listClassesForManagement();
+            $focusedClassId = (int) ($_GET['visualizar_turma'] ?? 0);
+            if ($sectionName === 'turmas' && $focusedClassId > 0) {
+                $data['focusedClasses'] = array_values(array_filter($data['courseClasses'], static fn(array $class): bool => (int) $class['id'] === $focusedClassId));
+            }
             $data['modalitySchedules'] = $courseService->listModalitySchedulesForManagement();
             $data['courseProfessors'] = $courseService->listProfessors();
             $data['courseInterns'] = $courseService->listInterns();
@@ -3112,7 +3116,7 @@ class AdminController extends Controller
         $this->assertAdminAccess();
         try {
             $attendance = (new CourseEnrollmentService())->monthlyAttendanceList((int) ($_GET['turma_id'] ?? 0), trim((string) ($_GET['mes'] ?? '')));
-            $attendance['backUrl'] = url('/admin') . '#admin-temporadas-turmas';
+            $attendance['backUrl'] = url('/admin?visualizar_turma=' . (int) $attendance['class']['id']) . '#admin-turmas';
             extract($attendance, EXTR_SKIP);
             require ROOT_PATH . '/app/Views/courses/monthly_attendance_list.php';
         } catch (\Throwable $e) {

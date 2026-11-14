@@ -8,7 +8,13 @@
         <div class="professor-class-filter-step hidden" data-professor-class-step="modality"><div class="professor-class-filter-buttons"></div></div>
         <p class="muted hidden professor-class-loading" data-professor-class-loading="1">Carregando...</p>
         <p class="muted hidden" data-professor-class-result-count></p>
-        <div class="professor-classes-grid hidden" data-professor-class-results></div>
+        <div class="professor-classes-grid<?php echo empty($focusedClasses) ? ' hidden' : ''; ?>" data-professor-class-results>
+            <?php if (!empty($focusedClasses)) {
+                $courseManagementView = 'professor-turmas';
+                $courseClasses = $focusedClasses;
+                require ROOT_PATH . '/app/Views/admin/partials/course_class_card_list.php';
+            } ?>
+        </div>
     <?php } ?>
 </section>
 <?php

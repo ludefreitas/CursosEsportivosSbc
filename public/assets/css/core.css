@@ -1419,6 +1419,10 @@ body.pagina-error label span {
 .course-class-print-attendance-link:visited { color: var(--accent-green); font-weight: 800; text-decoration: underline; }
 .course-class-print-attendance-link:hover,
 .course-class-print-attendance-link:focus-visible { color: #146b39; }
+.course-class-monthly-attendance-link,
+.course-class-monthly-attendance-link:visited { color: #c65b00; font-weight: 800; text-decoration: underline; }
+.course-class-monthly-attendance-link:hover,
+.course-class-monthly-attendance-link:focus-visible { color: #a44800; }
 .course-class-address-list-link,
 .course-class-address-list-link:visited { color: #111; font-weight: 800; text-decoration: underline; }
 .course-class-address-list-link:hover,

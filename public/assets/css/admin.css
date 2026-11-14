@@ -205,7 +205,8 @@
 .class-attendance-list { display: grid; border: 1px solid var(--line); }
 .class-attendance-student { display: grid; gap: 9px; padding: 14px; border-bottom: 1px solid var(--line); }
 .class-attendance-student-head { display:flex; align-items:center; gap:10px; }
-.class-attendance-student-head .class-enrollment-action { margin-left:auto; font-size:.86rem; }
+.class-attendance-student-actions { display:flex; flex-direction:column; align-items:flex-end; gap:6px; margin-left:auto; text-align:right; }
+.class-attendance-student-actions .class-enrollment-action { font-size:.86rem; }
 .class-attendance-mark { display:inline-grid; place-items:center; width:28px; height:28px; border-radius:50%; font-weight:900; border:2px solid currentColor; }
 .class-attendance-mark.is-presente { color:#16843d; }.class-attendance-mark.is-ausente { color:#c92828; }.class-attendance-mark.is-justificado { color:#1767c4; }.class-attendance-mark.is-pending { color:#56626a; border-color:transparent; }
 .class-attendance-pdf { display:inline-block;color:#e87800;border:1px solid currentColor;border-radius:3px;padding:1px 3px;font-size:.65rem;font-weight:900;text-decoration:none;margin-right:5px; }
