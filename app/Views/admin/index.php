@@ -12,7 +12,7 @@
     <nav class="content-card admin-nav-card" aria-label="Menu da área administrativa">
         <div class="admin-nav">
             <button type="button" class="admin-nav-button" data-admin-nav-target="agenda">Agenda</button>
-            <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="pagina-ajuda">Ajuda e tutoriais <strong>Público</strong></button><?php } ?>
+            <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="pagina-ajuda">Ajuda e tutoriais <span class="admin-nav-subtitle">Público</span></button><?php } ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="ajuda">Ajuda e tutoriais<span class="admin-nav-subtitle">Professor</span></button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="validar-atestados">Atestados de saúde para validar</button>
             <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="blog">Blog</button><?php } ?>
@@ -21,8 +21,8 @@
             <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="configuracoes">Configurações</button><?php } ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="cronograma-turmas">Cronograma turmas</button>
             <a href="<?php echo e(url('/grades-de-horario')); ?>" class="admin-nav-button">Grades de horário</a>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="graficos-agendamento">Gráficos e indicadores <strong>Agenda</strong></button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="graficos">Gráficos e indicadores <strong>Turmas</strong></button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="graficos-agendamento">Gráficos e indicadores <span class="admin-nav-subtitle">Agenda</span></button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="graficos">Gráficos e indicadores <span class="admin-nav-subtitle">Turmas</span></button>
             <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Início</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="inscricoes">Inscrições em cursos</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="locais-espacos">Locais e espaços</button>
