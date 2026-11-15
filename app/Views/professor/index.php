@@ -14,22 +14,22 @@
 <div class="admin-sections-shell">
     <nav class="content-card admin-nav-card" aria-label="Menu da área do <?php echo !empty($internView) ? 'estagiário' : 'professor'; ?>">
         <div class="admin-nav">
-            <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Início</button>
-            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="ajuda">Ajuda e tutoriais</button><?php } ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="agenda">Agenda</button>
+            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="ajuda">Ajuda e tutoriais<span class="admin-nav-subtitle">Professor</span></button><?php } ?>
+            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="validar-atestados">Atestados de saúde para validar</button><?php } ?>
+            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="validar-condicoes">Condições que precisam de validação</button><?php } ?>
+            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="cronograma-turmas">Cronograma turmas</button><?php } ?>
             <?php if (empty($internView)) { ?><a href="<?php echo e(url('/grades-de-horario')); ?>" class="admin-nav-button">Grades de horário</a><?php } ?>
+            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="graficos-agendamento">Gráficos e indicadores <strong>Agenda</strong></button><?php } ?>
+            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="graficos">Gráficos e indicadores <strong>Turmas</strong></button><?php } ?>
+            <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Início</button>
             <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="inscricoes">Inscrições em cursos</button><?php } ?>
             <button type="button" class="admin-nav-button" data-staff-notifications-open="1">Minhas notificações</button>
-            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="modalidades">Modalidades</button><?php } ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="minhas-turmas">Minhas turmas</button>
-            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="turmas-criterio-etario">Turmas por critério etário</button><?php } ?>
-            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="cronograma-turmas">Cronograma turmas</button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="status-turmas">Status turmas</button><?php } ?>
+            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="modalidades">Modalidades</button><?php } ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-pessoas">Pessoas - alunos</button>
-            <?php if (empty($internView)) { ?>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="validar-condicoes">Condições que precisam de validação</button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="validar-atestados">Atestados de saúde para validar</button>
-            <?php } ?>
+            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="status-turmas">Status turmas</button><?php } ?>
+            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="turmas-criterio-etario">Turmas por critério etário</button><?php } ?>
         </div>
     </nav>
 

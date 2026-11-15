@@ -11,15 +11,19 @@
 <div class="admin-sections-shell">
     <nav class="content-card admin-nav-card" aria-label="Menu da área administrativa">
         <div class="admin-nav">
-            <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Início</button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="ajuda">Ajuda e tutoriais</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="agenda">Agenda</button>
+            <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="pagina-ajuda">Ajuda e tutoriais <strong>Público</strong></button><?php } ?>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="ajuda">Ajuda e tutoriais<span class="admin-nav-subtitle">Professor</span></button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="validar-atestados">Atestados de saúde para validar</button>
             <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="blog">Blog</button><?php } ?>
-            <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="configuracoes">Configurações</button><?php } ?>
             <?php if (has_role($user['roles'] ?? [], 'master_admin') || has_role($user['roles'] ?? [], 'admin')) { ?><a href="<?php echo e(url('/admin/cartazes')); ?>" class="admin-nav-button">Cartaz de divulgação</a><?php } ?>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="validar-condicoes">Condições que precisam de validação</button>
+            <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="configuracoes">Configurações</button><?php } ?>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="cronograma-turmas">Cronograma turmas</button>
             <a href="<?php echo e(url('/grades-de-horario')); ?>" class="admin-nav-button">Grades de horário</a>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="graficos">Gráficos e indicadores</button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="graficos-agendamento">Gráficos do agendamento</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="graficos-agendamento">Gráficos e indicadores <strong>Agenda</strong></button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="graficos">Gráficos e indicadores <strong>Turmas</strong></button>
+            <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Início</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="inscricoes">Inscrições em cursos</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="locais-espacos">Locais e espaços</button>
             <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="migracao-atestados">Migração de atestados</button><?php } ?>
@@ -27,20 +31,16 @@
             <button type="button" class="admin-nav-button" data-admin-nav-target="modalidades">Modalidade</button>
             <button type="button" class="admin-nav-button" data-staff-notifications-open="1">Notificações enviadas</button>
             <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="outras-areas">Outras áreas</button><?php } ?>
-            <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="pagina-ajuda">Página de ajuda</button><?php } ?>
             <?php if (!empty($canEditProfessorPage)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="pagina-professor">Página do professor</button><?php } ?>
             <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="pagina-home">Página home</button><?php } ?>
             <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-pessoas">Pessoas - alunos</button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="validar-condicoes">Condições que precisam de validação</button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="validar-atestados">Atestados de saúde para validar</button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="correcao-de-dados">Solicitações de correção de dados</button>
             <?php if (!empty($canAccessMasterSections)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="pop-ups">Pop-ups</button><?php } ?>
             <?php if (!empty($canAccessMasterSections)) { ?><a class="admin-nav-button" href="<?php echo e(url('/admin-recuperacao-dados')); ?>">Reversão de testes</a><?php } ?>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="temporadas">Temporadas</button>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="turmas-locais">Turmas por local</button>
-            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="turmas-criterio-etario">Turmas por critério etário</button><?php } ?>
-            <button type="button" class="admin-nav-button" data-admin-nav-target="cronograma-turmas">Cronograma turmas</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="correcao-de-dados">Solicitações de correção de dados</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="status-turmas">Status turmas</button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="temporadas">Temporadas</button>
+            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="turmas-criterio-etario">Turmas por critério etário</button><?php } ?>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="turmas-locais">Turmas por local</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="turmas">Turmas por modalidade</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios">Usuários</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="usuarios-online">Usuários online</button>

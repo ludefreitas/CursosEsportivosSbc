@@ -18,22 +18,48 @@ class AdminChartService
         'excluida' => 'Excluída', 'excluida_por_falta' => 'Excluída por falta', 'desistente' => 'Desistente',
     ];
 
-    public function __construct(private ?PDO $pdo = null) {}
+    public function __construct(private ?PDO $pdo = null, private ?int $professorAccountId = null) {}
 
     private function connection(): PDO { return $this->pdo ?? Database::connection(); }
 
+    private function scope(): array
+    {
+        if ($this->professorAccountId === null) {
+            return ['1=1', []];
+        }
+        return [
+            '(t.professor_conta_id = :principal OR EXISTS (SELECT 1 FROM turmas_professores equipe_vinculo
+                WHERE equipe_vinculo.turma_id = t.id AND equipe_vinculo.professor_conta_id = :auxiliar))',
+            [':principal' => $this->professorAccountId, ':auxiliar' => $this->professorAccountId],
+        ];
+    }
+
     public function seasons(): array
     {
+        if ($this->professorAccountId !== null) {
+            [$scope, $params] = $this->scope();
+            $statement = $this->connection()->prepare("SELECT DISTINCT s.id, s.nome, s.data_inicio, s.data_fim, s.status
+                FROM temporadas s JOIN turmas t ON t.temporada_id = s.id WHERE $scope ORDER BY s.data_inicio, s.id");
+            $statement->execute($params);
+            return $statement->fetchAll(PDO::FETCH_ASSOC);
+        }
         return $this->connection()->query('SELECT id, nome, data_inicio, data_fim, status FROM temporadas ORDER BY data_inicio, id')->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function options(): array
     {
         $pdo = $this->connection();
+        [$scope, $params] = $this->scope();
+        $options = static function (string $sql) use ($pdo, $params): array {
+            $statement = $pdo->prepare($sql);
+            $statement->execute($params);
+            return $statement->fetchAll(PDO::FETCH_ASSOC);
+        };
         return [
             'seasons' => $this->seasons(),
-            'locations' => $pdo->query("SELECT DISTINCT l.id, COALESCE(NULLIF(TRIM(l.apelido_local), ''), l.nome_local) AS nome FROM locais_treino l INNER JOIN turmas t ON t.local_treino_id=l.id ORDER BY nome, l.id")->fetchAll(PDO::FETCH_ASSOC),
-            'modalities' => $pdo->query('SELECT DISTINCT m.id, m.nome FROM modalidades m INNER JOIN turmas t ON t.modalidade_id=m.id ORDER BY m.nome, m.id')->fetchAll(PDO::FETCH_ASSOC),
+            'classes' => $this->professorAccountId === null ? [] : $options("SELECT t.id, t.nome FROM turmas t WHERE $scope ORDER BY t.nome, t.id"),
+            'locations' => $options("SELECT DISTINCT l.id, COALESCE(NULLIF(TRIM(l.apelido_local), ''), l.nome_local) AS nome FROM locais_treino l INNER JOIN turmas t ON t.local_treino_id=l.id WHERE $scope ORDER BY nome, l.id"),
+            'modalities' => $options("SELECT DISTINCT m.id, m.nome FROM modalidades m INNER JOIN turmas t ON t.modalidade_id=m.id WHERE $scope ORDER BY m.nome, m.id"),
             'publics' => self::PUBLICS, 'statuses' => self::STATUSES, 'max_seasons' => self::MAX_SEASONS,
         ];
     }
@@ -95,6 +121,13 @@ class AdminChartService
         $where = 't.temporada_id IN (' . implode(',', $placeholders) . ')';
         if ($filters['location']) { $where .= ' AND t.local_treino_id=:local'; $params[':local'] = $filters['location']; }
         if ($filters['modality']) { $where .= ' AND t.modalidade_id=:modalidade'; $params[':modalidade'] = $filters['modality']; }
+        [$scope, $scopeParams] = $this->scope();
+        $where .= ' AND ' . $scope;
+        $params += $scopeParams;
+        if ($this->professorAccountId !== null && !empty($input['turma_id'])) {
+            $where .= ' AND t.id = :turma_painel';
+            $params[':turma_painel'] = $this->positiveInt($input['turma_id'], 'a turma');
+        }
         $pdo = $this->connection();
         $statement = $pdo->prepare("SELECT t.idade_minima,t.idade_maxima,t.criterio_faixa_etaria,t.professor_conta_id, principal.nome_completo AS professor_nome,t.id,t.temporada_id,t.nome,t.local_treino_id,t.modalidade_id,t.status,t.hora_inicio,t.hora_fim,t.dias_semana,t.vagas_totais,t.vagas_geral,t.vagas_pcd,t.vagas_plm,t.vagas_pvs,
             COALESCE(NULLIF(TRIM(l.apelido_local), ''),l.nome_local) AS local_nome,m.nome AS modalidade_nome
@@ -108,7 +141,14 @@ class AdminChartService
             $team->execute($params);
             foreach ($team->fetchAll(PDO::FETCH_ASSOC) as $member) $teams[(int)$member['id']][$kind][] = $member['nome_completo'];
         }
-        foreach ($classes as &$class) $class['equipe'] = $teams[(int)$class['id']] ?? [];
+        foreach ($classes as &$class) {
+            $class['equipe'] = $teams[(int) $class['id']] ?? [];
+            if ($this->professorAccountId !== null) {
+                $principal = (int) $class['professor_conta_id'] === $this->professorAccountId;
+                $class['professor_conta_id'] = $principal ? 1 : 2;
+                $class['professor_nome'] = $principal ? 'Professor principal' : 'Professor auxiliar';
+            }
+        }
         unset($class);
         // O status escolhido não entra neste WHERE: a reserva de vagas exige todos os status ocupantes.
         $statement = $pdo->prepare("SELECT i.turma_id,i.publico_alvo,i.status,COUNT(*) AS total FROM inscricoes_turma i INNER JOIN turmas t ON t.id=i.turma_id WHERE $where GROUP BY i.turma_id,i.publico_alvo,i.status");
@@ -116,19 +156,32 @@ class AdminChartService
         $result = $this->aggregate($classes, $statement->fetchAll(PDO::FETCH_ASSOC), $seasons, $filters);
         $statement = $pdo->prepare("SELECT i.turma_id,i.publico_alvo,i.status,COUNT(*) AS total FROM inscricoes_turma i INNER JOIN turmas t ON t.id=i.turma_id WHERE $where AND i.created_at>=:procura_de AND i.created_at<:procura_fim GROUP BY i.turma_id,i.publico_alvo,i.status");
         $statement->execute($params+[':procura_de'=>$filters['demand_from'].' 00:00:00',':procura_fim'=>(new \DateTimeImmutable($filters['demand_to']))->modify('+1 day')->format('Y-m-d').' 00:00:00']);
-        $result['demand'] = $this->aggregateDemand($classes,$statement->fetchAll(PDO::FETCH_ASSOC),(new CourseInterestService($pdo))->report($filters),$filters);
+        $classIds = $this->professorAccountId === null ? null : array_map('intval', array_column($classes, 'id'));
+        $result['demand'] = $this->aggregateDemand($classes, $statement->fetchAll(PDO::FETCH_ASSOC), (new CourseInterestService($pdo))->report($filters, $classIds), $filters);
         $result['age_relationships'] = $this->ageRelationships($where, $params, $classes, $seasons, $filters, $result['professors'], $input);
         $result['enrollment_trend'] = $this->enrollmentTrend($where, $params, $classes, $filters, $input);
-        $result['movements'] = (new EnrollmentMovementService($pdo))->report($filters);
+        $result['movements'] = (new EnrollmentMovementService($pdo))->report($filters, $classIds);
         $result['attendance'] = (new CourseAttendanceChartService($pdo))->report($where,$params,$filters,$input);
-        $attendance = array_column($result['attendance']['groups']['professors'] ?? [], null, 'id');
         $classAttendance = array_column($result['attendance']['groups']['classes'] ?? [], null, 'id');
         foreach ($result['professors'] as &$professor) {
             foreach ($professor['rows'] as &$row) $row['frequency'] = ($result['attendance']['available'] ?? false) ? ($classAttendance[$row['id']] ?? ['records'=>0,'attendance'=>null]) : null;
             unset($row);
-            $professor['frequency'] = ($result['attendance']['available'] ?? false) ? ($attendance[$professor['id']] ?? ['present'=>0,'absent'=>0,'justified'=>0,'records'=>0,'attendance'=>null]) : null;
+            $professor['frequency'] = null;
+            if ($result['attendance']['available'] ?? false) {
+                $frequency = ['present' => 0, 'absent' => 0, 'justified' => 0, 'records' => 0];
+                foreach ($professor['rows'] as $row) {
+                    foreach ($frequency as $key => $value) {
+                        $frequency[$key] += (int) ($row['frequency'][$key] ?? 0);
+                    }
+                }
+                $frequency['attendance'] = $frequency['records'] ? round(100 * $frequency['present'] / $frequency['records'], 1) : null;
+                $professor['frequency'] = $frequency;
+            }
         }
         unset($professor);
+        if ($this->professorAccountId !== null) {
+            unset($result['attendance']['groups']['professors']);
+        }
         return $result;
     }
 

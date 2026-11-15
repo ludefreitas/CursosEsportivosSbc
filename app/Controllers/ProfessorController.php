@@ -34,8 +34,8 @@ class ProfessorController extends Controller
     {
         $user = $this->assertProfessorAccess();
         $sectionName = (string) ($_GET['nome'] ?? 'inicio');
-        if (in_array($sectionName, ['ajuda', 'inscricoes', 'modalidades', 'turmas-criterio-etario', 'validar-condicoes', 'validar-atestados'], true)) { $this->assertProfessorMutationAccess(); }
-        if (!in_array($sectionName, ['ajuda', 'inicio', 'usuarios-pessoas', 'validar-condicoes', 'validar-atestados', 'inscricoes', 'minhas-turmas', 'cronograma-turmas', 'status-turmas', 'agenda', 'modalidades', 'turmas-criterio-etario'], true)) {
+        if (in_array($sectionName, ['ajuda', 'inscricoes', 'modalidades', 'turmas-criterio-etario', 'validar-condicoes', 'validar-atestados', 'graficos', 'graficos-agendamento'], true)) { $this->assertProfessorMutationAccess(); }
+        if (!in_array($sectionName, ['graficos', 'graficos-agendamento', 'ajuda', 'inicio', 'usuarios-pessoas', 'validar-condicoes', 'validar-atestados', 'inscricoes', 'minhas-turmas', 'cronograma-turmas', 'status-turmas', 'agenda', 'modalidades', 'turmas-criterio-etario'], true)) {
             $this->jsonResponse(['success' => false, 'message' => 'A seção não está disponível para professores.'], 403);
             return;
         }
@@ -226,6 +226,30 @@ class ProfessorController extends Controller
             );
             $this->jsonResponse($events);
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
+    }
+
+    public function agendaChartData(): void
+    {
+        $user = $this->assertProfessorMutationAccess();
+        try {
+            $service = new \App\Services\AgendaChartService(professorAccountId: (int) $user['conta_id']);
+            $this->jsonResponse(['success' => true, 'data' => $service->report($_GET)]);
+        } catch (\Throwable $error) {
+            $this->jsonResponse(['success' => false, 'message' => $error instanceof \PDOException
+                ? 'Não foi possível consultar os indicadores de agendamento.' : $error->getMessage()], 422);
+        }
+    }
+
+    public function chartData(): void
+    {
+        $user = $this->assertProfessorMutationAccess();
+        try {
+            $service = new \App\Services\AdminChartService(professorAccountId: (int) $user['conta_id']);
+            $this->jsonResponse(['success' => true, 'data' => $service->report($_GET)]);
+        } catch (\Throwable $error) {
+            $this->jsonResponse(['success' => false, 'message' => $error instanceof \PDOException
+                ? 'Não foi possível consultar os indicadores.' : $error->getMessage()], 422);
+        }
     }
 
     public function classBrowser(): void
@@ -844,6 +868,14 @@ class ProfessorController extends Controller
                 'courseSeasons' => $courseService->listSeasonsForManagement(), 'modalitySchedules' => $courseService->listModalitySchedulesForManagement()];
         }
         if ($sectionName === 'inicio') { return ['sectionName' => $sectionName, 'professorView' => true]; }
+        if ($sectionName === 'graficos-agendamento') {
+            $service = new \App\Services\AgendaChartService(professorAccountId: (int) $user['conta_id']);
+            return ['sectionName' => $sectionName, 'professorView' => true, 'agendaChartOptions' => $service->options()];
+        }
+        if ($sectionName === 'graficos') {
+            $service = new \App\Services\AdminChartService(professorAccountId: (int) $user['conta_id']);
+            return ['sectionName' => $sectionName, 'professorView' => true, 'chartOptions' => $service->options()];
+        }
         if ($sectionName === 'validar-condicoes') {
             return ['sectionName' => $sectionName, 'professorView' => true, 'conditionValidationRows' => $this->adminService->listPeopleRequiringConditionValidation()];
         }

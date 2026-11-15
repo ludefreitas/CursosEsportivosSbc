@@ -5,6 +5,10 @@ if (($argv[1]??'')==='--database') {createAgendaChartDatabase('sqlite:'.$argv[2]
 use App\Services\AgendaChartService;
 function agendaExpect(bool $pass,string $message): void {if(!$pass)throw new RuntimeException($message);}
 $db=createAgendaChartDatabase();$service=new AgendaChartService($db,new DateTimeImmutable('2026-10-25 12:00:00'));
+$db->exec('ALTER TABLE horarios_semanais ADD COLUMN professor_conta_id INTEGER;
+    UPDATE horarios_semanais SET professor_conta_id = CASE id WHEN 1 THEN 101 ELSE 102 END;
+    CREATE TABLE horarios_semanais_professores (horario_semanal_id INTEGER, professor_conta_id INTEGER);
+    INSERT INTO horarios_semanais_professores VALUES (1,101),(1,103)');
 $db->exec('PRAGMA query_only=ON');
 $f=['from'=>'2026-10-01','to'=>'2026-10-31'];$r=$service->report($f);$t=$r['totals'];
 agendaExpect($t['offered']===66 && $t['sessions']===8 && $t['closed']===2,'Oferta por ocorrência, sessões vazias e exclusão de fechamentos/suspensões.');
@@ -17,6 +21,19 @@ $future=$service->report(['from'=>'2026-10-26','to'=>'2026-10-31']);agendaExpect
 $special=$service->report($f+['type'=>'special']);agendaExpect(!$special['attendance_available'] && $special['totals']['offered']===32 && $special['totals']['unassessed']===1 && $special['totals']['future']===1 && $special['totals']['cancelled']===1,'Especiais sem chamada.');
 $filtered=$service->report($f+['locations'=>['1'],'modalities'=>['1'],'spaces'=>['1'],'hour'=>'08:00','weekday'=>'1','period'=>'manha']);agendaExpect($filtered['totals']['offered']===42 && $filtered['totals']['sessions']===4,'Combinação dos filtros.');
 $comparison=$service->report($f+['compare'=>'1']);agendaExpect($comparison['comparison']['to']==='2026-09-30' && $comparison['comparison']['from']==='2026-08-31','Comparação de intervalos inclusivos.');
+$principal = new AgendaChartService($db, new DateTimeImmutable('2026-10-25 12:00:00'), 101);
+$auxiliar = new AgendaChartService($db, new DateTimeImmutable('2026-10-25 12:00:00'), 103);
+$principalReport = $principal->report($f);
+agendaExpect($principalReport['totals']['offered'] === 42 && $principalReport['totals']['reserved'] === 6, 'O escopo deve excluir o horário externo e evitar dupla contagem.');
+agendaExpect($auxiliar->report($f)['totals'] === $principalReport['totals'], 'Auxiliar deve ver os mesmos indicadores do horário vinculado.');
+agendaExpect(array_map('intval', array_column($auxiliar->options()['locations'], 'id')) === [1], 'A lista de locais deve respeitar os vínculos.');
+agendaExpect($auxiliar->report($f + ['locations' => ['2']])['totals']['offered'] === 0, 'Um filtro externo não pode ampliar o escopo.');
+try {
+    $auxiliar->report($f + ['type' => 'special']);
+    throw new LogicException('Horários especiais foram liberados para o professor.');
+} catch (RuntimeException $error) {
+    agendaExpect(str_contains($error->getMessage(), 'horários semanais'), 'A consulta deve explicar a disponibilidade do painel.');
+}
 $paged=$service->report(['from'=>'2026-10-01','to'=>'2027-09-30','page'=>'2']);
 agendaExpect($paged['details']['page']===2 && count($paged['details']['items'])===30 && $paged['details']['pages']>2,'Paginação sem truncar os totais.');
 foreach([['from'=>'2026-02-30'],['from'=>'2024-01-01'],['from'=>'2027-01-01'],['period'=>'x'],['locations'=>['1 OR 1=1']],['hour'=>'25:00']] as $invalid){try{$service->report(array_merge($f,$invalid));throw new LogicException('Filtro inválido aceito.');}catch(RuntimeException $e){}}

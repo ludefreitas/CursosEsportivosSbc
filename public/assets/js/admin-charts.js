@@ -38,7 +38,7 @@
         const form = this.form;
         const get = name => form.elements.namedItem(name).value;
         const ageRange = this.customAgeRange || {};
-        return { ...ageRange, evolucao_ano: this.find('[data-enrollment-trend-year]').value, modo: get('modo'), max_temporadas: get('max_temporadas'), temporadas: Array.from(form.querySelectorAll('[name="temporadas[]"]:checked'), input => input.value), de: get('de'), ate: get('ate'), local_id: get('local_id'), modalidade_id: get('modalidade_id'), publico: get('publico'), status: get('status'), procura_de: get('procura_de'), procura_ate: get('procura_ate'), periodo: get('periodo'), pagina: page || 1, ...(this.find('[data-attendance-from]').value ? {frequencia_de:this.find('[data-attendance-from]').value}:{}), ...(this.find('[data-attendance-to]').value ? {frequencia_ate:this.find('[data-attendance-to]').value}:{}), ...(this.find('[data-attendance-monitor-from]').value ? {monitor_de:this.find('[data-attendance-monitor-from]').value}:{}), ...(this.find('[data-attendance-monitor-to]').value ? {monitor_ate:this.find('[data-attendance-monitor-to]').value}:{}), monitor_turma:this.find('[data-attendance-class]').value, monitor_situacao:this.find('[data-attendance-state]').value, monitor_pagina:this.attendanceUI?.page||1 };
+        return { ...ageRange, evolucao_ano: this.find('[data-enrollment-trend-year]').value, modo: get('modo'), max_temporadas: get('max_temporadas'), temporadas: Array.from(form.querySelectorAll('[name="temporadas[]"]:checked'), input => input.value), de: get('de'), ate: get('ate'), local_id: get('local_id'), modalidade_id: get('modalidade_id'), turma_id: form.elements.namedItem('turma_id')?.value || '', publico: get('publico'), status: get('status'), procura_de: get('procura_de'), procura_ate: get('procura_ate'), periodo: get('periodo'), pagina: page || 1, ...(this.find('[data-attendance-from]').value ? {frequencia_de:this.find('[data-attendance-from]').value}:{}), ...(this.find('[data-attendance-to]').value ? {frequencia_ate:this.find('[data-attendance-to]').value}:{}), ...(this.find('[data-attendance-monitor-from]').value ? {monitor_de:this.find('[data-attendance-monitor-from]').value}:{}), ...(this.find('[data-attendance-monitor-to]').value ? {monitor_ate:this.find('[data-attendance-monitor-to]').value}:{}), monitor_turma:this.find('[data-attendance-class]').value, monitor_situacao:this.find('[data-attendance-state]').value, monitor_pagina:this.attendanceUI?.page||1 };
     };
 
     Controller.prototype.validate = function (values) {
@@ -292,15 +292,16 @@
     };
 
     Controller.prototype.drawProfessors = function () {
+        const ownClasses = this.root.hasAttribute('data-professor-charts');
         const all = this.data.professors || [], select = this.find('[data-chart-professor]'), selected = select.value;
-        select.innerHTML = '<option value="">Todos os professores</option>' + [...all].sort((a,b)=>a.label.localeCompare(b.label,'pt-BR')).map(row=>'<option value="'+row.id+'">'+escape(row.label)+'</option>').join('');
+        select.innerHTML = '<option value="">' + (ownClasses ? 'Todas as funções' : 'Todos os professores') + '</option>' + [...all].sort((a,b)=>a.label.localeCompare(b.label,'pt-BR')).map(row=>'<option value="'+row.id+'">'+escape(row.label)+'</option>').join('');
         select.value = selected;
         if (select.selectedIndex < 0) select.value = '';
         const rows = all.filter(row=>select.value === '' || String(row.id) === select.value);
         const total = key=>rows.reduce((sum,row)=>sum+row[key],0);
-        this.find('[data-chart-professor-stats]').innerHTML = [['Professores principais', rows.filter(row=>row.id>0).length],['Turmas',total('classes')],['Matrículas realizadas',total('enrolled')],['Aguardando matrícula',total('awaiting_enrollment')],['Fila de espera',total('waiting_list')],['Vagas disponíveis',total('available')]].map(([label,value])=>'<div class="chart-stat"><span>'+label+'</span><strong>'+number(value)+'</strong></div>').join('');
+        this.find('[data-chart-professor-stats]').innerHTML = [...(ownClasses ? [] : [['Professores principais', rows.filter(row=>row.id>0).length]]),['Turmas',total('classes')],['Matrículas realizadas',total('enrolled')],['Aguardando matrícula',total('awaiting_enrollment')],['Fila de espera',total('waiting_list')],['Vagas disponíveis',total('available')]].map(([label,value])=>'<div class="chart-stat"><span>'+label+'</span><strong>'+number(value)+'</strong></div>').join('');
         const attendance = this.data.attendance;
-        this.find('[data-chart-professor-frequency-range]').textContent = attendance?.available ? attendance.from.split('-').reverse().join('/')+' a '+attendance.to.split('-').reverse().join('/')+' · até 10 professores por gráfico' : 'Dados de frequência indisponíveis.';
+        this.find('[data-chart-professor-frequency-range]').textContent = attendance?.available ? attendance.from.split('-').reverse().join('/')+' a '+attendance.to.split('-').reverse().join('/')+ (ownClasses ? '' : ' · até 10 professores por gráfico') : 'Dados de frequência indisponíveis.';
         for (const key of ['classes','enrollments','attendance']) {
             const ranked = rows.filter(row=>key !== 'attendance' || row.frequency?.records>0).sort((a,b)=>((key==='attendance'?b.frequency.attendance:b[key])-(key==='attendance'?a.frequency.attendance:a[key])) || a.label.localeCompare(b.label,'pt-BR')).slice(0,10);
             const maximum = key==='attendance'?100:Math.max(1,...ranked.map(row=>row[key]));
@@ -335,7 +336,7 @@
                 ? demand[measure][kind].map(item => bars([item], unit, color, Math.max(1, ...demand[measure][kind].map(period => period.count))) + '<details class="chart-period-modalities"><summary>Ver modalidades de ' + escape(item.label.toLocaleLowerCase('pt-BR')) + '</summary>' + bars(item.modalities || [], unit, color) + '</details>').join('')
                 : bars(demand[measure][kind], unit, color);
         }
-        for (const kind of ['locations','modalities']) this.find('[data-chart-navigation="' + kind + '"]').innerHTML = demand.clicks_available ? bars(demand.navigation[kind], 'cliques', 'var(--chart-teal)') : '<p class="muted">Contagem de cliques ainda não disponível.</p>';
+        for (const kind of ['locations','modalities']) if (this.find('[data-chart-navigation="' + kind + '"]')) this.find('[data-chart-navigation="' + kind + '"]').innerHTML = demand.clicks_available ? bars(demand.navigation[kind], 'cliques', 'var(--chart-teal)') : '<p class="muted">Contagem de cliques ainda não disponível.</p>';
     };
 
     Controller.prototype.drawGroups = function () {
@@ -403,7 +404,7 @@
         initialize: function (scope) {
             const root = (scope || document).querySelector('[data-admin-charts]');
             if (active && active.root !== root) { active.destroy(); active = null; }
-            if (root && !active) active = new Controller(root);
+            if (root && !active && root.querySelector('[data-chart-form]')) active = new Controller(root);
         }
     };
 }(window, window.jQuery));

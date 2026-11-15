@@ -98,6 +98,30 @@ expectChart(array_column($periods['madrugada']['modalities'],'label')===['Nataç
 expectChart(array_column($periods['madrugada']['modalities'],'count')===[3,2],'Preservar os totais por modalidade dentro do período.');
 expectChart($periods['manha']['count']===0,'Não contabilizar 05h59 como manhã.');
 
+$scoped = new AdminChartService($clickPdo, 102);
+$interest->record('turma', 2);
+$scopedReport = $scoped->report($filters);
+$roles = array_column($scopedReport['professors'], null, 'label');
+expectChart($scopedReport['totals']['classes'] === 2 && $scopedReport['totals']['enrollments'] === 16, 'Escopo deve incluir apenas turmas como principal ou auxiliar.');
+expectChart($roles['Professor principal']['rows'][0]['id'] === 3 && $roles['Professor auxiliar']['rows'][0]['id'] === 1, 'Classificação incorreta por função na turma.');
+expectChart($scoped->report($filters + ['turma_id' => 2])['totals']['classes'] === 0, 'Um ID externo não pode ampliar o escopo.');
+expectChart($scoped->report($filters + ['turma_id' => 1])['totals']['classes'] === 1, 'Filtro por turma vinculada não aplicado.');
+expectChart($scopedReport['demand']['navigation'] === ['locations' => [], 'modalities' => []], 'Cliques sem turma não devem aparecer no painel do professor.');
+expectChart(!in_array(2, array_column($scopedReport['demand']['clicks']['classes'], 'id'), true), 'Cliques de turma externa não devem aparecer no painel do professor.');
+$clickPdo->exec("CREATE TABLE movimentacoes_inscricoes (
+    id INTEGER, operacao_uuid TEXT, modo TEXT, turma_origem_id INTEGER, inscricao_origem_id INTEGER,
+    turma_destino_id INTEGER, inscricao_destino_id INTEGER, created_at TEXT, excluida_em TEXT,
+    periodo_destino TEXT, modalidade_destino_id INTEGER, realizado_por_conta_id INTEGER
+);
+INSERT INTO movimentacoes_inscricoes VALUES
+    (1,'entrada','copiar',2,20,1,10,'2025-06-15 10:00:00',NULL,'noite',1,101),
+    (2,'saida','substituir',1,10,2,21,'2025-06-15 10:00:00',NULL,'noite',1,101),
+    (3,'externa','copiar',2,20,2,22,'2025-06-15 10:00:00',NULL,'noite',1,101)");
+$movements = $scoped->report($interval + ['turma_id' => 1])['movements'];
+expectChart($movements['totals']['operacoes'] === 2, 'Movimentações devem incluir entrada e saída da turma selecionada.');
+expectChart($movements['recent'][0]['turma_destino_id'] === null && $movements['recent'][1]['turma_origem_id'] === null
+    && !isset($movements['recent'][0]['usuario']), 'Movimentação expôs dados de turma fora da seleção.');
+
 $calendarDb=createChartTestDatabase();
 $calendarDb->exec("INSERT INTO inscricoes_turma(turma_id,publico_alvo,status,created_at) VALUES (1,'geral','matriculada','2024-01-01 00:00:00'),(1,'geral','matriculada','2024-02-29 12:00:00'),(1,'geral','matriculada','2024-12-31 23:59:59'),(1,'geral','matriculada','2025-01-01 00:00:00')");
 $calendarTrend=(new AdminChartService($calendarDb))->report($filters+['evolucao_ano'=>2024])['enrollment_trend'];

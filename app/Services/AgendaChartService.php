@@ -13,15 +13,37 @@ final class AgendaChartService
     public const PUBLICS = ['geral'=>'Geral', 'pcd'=>'PCD', 'plm'=>'PLM', 'pvs'=>'PVS'];
     public const PERIODS = ['manha'=>'Manhã', 'tarde'=>'Tarde', 'noite'=>'Noite'];
     private const COUNTS = ['offered','reserved','present','absent','justified','cancelled','pending','future','unassessed','other','available','sessions','closed'];
-    public function __construct(private ?PDO $pdo = null, private ?DateTimeImmutable $now = null) {}
+    public function __construct(private ?PDO $pdo = null, private ?DateTimeImmutable $now = null, private ?int $professorAccountId = null) {}
     private function db(): PDO { return $this->pdo ?? Database::connection(); }
     private function now(): DateTimeImmutable { return $this->now ?? new DateTimeImmutable('now', new DateTimeZone('America/Sao_Paulo')); }
     private function query(string $sql, array $params = []): array
     {
         $stmt = $this->db()->prepare($sql); $stmt->execute($params); return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+    private function professorScope(): array
+    {
+        if ($this->professorAccountId === null) {
+            return ['1=1', []];
+        }
+        return [
+            '(s.professor_conta_id = :principal OR EXISTS (
+                SELECT 1 FROM horarios_semanais_professores equipe
+                WHERE equipe.horario_semanal_id = s.id AND equipe.professor_conta_id = :auxiliar
+            ))',
+            [':principal' => $this->professorAccountId, ':auxiliar' => $this->professorAccountId],
+        ];
+    }
+
     public function options(): array
     {
+        if ($this->professorAccountId !== null) {
+            [$scope, $params] = $this->professorScope();
+            return [
+                'locations' => $this->query("SELECT DISTINCT l.id, l.nome_local AS nome, l.apelido_local FROM horarios_semanais s JOIN locais_treino l ON l.id=s.local_treino_id WHERE $scope ORDER BY l.nome_local", $params),
+                'modalities' => $this->query("SELECT DISTINCT m.id, m.nome FROM horarios_semanais s JOIN modalidades m ON m.id=s.modalidade_id WHERE $scope ORDER BY m.nome", $params),
+                'spaces' => $this->query("SELECT DISTINCT e.id, e.nome, e.local_treino_id FROM horarios_semanais s JOIN espacos_treino e ON e.id=s.espaco_treino_id WHERE $scope ORDER BY e.nome", $params),
+            ];
+        }
         return ['locations'=>$this->query('SELECT id, nome_local AS nome, apelido_local FROM locais_treino ORDER BY nome_local'),
             'modalities'=>$this->query('SELECT id, nome FROM modalidades ORDER BY nome'),
             'spaces'=>$this->query('SELECT id, nome, local_treino_id FROM espacos_treino ORDER BY nome')];
@@ -58,7 +80,11 @@ final class AgendaChartService
     }
     public function report(array $input): array
     {
-        $f=$this->filters($input); $result=$this->build($f);
+        $f = $this->filters($input);
+        if ($this->professorAccountId !== null && $f['type'] !== 'weekly') {
+            throw new RuntimeException('O painel do professor está disponível para horários semanais vinculados à conta.');
+        }
+        $result = $this->build($f);
         if (($input['compare']??'')==='1') {
             $days=(new DateTimeImmutable($f['from']))->diff(new DateTimeImmutable($f['to']))->days+1;
             $previous=$f; $previous['to']=(new DateTimeImmutable($f['from']))->modify('-1 day')->format('Y-m-d');
@@ -91,8 +117,14 @@ final class AgendaChartService
             }
             $closures=[]; $suspensions=[];
         } else {
-            $schedules=$this->query('SELECT '.$names.' FROM horarios_semanais s'.$join.' WHERE s.ativo=1 OR EXISTS (SELECT 1 FROM agendamentos a WHERE a.horario_semanal_id=s.id AND a.data_agendada>=:start AND a.data_agendada<:end)',$params);
-            $bookings=$this->query('SELECT horario_semanal_id AS schedule_id, data_agendada AS occurrence, publico_alvo, status, COUNT(*) AS total FROM agendamentos WHERE data_agendada>=:start AND data_agendada<:end GROUP BY horario_semanal_id,data_agendada,publico_alvo,status',$params);
+            [$scope, $scopeParams] = $this->professorScope();
+            $queryParams = $params + $scopeParams;
+            $schedules = $this->query('SELECT '.$names.' FROM horarios_semanais s'.$join."
+                WHERE $scope AND (s.ativo=1 OR EXISTS (SELECT 1 FROM agendamentos a WHERE a.horario_semanal_id=s.id AND a.data_agendada>=:start AND a.data_agendada<:end))", $queryParams);
+            $bookings = $this->query("SELECT a.horario_semanal_id AS schedule_id, a.data_agendada AS occurrence, a.publico_alvo, a.status, COUNT(*) AS total
+                FROM agendamentos a JOIN horarios_semanais s ON s.id=a.horario_semanal_id
+                WHERE $scope AND a.data_agendada>=:start AND a.data_agendada<:end
+                GROUP BY a.horario_semanal_id,a.data_agendada,a.publico_alvo,a.status", $queryParams);
             $range=[':start'=>$f['from'],':end'=>$f['to']];
             $closures=$this->query('SELECT horario_semanal_id,data_inicio,data_fim FROM fechamentos_horario_semanal WHERE data_inicio<=:end AND data_fim>=:start',$range);
             // Expiradas continuam relevantes para o histórico; não se executa expiração no relatório.

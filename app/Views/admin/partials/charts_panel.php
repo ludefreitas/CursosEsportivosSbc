@@ -1,14 +1,23 @@
 <?php $chartOptions = $chartOptions ?? ['seasons' => [], 'locations' => [], 'modalities' => [], 'publics' => [], 'statuses' => [], 'max_seasons' => 12]; ?>
-<section class="admin-section-panel admin-charts" data-admin-section="graficos" data-admin-charts data-url="<?php echo e(url('/admin/graficos/dados')); ?>">
+<section class="admin-section-panel admin-charts" data-admin-section="graficos" data-chart-theme="dark" data-admin-charts<?php if (!empty($professorView)) { ?> data-professor-charts<?php } ?> data-url="<?php echo e(url(!empty($professorView) ? '/professor/graficos/dados' : '/admin/graficos/dados')); ?>">
     <script type="application/json" data-chart-options><?php echo json_encode($chartOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
-    <div class="section-head admin-section-head"><div><h2>Gráficos e indicadores</h2><p class="muted">Compare temporadas, locais, modalidades, vagas e inscrições.</p></div></div>
-    <button type="button" class="btn btn-outline" data-chart-theme-toggle aria-pressed="false">Usar tema escuro</button>
+    <div class="section-head admin-section-head"><div><h2>Gráficos e indicadores</h2><p class="muted"><?php echo !empty($professorView) ? 'Indicadores das turmas em que você atua como professor principal ou auxiliar.' : 'Compare temporadas, locais, modalidades, vagas e inscrições.'; ?></p></div></div>
+    <?php if (!empty($professorView) && $chartOptions['seasons'] === []) { ?>
+        <p class="muted">Nenhuma turma está vinculada a você como professor principal ou auxiliar.</p>
+    </section>
+    <?php return; } ?>
+    <button type="button" class="btn btn-outline" data-chart-theme-toggle aria-pressed="true">Usar tema claro</button>
     <form class="content-card chart-filters" data-chart-form>
         <div class="chart-filter-grid">
             <label><span>Temporadas</span><select name="modo"><option value="multi">Combinar temporadas</option><option value="single">Uma temporada</option><option value="range">Todas no intervalo</option></select></label>
             <label><span>Máximo de temporadas</span><input name="max_temporadas" type="number" min="1" max="<?php echo e((string) $chartOptions['max_seasons']); ?>" value="6" required></label>
             <label><span>Local</span><select name="local_id"><option value="">Todos os locais</option><?php foreach ($chartOptions['locations'] as $item) { ?><option value="<?php echo e((string) $item['id']); ?>"><?php echo e($item['nome']); ?></option><?php } ?></select></label>
         </div>
+        <?php if (!empty($professorView)) { ?>
+            <label><span>Turma</span><select name="turma_id"><option value="">Todas as minhas turmas</option>
+                <?php foreach ($chartOptions['classes'] as $item) { ?><option value="<?php echo (int) $item['id']; ?>">[<?php echo (int) $item['id']; ?>] <?php echo e($item['nome']); ?></option><?php } ?>
+            </select></label>
+        <?php } ?>
         <fieldset class="chart-season-fieldset" data-chart-season-fieldset><legend>Selecionar temporadas</legend><div class="chart-season-options" data-chart-seasons>
             <?php $defaultSeasons = array_slice(array_column($chartOptions['seasons'], 'id'), -2); foreach ($chartOptions['seasons'] as $season) { ?>
             <label class="checkbox-chip"><input type="checkbox" name="temporadas[]" value="<?php echo e((string) $season['id']); ?>"<?php echo in_array($season['id'], $defaultSeasons) ? ' checked' : ''; ?>><span><?php echo e($season['nome']); ?></span></label>
@@ -66,7 +75,7 @@
         </section>
         <section class="chart-demand-section" aria-label="Movimentações de inscrições">
             <h3>Movimentações de inscrições</h3>
-            <p class="muted">Cópias e substituições por data do envio. Segue o intervalo de procura e os filtros da turma de destino: temporada, local, modalidade e período de aula. Público e status refletem o momento do envio. Exclusões mostram quais destinos enviados nesse intervalo foram excluídos definitivamente. Uma operação pode incluir várias inscrições.</p>
+            <p class="muted"><?php if (!empty($professorView)) { ?>Cópias e substituições que envolvem suas turmas selecionadas. O período de aula, quando selecionado, considera o destino dentro da seleção.<?php } else { ?>Cópias e substituições por data do envio. Segue o intervalo de procura e os filtros da turma de destino: temporada, local, modalidade e período de aula. Público e status refletem o momento do envio. Exclusões mostram quais destinos enviados nesse intervalo foram excluídos definitivamente. Uma operação pode incluir várias inscrições.<?php } ?></p>
             <p data-movement-chart-message class="muted"></p><div class="chart-stats" data-movement-chart-stats></div>
             <div class="chart-panel-grid"><article class="content-card chart-panel"><h3>Inscrições enviadas por modalidade de destino</h3><div class="chart-bars" data-movement-chart-modalities></div></article>
             <article class="content-card chart-panel"><details><summary>Últimas 20 movimentações nos filtros</summary><div data-movement-chart-recent></div></details></article></div>
@@ -84,16 +93,16 @@
             <article class="content-card chart-panel"><h3 data-enrollment-trend-title>Inscrições recebidas no ano</h3><p class="muted" data-enrollment-trend-summary></p><div class="chart-trend-scroll" data-enrollment-trend-chart></div></article>
             <article class="content-card chart-panel"><details><summary>Detalhar evolução por modalidade e turma</summary><p class="muted">Expanda uma modalidade para ver suas turmas. A tabela segue o agrupamento escolhido e inclui períodos com zero inscrições. Semanas começam na segunda-feira; nas bordas do ano, contam apenas os dias do ano selecionado.</p><div data-enrollment-trend-details></div></details></article>
         </section>
-        <section class="chart-demand-section" aria-label="Indicadores por professor principal">
-            <div class="section-head"><div><h3>Indicadores por professor principal</h3><p class="muted">Cada turma é contabilizada somente para seu professor principal. Auxiliares e estagiários aparecem na equipe, sem receber os totais da turma. Os vínculos refletem o cadastro atual.</p></div></div>
-            <label class="chart-group-select"><span>Professor principal</span><select data-chart-professor><option value="">Todos os professores</option></select></label>
+        <section class="chart-demand-section" aria-label="<?php echo !empty($professorView) ? 'Comparação por função na turma' : 'Indicadores por professor principal'; ?>">
+            <div class="section-head"><div><h3><?php echo !empty($professorView) ? 'Comparação por função na turma' : 'Indicadores por professor principal'; ?></h3><p class="muted"><?php if (!empty($professorView)) { ?>Compare suas turmas como professor principal e como auxiliar. A frequência é da turma.<?php } else { ?>Cada turma é contabilizada somente para seu professor principal. Auxiliares e estagiários aparecem na equipe, sem receber os totais da turma. Os vínculos refletem o cadastro atual.<?php } ?></p></div></div>
+            <label class="chart-group-select"><span><?php echo !empty($professorView) ? 'Função na turma' : 'Professor principal'; ?></span><select data-chart-professor><option value=""><?php echo !empty($professorView) ? 'Todas as funções' : 'Todos os professores'; ?></option></select></label>
             <p class="muted">Turmas, vagas e inscrições seguem as temporadas, local, modalidade e público selecionados. As inscrições no filtro seguem também o status. Matrículas e fila de espera mostram a situação atual. A frequência segue as datas e o período de aula da seção de frequência; não é filtrada pelo status atual da inscrição.</p>
             <div class="chart-stats" data-chart-professor-stats></div>
             <div class="chart-panel-grid">
-                <article class="content-card chart-panel"><h3>Turmas por professor principal</h3><div class="chart-bars" data-chart-professor-ranking="classes"></div></article>
-                <article class="content-card chart-panel"><h3>Inscrições por professor principal</h3><div class="chart-bars" data-chart-professor-ranking="enrollments"></div></article>
-                <article class="content-card chart-panel"><h3>Frequência por professor principal</h3><p class="muted" data-chart-professor-frequency-range></p><div class="chart-bars" data-chart-professor-ranking="attendance"></div><p class="muted">Presenças ÷ registros de presente, ausente ou justificado. Calculado sobre todos os registros das turmas, sem média dos percentuais individuais. Sem registros não significa 0% de presença.</p></article>
-                <article class="content-card chart-panel"><details><summary>Detalhar professores e suas equipes</summary><div data-chart-professor-details></div></details></article>
+                <article class="content-card chart-panel"><h3><?php echo !empty($professorView) ? 'Turmas por função na turma' : 'Turmas por professor principal'; ?></h3><div class="chart-bars" data-chart-professor-ranking="classes"></div></article>
+                <article class="content-card chart-panel"><h3><?php echo !empty($professorView) ? 'Inscrições por função na turma' : 'Inscrições por professor principal'; ?></h3><div class="chart-bars" data-chart-professor-ranking="enrollments"></div></article>
+                <article class="content-card chart-panel"><h3><?php echo !empty($professorView) ? 'Frequência por função na turma' : 'Frequência por professor principal'; ?></h3><p class="muted" data-chart-professor-frequency-range></p><div class="chart-bars" data-chart-professor-ranking="attendance"></div><p class="muted">Presenças ÷ registros de presente, ausente ou justificado. Calculado sobre todos os registros das turmas, sem média dos percentuais individuais. Sem registros não significa 0% de presença.</p></article>
+                <article class="content-card chart-panel"><details><summary><?php echo !empty($professorView) ? 'Detalhar turmas por função' : 'Detalhar professores e suas equipes'; ?></summary><div data-chart-professor-details></div></details></article>
             </div>
         </section>
         <section class="chart-demand-section" aria-label="Mais procurados">
@@ -104,7 +113,9 @@
                 <article class="content-card chart-panel"><h3>Modalidades mais procuradas</h3><div data-chart-demand="modalities" class="chart-bars"></div></article>
                 <article class="content-card chart-panel"><h3>Turmas mais procuradas</h3><div data-chart-demand="classes" class="chart-bars"></div></article>
                 <article class="content-card chart-panel"><h3>Períodos de aula mais procurados</h3><div data-chart-demand="periods" class="chart-bars"></div><p class="muted">Pelo início da aula: manhã, das 06h às 11h59; tarde, das 12h às 17h59; noite, das 18h às 23h59; madrugada, das 00h às 05h59; nos demais horários. “Sem horário” indica turma sem horário cadastrado.</p></article>
+                <?php if (empty($professorView)) { ?>
                 <article class="content-card chart-panel chart-panel-full"><details><summary>Cliques diretos em locais e modalidades</summary><p class="muted">Seleções anteriores à escolha da turma. Estes totais seguem apenas o intervalo de datas: não pertencem a uma temporada, público, status ou período de aula. São cliques registrados, não visitantes únicos.</p><div class="chart-panel-grid chart-navigation-rankings"><div><h4>Locais selecionados</h4><div data-chart-navigation="locations" class="chart-bars"></div></div><div><h4>Modalidades selecionadas</h4><div data-chart-navigation="modalities" class="chart-bars"></div></div></div></details></article>
+                <?php } ?>
             </div>
         </section>
         <section class="chart-demand-section" data-course-attendance>

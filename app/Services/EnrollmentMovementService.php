@@ -224,17 +224,48 @@ class EnrollmentMovementService
         }
         return ['inscricao_id'=>$enrollmentId,'destinos'=>$destinations];
     }
-    public function report(array $filters): array {
+    public function report(array $filters, ?array $classIds = null): array {
         $params=[$filters['demand_from'].' 00:00:00',(new \DateTimeImmutable($filters['demand_to']))->modify('+1 day')->format('Y-m-d').' 00:00:00'];
         $marks=implode(',',array_fill(0,count($filters['season_ids']),'?'));
         $where="m.created_at>=? AND m.created_at<? AND m.temporada_destino_id IN ($marks)";
         $params=array_merge($params,$filters['season_ids']);
         foreach(['location'=>'m.local_destino_id','modality'=>'m.modalidade_destino_id','public'=>'m.publico_alvo','status'=>'m.status_destino']as$key=>$column)if($filters[$key]!==''&&$filters[$key]!==0){$where.=" AND $column=?";$params[]=$filters[$key];}
+        $visibleClasses = $classIds === null ? null : array_fill_keys($classIds, true);
+        if ($classIds !== null) {
+            $params = array_slice($params, 0, 2);
+            $where = 'm.created_at>=? AND m.created_at<?';
+            if ($classIds === []) {
+                $where .= ' AND 1=0';
+            } else {
+                $classMarks = implode(',', array_fill(0, count($classIds), '?'));
+                $where .= " AND (m.turma_origem_id IN ($classMarks) OR m.turma_destino_id IN ($classMarks))";
+                $params = array_merge($params, $classIds, $classIds);
+            }
+            foreach (['public' => 'm.publico_alvo', 'status' => 'm.status_destino'] as $key => $column) {
+                if ($filters[$key] !== '') {
+                    $where .= " AND $column=?";
+                    $params[] = $filters[$key];
+                }
+            }
+        }
         try{$rows=$this->rows("SELECT m.id,m.operacao_uuid,m.modo,m.turma_origem_id,m.inscricao_origem_id,m.turma_destino_id,m.inscricao_destino_id,m.created_at,m.excluida_em,m.periodo_destino,t.nome AS destino,origem.nome AS origem,m.modalidade_destino_id AS modalidade_id,modalidade.nome AS modalidade,p.nome_completo AS usuario FROM movimentacoes_inscricoes m LEFT JOIN turmas t ON t.id=m.turma_destino_id LEFT JOIN turmas origem ON origem.id=m.turma_origem_id LEFT JOIN modalidades modalidade ON modalidade.id=m.modalidade_destino_id LEFT JOIN contas c ON c.id=m.realizado_por_conta_id LEFT JOIN pessoas p ON p.cpf=c.cpf WHERE $where ORDER BY m.id DESC",$params);}
         catch(PDOException $e){if(self::missingTable($e))return ['available'=>false,'message'=>'Indicadores de movimentação disponíveis após executar a migração de Mover inscritos.'];throw $e;}
         $totals=['copias'=>0,'substituicoes'=>0,'excluidas'=>0,'operacoes'=>0];$operations=[];$modalities=[];$recent=[];
         foreach($rows as$row){
-            if($filters['period']!==''&&$row['periodo_destino']!==$filters['period'])continue;
+            $destinationVisible = $visibleClasses === null || isset($visibleClasses[(int) $row['turma_destino_id']]);
+            if ($filters['period'] !== '' && (!$destinationVisible || $row['periodo_destino'] !== $filters['period'])) continue;
+            if ($visibleClasses !== null) {
+                unset($row['usuario']);
+                if (!isset($visibleClasses[(int) $row['turma_origem_id']])) {
+                    $row['turma_origem_id'] = $row['inscricao_origem_id'] = null;
+                    $row['origem'] = 'Turma fora da seleção';
+                }
+                if (!$destinationVisible) {
+                    $row['turma_destino_id'] = $row['inscricao_destino_id'] = null;
+                    $row['modalidade_id'] = 0;
+                    $row['modalidade'] = $row['destino'] = 'Turma fora da seleção';
+                }
+            }
             $totals[$row['modo']==='copiar'?'copias':'substituicoes']++;if($row['excluida_em'])$totals['excluidas']++;
             $operations[$row['operacao_uuid']]=true;$id=(int)$row['modalidade_id'];$modalities[$id]??=['id'=>$id,'label'=>$row['modalidade']?:'Modalidade removida','count'=>0];$modalities[$id]['count']++;
             if(count($recent)<20){unset($row['operacao_uuid']);$recent[]=$row;}

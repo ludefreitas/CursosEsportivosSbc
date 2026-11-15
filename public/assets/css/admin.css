@@ -749,6 +749,16 @@
     font-weight: 700;
     cursor: pointer;
 }
+.admin-nav-button .admin-nav-subtitle {
+    display: block;
+    font-size: 0.8em;
+    font-weight: 400;
+}
+
+.admin-nav-button strong {
+    font-weight: 800;
+}
+
 .admin-nav-button.is-active {
     background: linear-gradient(135deg, var(--brand-900), var(--brand-500));
     color: #fff;
