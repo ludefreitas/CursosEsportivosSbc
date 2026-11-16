@@ -36,10 +36,40 @@
             const rows = Array.isArray(response.tokens) ? response.tokens : [];
             if (!rows.length) { $list.html('<p class="muted">Nenhum token foi criado para esta turma.</p>'); return; }
             const labels = { ativo:'Ativo', usado:'Usado', cancelado:'Cancelado', expirado:'Expirado', excluido:'Excluído' };
-            const $table = $('<table>', { class: 'course-token-table' }).append('<thead><tr><th>Token</th><th>Pessoa/CPF</th><th>Condição</th><th>Validade</th><th>Motivo</th><th>Status</th><th>Ação</th></tr></thead>');
-            const $body = $('<tbody>');
-            rows.forEach(function (item) { const $tr=$('<tr>'); $tr.append($('<td>',{text:item.numero_token}),$('<td>').append($('<strong>',{text:item.nome_completo||'Não cadastrada'}),$('<br>'),$('<small>',{text:item.cpf_formatado})),$('<td>',{text:item.publico_label}),$('<td>',{text:String(item.validade||'').replace(/^(\d{4})-(\d{2})-(\d{2}).*$/,'$3/$2/$1')}),$('<td>',{text:item.motivo}),$('<td>',{text:labels[item.status]||item.status})); const $action=$('<td>'); if(item.status==='ativo' && !internRestricted()) $action.append($('<button>',{type:'button',class:'link-button','data-token-exclude':item.id,text:'Excluir'})); $tr.append($action); $body.append($tr); });
-            $list.empty().append($table.append($body));
+            const columns = ['Token', 'Pessoa/CPF', 'Condição', 'Validade', 'Motivo', 'Status', 'Ação'];
+            const $header = $('<tr>', { role: 'row' });
+            columns.forEach(function (column) {
+                $header.append($('<th>', { scope: 'col', role: 'columnheader', text: column }));
+            });
+            const $table = $('<table>', { class: 'course-token-table', role: 'table', 'aria-label': 'Tokens da turma' });
+            const $body = $('<tbody>', { role: 'rowgroup' });
+            rows.forEach(function (item) {
+                const $person = $('<span>').append(
+                    $('<strong>', { text: item.nome_completo || 'Não cadastrada' }),
+                    $('<br>'),
+                    $('<small>', { text: item.cpf_formatado })
+                );
+                const $action = item.status === 'ativo' && !internRestricted()
+                    ? $('<button>', { type: 'button', class: 'link-button', 'data-token-exclude': item.id, text: 'Excluir' })
+                    : null;
+                const values = [
+                    item.numero_token, $person, item.publico_label,
+                    String(item.validade || '').replace(/^(\d{4})-(\d{2})-(\d{2}).*$/, '$3/$2/$1'),
+                    item.motivo, labels[item.status] || item.status, $action
+                ];
+                const $row = $('<tr>', { role: 'row' });
+                values.forEach(function (value, index) {
+                    const $cell = $('<td>', { role: 'cell', 'data-label': columns[index] });
+                    if (value && value.jquery) {
+                        $cell.append(value);
+                    } else {
+                        $cell.text(value ?? '');
+                    }
+                    $row.append($cell);
+                });
+                $body.append($row);
+            });
+            $list.empty().append($table.append($('<thead>', { role: 'rowgroup' }).append($header), $body));
         }).fail(function(xhr){ $list.text(App.core.extrairMensagemErroAjax(xhr).mensagem); });
     }
     $(document).on('click','[data-course-class-tokens]',function(){ ensureTokenModals(); $('[data-token-create-open]').toggle(!internRestricted()); tokenClass={id:$(this).attr('data-course-class-tokens'),name:$(this).attr('data-course-class-tokens-name'),scope:$(this).attr('data-course-class-tokens-scope')}; $('[data-token-class-name]').text(tokenClass.name); $('#course-token-list-modal').removeClass('hidden').attr('aria-hidden','false'); loadTokens(); });

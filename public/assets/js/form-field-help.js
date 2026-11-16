@@ -1,5 +1,29 @@
 (function (window, $) {
-    const forms = '#admin-modality-form, #admin-modality-schedule-form, #admin-training-location-form, #admin-training-space-form, #dashboard-health-certificate-form';
+    const forms = '#admin-modality-form, #admin-modality-schedule-form, #admin-training-location-form, #admin-training-space-form, #dashboard-health-certificate-form, #profile-complete-form';
+    const profileHelp = {
+        full_name: 'Digite seu nome completo, com todos os sobrenomes, como aparece no documento oficial.',
+        cpf: 'Confira se o CPF exibido é igual ao do seu documento. Para solicitar uma correção, acesse Meu painel e abra Meu cadastro.',
+        sexo: 'Selecione a opção correspondente ou escolha Não declarar. Algumas turmas e horários são reservados a um sexo específico.',
+        phone_whatsapp: 'Informe seu número de WhatsApp com DDD, por exemplo (11) 91234-5678.',
+        email: 'Informe um e-mail que você usa e consegue acessar, por exemplo nome@exemplo.com.',
+        numero_cartao_sus: 'Digite os 15 dígitos do Cartão Nacional de Saúde (CNS). Se precisar consultar seu número, procure uma Unidade Básica de Saúde (UBS).',
+        eh_pcd: 'Marque se você é uma pessoa com deficiência. Será necessário enviar a documentação da condição para validação.',
+        eh_pvs: 'Marque se você está em situação de vulnerabilidade social. Será necessário enviar a documentação da condição para validação.',
+        eh_plm: 'Marque se você tem um laudo médico de doença. Será necessário enviar a documentação da condição para validação.',
+        zip_code: 'Digite os 8 dígitos do CEP da sua residência. Se aparecer uma sugestão, escolha a que corresponde ao seu endereço.',
+        street: 'Informe o nome da rua, avenida ou outro logradouro. Se o sistema preencher pelo CEP, confira o resultado.',
+        address_number: 'Informe o número do imóvel. Se o imóvel não tiver número, informe S/N.',
+        address_complement: 'Se houver, informe apartamento, bloco, casa ou outro complemento do endereço.',
+        neighborhood: 'Informe o bairro onde você mora. Se o campo for preenchido pelo CEP, confira o resultado.',
+        city: 'Informe a cidade da sua residência. Confira se corresponde ao comprovante de endereço.',
+        state: 'Digite a sigla do estado com duas letras, por exemplo SP.',
+        parent1_name: 'Informe o nome completo do primeiro responsável, conforme o documento. Você pode informar seu próprio nome.',
+        parent1_cpf: 'Informe os 11 dígitos do CPF da pessoa identificada como responsável 1.',
+        parent2_name: 'Se precisar informar um segundo responsável, digite o nome completo conforme o documento.',
+        parent2_cpf: 'Se informar um segundo responsável, digite os 11 dígitos do CPF dessa pessoa.',
+        emergency_contact_name: 'Informe o nome completo da pessoa que deve ser chamada em caso de emergência.',
+        emergency_contact_phone: 'Informe o telefone com DDD da pessoa indicada como contato de emergência.'
+    };
     const common = {
         ativo: 'Define se o registro fica ativo e disponível no sistema. Selecione a situação correspondente.',
         temporada_id: 'Selecione a temporada à qual este cronograma pertence. As datas e a observação podem ser copiadas da temporada como referência inicial.',
@@ -34,6 +58,15 @@
     Object.keys(periods).forEach(function (name) { common[name] = 'Informe a data' + (/inscricoes|matriculas/.test(name) ? ' e a hora' : '') + ' de ' + (name.endsWith('fim') ? 'término' : 'início') + ' do período de ' + periods[name] + '. Confira a ordem dos períodos e as mensagens de validação.'; });
     function message(form, field) {
         const name = field.name || '';
+        if (form.id === 'profile-complete-form') {
+            const key = field.dataset.profileHelpField || name;
+            if (key === 'birth_date') {
+                return field.disabled
+                    ? 'Confira a data no seu documento. Depois de concluir o cadastro, você pode solicitar a correção em Meu painel, na seção Meu cadastro.'
+                    : 'Digite sua data de nascimento no formato DD/MM/AAAA ou selecione a data no calendário. Use a data que consta no seu documento.';
+            }
+            return profileHelp[key];
+        }
         if (form.id === 'dashboard-health-certificate-form') {
             if (name.endsWith('_data_emissao')) return 'Informe a data em que o médico emitiu o atestado, conforme o documento. A data será conferida pela equipe durante a validação.';
             if (name.endsWith('_crm_medico')) return 'Transcreva o CRM do médico que consta no atestado, por exemplo CRM 123456. Não informe CPF nem número do cartão SUS.';

@@ -1431,6 +1431,45 @@ body.pagina-error label span {
 .course-class-tokens-link:visited { color: var(--accent-orange); font-weight: 800; text-decoration: underline; }
 .course-token-table { width: 100%; border-collapse: collapse; }
 .course-token-table th, .course-token-table td { padding: .55rem; border-bottom: 1px solid var(--border-color, #ddd); text-align: left; }
+#course-token-list-modal .course-token-table td { overflow-wrap: anywhere; }
+
+@media (max-width: 760px) {
+    #course-token-list-modal .course-token-table,
+    #course-token-list-modal .course-token-table tbody {
+        display: block;
+    }
+
+    #course-token-list-modal .course-token-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+    }
+
+    #course-token-list-modal .course-token-table tbody tr {
+        display: block;
+        margin-bottom: .75rem;
+        padding: .25rem .65rem;
+        border: 1px solid var(--line, #ddd);
+        border-radius: 12px;
+    }
+
+    #course-token-list-modal .course-token-table td {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+        gap: .5rem;
+        padding: .4rem 0;
+        border: 0;
+    }
+
+    #course-token-list-modal .course-token-table td::before {
+        content: attr(data-label);
+        font-weight: 700;
+    }
+
+    #course-token-list-modal .course-token-table td:empty { display: none; }
+}
 .course-token-alert { border: 3px solid #1674b8; padding: 1rem; }
 .course-token-alert-attention { color: var(--accent-orange); }
 .course-token-alert-person { color: #0645d9; }

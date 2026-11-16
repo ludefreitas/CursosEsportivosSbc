@@ -18,6 +18,7 @@
         </div>
         <?php if (empty($registrationBlock)) { ?>
         <form
+            id="profile-complete-form"
             method="POST"
             action="<?php echo e(url('/perfil/completar')); ?>"
             class="stack-form"
@@ -35,19 +36,19 @@
         </div>
         <div class="grid-two">
             <label>
-                <span>Nome completo <small class="name-document-hint">( preencha este campo com o nome e o sobrenome igual ao que consta no documento oficial )</small></span>
+                <span>Nome completo</span>
                 <input type="text" name="full_name" value="<?php echo old('full_name', $person['nome_completo'] ?? ''); ?>" required>
             </label>
             <label>
                 <span>CPF</span>
-                <input type="text" value="<?php echo e(format_cpf($person['cpf'] ?? '')); ?>" disabled>
+                <input type="text" data-profile-help-field="cpf" value="<?php echo e(format_cpf($person['cpf'] ?? '')); ?>" disabled>
             </label>
         </div>
 
         <div class="grid-three">
             <label>
                 <span>Data de nascimento</span>
-                <input type="date" <?php echo !empty($canEditBirthDate) ? 'name="birth_date"' : 'disabled'; ?> value="<?php echo e((string) old('birth_date', $person['data_nascimento'] ?? '')); ?>" required>
+                <input type="date" data-profile-help-field="birth_date" <?php echo !empty($canEditBirthDate) ? 'name="birth_date"' : 'disabled'; ?> value="<?php echo e((string) old('birth_date', $person['data_nascimento'] ?? '')); ?>" required>
                 <small class="muted"><?php echo !empty($canEditBirthDate) ? 'Você pode corrigir a data de nascimento neste campo.' : 'Depois de concluir o cadastro, você pode solicitar a correção no Meu painel.'; ?></small>
             </label>
             <label>
