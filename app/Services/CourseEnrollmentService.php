@@ -988,6 +988,26 @@ class CourseEnrollmentService
         );
     }
 
+    private function distributeClassSlots(int $total): array
+    {
+        $shares = ['vagas_geral' => 7, 'vagas_pcd' => 1, 'vagas_plm' => 1, 'vagas_pvs' => 1];
+        $slots = [];
+        $remainders = [];
+        foreach ($shares as $field => $share) {
+            $fraction = ($total % 10) * $share;
+            $slots[$field] = intdiv($total, 10) * $share + intdiv($fraction, 10);
+            $remainders[$field] = $fraction % 10;
+        }
+
+        // Empates seguem a ordem das categorias declarada acima.
+        arsort($remainders, SORT_NUMERIC);
+        $remaining = $total - array_sum($slots);
+        foreach (array_slice(array_keys($remainders), 0, $remaining) as $field) {
+            $slots[$field]++;
+        }
+        return $slots;
+    }
+
     public function createClass(int $accountId, array $data): array
     {
         if (!in_array($data['criterio_faixa_etaria'] ?? null, ['ano_nascimento', 'idade_exata'], true)) {
@@ -995,10 +1015,41 @@ class CourseEnrollmentService
         }
         $required = ['temporada_id', 'modalidade_id', 'local_treino_id', 'espaco_treino_id', 'nome'];
         foreach ($required as $field) { if (trim((string) ($data[$field] ?? '')) === '') { throw new RuntimeException('Preencha todos os campos obrigatórios da turma.'); } }
+        $id = (int) ($data['id'] ?? 0);
+        $total = null;
+        $slots = [];
+        if (($data['sem_vagas_gerais'] ?? null) === '1') {
+            $slots['vagas_geral'] = 0;
+            $data['vagas_espera_geral'] = 0;
+            foreach (['pcd', 'plm', 'pvs'] as $category) {
+                $capacity = filter_var($data['vagas_' . $category] ?? null, FILTER_VALIDATE_INT, [
+                    'options' => ['min_range' => 0, 'max_range' => 2147483647],
+                ]);
+                if ($capacity === false) {
+                    throw new RuntimeException('Informe um número inteiro válido no campo Vagas ' . strtoupper($category) . '.');
+                }
+                $slots['vagas_' . $category] = $capacity;
+                $waitlist = 'vagas_espera_' . $category;
+                if (trim((string) ($data[$waitlist] ?? '')) === '') {
+                    $data[$waitlist] = (int) round($capacity * 0.2);
+                }
+            }
+            $total = array_sum($slots);
+            if ($total > 2147483647) {
+                throw new RuntimeException('A soma das vagas reservadas excede o limite permitido.');
+            }
+        } elseif ($id <= 0 || array_key_exists('vagas_totais', $data)) {
+            $total = filter_var($data['vagas_totais'] ?? null, FILTER_VALIDATE_INT, [
+                'options' => ['min_range' => 0, 'max_range' => 2147483647],
+            ]);
+            if ($total === false) {
+                throw new RuntimeException('Informe um número inteiro válido no campo Vagas totais.');
+            }
+            $slots = $this->distributeClassSlots($total);
+        }
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);
         $this->ensureCourseAgeCriterionSchema($pdo);
-        $id = (int) ($data['id'] ?? 0);
         $scheduleId = (int) ($data['cronograma_modalidade_id'] ?? 0);
         if ($scheduleId <= 0) {
             $availableSchedule = $pdo->prepare('SELECT COUNT(*) FROM cronogramas_modalidade WHERE temporada_id=:temporada AND modalidade_id=:modalidade');
@@ -1025,8 +1076,11 @@ class CourseEnrollmentService
         foreach ($ageExceptions as $condition => $range) {
             if ($range['min'] > $range['max']) { throw new RuntimeException('Na exceção de idade para ' . strtoupper($condition) . ', a idade máxima deve ser igual ou superior à idade mínima.'); }
         }
-        $params = [':temporada' => (int) $data['temporada_id'], ':modalidade' => (int) $data['modalidade_id'], ':local' => (int) $data['local_treino_id'], ':espaco' => (int) $data['espaco_treino_id'], ':nivel' => (int) ($data['nivel_modalidade_id'] ?? 0) ?: null, ':nome' => trim((string) $data['nome']), ':programa' => $program !== '' ? $program : null, ':observacao' => trim((string) ($data['observacao'] ?? '')) !== '' ? trim((string) $data['observacao']) : null, ':excecoes_idade' => json_encode($ageExceptions, JSON_UNESCAPED_UNICODE), ':idade_minima' => max(0, (int) ($data['idade_minima'] ?? 0)), ':idade_maxima' => max(0, (int) ($data['idade_maxima'] ?? 120)), ':criterio_faixa_etaria' => normalize_age_rule_mode((string) ($data['criterio_faixa_etaria'] ?? 'idade_exata')), ':vagas_geral' => max(0, (int) ($data['vagas_geral'] ?? 0)), ':vagas_pcd' => max(0, (int) ($data['vagas_pcd'] ?? 0)), ':vagas_plm' => max(0, (int) ($data['vagas_plm'] ?? 0)), ':vagas_pvs' => max(0, (int) ($data['vagas_pvs'] ?? 0)), ':espera_geral' => max(0, (int) ($data['vagas_espera_geral'] ?? 0)), ':espera_pcd' => max(0, (int) ($data['vagas_espera_pcd'] ?? 0)), ':espera_plm' => max(0, (int) ($data['vagas_espera_plm'] ?? 0)), ':espera_pvs' => max(0, (int) ($data['vagas_espera_pvs'] ?? 0))];
-        $params[':vagas_totais'] = $params[':vagas_geral'] + $params[':vagas_pcd'] + $params[':vagas_plm'] + $params[':vagas_pvs'];
+        $params = [':temporada' => (int) $data['temporada_id'], ':modalidade' => (int) $data['modalidade_id'], ':local' => (int) $data['local_treino_id'], ':espaco' => (int) $data['espaco_treino_id'], ':nivel' => (int) ($data['nivel_modalidade_id'] ?? 0) ?: null, ':nome' => trim((string) $data['nome']), ':programa' => $program !== '' ? $program : null, ':observacao' => trim((string) ($data['observacao'] ?? '')) !== '' ? trim((string) $data['observacao']) : null, ':excecoes_idade' => json_encode($ageExceptions, JSON_UNESCAPED_UNICODE), ':idade_minima' => max(0, (int) ($data['idade_minima'] ?? 0)), ':idade_maxima' => max(0, (int) ($data['idade_maxima'] ?? 120)), ':criterio_faixa_etaria' => normalize_age_rule_mode((string) ($data['criterio_faixa_etaria'] ?? 'idade_exata')), ':espera_geral' => max(0, (int) ($data['vagas_espera_geral'] ?? 0)), ':espera_pcd' => max(0, (int) ($data['vagas_espera_pcd'] ?? 0)), ':espera_plm' => max(0, (int) ($data['vagas_espera_plm'] ?? 0)), ':espera_pvs' => max(0, (int) ($data['vagas_espera_pvs'] ?? 0))];
+        $params[':vagas_totais'] = $total;
+        foreach (['vagas_geral', 'vagas_pcd', 'vagas_plm', 'vagas_pvs'] as $field) {
+            $params[':' . $field] = $slots[$field] ?? null;
+        }
         $params[':exigir_token_inscricao'] = array_key_exists('exigir_token_inscricao', $data) || $id === 0
             ? (int) ((string) ($data['exigir_token_inscricao'] ?? '0') === '1')
             : null;
@@ -1061,7 +1115,7 @@ class CourseEnrollmentService
         }
         if ($id > 0) {
             $params[':id'] = $id;
-            $stmt = $pdo->prepare('UPDATE turmas SET temporada_id=:temporada, modalidade_id=:modalidade, cronograma_modalidade_id=:cronograma, local_treino_id=:local, espaco_treino_id=:espaco, nivel_modalidade_id=:nivel, niveis_aceitos_json=:niveis_aceitos, professor_conta_id=:professor, nome=:nome, programa=:programa, observacao=:observacao, excecoes_idade_json=:excecoes_idade, dias_semana=:dias_semana, hora_inicio=:hora_inicio, hora_fim=:hora_fim, idade_minima=:idade_minima, idade_maxima=:idade_maxima, criterio_faixa_etaria=:criterio_faixa_etaria, sexo=:sexo, exigir_token_inscricao=COALESCE(:exigir_token_inscricao, exigir_token_inscricao), regra_atestado_clinico=COALESCE(:regra_atestado_clinico, regra_atestado_clinico), regra_atestado_dermatologico=COALESCE(:regra_atestado_dermatologico, regra_atestado_dermatologico), vagas_totais=:vagas_totais, vagas_geral=:vagas_geral, vagas_pcd=:vagas_pcd, vagas_plm=:vagas_plm, vagas_pvs=:vagas_pvs, vagas_espera_geral=:espera_geral, vagas_espera_pcd=:espera_pcd, vagas_espera_plm=:espera_plm, vagas_espera_pvs=:espera_pvs WHERE id=:id LIMIT 1');
+            $stmt = $pdo->prepare('UPDATE turmas SET temporada_id=:temporada, modalidade_id=:modalidade, cronograma_modalidade_id=:cronograma, local_treino_id=:local, espaco_treino_id=:espaco, nivel_modalidade_id=:nivel, niveis_aceitos_json=:niveis_aceitos, professor_conta_id=:professor, nome=:nome, programa=:programa, observacao=:observacao, excecoes_idade_json=:excecoes_idade, dias_semana=:dias_semana, hora_inicio=:hora_inicio, hora_fim=:hora_fim, idade_minima=:idade_minima, idade_maxima=:idade_maxima, criterio_faixa_etaria=:criterio_faixa_etaria, sexo=:sexo, exigir_token_inscricao=COALESCE(:exigir_token_inscricao, exigir_token_inscricao), regra_atestado_clinico=COALESCE(:regra_atestado_clinico, regra_atestado_clinico), regra_atestado_dermatologico=COALESCE(:regra_atestado_dermatologico, regra_atestado_dermatologico), vagas_totais=COALESCE(:vagas_totais, vagas_totais), vagas_geral=COALESCE(:vagas_geral, vagas_geral), vagas_pcd=COALESCE(:vagas_pcd, vagas_pcd), vagas_plm=COALESCE(:vagas_plm, vagas_plm), vagas_pvs=COALESCE(:vagas_pvs, vagas_pvs), vagas_espera_geral=:espera_geral, vagas_espera_pcd=:espera_pcd, vagas_espera_plm=:espera_plm, vagas_espera_pvs=:espera_pvs WHERE id=:id');
             $stmt->execute($params);
             AuditLogService::record('turma.atualizada', 'turmas', $id, ['conta_id' => $accountId]);
         } else {
