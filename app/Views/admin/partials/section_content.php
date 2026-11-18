@@ -124,12 +124,14 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
         $validationPartial = $sectionName === 'validar-condicoes' ? 'condition_validation' : 'health_certificate_validation';
         require ROOT_PATH . '/app/Views/admin/partials/' . $validationPartial . '_panel.php';
         ?>
-        <div class="popup-overlay hidden" id="admin-<?php echo e(str_replace('_', '-', $validationPartial)); ?>-modal" aria-hidden="true">
-            <div class="popup-card popup-admin-card admin-condition-validation-card" role="dialog" aria-modal="true"
-                aria-labelledby="admin-<?php echo e(str_replace('_', '-', $validationPartial)); ?>-title">
-                <div id="admin-<?php echo e(str_replace('_', '-', $validationPartial)); ?>-modal-content"></div>
+        <?php if ($sectionName === 'validar-atestados') { ?>
+            <div class="popup-overlay hidden" id="admin-health-certificate-validation-modal" aria-hidden="true">
+                <div class="popup-card popup-admin-card admin-condition-validation-card" role="dialog" aria-modal="true"
+                    aria-labelledby="admin-health-certificate-validation-title">
+                    <div id="admin-health-certificate-validation-modal-content"></div>
+                </div>
             </div>
-        </div>
+        <?php } ?>
     </section>
 <?php } ?>
 
@@ -683,8 +685,10 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         </label>
                     </div>
 
+                    <label class="checkbox-chip"><input type="checkbox" name="sem_vagas_gerais" value="1"><span>Este horário não terá vagas para público geral</span></label>
+                    <label data-class-general-slots><span>Vagas totais</span><input type="number" name="vagas_totais" min="0" max="2147483647" step="1" required></label>
                     <div class="grid-four">
-                        <label><span>Vagas geral</span><input type="number" name="vagas_geral" min="0" value="0" required></label>
+                        <label data-class-general-slots><span>Vagas gerais</span><input type="number" name="vagas_geral" min="0" value="0" required></label>
                         <label><span>Vagas PCD</span><input type="number" name="vagas_pcd" min="0" value="0" required></label>
                         <label><span>Vagas PLM</span><input type="number" name="vagas_plm" min="0" value="0" required></label>
                         <label><span>Vagas PVS</span><input type="number" name="vagas_pvs" min="0" value="0" required></label>
@@ -1018,8 +1022,10 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                             </label>
                         </div>
 
+                        <label class="checkbox-chip"><input type="checkbox" name="sem_vagas_gerais" value="1"><span>Este horário não terá vagas para público geral</span></label>
+                        <label data-class-general-slots><span>Vagas totais</span><input type="number" name="vagas_totais" min="0" max="2147483647" step="1" required></label>
                         <div class="grid-four">
-                            <label><span>Vagas geral</span><input type="number" name="vagas_geral" id="admin-weekly-schedule-slots-general" min="0" required></label>
+                            <label data-class-general-slots><span>Vagas gerais</span><input type="number" name="vagas_geral" id="admin-weekly-schedule-slots-general" min="0" required></label>
                             <label><span>Vagas PCD</span><input type="number" name="vagas_pcd" id="admin-weekly-schedule-slots-pcd" min="0" required></label>
                             <label><span>Vagas PLM</span><input type="number" name="vagas_plm" id="admin-weekly-schedule-slots-plm" min="0" required></label>
                             <label><span>Vagas PVS</span><input type="number" name="vagas_pvs" id="admin-weekly-schedule-slots-pvs" min="0" required></label>

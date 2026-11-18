@@ -3337,7 +3337,7 @@ class AdminService
         }
 
         $existingSchedule = $this->getWeeklyScheduleDetails($scheduleId, $onlyOwnSchedule ? $accountId : 0);
-        $payload = $this->validateWeeklySchedulePayload($data);
+        $payload = $this->validateWeeklySchedulePayload($data, $existingSchedule);
         $space = $this->findTrainingSpaceById((int) $payload['espaco_treino_id']);
         $modality = $this->findModalityById((int) $payload['modalidade_id']);
         $pdo = Database::connection();
@@ -3850,8 +3850,19 @@ class AdminService
     /**
      * Valida e normaliza os dados recebidos para criacao ou edição de horário.
      */
-    private function validateWeeklySchedulePayload(array $data): array
+    private function validateWeeklySchedulePayload(array $data, array $existingSchedule = []): array
     {
+        $reservedOnly = ($data['sem_vagas_gerais'] ?? null) === '1';
+        $slots = $reservedOnly
+            ? ReservedSlotAllocation::withoutGeneral($data)
+            : ReservedSlotAllocation::fromTotal($data['vagas_totais'] ?? null);
+        $existingSlots = array_map('intval', array_intersect_key($existingSchedule, $slots));
+        if (!$reservedOnly && !empty($existingSlots['vagas_geral'])
+            && $existingSlots['vagas_pcd'] === $existingSlots['vagas_plm']
+            && $existingSlots['vagas_plm'] === $existingSlots['vagas_pvs']
+            && array_sum($existingSlots) === array_sum($slots)) {
+            $slots = $existingSlots;
+        }
         $payload = [
             'espaco_treino_id' => (int) ($data['espaco_treino_id'] ?? 0),
             'modalidade_id' => (int) ($data['modalidade_id'] ?? 0),
@@ -3867,10 +3878,6 @@ class AdminService
             'regra_atestado_clinico' => trim((string) ($data['regra_atestado_clinico'] ?? 'global')),
             'regra_atestado_dermatologico' => trim((string) ($data['regra_atestado_dermatologico'] ?? 'global')),
             'sexo' => trim((string) ($data['sexo'] ?? '')),
-            'vagas_geral' => (int) ($data['vagas_geral'] ?? 0),
-            'vagas_pcd' => (int) ($data['vagas_pcd'] ?? 0),
-            'vagas_plm' => (int) ($data['vagas_plm'] ?? 0),
-            'vagas_pvs' => (int) ($data['vagas_pvs'] ?? 0),
             'janela_agendamento_tipo' => trim((string) ($data['janela_agendamento_tipo'] ?? 'semana_atual_proxima')),
             'janela_abertura_dia_semana' => (int) ($data['janela_abertura_dia_semana'] ?? 0),
             'janela_abertura_hora' => $this->normalizeTimeValue((string) ($data['janela_abertura_hora'] ?? '')),
@@ -3933,12 +3940,6 @@ class AdminService
             throw new RuntimeException('Selecione um sexo válido para o horário semanal ou deixe livre.');
         }
 
-        foreach (['vagas_geral', 'vagas_pcd', 'vagas_plm', 'vagas_pvs'] as $field) {
-            if ((int) $payload[$field] < 0) {
-                throw new RuntimeException('As vagas do horário semanal não podem ser negativas.');
-            }
-        }
-
         if (!in_array($payload['janela_agendamento_tipo'], ['semana_atual_proxima', 'janela_semanal_fixa', 'antecedencia'], true)) {
             throw new RuntimeException('Selecione uma regra válida para a janela de agendamento.');
         }
@@ -3972,7 +3973,7 @@ class AdminService
             }
         }
 
-        return $payload;
+        return $payload + $slots;
     }
 
     /**

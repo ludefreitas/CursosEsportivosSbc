@@ -988,26 +988,6 @@ class CourseEnrollmentService
         );
     }
 
-    private function distributeClassSlots(int $total): array
-    {
-        $shares = ['vagas_geral' => 7, 'vagas_pcd' => 1, 'vagas_plm' => 1, 'vagas_pvs' => 1];
-        $slots = [];
-        $remainders = [];
-        foreach ($shares as $field => $share) {
-            $fraction = ($total % 10) * $share;
-            $slots[$field] = intdiv($total, 10) * $share + intdiv($fraction, 10);
-            $remainders[$field] = $fraction % 10;
-        }
-
-        // Empates seguem a ordem das categorias declarada acima.
-        arsort($remainders, SORT_NUMERIC);
-        $remaining = $total - array_sum($slots);
-        foreach (array_slice(array_keys($remainders), 0, $remaining) as $field) {
-            $slots[$field]++;
-        }
-        return $slots;
-    }
-
     public function createClass(int $accountId, array $data): array
     {
         if (!in_array($data['criterio_faixa_etaria'] ?? null, ['ano_nascimento', 'idade_exata'], true)) {
@@ -1019,33 +999,18 @@ class CourseEnrollmentService
         $total = null;
         $slots = [];
         if (($data['sem_vagas_gerais'] ?? null) === '1') {
-            $slots['vagas_geral'] = 0;
+            $slots = ReservedSlotAllocation::withoutGeneral($data);
             $data['vagas_espera_geral'] = 0;
             foreach (['pcd', 'plm', 'pvs'] as $category) {
-                $capacity = filter_var($data['vagas_' . $category] ?? null, FILTER_VALIDATE_INT, [
-                    'options' => ['min_range' => 0, 'max_range' => 2147483647],
-                ]);
-                if ($capacity === false) {
-                    throw new RuntimeException('Informe um número inteiro válido no campo Vagas ' . strtoupper($category) . '.');
-                }
-                $slots['vagas_' . $category] = $capacity;
                 $waitlist = 'vagas_espera_' . $category;
                 if (trim((string) ($data[$waitlist] ?? '')) === '') {
-                    $data[$waitlist] = (int) round($capacity * 0.2);
+                    $data[$waitlist] = (int) round($slots['vagas_' . $category] * 0.2);
                 }
             }
             $total = array_sum($slots);
-            if ($total > 2147483647) {
-                throw new RuntimeException('A soma das vagas reservadas excede o limite permitido.');
-            }
         } elseif ($id <= 0 || array_key_exists('vagas_totais', $data)) {
-            $total = filter_var($data['vagas_totais'] ?? null, FILTER_VALIDATE_INT, [
-                'options' => ['min_range' => 0, 'max_range' => 2147483647],
-            ]);
-            if ($total === false) {
-                throw new RuntimeException('Informe um número inteiro válido no campo Vagas totais.');
-            }
-            $slots = $this->distributeClassSlots($total);
+            $slots = ReservedSlotAllocation::fromTotal($data['vagas_totais'] ?? null);
+            $total = array_sum($slots);
         }
         $pdo = Database::connection();
         $this->ensureCourseSeasonSchema($pdo);

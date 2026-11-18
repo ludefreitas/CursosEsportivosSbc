@@ -2419,3 +2419,10 @@
 .people-condition-filter legend { font-weight: 700; padding: 0 6px; }
 .people-condition-filter small { display: block; margin-top: 10px; line-height: 1.5; }
 .people-condition-filter .checkbox-chip input { width: auto; }
+
+.slot-suggestion-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 8px;
+}

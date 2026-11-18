@@ -370,6 +370,108 @@
     $(document).on('click', '[data-sent-notifications-clear="1"]', function () { $(this).closest('form').get(0).reset(); loadSentNotifications(1); });
     $(document).on('click', '[data-sent-page]', function () { if (!$(this).prop('disabled')) loadSentNotifications(Number($(this).attr('data-sent-page') || 1)); });
 
+    const slotCategories = ['geral', 'pcd', 'plm', 'pvs'];
+
+    function updateClassTotalSlots($form) {
+        const total = slotCategories.reduce(function (sum, category) {
+            const slots = Number($form.find('[name="vagas_' + category + '"]').val());
+            return sum + (Number.isFinite(slots) ? Math.max(0, Math.trunc(slots)) : 0);
+        }, 0);
+        $form.find('[name="vagas_totais"]').val(String(total));
+        return total;
+    }
+
+    function distributeClassSlots($form) {
+        const input = $form.find('[name="vagas_totais"]').get(0);
+        if (!input) return;
+        const $suggestion = $form.find('[data-slot-suggestion]');
+        input.setCustomValidity('');
+        $suggestion.remove();
+        if (input.disabled) return;
+        const total = input.valueAsNumber;
+        const remainder = total % 10;
+        if (input.validity.valid && remainder >= 3 && remainder <= 7) {
+            const lower = total - remainder + 2;
+            const upper = lower + 6;
+                    const message = 'PCD, PLM e PVS devem ter a mesma quantidade. Selecione um dos totais sugeridos.';
+            const $options = $('<div>', { 'data-slot-suggestion': '', class: 'stack-form' })
+                .append($('<small>', { role: 'status', text: message }));
+            const $buttons = $('<div>', { class: 'slot-suggestion-actions' }).appendTo($options);
+            [lower, upper].filter(value => value <= Number(input.max)).forEach(function (value) {
+                        const label = value < total ? 'Total inferior' : 'Total superior';
+                        $('<button>', { type: 'button', class: 'btn btn-secondary', text: 'Usar ' + value + ' vagas', 'aria-label': label + ' de ' + value + ' vagas' })
+                    .on('click', function () {
+                        $(input).val(String(value)).trigger('input').trigger('focus');
+                    }).appendTo($buttons);
+            });
+            $(input).closest('label').after($options);
+            input.setCustomValidity(upper <= Number(input.max)
+                ? 'Informe ' + lower + ' ou ' + upper + ' vagas para manter as três cotas iguais.'
+                : 'Informe ' + lower + ' vagas para manter as três cotas iguais.');
+        }
+        const valid = input.validity.valid;
+        const original = $form.data('original-class-slots');
+        const reserved = Math.floor(total / 10) + Number(remainder >= 8);
+        slotCategories.forEach(function (category) {
+            const count = category === 'geral' ? total - 3 * reserved : reserved;
+            const value = original && original.preserve && total === original.total ? original.values[category] : count;
+            $form.find('[name="vagas_' + category + '"]').val(valid ? String(value) : '');
+        });
+        if (valid) updateClassWaitlistSuggestion($form);
+    }
+
+    function hasOnlyReservedClassSlots(record) {
+        return !!record && Number(record.vagas_geral) === 0 && Number(record.vagas_espera_geral ?? 0) === 0;
+    }
+
+    function setClassSlotMode($form, reservedOnly) {
+        $form.find('[name="sem_vagas_gerais"]').prop('checked', reservedOnly);
+        const $total = $form.find('[name="vagas_totais"]');
+        $total.prop({ disabled: reservedOnly, required: !reservedOnly });
+        $form.find('[data-class-general-slots]').toggleClass('hidden', reservedOnly);
+        $form.find('[name="vagas_geral"]').prop('readonly', true);
+        $form.find('[name="vagas_pcd"], [name="vagas_plm"], [name="vagas_pvs"]')
+            .prop({ readonly: !reservedOnly, required: reservedOnly })
+            .attr('max', 2147483647);
+        $form.find('[data-class-standard-waitlist-help]').toggleClass('hidden', reservedOnly);
+        $form.find('[data-class-reserved-waitlist-help]').toggleClass('hidden', !reservedOnly);
+        if (reservedOnly) {
+            $total.get(0).setCustomValidity('');
+            $form.find('[data-slot-suggestion]').remove();
+            $total.val('');
+            $form.find('[name="vagas_geral"], [name="vagas_espera_geral"]').val('0');
+        }
+    }
+
+    function suggestReservedClassWaitlist($form, category) {
+        const slots = $form.find('[name="vagas_' + category + '"]').get(0);
+        if (!slots.validity.valid) return;
+        $form.find('[name="vagas_espera_' + category + '"]').val(String(Math.round(slots.valueAsNumber * 0.2)));
+    }
+
+    function updateClassWaitlistSuggestion($form) {
+        if (!$form.is('[data-course-form="class"]') || $form.find('[name="id"]').val()) return;
+        slotCategories.forEach(function (category) {
+            const slots = Number($form.find('[name="vagas_' + category + '"]').val());
+            const suggested = Number.isFinite(slots) ? Math.max(1, Math.round(Math.max(0, slots) * 0.2)) : 1;
+            $form.find('[name="vagas_espera_' + category + '"]').val(String(suggested));
+        });
+    }
+
+    function initializeSlotFields($form, record) {
+        $form.removeData('original-class-slots class-general-slot-values');
+        const reservedOnly = hasOnlyReservedClassSlots(record);
+        if (record) {
+            const values = Object.fromEntries(slotCategories.map(category => [
+                category, $form.find('[name="vagas_' + category + '"]').val()
+            ]));
+            const preserve = !reservedOnly && values.pcd === values.plm && values.plm === values.pvs;
+            $form.data('original-class-slots', { total: updateClassTotalSlots($form), values, preserve });
+        }
+        setClassSlotMode($form, reservedOnly);
+        if (!reservedOnly) distributeClassSlots($form);
+    }
+
     App.admin = Object.assign(App.admin || {}, {
         iniciarSecoesAdmin: function () {
             const $buttons = $('[data-admin-nav-target]');
@@ -2706,6 +2808,7 @@
                 regra_atestado_clinico: 'A regra global é o comportamento padrão do sistema quando este horário não possui uma regra própria. Para o atestado clínico, a regra global exige um atestado válido em todos os horários. Selecione Exigir ou Dispensar para substituir esse padrão somente neste horário.',
                 regra_atestado_dermatologico: 'A regra global é o comportamento padrão do sistema quando este horário não possui uma regra própria. Para o atestado dermatológico, a regra global exige um atestado válido nas modalidades aquáticas e o dispensa nas modalidades terrestres. Selecione Exigir ou Dispensar para substituir esse padrão somente neste horário.',
                 vagas_geral: 'Define a quantidade de vagas destinadas ao público geral em cada ocorrência deste horário.',
+                vagas_totais: 'A distribuição automática usa 70% para vagas gerais e 10% para cada cota, com arredondamento. PCD, PLM e PVS devem ficar com a mesma quantidade.',
                 vagas_pcd: 'Define a quantidade de vagas destinadas a pessoas com deficiência (PCD) em cada ocorrência.',
                 vagas_plm: 'Define a quantidade de vagas destinadas a pessoas com limitação de mobilidade (PLM) em cada ocorrência.',
                 vagas_pvs: 'Define a quantidade de vagas destinadas a pessoas em vulnerabilidade social (PVS) em cada ocorrência.',
@@ -2850,6 +2953,7 @@
                 const $createForm = $('#admin-weekly-schedule-create-form');
 
                 ensureWeeklyScheduleFieldHelp($createForm);
+                initializeSlotFields($createForm);
                 $modal.removeClass('hidden').attr('aria-hidden', 'false');
                 syncWeeklyScheduleWindowFields($createForm);
                 syncWeeklyScheduleEvaluationRequirement($createForm);
@@ -2886,6 +2990,7 @@
                 setValue('#admin-weekly-schedule-slots-pcd', schedule.vagas_pcd);
                 setValue('#admin-weekly-schedule-slots-plm', schedule.vagas_plm);
                 setValue('#admin-weekly-schedule-slots-pvs', schedule.vagas_pvs);
+                initializeSlotFields(getForm(), schedule);
                 setValue('#admin-weekly-schedule-window-type', schedule.janela_agendamento_tipo || 'semana_atual_proxima');
                 setValue('#admin-weekly-schedule-window-open-weekday', schedule.janela_abertura_dia_semana || '');
                 setValue('#admin-weekly-schedule-window-open-time', String(schedule.janela_abertura_hora || '').slice(0, 5));
@@ -3069,6 +3174,8 @@
 
                 const $createForm = $(this);
                 const $submitButton = $createForm.find('button[type="submit"]').first();
+                distributeClassSlots($createForm);
+                if (!$createForm[0].reportValidity()) return;
                 const formData = new FormData($createForm[0]);
 
                 $submitButton.prop('disabled', true);
@@ -3105,6 +3212,8 @@
 
                 const $editForm = $(this);
                 const $submitButton = $editForm.find('button[type="submit"]').first();
+                distributeClassSlots($editForm);
+                if (!$editForm[0].reportValidity()) return;
                 const formData = new FormData($editForm[0]);
 
                 $submitButton.prop('disabled', true);
@@ -3443,6 +3552,24 @@
                 return $('#admin-condition-validation-modal');
             }
 
+            function ensureModal() {
+                const $modal = getModal();
+                if ($modal.length) return $modal;
+
+                return $('<div>', {
+                    id: 'admin-condition-validation-modal',
+                    class: 'popup-overlay hidden',
+                    'aria-hidden': 'true'
+                }).append(
+                    $('<div>', {
+                        class: 'popup-card popup-admin-card admin-condition-validation-card',
+                        role: 'dialog',
+                        'aria-modal': 'true',
+                        'aria-labelledby': 'admin-condition-validation-title'
+                    }).append($('<div>', { id: 'admin-condition-validation-modal-content' }))
+                ).appendTo('body');
+            }
+
             function getModalContent() {
                 return $('#admin-condition-validation-modal-content');
             }
@@ -3518,6 +3645,7 @@
                         return;
                     }
 
+                    ensureModal();
                     getModalContent().html(String(response.html || ''));
                     openModal();
                     syncValidationNoteRequirement();
@@ -6440,6 +6568,43 @@
         },
 
         iniciarGerenciamentoTemporadasTurmas: function () {
+            $(document).on('input change', 'form [name="vagas_totais"]', function () {
+                distributeClassSlots($(this).closest('form'));
+            });
+            $(document).on('change', 'form [name="sem_vagas_gerais"]', function () {
+                const $form = $(this).closest('form');
+                const $total = $form.find('[name="vagas_totais"]');
+                const $waitlist = $form.find('[name="vagas_espera_geral"]');
+                if (this.checked) {
+                    $form.data('class-general-slot-values', { total: $total.val(), waitlist: $waitlist.val() });
+                    setClassSlotMode($form, true);
+                    const original = $form.data('original-class-slots');
+                    ['pcd', 'plm', 'pvs'].forEach(function (category) {
+                        const $slots = $form.find('[name="vagas_' + category + '"]');
+                        if ($slots.val() === '') $slots.val(original ? original.values[category] : '0');
+                        if ($waitlist.length) suggestReservedClassWaitlist($form, category);
+                    });
+                } else {
+                    setClassSlotMode($form, false);
+                    const previous = $form.data('class-general-slot-values');
+                    if (previous) {
+                        $total.val(previous.total);
+                        $waitlist.val(previous.waitlist);
+                    } else {
+                        const original = $form.data('original-class-slots');
+                        if (original) $total.val(String(original.total));
+                        else updateClassTotalSlots($form);
+                    }
+                    distributeClassSlots($form);
+                }
+            });
+            $(document).on('input', '[data-course-form="class"] [name="vagas_pcd"], [data-course-form="class"] [name="vagas_plm"], [data-course-form="class"] [name="vagas_pvs"]', function () {
+                const $form = $(this).closest('form');
+                if ($form.find('[name="sem_vagas_gerais"]').is(':checked')) {
+                    suggestReservedClassWaitlist($form, this.name.slice('vagas_'.length));
+                }
+            });
+
             function formatBrazilianDate(value) {
                 const raw = String(value || '');
                 const parts = raw.slice(0, 10).split('-');
@@ -6802,6 +6967,7 @@
                     const currentObservation = String($form.find('[name="observacao"]').val() || '');
                     chooseClassCopyObservation(currentObservation, record.observacao, function (chosenObservation) {
                     fillForm($form, record);
+                    $form.removeData('original-class-slots class-general-slot-values');
                     $form.find('[name="id"]').val('');
                     $form.find('[name="operacao"]').val('criar');
                     if (record.vagas_totais == null) {
@@ -6918,7 +7084,7 @@
                     vagas_espera_pcd: 'Informe o limite da lista de espera destinado a Pessoas com Deficiência (PCD).',
                     vagas_espera_plm: 'Informe o limite da lista de espera destinado a Pessoas com Laudo Médico de Doença.',
                     vagas_espera_pvs: 'Informe o limite da lista de espera destinado a Pessoas em Vulnerabilidade Social.',
-                    vagas_totais: 'Ao informar ou alterar o total, o sistema distribui 70% para vagas gerais e 10% para cada categoria: PCD, PLM e PVS. Na edição, as vagas atuais são preservadas enquanto o total permanecer igual. A lista de espera é editada à parte.'
+                    vagas_totais: 'A distribuição automática usa 70% para vagas gerais e 10% para cada cota, com arredondamento. PCD, PLM e PVS devem ficar com a mesma quantidade. A lista de espera é editada à parte.'
                 };
                 Object.keys(help).forEach(function (name) {
                     const $field = $form.find('[name="' + name + '"]').first();
@@ -6985,75 +7151,6 @@
                 });
                 if (selectedId) $select.val(String(selectedId));
                 if (!$select.val()) $select.val('');
-            }
-
-            const classSlotShares = { geral: 7, pcd: 1, plm: 1, pvs: 1 };
-
-            function updateClassTotalSlots($form) {
-                const total = Object.keys(classSlotShares).reduce(function (sum, category) {
-                    const slots = Number($form.find('[name="vagas_' + category + '"]').val());
-                    return sum + (Number.isFinite(slots) ? Math.max(0, Math.trunc(slots)) : 0);
-                }, 0);
-                $form.find('[name="vagas_totais"]').val(String(total));
-                return total;
-            }
-
-            function distributeClassSlots($form) {
-                const input = $form.find('[name="vagas_totais"]').get(0);
-                const total = input.validity.valid ? input.valueAsNumber : 0;
-                const original = $form.data('original-class-slots');
-                if (original && !original.reservedOnly && input.valueAsNumber === original.total) {
-                    Object.keys(classSlotShares).forEach(function (category) {
-                        $form.find('[name="vagas_' + category + '"]').val(original.values[category]);
-                    });
-                    return;
-                }
-                const quotas = Object.entries(classSlotShares).map(function ([category, share], order) {
-                    const numerator = total * share;
-                    return { category, order, slots: Math.floor(numerator / 10), remainder: numerator % 10 };
-                });
-                const remaining = total - quotas.reduce((sum, quota) => sum + quota.slots, 0);
-                quotas.sort((a, b) => b.remainder - a.remainder || a.order - b.order);
-                quotas.forEach(function (quota, index) {
-                    $form.find('[name="vagas_' + quota.category + '"]').val(String(quota.slots + Number(index < remaining)));
-                });
-                updateClassWaitlistSuggestion($form);
-            }
-
-            function hasOnlyReservedClassSlots(record) {
-                return !!record && Number(record.vagas_geral) === 0 && Number(record.vagas_espera_geral) === 0;
-            }
-
-            function setClassSlotMode($form, reservedOnly) {
-                $form.find('[name="sem_vagas_gerais"]').prop('checked', reservedOnly);
-                const $total = $form.find('[name="vagas_totais"]');
-                $total.prop({ disabled: reservedOnly, required: !reservedOnly });
-                $form.find('[data-class-general-slots]').toggleClass('hidden', reservedOnly);
-                $form.find('[name="vagas_geral"]').prop('readonly', true);
-                $form.find('[name="vagas_pcd"], [name="vagas_plm"], [name="vagas_pvs"]')
-                    .prop({ readonly: !reservedOnly, required: reservedOnly })
-                    .attr('max', 2147483647);
-                $form.find('[data-class-standard-waitlist-help]').toggleClass('hidden', reservedOnly);
-                $form.find('[data-class-reserved-waitlist-help]').toggleClass('hidden', !reservedOnly);
-                if (reservedOnly) {
-                    $total.val('');
-                    $form.find('[name="vagas_geral"], [name="vagas_espera_geral"]').val('0');
-                }
-            }
-
-            function suggestReservedClassWaitlist($form, category) {
-                const slots = $form.find('[name="vagas_' + category + '"]').get(0);
-                if (!slots.validity.valid) return;
-                $form.find('[name="vagas_espera_' + category + '"]').val(String(Math.round(slots.valueAsNumber * 0.2)));
-            }
-
-            function updateClassWaitlistSuggestion($form) {
-                if (String($form.find('[name="id"]').val() || '').trim() !== '') return;
-                Object.keys(classSlotShares).forEach(function (category) {
-                    const slots = Number($form.find('[name="vagas_' + category + '"]').val());
-                    const suggested = Number.isFinite(slots) ? Math.max(1, Math.round(Math.max(0, slots) * 0.2)) : 1;
-                    $form.find('[name="vagas_espera_' + category + '"]').val(String(suggested));
-                });
             }
 
             function fillForm($form, record) {
@@ -7251,17 +7348,7 @@
                 }
                 fillForm($form, record || {});
                 if (type === 'class') {
-                    $form.removeData('original-class-slots');
-                    $form.removeData('class-general-slot-values');
-                    const reservedOnly = hasOnlyReservedClassSlots(record);
-                    if (record) {
-                        const values = Object.fromEntries(Object.keys(classSlotShares).map(function (category) {
-                            return [category, $form.find('[name="vagas_' + category + '"]').val()];
-                        }));
-                        $form.data('original-class-slots', { total: updateClassTotalSlots($form), values, reservedOnly });
-                    }
-                    setClassSlotMode($form, reservedOnly);
-                    if (!record) distributeClassSlots($form);
+                    initializeSlotFields($form, record);
                     const acceptedLevels = Array.isArray((record || {}).niveis_aceitos) ? record.niveis_aceitos : [];
                     $form.find('[name="niveis_aceitos[]"]').each(function () { $(this).prop('checked', acceptedLevels.indexOf(String($(this).val())) !== -1); });
                     const ageExceptions = record && record.excecoes_idade && typeof record.excecoes_idade === 'object' ? record.excecoes_idade : {};
@@ -7548,35 +7635,6 @@
                 }).fail(function (xhr) {
                     App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
                 }).always(function () { $button.prop('disabled', false); });
-            });
-            $(document).on('input change', '[data-course-form="class"] [name="vagas_totais"]', function () {
-                distributeClassSlots($(this).closest('form'));
-            });
-            $(document).on('change', '[data-course-form="class"] [name="sem_vagas_gerais"]', function () {
-                const $form = $(this).closest('form');
-                const $total = $form.find('[name="vagas_totais"]');
-                const $waitlist = $form.find('[name="vagas_espera_geral"]');
-                if (this.checked) {
-                    $form.data('class-general-slot-values', { total: $total.val(), waitlist: $waitlist.val() });
-                    setClassSlotMode($form, true);
-                    ['pcd', 'plm', 'pvs'].forEach(category => suggestReservedClassWaitlist($form, category));
-                } else {
-                    setClassSlotMode($form, false);
-                    const previous = $form.data('class-general-slot-values');
-                    if (previous) {
-                        $total.val(previous.total);
-                        $waitlist.val(previous.waitlist);
-                    } else {
-                        updateClassTotalSlots($form);
-                    }
-                    distributeClassSlots($form);
-                }
-            });
-            $(document).on('input', '[data-course-form="class"] [name="vagas_pcd"], [data-course-form="class"] [name="vagas_plm"], [data-course-form="class"] [name="vagas_pvs"]', function () {
-                const $form = $(this).closest('form');
-                if ($form.find('[name="sem_vagas_gerais"]').is(':checked')) {
-                    suggestReservedClassWaitlist($form, this.name.slice('vagas_'.length));
-                }
             });
             $(document).on('change', '[data-course-form="class"] [name="temporada_id"], [data-course-form="class"] [name="modalidade_id"], [data-course-form="class"] [name="local_treino_id"]', function () {
                 const $form = $(this).closest('form');
@@ -8105,7 +8163,7 @@
                     if ($observation.length) payload.set('observacao', String($observation.val() == null ? '' : $observation.val()));
                     const total = $form.find('[name="vagas_totais"]').get(0);
                     const original = $form.data('original-class-slots');
-                    if (total.disabled || (original && !original.reservedOnly && total.valueAsNumber === original.total)) {
+                    if (total.disabled || (original && original.preserve && total.valueAsNumber === original.total)) {
                         payload.delete('vagas_totais');
                     } else if (total.validity.valid) {
                         payload.set('vagas_totais', String(total.valueAsNumber));
