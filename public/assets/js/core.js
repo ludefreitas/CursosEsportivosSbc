@@ -411,7 +411,11 @@
         },
 
         extrairMensagemErroAjax: function (xhr) {
-            const mensagemPadrao = 'Não foi possível concluir a operação agora.';
+            const status = Number(xhr && xhr.status);
+            const indisponivel = [502, 503, 504, 520, 521, 522, 523, 524].includes(status);
+            const mensagemPadrao = indisponivel
+                ? 'O sistema está temporariamente indisponível. Tente novamente em alguns instantes.'
+                : 'Não foi possível concluir a operação agora.';
             let mensagem = mensagemPadrao;
             let redirectUrl = '';
 
@@ -428,7 +432,13 @@
                     redirectUrl = String(parsed.redirect || '');
                     return { mensagem, redirectUrl };
                 } catch (error) {
-                    mensagem = xhr.responseText.trim() || mensagemPadrao;
+                    const resposta = xhr.responseText.trim();
+                    const contentType = typeof xhr.getResponseHeader === 'function'
+                        ? String(xhr.getResponseHeader('Content-Type') || '')
+                        : '';
+                    if (!indisponivel && !/text\/html|application\/xhtml\+xml/i.test(contentType) && !resposta.startsWith('<')) {
+                        mensagem = resposta;
+                    }
                     return { mensagem, redirectUrl };
                 }
             }

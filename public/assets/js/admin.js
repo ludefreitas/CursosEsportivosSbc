@@ -1216,6 +1216,9 @@
                             window.location.href = App.core.buildUrl('/');
                             return;
                         }
+                        $host.html(previousContent);
+                        const previousSection = $host.find('[data-admin-section]').first().attr('data-admin-section');
+                        if (previousSection) syncActiveButton(previousSection);
                         const erro = App.core.extrairMensagemErroAjax(xhr);
                         App.core.abrirPopup('erro', erro.mensagem);
                     })
