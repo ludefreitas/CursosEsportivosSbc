@@ -222,6 +222,7 @@ class CourseEnrollmentService
     {
         if (!Auth::check()) { return []; }
         $pdo = Database::connection();
+        (new EnrollmentSuspensionService($pdo))->processExpired();
         $this->synchronizeCalculatedSeasonStatuses($pdo);
         $stmt = $pdo->prepare("SELECT i.id, i.turma_id, i.numero_ordem, i.posicao_lista_espera, i.publico_alvo, i.excecao_condicao, i.tipo_inscricao, EXISTS (SELECT 1 FROM turmas_chamadas freq WHERE freq.inscricao_turma_id=i.id AND freq.status IN ('presente','ausente','justificado')) AS possui_frequencia, i.status, i.created_at, i.updated_at, i.motivo_status,
                    p.nome_completo, p.cpf, p.data_nascimento, t.nome AS turma_nome, t.modalidade_id, t.observacao AS turma_observacao, t.dias_semana, t.hora_inicio, t.hora_fim,
@@ -283,6 +284,7 @@ class CourseEnrollmentService
     public function listForManagement(string $sortBy = 'ordem_inscricao', string $sortDirection = 'asc', string $statusFilter = 'todos', string $conditionFilter = 'todas', int $classId = 0, int $professorAccountId = 0, int $seasonId = 0, string $groupBy = '', int $groupId = 0, int $secondaryGroupId = 0, int $page = 1, int $pageSize = 100): array
     {
         $pdo = Database::connection();
+        (new EnrollmentSuspensionService($pdo))->processExpired($classId > 0 ? $classId : null);
         $this->ensureCourseSeasonSchema($pdo);
         $this->synchronizeCalculatedSeasonStatuses($pdo);
         $sortExpressions = [
@@ -1253,8 +1255,9 @@ class CourseEnrollmentService
 
     private function enrollmentCountsByClass(PDO $pdo): array
     {
+        (new EnrollmentSuspensionService($pdo))->processExpired();
         $counts = [];
-        $stmt = $pdo->query("SELECT turma_id, COUNT(*) AS total, SUM(CASE WHEN status = 'matriculada' THEN 1 ELSE 0 END) AS matriculados FROM inscricoes_turma GROUP BY turma_id");
+        $stmt = $pdo->query("SELECT turma_id, SUM(CASE WHEN status='suspensa' AND suspensao_libera_vaga=1 AND (suspensa_fim IS NULL OR suspensa_fim>NOW()) THEN 0 ELSE 1 END) AS total, SUM(CASE WHEN status = 'matriculada' THEN 1 ELSE 0 END) AS matriculados FROM inscricoes_turma GROUP BY turma_id");
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
             $counts[(int) ($row['turma_id'] ?? 0)] = [
                 'total' => (int) ($row['total'] ?? 0),
@@ -1405,7 +1408,7 @@ class CourseEnrollmentService
         $class = $this->findClass($pdo, $classId);
         $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? ''));
         $this->validateClassAttendanceDate($class, $date);
-        $stmt = $pdo->prepare("SELECT i.id AS inscricao_id, i.status AS matricula_status, p.id AS pessoa_id, p.nome_completo, p.data_nascimento,
+        $stmt = $pdo->prepare("SELECT i.id AS inscricao_id, i.status AS matricula_status, i.suspensa_inicio, i.suspensa_fim, i.suspensao_libera_vaga, i.publico_alvo, p.id AS pessoa_id, p.nome_completo, p.data_nascimento,
                 COALESCE(ch.status, '') AS chamada_status, COALESCE(ch.justificativa, '') AS justificativa, i.motivo_status,
                 COALESCE(aic.id, ac.id) AS atestado_clinico_validado_id,
                 COALESCE(aic.validade_certificado, ac.validade_certificado) AS atestado_clinico_validade,
@@ -1476,14 +1479,22 @@ class CourseEnrollmentService
         return $reason;
     }
 
-    public function changeAttendanceEnrollmentStatus(int $classId, int $enrollmentId, string $status, int $accountId): void
+    public function changeAttendanceEnrollmentStatus(int $classId, int $enrollmentId, string $status, int $accountId, array $suspension = []): void
     {
-        (new EnrollmentMovementService())->withEnrollmentLock($enrollmentId, function () use ($classId, $enrollmentId, $status, $accountId) {
+        (new EnrollmentMovementService())->withEnrollmentLock($enrollmentId, function () use ($classId, $enrollmentId, $status, $accountId, $suspension) {
+        if (in_array($status, ['suspensa', 'renovar_suspensao'], true)) {
+            (new EnrollmentSuspensionService())->change($classId, $enrollmentId, $status, $accountId, $suspension);
+            return;
+        }
         if (in_array($status, ['cancelada','excluida','excluida_por_falta','desistente'],true)) (new EnrollmentMovementService())->assertRemovalAllowed($enrollmentId);
-        $allowed = ['matriculada' => ['suspensa'], 'suspensa' => ['matriculada', 'desistente'], 'excluida_por_falta' => ['matriculada']];
+        $allowed = ['suspensa' => ['desistente'], 'excluida_por_falta' => ['matriculada']];
         $pdo = Database::connection();
         $stmt = $pdo->prepare('SELECT status FROM inscricoes_turma WHERE id=:id AND turma_id=:turma LIMIT 1');
         $stmt->execute([':id'=>$enrollmentId, ':turma'=>$classId]); $current=(string)$stmt->fetchColumn();
+        if ($current === 'suspensa' && $status === 'matriculada') {
+            (new EnrollmentSuspensionService())->change($classId, $enrollmentId, $status, $accountId, []);
+            return;
+        }
         if (!in_array($status, $allowed[$current] ?? [], true)) throw new RuntimeException('Esta alteração de matrícula não está disponível.');
         $pdo->prepare('UPDATE inscricoes_turma SET status=:status, updated_at=NOW() WHERE id=:id')->execute([':status'=>$status, ':id'=>$enrollmentId]);
         $pdo->prepare('INSERT INTO inscricoes_turma_historico (inscricao_turma_id,status_anterior,status_novo,motivo,alterado_por_conta_id) VALUES (:id,:anterior,:novo,:motivo,:conta)')->execute([':id'=>$enrollmentId,':anterior'=>$current,':novo'=>$status,':motivo'=>'Alteração realizada pela lista de chamada.',':conta'=>$accountId]);
@@ -2108,6 +2119,10 @@ class CourseEnrollmentService
             throw new RuntimeException('Inscrição não encontrada.');
         }
         $currentStatus = (string) $enrollment['status'];
+        if ($currentStatus === 'suspensa' && $status === 'matriculada') {
+            (new EnrollmentSuspensionService())->change((int) $enrollment['turma_id'], $enrollmentId, $status, $accountId, []);
+            return ['success' => true, 'message' => 'Matrícula reativada.', 'capacity_warning' => $this->matriculationCapacityWarning($pdo, $this->findClass($pdo, (int) $enrollment['turma_id']), (string) $enrollment['publico_alvo'])];
+        }
         if (in_array($currentStatus, self::IMMUTABLE_STATUSES, true)) {
             throw new RuntimeException('Esta inscrição possui status definitivo e não pode mais ser alterada por nenhum usuário.');
         }
@@ -2176,6 +2191,7 @@ class CourseEnrollmentService
 
     private function findClass(PDO $pdo, int $id): array
     {
+        (new EnrollmentSuspensionService($pdo))->processExpired($id);
         $this->ensureCourseSeasonSchema($pdo);
         $this->ensureCourseAgeCriterionSchema($pdo);
         $this->synchronizeCalculatedClassStatuses($pdo, $id);
@@ -2659,7 +2675,7 @@ class CourseEnrollmentService
         $seatKey = in_array($public, ['pcd', 'plm', 'pvs'], true) ? 'vagas_' . $public : 'vagas_geral';
         $capacity = (int) ($class[$seatKey] ?? 0);
         if ($capacity <= 0) { return 0; }
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM inscricoes_turma WHERE turma_id = :turma_id AND publico_alvo = :publico AND status IN ('aguardando_matricula', 'matriculada', 'suspensa')");
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM inscricoes_turma WHERE turma_id = :turma_id AND publico_alvo = :publico AND (status IN ('aguardando_matricula', 'matriculada') OR (status='suspensa' AND (suspensao_libera_vaga=0 OR suspensa_fim<=NOW())))");
         $stmt->execute([':turma_id' => (int) $class['id'], ':publico' => $public]);
         return max(0, $capacity - (int) $stmt->fetchColumn());
     }
@@ -2726,7 +2742,7 @@ class CourseEnrollmentService
         if (in_array((string) ($class['status'] ?? ''), ['periodo_matricula', 'inscricoes_abertas'], true)) {
             $regularSeatKey = $isReservedPublic ? 'vagas_' . $public : 'vagas_geral';
             $capacity += (int) ($class[$regularSeatKey] ?? 0);
-            $statuses = "status IN ('aguardando_matricula', 'matriculada', 'lista_espera', 'suspensa')";
+            $statuses = "(status IN ('aguardando_matricula', 'matriculada', 'lista_espera') OR (status='suspensa' AND (suspensao_libera_vaga=0 OR suspensa_fim<=NOW())))";
         }
 
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM inscricoes_turma WHERE turma_id = :turma_id AND publico_alvo = :publico AND {$statuses}");

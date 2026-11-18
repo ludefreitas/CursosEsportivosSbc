@@ -23,14 +23,14 @@
                 <button type="submit" class="btn btn-secondary">Atualizar lista</button>
             </div>
             <label>
-                <span>Buscar por nome ou CPF</span>
+                <span>Buscar por nome, CPF ou telefone</span>
                 <input
                     type="text"
                     name="people_search"
                     id="admin-people-search"
                     class="admin-people-search-input"
                     value="<?php echo e((string) ($peopleSearch ?? '')); ?>"
-                    placeholder="Digite um nome ou CPF"
+                    placeholder="Digite um nome, CPF ou telefone"
                     autocomplete="off"
                 >
                 <small class="muted">A lista vai sendo atualizada enquanto você digita.</small>
@@ -270,13 +270,13 @@
                 <button type="submit" class="btn btn-secondary">Atualizar lista</button>
             </div>
             <label>
-                <span>Buscar por nome ou CPF</span>
+                <span>Buscar por nome, CPF ou telefone</span>
                 <input
                     type="text"
                     name="users_search"
                     class="admin-people-search-input"
                     value="<?php echo e((string) ($usersSearch ?? '')); ?>"
-                    placeholder="Digite um nome ou CPF"
+                    placeholder="Digite um nome, CPF ou telefone"
                     autocomplete="off"
                 >
                 <small class="muted">A lista vai sendo atualizada enquanto você digita.</small>

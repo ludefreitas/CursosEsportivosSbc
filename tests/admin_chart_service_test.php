@@ -128,5 +128,15 @@ $calendarTrend=(new AdminChartService($calendarDb))->report($filters+['evolucao_
 $calendarClasses=array_column(array_merge(...array_column($calendarTrend['modalities'],'classes')),null,'id');
 expectChart(array_sum($calendarClasses[1]['days'])===3 && isset($calendarClasses[1]['days']['2024-02-29']), 'Incluir ano bissexto e bordas do ano sem contar o ano seguinte.');
 
+$suspensionDb = createChartTestDatabase();
+$suspensionChart = new AdminChartService($suspensionDb);
+$beforeSuspension = $suspensionChart->report($filters);
+$suspensionDb->exec("UPDATE inscricoes_turma SET suspensao_libera_vaga=1,suspensa_fim='2099-01-01 00:00:00' WHERE status='suspensa'");
+$afterSuspension = $suspensionChart->report($filters);
+expectChart($afterSuspension['totals']['available'] === $beforeSuspension['totals']['available'] + 1, 'A suspensão com liberação deve aumentar a disponibilidade dos indicadores.');
+$suspensionDb->exec("UPDATE inscricoes_turma SET suspensa_fim='2000-01-01 00:00:00' WHERE status='suspensa'");
+$afterDeadline = $suspensionChart->report($filters);
+expectChart($afterDeadline['totals']['available'] === $beforeSuspension['totals']['available'], 'O fim do prazo deve voltar a ocupar a vaga mesmo antes de processar o status.');
+
 echo "OK: totais, públicos, status, reserva, capacidade excedida, intervalos, filtros inválidos, histórico, agrupamentos e paginação.\n";
 echo "OK: procura por data, limites do dia, período das aulas, cliques reais agregados e ausência de associação de cliques a público/status.\n";

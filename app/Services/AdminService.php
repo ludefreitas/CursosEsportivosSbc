@@ -159,6 +159,10 @@ class AdminService
             if ($normalizedCpfSearch !== '') {
                 $conditions[] = 'p.cpf LIKE :search_cpf';
                 $params[':search_cpf'] = '%' . $normalizedCpfSearch . '%';
+                $conditions[] = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(p.telefone_whatsapp, ''), ' ', ''), '(', ''), ')', ''), '-', ''), '+', '') LIKE :search_phone";
+                $params[':search_phone'] = '%' . $normalizedCpfSearch . '%';
+                $conditions[] = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(r.telefone_whatsapp, ''), ' ', ''), '(', ''), ')', ''), '-', ''), '+', '') LIKE :search_responsible_phone";
+                $params[':search_responsible_phone'] = '%' . $normalizedCpfSearch . '%';
             }
 
             $where[] = '(' . implode(' OR ', $conditions) . ')';
@@ -236,6 +240,8 @@ class AdminService
             if ($normalizedCpfSearch !== '') {
                 $conditions[] = 'c.cpf LIKE :search_cpf';
                 $params[':search_cpf'] = '%' . $normalizedCpfSearch . '%';
+                $conditions[] = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(p.telefone_whatsapp, ''), ' ', ''), '(', ''), ')', ''), '-', ''), '+', '') LIKE :search_phone";
+                $params[':search_phone'] = '%' . $normalizedCpfSearch . '%';
             }
 
             $sql .= '
@@ -763,10 +769,29 @@ class AdminService
     /**
      * Lista condicoes declaradas que ainda dependem de documentação ou validação.
      */
-    public function listPeopleRequiringConditionValidation(): array
+    public function listPeopleRequiringConditionValidation(string $search = '', array $conditions = [], array $statuses = []): array
     {
         $pdo = Database::connection();
-        $people = $pdo->query('
+        $search = trim($search);
+        $params = [];
+        $searchSql = '';
+        if ($search !== '') {
+            $searchSql = " AND (p.nome_completo LIKE :validation_name";
+            $params[':validation_name'] = '%' . $search . '%';
+            $digits = preg_replace('/\D+/', '', $search) ?? '';
+            if ($digits !== '') {
+                $searchSql .= " OR p.cpf LIKE :validation_cpf OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(p.telefone_whatsapp, ''), ' ', ''), '(', ''), ')', ''), '-', ''), '+', '') LIKE :validation_phone
+                    OR EXISTS (SELECT 1 FROM vinculos_responsaveis busca_vr
+                        INNER JOIN pessoas busca_r ON busca_r.id=busca_vr.responsavel_pessoa_id
+                        WHERE busca_vr.dependente_pessoa_id=p.id AND busca_vr.data_fim IS NULL
+                        AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(busca_r.telefone_whatsapp, ''), ' ', ''), '(', ''), ')', ''), '-', ''), '+', '') LIKE :validation_responsible_phone)";
+                $params[':validation_cpf'] = '%' . $digits . '%';
+                $params[':validation_phone'] = '%' . $digits . '%';
+                $params[':validation_responsible_phone'] = '%' . $digits . '%';
+            }
+            $searchSql .= ')';
+        }
+        $stmtPeople = $pdo->prepare('
             SELECT
                 p.id,
                 p.nome_completo,
@@ -788,11 +813,11 @@ class AdminService
                     LIMIT 1
                 ) AS nome_responsavel
             FROM pessoas p
-            WHERE p.eh_pcd = 1
-               OR p.eh_pvs = 1
-               OR p.eh_plm = 1
+            WHERE (p.eh_pcd = 1 OR p.eh_pvs = 1 OR p.eh_plm = 1)' . $searchSql . '
             ORDER BY p.nome_completo ASC, p.id ASC
-        ')->fetchAll(PDO::FETCH_ASSOC);
+        ');
+        $stmtPeople->execute($params);
+        $people = $stmtPeople->fetchAll(PDO::FETCH_ASSOC);
 
         if ($people === []) {
             return [];
@@ -883,6 +908,7 @@ class AdminService
             $personId = (int) ($person['id'] ?? 0);
 
             foreach ($this->certificateConditionMap() as $slug => $meta) {
+                if ($conditions !== [] && !in_array($slug, $conditions, true)) continue;
                 if ((int) ($person[$meta['field']] ?? 0) !== 1) {
                     continue;
                 }
@@ -896,6 +922,8 @@ class AdminService
                     continue;
                 }
 
+                $filterStatus = $status !== '' ? $status : 'pendente';
+                if ($statuses !== [] && !in_array($filterStatus, $statuses, true)) continue;
                 $rows[] = [
                     'person_id' => $personId,
                     'nome_completo' => $person['nome_completo'],

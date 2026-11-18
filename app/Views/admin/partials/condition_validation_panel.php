@@ -1,5 +1,8 @@
 <?php
 $conditionValidationRows = $conditionValidationRows ?? [];
+$validationSearch = trim((string) ($_GET['validation_search'] ?? ''));
+$validationConditions = (array) ($_GET['validation_conditions'] ?? []);
+$validationStatuses = (array) ($_GET['validation_statuses'] ?? []);
 
 $buildWhatsappLink = static function (?string $phone): ?string {
     $digits = preg_replace('/\D+/', '', (string) $phone) ?? '';
@@ -19,6 +22,30 @@ $buildWhatsappLink = static function (?string $phone): ?string {
 <article class="content-card top-gap" id="admin-condition-validation-panel">
     <h2>Condições que precisam de validação</h2>
     <p class="muted">Esta relação destaca cada condição declarada que ainda depende de envio de PDF ou de análise da documentação.</p>
+
+    <form class="stack-form" data-condition-validation-filter data-manual-submit="1">
+        <label>
+            <span>Buscar por nome, CPF ou telefone</span>
+            <input type="search" name="validation_search" value="<?php echo e($validationSearch); ?>" placeholder="Digite um nome, CPF ou telefone" autocomplete="off">
+        </label>
+        <fieldset class="people-condition-filter">
+            <legend>Condição especial</legend>
+            <div class="chips-wrap">
+                <?php foreach (['pcd' => 'PCD', 'plm' => 'PLM', 'pvs' => 'PVS'] as $slug => $label) { ?>
+                <label class="checkbox-chip"><input type="checkbox" name="validation_conditions[]" value="<?php echo e($slug); ?>" <?php echo in_array($slug, $validationConditions, true) ? 'checked' : ''; ?>><span><?php echo e($label); ?></span></label>
+                <?php } ?>
+            </div>
+        </fieldset>
+        <fieldset class="people-condition-filter">
+            <legend>Status do pedido de validação</legend>
+            <div class="chips-wrap">
+                <?php foreach (['pendente' => 'Pendente', 'validado_parcial' => 'Validado parcialmente', 'reprovado' => 'Reprovado'] as $status => $label) { ?>
+                <label class="checkbox-chip"><input type="checkbox" name="validation_statuses[]" value="<?php echo e($status); ?>" <?php echo in_array($status, $validationStatuses, true) ? 'checked' : ''; ?>><span><?php echo e($label); ?></span></label>
+                <?php } ?>
+            </div>
+        </fieldset>
+        <div><button type="submit" class="btn btn-primary">Buscar</button></div>
+    </form>
 
     <?php if ($conditionValidationRows !== []) { ?>
         <div class="admin-inline-links top-gap">

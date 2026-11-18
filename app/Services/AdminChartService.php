@@ -151,7 +151,7 @@ class AdminChartService
         }
         unset($class);
         // O status escolhido não entra neste WHERE: a reserva de vagas exige todos os status ocupantes.
-        $statement = $pdo->prepare("SELECT i.turma_id,i.publico_alvo,i.status,COUNT(*) AS total FROM inscricoes_turma i INNER JOIN turmas t ON t.id=i.turma_id WHERE $where GROUP BY i.turma_id,i.publico_alvo,i.status");
+        $statement = $pdo->prepare("SELECT i.turma_id,i.publico_alvo,i.status,COUNT(*) AS total, SUM(CASE WHEN i.status='suspensa' AND i.suspensao_libera_vaga=1 AND (i.suspensa_fim IS NULL OR i.suspensa_fim>NOW()) THEN 1 ELSE 0 END) AS vagas_liberadas FROM inscricoes_turma i INNER JOIN turmas t ON t.id=i.turma_id WHERE $where GROUP BY i.turma_id,i.publico_alvo,i.status");
         $statement->execute($params);
         $result = $this->aggregate($classes, $statement->fetchAll(PDO::FETCH_ASSOC), $seasons, $filters);
         $statement = $pdo->prepare("SELECT i.turma_id,i.publico_alvo,i.status,COUNT(*) AS total FROM inscricoes_turma i INNER JOIN turmas t ON t.id=i.turma_id WHERE $where AND i.created_at>=:procura_de AND i.created_at<:procura_fim GROUP BY i.turma_id,i.publico_alvo,i.status");
@@ -206,7 +206,7 @@ class AdminChartService
             foreach (['offered','available','enrollments','enrolled','awaiting_enrollment','waiting_list'] as $field) $groups[$key][$field] += $row[$field];
         }
         // Reserva inclui todos os status ocupantes, independentemente do filtro de status.
-        $statement = $this->connection()->prepare("SELECT i.turma_id,i.publico_alvo,i.status,p.data_nascimento,COUNT(*) AS total FROM inscricoes_turma i INNER JOIN turmas t ON t.id=i.turma_id LEFT JOIN pessoas p ON p.id=i.pessoa_id WHERE $where GROUP BY i.turma_id,i.publico_alvo,i.status,p.data_nascimento");
+        $statement = $this->connection()->prepare("SELECT i.turma_id,i.publico_alvo,i.status,p.data_nascimento,COUNT(*) AS total, SUM(CASE WHEN i.status='suspensa' AND i.suspensao_libera_vaga=1 AND (i.suspensa_fim IS NULL OR i.suspensa_fim>NOW()) THEN 1 ELSE 0 END) AS vagas_liberadas FROM inscricoes_turma i INNER JOIN turmas t ON t.id=i.turma_id LEFT JOIN pessoas p ON p.id=i.pessoa_id WHERE $where GROUP BY i.turma_id,i.publico_alvo,i.status,p.data_nascimento");
         $statement->execute($params);
         $reference = new \DateTimeImmutable('today', new \DateTimeZone('America/Sao_Paulo'));
         $bands = [['id' => 0, 'min' => 0, 'max' => 5, 'label' => '0–5 anos']];
@@ -258,7 +258,7 @@ class AdminChartService
         foreach ($statement->fetchAll(PDO::FETCH_ASSOC) as $entry) {
             $class = $classMap[$entry['turma_id']] ?? null;
             if (!$class || ($filters['public'] !== '' && $filters['public'] !== $entry['publico_alvo'])) continue;
-            if (in_array($entry['status'], ['matriculada','aguardando_matricula','suspensa'], true)) $reservedByClass[$class['id']] = ($reservedByClass[$class['id']] ?? 0) + (int) $entry['total'];
+            if (in_array($entry['status'], ['matriculada','aguardando_matricula','suspensa'], true)) $reservedByClass[$class['id']] = ($reservedByClass[$class['id']] ?? 0) + (int) $entry['total'] - (int) ($entry['vagas_liberadas'] ?? 0);
             if ($filters['status'] !== '' && $filters['status'] !== $entry['status']) continue;
             $date = substr((string) $entry['data_nascimento'], 0, 10);
             $birth = \DateTimeImmutable::createFromFormat('!Y-m-d', $date, $reference->getTimezone());
@@ -362,9 +362,11 @@ class AdminChartService
         foreach ($seasons as $season) if (in_array((int) $season['id'], $filters['season_ids'], true)) {
             $seasonMap[(int) $season['id']] = ['id' => (int) $season['id'], 'label' => (string) $season['nome'], 'offered' => 0, 'available' => 0, 'enrollments' => 0, 'classes' => 0];
         }
+        $releasedByPublic = [];
         $indexed = [];
         foreach ($enrollments as $entry) {
             $classId = (int) $entry['turma_id']; $public = (string) $entry['publico_alvo']; $status = (string) $entry['status'];
+            $releasedByPublic[$classId][$public] = ($releasedByPublic[$classId][$public] ?? 0) + (int) ($entry['vagas_liberadas'] ?? 0);
             $indexed[$classId][$public][$status] = ($indexed[$classId][$public][$status] ?? 0) + (int) $entry['total'];
         }
         $publics = [];
@@ -394,7 +396,7 @@ class AdminChartService
                 $awaiting += (int) ($entries['aguardando_matricula'] ?? 0);
                 $waitingList += (int) ($entries['lista_espera'] ?? 0);
                 $occupied = (int) ($entries['matriculada'] ?? 0) + (int) ($entries['aguardando_matricula'] ?? 0) + (int) ($entries['suspensa'] ?? 0);
-                $free = max(0, $capacity - $occupied);
+                $free = max(0, $capacity - $occupied + ($releasedByPublic[$id][$public] ?? 0));
                 $offered += $capacity; $available += $free;
                 $publics[$public]['offered'] += $capacity; $publics[$public]['available'] += $free;
                 foreach ($entries as $status => $amount) {

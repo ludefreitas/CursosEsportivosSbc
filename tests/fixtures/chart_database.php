@@ -5,6 +5,9 @@ function createChartTestDatabase(string $dsn = 'sqlite::memory:', ?PDO $provided
 {
     $pdo = $provided ?? new PDO($dsn, null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
     $pdo->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION); $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE,PDO::FETCH_ASSOC);
+    if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+        $pdo->sqliteCreateFunction('NOW', static fn() => date('Y-m-d H:i:s'));
+    }
     $pdo->exec('CREATE TABLE temporadas(id INTEGER PRIMARY KEY,nome TEXT,data_inicio TEXT,data_fim TEXT,status TEXT);
         CREATE TABLE locais_treino(id INTEGER PRIMARY KEY,nome_local TEXT,apelido_local TEXT,ativo INTEGER DEFAULT 1);
         CREATE TABLE modalidades(id INTEGER PRIMARY KEY,nome TEXT,ativo INTEGER DEFAULT 1);
@@ -13,7 +16,7 @@ function createChartTestDatabase(string $dsn = 'sqlite::memory:', ?PDO $provided
         CREATE TABLE turmas_professores(turma_id INTEGER, professor_conta_id INTEGER);
         CREATE TABLE turmas_estagiarios(turma_id INTEGER, estagiario_conta_id INTEGER);
         CREATE TABLE turmas(id INTEGER PRIMARY KEY,professor_conta_id INTEGER DEFAULT NULL,temporada_id INTEGER,nome TEXT,local_treino_id INTEGER,modalidade_id INTEGER,status TEXT,vagas_totais INTEGER,vagas_geral INTEGER,vagas_pcd INTEGER,vagas_plm INTEGER,vagas_pvs INTEGER,hora_inicio TEXT DEFAULT NULL,hora_fim TEXT DEFAULT NULL,ativo INTEGER DEFAULT 1,dias_semana TEXT DEFAULT "1,2,3,4,5,6,7",cronograma_modalidade_id INTEGER DEFAULT 1, idade_minima INTEGER DEFAULT 18, idade_maxima INTEGER DEFAULT 99, criterio_faixa_etaria TEXT DEFAULT "idade_exata");
-        CREATE TABLE inscricoes_turma(id INTEGER PRIMARY KEY,pessoa_id INTEGER,turma_id INTEGER,publico_alvo TEXT,status TEXT,created_at TEXT DEFAULT "2025-06-15 12:00:00");
+        CREATE TABLE inscricoes_turma(id INTEGER PRIMARY KEY,pessoa_id INTEGER,turma_id INTEGER,publico_alvo TEXT,status TEXT,suspensao_libera_vaga INTEGER DEFAULT 0,suspensa_fim TEXT,created_at TEXT DEFAULT "2025-06-15 12:00:00");
         CREATE TABLE curso_interesse_diario(dia TEXT,tipo TEXT,entidade_id INTEGER,temporada_id INTEGER,local_id INTEGER,modalidade_id INTEGER,turma_id INTEGER,periodo TEXT,total INTEGER,PRIMARY KEY(dia,tipo,entidade_id));');
     $pdo->exec('CREATE TABLE cronogramas_modalidade(id INTEGER PRIMARY KEY,aulas_inicio TEXT,aulas_fim TEXT);
         CREATE TABLE turmas_chamadas(id INTEGER PRIMARY KEY,turma_id INTEGER,inscricao_turma_id INTEGER,data_aula TEXT,status TEXT,UNIQUE(inscricao_turma_id,data_aula));');

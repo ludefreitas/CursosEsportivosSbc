@@ -21,6 +21,7 @@ namespace {
         INSERT INTO contas VALUES(1,'00000000001',1,'2026-01-01',NULL),(2,'00000000002',1,'2026-01-02',NULL),(3,'00000000003',1,'2026-01-03',NULL),(4,'00000000004',1,'2026-01-04',NULL);
         INSERT INTO pessoas VALUES(1,'00000000001','Ana Admin','ana@example.test','',1),(2,'00000000002','Bruno Professor','bruno@example.test','',1),(3,'00000000003','Carla Admin','carla@example.test','',1),(4,'00000000004','Davi Usuário','davi@example.test','',1);
         INSERT INTO conta_papeis VALUES(1,1,'2026-01-01'),(1,2,'2026-01-01'),(2,2,'2026-01-01'),(3,1,'2026-01-01'),(4,3,'2026-01-01');
+        UPDATE pessoas SET telefone_whatsapp='(11) 98765-4321' WHERE id=1;
         PRAGMA query_only=ON;");
     $s=new \App\Services\AdminService();
     function roleExpect(bool $v,string $message): void{if(!$v)throw new RuntimeException($message);}
@@ -28,6 +29,8 @@ namespace {
     $rows=$s->listUsersOnly(40,'Ana','professor');roleExpect(count($rows)===1&&str_contains($rows[0]['papeis_nomes'],'Administrador')&&str_contains($rows[0]['papeis_nomes'],'Professor'),'Conta multipapel preserva todos os papéis.');
     roleExpect(count($s->listUsersOnly(40,'Carla','professor'))===0,'Busca e papel combinados.');
     roleExpect(count($s->listUsersOnly(40,'00000000001','admin'))===1,'CPF e papel combinados.');
+    roleExpect(count($s->listUsersOnly(40,'11987654321','admin'))===1,'Telefone sem máscara e papel combinados.');
+    roleExpect(count($s->listUsersOnly(40,'(11) 98765-4321','professor'))===1,'Telefone com máscara e papel combinados.');
     roleExpect(count($s->listUsersOnly(40,'',"professor' OR 1=1 --"))===0,'Papel parametrizado.');
     roleExpect(count($s->listUsersOnly(40))===4,'Todos os papéis.');
     echo "OK: filtro por papel antes do limite, busca, CPF, contas multipapel e parâmetros seguros.\n";

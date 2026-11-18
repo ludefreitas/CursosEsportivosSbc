@@ -515,7 +515,7 @@ class ProfessorController extends Controller
             $classId = (int) ($_POST['turma_id'] ?? 0);
             if (!$service->professorIsAssignedToClass((int) $user['conta_id'], $classId)) { throw new \RuntimeException('Você não está atribuído a esta turma.'); }
             if (!empty($_POST['acao_matricula'])) {
-                $date=trim((string)($_POST['data']??'')); $service->changeAttendanceEnrollmentStatus($classId,(int)($_POST['inscricao_id']??0),trim((string)$_POST['acao_matricula']),(int)$user['conta_id']);
+                $date=trim((string)($_POST['data']??'')); $service->changeAttendanceEnrollmentStatus($classId,(int)($_POST['inscricao_id']??0),trim((string)$_POST['acao_matricula']),(int)$user['conta_id'],$_POST);
                 $attendance=$service->classAttendanceRoster($classId,$date); $professorView=true; ob_start(); require ROOT_PATH.'/app/Views/admin/partials/course_class_attendance.php';
                 $this->jsonResponse(['success'=>true,'message'=>'Matrícula atualizada.','html'=>(string)ob_get_clean()]); return;
             }
@@ -877,7 +877,11 @@ class ProfessorController extends Controller
             return ['sectionName' => $sectionName, 'professorView' => true, 'chartOptions' => $service->options()];
         }
         if ($sectionName === 'validar-condicoes') {
-            return ['sectionName' => $sectionName, 'professorView' => true, 'conditionValidationRows' => $this->adminService->listPeopleRequiringConditionValidation()];
+            return ['sectionName' => $sectionName, 'professorView' => true, 'conditionValidationRows' => $this->adminService->listPeopleRequiringConditionValidation(
+                trim((string) ($_GET['validation_search'] ?? '')),
+                (array) ($_GET['validation_conditions'] ?? []),
+                (array) ($_GET['validation_statuses'] ?? [])
+            )];
         }
         if ($sectionName === 'validar-atestados') {
             return ['sectionName' => $sectionName, 'professorView' => true, 'healthCertificateValidationRows' => $this->adminService->listPeopleRequiringHealthCertificateValidation()];

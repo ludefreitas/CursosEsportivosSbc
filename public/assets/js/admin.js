@@ -3551,6 +3551,23 @@
         },
 
         iniciarValidacaoCondicoesAdmin: function () {
+            function filterValues($panel) {
+                const $form = $panel.find('[data-condition-validation-filter]');
+                return {
+                    validation_search: String($form.find('[name="validation_search"]').val() || ''),
+                    validation_conditions: $form.find('[name="validation_conditions[]"]:checked').map(function () { return this.value; }).get(),
+                    validation_statuses: $form.find('[name="validation_statuses[]"]:checked').map(function () { return this.value; }).get()
+                };
+            }
+
+            $(document).on('submit', '[data-condition-validation-filter]', function (event) {
+                event.preventDefault();
+                App.admin.activateSection('validar-condicoes', filterValues($(this).closest('article')));
+            });
+            $(document).on('change', '[data-condition-validation-filter] input[type="checkbox"]', function () {
+                $(this).closest('form').trigger('submit');
+            });
+
             function getModal() {
                 return $('#admin-condition-validation-modal');
             }
@@ -3708,7 +3725,7 @@
                         const $currentPanel = $('#admin-condition-validation-panel');
 
                         if ($currentPanel.length > 0) {
-                            $currentPanel.replaceWith(String(response.panel_html));
+                            App.admin.activateSection('validar-condicoes', filterValues($currentPanel));
                         }
                     }
 
@@ -3760,7 +3777,7 @@
             }
 
             function getModalContent() {
-                return $('#admin-health-certificate-validation-modal-content');
+                return getModal().find('#admin-health-certificate-validation-modal-content');
             }
 
             function closeModal() {
@@ -8109,7 +8126,19 @@
             $(document).on('click', '[data-class-enrollment-action]', function () {
                 const $button=$(this), action=String($button.attr('data-class-enrollment-action')||''), name=String($button.attr('data-person-name')||'aluno');
                 const labels={suspensa:'suspender a matrícula de ',matriculada:'rematricular ',desistente:'marcar como desistente '};
-                $('#class-enrollment-action-modal').data('sourceButton',$button).removeClass('hidden').attr('aria-hidden','false').find('[data-class-enrollment-action-question]').text('Deseja realmente '+(labels[action]||'alterar a matrícula de ')+name+'?');
+                const $modal = $('#class-enrollment-action-modal').data('sourceButton', $button);
+                const suspension = action === 'suspensa' || action === 'renovar_suspensao';
+                const renew = action === 'renovar_suspensao';
+                const $form = $modal.find('[data-class-suspension-form]');
+                $form[0].reset();
+                $form.toggleClass('hidden', !suspension).find('input, select, textarea').prop('disabled', !suspension);
+                $form.find('[data-suspension-other]').addClass('hidden').find('textarea').prop('required', false);
+                $form.find('[data-suspension-vacancy]').toggleClass('hidden', renew).find('select').prop('disabled', renew || !suspension);
+                $form.find('[data-suspension-period-help]').text(renew
+                    ? 'O prazo escolhido será acrescentado ao término atual. A liberação ou reserva da vaga será mantida.'
+                    : 'O prazo começa na confirmação. Ao terminar, a rematrícula será automática.');
+                const question = renew ? 'Deseja renovar a suspensão de ' : 'Deseja realmente ' + (labels[action] || 'alterar a matrícula de ');
+                $modal.removeClass('hidden').attr('aria-hidden', 'false').find('[data-class-enrollment-action-question]').text(question + name + '?');
             });
             $(document).on('click', '[data-missing-health-certificate="1"]', function () {
                 const label = String($(this).attr('data-certificate-label') || 'selecionado');
@@ -8117,17 +8146,34 @@
                 $('#popup-mensagem').appendTo(document.body).css('z-index', '2147483000');
             });
             $(document).on('click','[data-class-enrollment-action-close="1"]',function(){ $('#class-enrollment-action-modal').removeData('sourceButton').addClass('hidden').attr('aria-hidden','true'); });
+            $(document).on('submit', '[data-class-suspension-form]', function (event) { event.preventDefault(); });
+            $(document).on('change', '[data-class-suspension-form] [name="suspensao_motivo"]', function () {
+                const other = this.value === 'Outro motivo';
+                $(this).closest('form').find('[data-suspension-other]').toggleClass('hidden', !other)
+                    .find('textarea').prop('required', other);
+            });
             $(document).on('click','[data-class-enrollment-action-confirm="1"]',function(){
                 const $modal=$('#class-enrollment-action-modal'), $button=$modal.data('sourceButton'); if (!$button||!$button.length) return;
                 const $roster=$('#course-class-attendance-roster-modal [data-class-attendance-roster]'), date=String($roster.find('[data-class-attendance-date]').attr('data-class-attendance-date')||''), classId=String($('#course-class-attendance-roster-modal').attr('data-class-id')||'');
                 const enrollmentId=String($button.attr('data-enrollment-id')||'');
-                $(this).prop('disabled',true); $.ajax({url:classAttendanceEndpoint(),method:'POST',dataType:'json',data:{turma_id:classId,inscricao_id:enrollmentId,acao_matricula:$button.attr('data-class-enrollment-action'),data:date},suppressGlobalLoading:true}).done(function(response){
+                const $form = $modal.find('[data-class-suspension-form]');
+                if (!$form.hasClass('hidden') && !$form[0].reportValidity()) return;
+                const payload = Object.fromEntries(new FormData($form[0]));
+                Object.assign(payload, {
+                    turma_id: classId, inscricao_id: enrollmentId,
+                    acao_matricula: $button.attr('data-class-enrollment-action'), data: date,
+                    suspensao_fim_atual: String($button.attr('data-suspension-end') || '')
+                });
+                $(this).prop('disabled',true); $.ajax({url:classAttendanceEndpoint(),method:'POST',dataType:'json',data:payload,suppressGlobalLoading:true}).done(function(response){
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível alterar a matrícula.'));
+                        return;
+                    }
                     $modal.addClass('hidden').attr('aria-hidden','true');
-                    const $current=$roster.find('[data-enrollment-id="'+enrollmentId+'"]').first().closest('.class-attendance-student, .class-attendance-suspended > div'), $parsed=$('<div>').html(String((response&&response.html)||'')), $replacement=$parsed.find('[data-enrollment-id="'+enrollmentId+'"]').first().closest('.class-attendance-student, .class-attendance-suspended > div');
-                    const destinationClass=$replacement.closest('.class-attendance-list').length?'class-attendance-list':($replacement.closest('.class-attendance-absence-excluded').length?'class-attendance-absence-excluded':'class-attendance-suspended');
-                    $current.remove();
-                    if($replacement.length){let $destination=$roster.find('.'+destinationClass).first();if(!$destination.length){$roster.append($parsed.find('.'+destinationClass).first());}else{$destination.append($replacement);}}
-                    $roster.find('.class-attendance-suspended').each(function(){if($(this).children('div').length===0)$(this).remove();});
+                    const $body = $roster.closest('.popup-body');
+                    const scrollTop = $body.scrollTop();
+                    $roster.html(String(response.html || ''));
+                    $body.scrollTop(scrollTop);
                 }).fail(function(xhr){App.core.abrirPopup('erro',App.core.extrairMensagemErroAjax(xhr).mensagem);}).always(function(){$modal.find('[data-class-enrollment-action-confirm="1"]').prop('disabled',false);});
             });
 
