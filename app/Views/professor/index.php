@@ -19,7 +19,7 @@
             <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="validar-atestados">Atestados de saúde para validar</button><?php } ?>
             <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="validar-condicoes">Condições que precisam de validação</button><?php } ?>
             <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="cronograma-turmas">Cronograma turmas</button><?php } ?>
-            <?php if (empty($internView)) { ?><a href="<?php echo e(url('/grades-de-horario')); ?>" class="admin-nav-button">Grades de horário</a><?php } ?>
+            <?php if (empty($internView)) { ?><a href="<?php echo e(url('/grades-de-horario') . '?origem=professor'); ?>" class="admin-nav-button">Grades de horário</a><?php } ?>
             <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="graficos-agendamento">Gráficos e indicadores <span class="admin-nav-subtitle">Agenda</span></button><?php } ?>
             <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="graficos">Gráficos e indicadores <span class="admin-nav-subtitle">Turmas</span></button><?php } ?>
             <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Início</button>

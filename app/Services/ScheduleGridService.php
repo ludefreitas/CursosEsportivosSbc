@@ -8,6 +8,8 @@ use InvalidArgumentException;
 
 class ScheduleGridService
 {
+    public const TEAM_FIELDS = ['professor', 'professores_auxiliares', 'estagiarios'];
+
     public const STATUS_OPTIONS = [
         'planejada' => 'Planejada',
         'processo_inicial' => 'Em processo inicial de inscrição',
@@ -17,7 +19,7 @@ class ScheduleGridService
         'inscricoes_encerradas' => 'Inscrições encerradas',
     ];
 
-    public function search(int $seasonId, int $locationId, int $spaceId, ?array $statuses = null, array $excludedClasses = []): array
+    public function search(int $seasonId, int $locationId, int $spaceId, ?array $statuses = null, array $excludedClasses = [], int $professorId = 0, bool $onlyMyClasses = false): array
     {
         $statusOptions = self::STATUS_OPTIONS;
         $selectedStatuses = $statuses === null ? array_keys($statusOptions) : array_values(array_unique(array_intersect(array_keys($statusOptions), $statuses)));
@@ -34,6 +36,7 @@ class ScheduleGridService
         $sheets = [];
         $unscheduled = 0;
         $classOptions = [];
+        $hasOwnClasses = false;
         if ($location) {
             $stmt = $pdo->prepare('SELECT id,nome FROM espacos_treino WHERE local_treino_id=:local AND ativo=1 ORDER BY nome');
             $stmt->execute([':local' => $locationId]);
@@ -47,7 +50,16 @@ class ScheduleGridService
                 $params[$placeholder] = $status;
             }
             $statusFilter = $statusPlaceholders ? 't.status IN (' . implode(',', $statusPlaceholders) . ')' : '1=0';
+            $ownership = '0';
+            if ($professorId > 0) {
+                $ownership = '(COALESCE(t.professor_conta_id, 0) = :principal OR EXISTS (
+                    SELECT 1 FROM turmas_professores tp WHERE tp.turma_id=t.id AND tp.professor_conta_id=:auxiliar
+                ))';
+                $params[':principal'] = $professorId;
+                $params[':auxiliar'] = $professorId;
+            }
             $stmt = $pdo->prepare("SELECT t.id,t.nome,t.status,t.espaco_treino_id,t.dias_semana,t.hora_inicio,t.hora_fim,t.programa,t.idade_minima,t.idade_maxima,t.criterio_faixa_etaria,m.nome AS modalidade,
+                $ownership AS turma_do_professor,
                 (SELECT p.nome_completo FROM contas c INNER JOIN pessoas p ON p.cpf=c.cpf WHERE c.id=t.professor_conta_id LIMIT 1) AS professor,
                 (SELECT GROUP_CONCAT(DISTINCT p.nome_completo ORDER BY p.nome_completo SEPARATOR ' / ')
                  FROM turmas_professores tp INNER JOIN contas c ON c.id=tp.professor_conta_id INNER JOIN pessoas p ON p.cpf=c.cpf
@@ -61,17 +73,29 @@ class ScheduleGridService
                 ORDER BY t.hora_inicio,t.nome,t.id");
             $stmt->execute($params);
             $classes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if ($professorId > 0) {
+                if ($onlyMyClasses) {
+                    $classes = array_filter($classes, static fn(array $class): bool => (bool) $class['turma_do_professor']);
+                }
+                foreach ($classes as &$class) {
+                    if (!$class['turma_do_professor']) {
+                        $class = array_diff_key($class, array_flip(self::TEAM_FIELDS));
+                    }
+                }
+                unset($class);
+            }
             foreach ($spaces as $space) {
                 if ($spaceId !== 0 && (int) $space['id'] !== $spaceId) continue;
                 $items = array_values(array_filter($classes, static fn(array $class): bool => (int) $class['espaco_treino_id'] === (int) $space['id']));
                 foreach ($items as $item) $classOptions[] = $item + ['espaco_nome' => $space['nome']];
                 $items = $this->excludeClasses($items, $excludedClasses);
+                $hasOwnClasses = $hasOwnClasses || in_array(1, array_map('intval', array_column($items, 'turma_do_professor')), true);
                 $grid = $this->buildGrid($items);
                 $unscheduled += $grid['sem_horario'];
                 $sheets[] = ['espaco' => $space, 'periodos' => $grid['periodos'], 'total' => count($items)];
             }
         }
-        return compact('seasons', 'seasonId', 'season', 'locations', 'locationId', 'location', 'spaces', 'spaceId', 'sheets', 'unscheduled', 'statusOptions', 'selectedStatuses', 'classOptions', 'excludedClasses');
+        return compact('seasons', 'seasonId', 'season', 'locations', 'locationId', 'location', 'spaces', 'spaceId', 'sheets', 'unscheduled', 'statusOptions', 'selectedStatuses', 'classOptions', 'excludedClasses', 'hasOwnClasses');
     }
 
     public function excludeClasses(array $classes, array $excludedIds): array

@@ -1,9 +1,20 @@
-<?php /* @pdf-model grade|Grade de horários */ ?>
+<?php /* @pdf-model grade|Grade de horários */
+$professorView = $professorView ?? false;
+$disabledFields = $disabledFields ?? [];
+?>
 <section class="content-card schedule-grid-controls">
+    <form method="GET" action="<?php echo e(url('/grades-de-horario')); ?>">
+    <?php if ($professorView) { ?>
+        <input type="hidden" name="origem" value="professor">
+        <fieldset class="schedule-grid-field-options schedule-grid-scope">
+            <legend class="sr-only">Filtrar turmas</legend>
+            <label><input type="radio" name="turmas" value="minhas" data-grid-scope <?php echo $onlyMyClasses ? 'checked' : ''; ?>><span>Minhas turmas</span></label>
+            <label><input type="radio" name="turmas" value="todas" data-grid-scope <?php echo !$onlyMyClasses ? 'checked' : ''; ?>><span>Todas as turmas</span></label>
+        </fieldset>
+    <?php } ?>
     <h1>Grades de horário</h1>
     <p>Consulte as turmas dos cursos por local e espaço. Cada espaço tem uma grade para imprimir em uma página A4 paisagem.</p>
     <?php if ($error) { ?><p role="alert" class="schedule-grid-warning"><?php echo e($error); ?></p><?php } ?>
-    <form method="GET" action="<?php echo e(url('/grades-de-horario')); ?>">
     <div class="schedule-grid-filters">
         <label><span>Temporada</span><select name="temporada_id" required><?php foreach ($seasons as $option) { ?><option value="<?php echo (int) $option['id']; ?>" <?php echo (int) $option['id'] === $seasonId ? 'selected' : ''; ?>><?php echo e($option['nome']); ?></option><?php } ?></select></label>
         <label><span>Local</span><select name="local_id" required data-grid-location><option value="">Selecione um local</option><?php foreach ($locations as $option) { ?><option value="<?php echo (int) $option['id']; ?>" <?php echo (int) $option['id'] === $locationId ? 'selected' : ''; ?>><?php echo e(trim((string) $option['apelido_local']) ?: $option['nome_local']); ?></option><?php } ?></select></label>
@@ -23,7 +34,7 @@
     <fieldset class="schedule-grid-field-options schedule-grid-class-options">
         <legend>Turmas que aparecem na grade</legend>
         <p>Desmarque as turmas que não deseja mostrar. A seleção também vale para a impressão.</p>
-        <?php if (!$classOptions) { ?><p class="muted">Nenhuma turma encontrada para o espaço e os status selecionados.</p><?php } ?>
+        <?php if (!$classOptions) { ?><p class="muted">Nenhuma turma encontrada para os filtros selecionados.</p><?php } ?>
         <?php foreach ($classOptions as $classOption) { ?>
         <label><input type="checkbox" data-grid-class="<?php echo (int) $classOption['id']; ?>" <?php echo !in_array((int) $classOption['id'], $excludedClasses, true) ? 'checked' : ''; ?>>
             <span>[<?php echo (int) $classOption['id']; ?>] <?php echo e($classOption['nome']); ?></span>
@@ -34,7 +45,7 @@
     <fieldset class="schedule-grid-field-options">
         <legend>Dados que aparecem na grade</legend>
         <input type="hidden" name="campos_configurados" value="1">
-        <?php foreach ($fieldOptions as $key => $label) { ?><label><input type="checkbox" name="campos[]" value="<?php echo e($key); ?>" data-grid-field="<?php echo e($key); ?>" <?php echo in_array($key, $fields, true) ? 'checked' : ''; ?>><span><?php echo e($label); ?></span></label><?php } ?>
+        <?php foreach ($fieldOptions as $key => $label) { ?><label><input type="checkbox" name="campos[]" value="<?php echo e($key); ?>" data-grid-field="<?php echo e($key); ?>" <?php echo in_array($key, $fields, true) ? 'checked' : ''; ?> <?php echo in_array($key, $disabledFields, true) ? 'disabled' : ''; ?>><span><?php echo e($label); ?></span></label><?php } ?>
     </fieldset>
     </form>
     <?php if ($selectedStatuses === []) { ?><p class="schedule-grid-warning" role="status">Selecione pelo menos um status para exibir as turmas.</p><?php } ?>

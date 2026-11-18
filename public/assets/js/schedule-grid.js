@@ -11,6 +11,11 @@
         });
     }
     if (space) space.addEventListener('change', function () { space.form.requestSubmit(); });
+    document.querySelectorAll('[data-grid-scope]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            if (location && location.value) radio.form.requestSubmit();
+        });
+    });
     document.querySelectorAll('[data-grid-class]').forEach(function (checkbox) {
         checkbox.addEventListener('change', function () {
             const inputs = checkbox.form.querySelector('[data-grid-excluded-inputs]');
