@@ -3556,7 +3556,8 @@
                 return {
                     validation_search: String($form.find('[name="validation_search"]').val() || ''),
                     validation_conditions: $form.find('[name="validation_conditions[]"]:checked').map(function () { return this.value; }).get(),
-                    validation_statuses: $form.find('[name="validation_statuses[]"]:checked').map(function () { return this.value; }).get()
+                    validation_statuses: $form.find('[name="validation_statuses[]"]:checked').map(function () { return this.value; }).get(),
+                    validation_documentation: $form.find('[name="validation_documentation[]"]:checked').map(function () { return this.value; }).get()
                 };
             }
 

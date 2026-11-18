@@ -32,8 +32,8 @@ $service = new App\Services\AdminService();
 function validationFilterCheck(bool $ok, string $message): void {
     if (!$ok) throw new RuntimeException($message);
 }
-$ids = static fn($search = '', $conditions = [], $statuses = []) => array_map('intval', array_column(
-    $service->listPeopleRequiringConditionValidation($search, $conditions, $statuses), 'person_id'
+$ids = static fn($search = '', $conditions = [], $statuses = [], $documentation = []) => array_map('intval', array_column(
+    $service->listPeopleRequiringConditionValidation($search, $conditions, $statuses, $documentation), 'person_id'
 ));
 validationFilterCheck($ids() === [1,2,3], 'Validados devem permanecer fora da fila.');
 validationFilterCheck($ids('', ['plm']) === [2], 'Filtrar PLM.');
@@ -47,4 +47,15 @@ validationFilterCheck($ids('(11) 98765-4321') === [1], 'Buscar telefone com más
 validationFilterCheck($ids('11988887777') === [3], 'Buscar pelo telefone do responsável.');
 validationFilterCheck($ids('11987654321', ['pcd'], ['pendente']) === [1], 'Combinar busca, condição e status.');
 validationFilterCheck($ids('11987654321', ['pvs'], ['pendente']) === [], 'Filtros não podem ampliar o resultado de outra condição.');
+$db->exec('DELETE FROM documentos_certificados WHERE certificado_pessoa_id=2');
+$db->exec("INSERT INTO pessoas VALUES (6,'Eva sem certificado','66677788899','1980-01-01',NULL,'2026-11-01',1,0,0)");
+validationFilterCheck($ids('', [], [], ['enviada']) === [1,3], 'Documentação enviada exige PDF anexado.');
+$withoutDocuments = $ids('', [], [], ['nao_enviada']);
+sort($withoutDocuments);
+validationFilterCheck($withoutDocuments === [2,6], 'Sem documentação inclui certificado sem PDF e condição sem certificado.');
+validationFilterCheck($ids('', ['plm'], ['validado_parcial'], ['nao_enviada']) === [2], 'Combinar condição, status e ausência de documentação.');
+validationFilterCheck($ids('Ana', ['pcd'], ['pendente'], ['enviada']) === [1], 'Combinar busca e todos os filtros.');
+$allDocumentation = $ids('', [], [], ['enviada','nao_enviada']);
+sort($allDocumentation);
+validationFilterCheck($allDocumentation === [1,2,3,6], 'Ambas as opções devem incluir os dois grupos sem incluir validados.');
 echo "Condições de validação: busca por nome, CPF, telefone, responsável, filtros combinados e exclusão dos validados verificados.\n";

@@ -3,6 +3,7 @@ $conditionValidationRows = $conditionValidationRows ?? [];
 $validationSearch = trim((string) ($_GET['validation_search'] ?? ''));
 $validationConditions = (array) ($_GET['validation_conditions'] ?? []);
 $validationStatuses = (array) ($_GET['validation_statuses'] ?? []);
+$validationDocumentation = (array) ($_GET['validation_documentation'] ?? []);
 
 $buildWhatsappLink = static function (?string $phone): ?string {
     $digits = preg_replace('/\D+/', '', (string) $phone) ?? '';
@@ -41,6 +42,14 @@ $buildWhatsappLink = static function (?string $phone): ?string {
             <div class="chips-wrap">
                 <?php foreach (['pendente' => 'Pendente', 'validado_parcial' => 'Validado parcialmente', 'reprovado' => 'Reprovado'] as $status => $label) { ?>
                 <label class="checkbox-chip"><input type="checkbox" name="validation_statuses[]" value="<?php echo e($status); ?>" <?php echo in_array($status, $validationStatuses, true) ? 'checked' : ''; ?>><span><?php echo e($label); ?></span></label>
+                <?php } ?>
+            </div>
+        </fieldset>
+        <fieldset class="people-condition-filter">
+            <legend>Documentação</legend>
+            <div class="chips-wrap">
+                <?php foreach (['enviada' => 'Documentação enviada', 'nao_enviada' => 'Documentação não enviada'] as $value => $label) { ?>
+                <label class="checkbox-chip"><input type="checkbox" name="validation_documentation[]" value="<?php echo e($value); ?>" <?php echo in_array($value, $validationDocumentation, true) ? 'checked' : ''; ?>><span><?php echo e($label); ?></span></label>
                 <?php } ?>
             </div>
         </fieldset>

@@ -769,7 +769,7 @@ class AdminService
     /**
      * Lista condicoes declaradas que ainda dependem de documentação ou validação.
      */
-    public function listPeopleRequiringConditionValidation(string $search = '', array $conditions = [], array $statuses = []): array
+    public function listPeopleRequiringConditionValidation(string $search = '', array $conditions = [], array $statuses = [], array $documentation = []): array
     {
         $pdo = Database::connection();
         $search = trim($search);
@@ -915,6 +915,8 @@ class AdminService
 
                 $certificate = $latestCertificates[$personId][$slug] ?? null;
                 $documents = $certificate ? ($documentsByCertificate[(int) $certificate['id']] ?? []) : [];
+                $documentStatus = $documents === [] ? 'nao_enviada' : 'enviada';
+                if ($documentation !== [] && !in_array($documentStatus, $documentation, true)) continue;
                 $status = trim((string) ($certificate['status'] ?? ''));
                 $pendingReason = $this->buildConditionValidationPendingReason($certificate, $documents);
 

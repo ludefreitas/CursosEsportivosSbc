@@ -880,7 +880,8 @@ class ProfessorController extends Controller
             return ['sectionName' => $sectionName, 'professorView' => true, 'conditionValidationRows' => $this->adminService->listPeopleRequiringConditionValidation(
                 trim((string) ($_GET['validation_search'] ?? '')),
                 (array) ($_GET['validation_conditions'] ?? []),
-                (array) ($_GET['validation_statuses'] ?? [])
+                (array) ($_GET['validation_statuses'] ?? []),
+                (array) ($_GET['validation_documentation'] ?? [])
             )];
         }
         if ($sectionName === 'validar-atestados') {
