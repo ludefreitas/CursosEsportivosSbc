@@ -18,6 +18,36 @@ final class PdfBrandingPreviewService
                     return ['text/html; charset=UTF-8',ob_get_clean()];
                 } catch (\Throwable $error) { ob_end_clean(); throw $error; }
             }
+            if (in_array($type, ['pessoas_indicadores', 'turmas_indicadores', 'agenda_indicadores'], true)) {
+                $peopleChartPreview = PeopleChartService::previewReport();
+                $indicatorDomain = $type === 'agenda_indicadores' ? 'agenda' : 'turmas';
+                if ($type !== 'pessoas_indicadores') {
+                    $peopleChartPreview['domain'] = $indicatorDomain === 'agenda' ? 'Agenda' : 'Turmas';
+                    $peopleChartPreview['cards'] = [['Vagas oferecidas', 120], ['Inscrições', 90]];
+                    $peopleChartPreview['slides'] = [['id'=>'preview','title'=>$indicatorDomain === 'agenda' ? 'Reservas por público' : 'Inscrições por público','description'=>'Dados fictícios para pré-visualização do modelo.','rows'=>[['label'=>'Geral','count'=>70],['label'=>'PCD','count'=>10],['label'=>'PLM','count'=>5],['label'=>'PVS','count'=>5]],'base'=>90,'unit'=>'registros']];
+                }
+                ob_start();
+                try {
+                    echo '<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">';
+                    foreach (['core', 'admin', 'admin-charts', 'people-charts'] as $style) {
+                        echo '<link rel="stylesheet" href="' . e(asset_url('css/' . $style . '.css')) . '">';
+                    }
+                    echo '<body><main>';
+                    if ($type === 'pessoas_indicadores') {
+                        require PdfBrandingSettings::root() . '/app/Views/admin/partials/people_charts_panel.php';
+                    } else {
+                        require PdfBrandingSettings::root() . '/app/Views/admin/partials/indicator_slides.php';
+                        echo '<script type="application/json" id="indicator-preview">' . json_encode($peopleChartPreview, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) . '</script>';
+                    }
+                    echo '</main><script src="' . e(asset_url('js/chart-themes.js')) . '"></script><script src="' . e(asset_url('js/people-charts.js')) . '"></script>';
+                    if ($type !== 'pessoas_indicadores') echo '<script>const deck=document.querySelector("[data-indicator-slides]");App.peopleCharts.initialize(deck);deck.dispatchEvent(new CustomEvent("indicator:report",{detail:JSON.parse(document.getElementById("indicator-preview").textContent)}));</script>';
+                    echo '</body></html>';
+                    return ['text/html; charset=UTF-8', ob_get_clean()];
+                } catch (\Throwable $error) {
+                    ob_end_clean();
+                    throw $error;
+                }
+            }
             $enrollment=['id'=>0,'turma_id'=>0,'nome_completo'=>'Aluno de exemplo — PRÉ-VISUALIZAÇÃO','cpf'=>'00000000000','status'=>'matriculada','modalidade_nome'=>'Ginástica','temporada_nome'=>'Temporada de exemplo','local_nome'=>'Centro esportivo de exemplo','espaco_nome'=>'Quadra','dias_semana_descricao'=>'Terça e quinta','hora_inicio'=>'09:00','hora_fim'=>'10:00'];
             $class=$enrollment+['nome'=>'Turma de exemplo','professor_principal_nome'=>'Professor de exemplo'];
             if ($type==='chamada') return ['application/pdf',(new AttendanceListPdfService())->render($class,array_fill(0,22,$enrollment))];

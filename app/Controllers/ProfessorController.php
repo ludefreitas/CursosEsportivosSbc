@@ -34,8 +34,8 @@ class ProfessorController extends Controller
     {
         $user = $this->assertProfessorAccess();
         $sectionName = (string) ($_GET['nome'] ?? 'inicio');
-        if (in_array($sectionName, ['ajuda', 'inscricoes', 'modalidades', 'turmas-criterio-etario', 'validar-condicoes', 'validar-atestados', 'graficos', 'graficos-agendamento'], true)) { $this->assertProfessorMutationAccess(); }
-        if (!in_array($sectionName, ['graficos', 'graficos-agendamento', 'ajuda', 'inicio', 'usuarios-pessoas', 'validar-condicoes', 'validar-atestados', 'inscricoes', 'minhas-turmas', 'cronograma-turmas', 'status-turmas', 'agenda', 'modalidades', 'turmas-criterio-etario'], true)) {
+        if (in_array($sectionName, ['ajuda', 'inscricoes', 'modalidades', 'turmas-criterio-etario', 'validar-condicoes', 'validar-atestados', 'graficos', 'graficos-agendamento', 'graficos-pessoas'], true)) { $this->assertProfessorMutationAccess(); }
+        if (!in_array($sectionName, ['graficos', 'graficos-agendamento', 'graficos-pessoas', 'ajuda', 'inicio', 'usuarios-pessoas', 'validar-condicoes', 'validar-atestados', 'inscricoes', 'minhas-turmas', 'cronograma-turmas', 'status-turmas', 'agenda', 'modalidades', 'turmas-criterio-etario'], true)) {
             $this->jsonResponse(['success' => false, 'message' => 'A seção não está disponível para professores.'], 403);
             return;
         }
@@ -237,6 +237,19 @@ class ProfessorController extends Controller
         } catch (\Throwable $error) {
             $this->jsonResponse(['success' => false, 'message' => $error instanceof \PDOException
                 ? 'Não foi possível consultar os indicadores de agendamento.' : $error->getMessage()], 422);
+        }
+    }
+
+    public function peopleChartData(): void
+    {
+        $this->assertProfessorMutationAccess();
+        header('Cache-Control: private, no-store');
+        try {
+            $this->jsonResponse(['success' => true, 'data' => (new \App\Services\PeopleChartService())->report($_GET)]);
+        } catch (\Throwable $error) {
+            error_log('Indicadores de pessoas: ' . $error->getMessage());
+            $this->jsonResponse(['success' => false, 'message' => $error instanceof \PDOException
+                ? 'Não foi possível consultar os indicadores de pessoas.' : $error->getMessage()], 422);
         }
     }
 
@@ -875,6 +888,10 @@ class ProfessorController extends Controller
         if ($sectionName === 'graficos') {
             $service = new \App\Services\AdminChartService(professorAccountId: (int) $user['conta_id']);
             return ['sectionName' => $sectionName, 'professorView' => true, 'chartOptions' => $service->options()];
+        }
+        if ($sectionName === 'graficos-pessoas') {
+            return ['sectionName' => $sectionName, 'professorView' => true,
+                'peopleChartOptions' => (new \App\Services\PeopleChartService())->options()];
         }
         if ($sectionName === 'validar-condicoes') {
             return ['sectionName' => $sectionName, 'professorView' => true, 'conditionValidationRows' => $this->adminService->listPeopleRequiringConditionValidation(

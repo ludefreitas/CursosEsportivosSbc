@@ -9,7 +9,6 @@
         this.q('[data-attendance-monitor-update]').addEventListener('click',()=>{this.page=1;refresh();});
         this.q('[data-attendance-today-button]').addEventListener('click',()=>{this.q('[data-attendance-monitor-from]').value=this.data.today;this.q('[data-attendance-monitor-to]').value=this.data.today;this.page=1;refresh();});
         this.q('[data-attendance-prev]').addEventListener('click',()=>{this.page--;refresh();});this.q('[data-attendance-next]').addEventListener('click',()=>{this.page++;refresh();});
-        this.timer=setInterval(()=>{if(root.isConnected&&!document.hidden&&root.getClientRects().length&&this.q('[data-attendance-auto]').checked)refresh(true);},60000);
         if(window.ResizeObserver){this.observer=new ResizeObserver(e=>{const w=e[0].contentRect.width;if(w===this.width)return;this.width=w;if(this.data?.available)this.trend();});this.observer.observe(root);}
     }
     UI.prototype.bar=function(label,value,max,color,suffix=''){return '<div class="chart-bar-row"><span class="chart-label">'+esc(label)+' <strong>'+ (value==null?'—':num(value)+suffix)+'</strong></span><div class="chart-track"><span class="chart-bar" style="width:'+Math.min(100,Math.max(0,max?(value||0)/max*100:0))+'%;background:var('+color+')"></span></div></div>';};
@@ -43,6 +42,6 @@
         for(const [key,color,label] of [['present','--chart-available','Presenças'],['absent','--chart-red','Faltas'],['justified','--chart-purple','Justificativas']]){svg+='<polyline fill="none" stroke="var('+color+')" stroke-width="2" points="'+rows.map((r,i)=>x(i)+','+y(r[key])).join(' ')+'"/>';rows.forEach((r,i)=>{svg+='<circle cx="'+x(i)+'" cy="'+y(r[key])+'" r="3" fill="var('+color+')"><title>'+date(r.id)+': '+num(r[key])+' '+label+'</title></circle>';});}
         target.innerHTML='<p class="attendance-legend"><span>Presenças (verde)</span><span>Faltas (vermelho)</span><span>Justificativas (roxo)</span></p>'+svg+'<text x="'+left+'" y="12">Registros</text><text x="'+(w-right)+'" y="'+(h-4)+'" text-anchor="end">Data da aula</text></svg>';
     };
-    UI.prototype.destroy=function(){clearInterval(this.timer);this.observer?.disconnect();};
+    UI.prototype.destroy=function(){this.observer?.disconnect();};
     App.courseAttendanceCharts={create:(root,refresh)=>new UI(root,refresh)};
 }(window));

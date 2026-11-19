@@ -23,6 +23,7 @@
             <a href="<?php echo e(url('/grades-de-horario')); ?>" class="admin-nav-button">Grades de horário</a>
             <button type="button" class="admin-nav-button" data-admin-nav-target="graficos-agendamento">Gráficos e indicadores <span class="admin-nav-subtitle">Agenda</span></button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="graficos">Gráficos e indicadores <span class="admin-nav-subtitle">Turmas</span></button>
+            <button type="button" class="admin-nav-button" data-admin-nav-target="graficos-pessoas">Gráficos e indicadores <span class="admin-nav-subtitle">Pessoas</span></button>
             <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Início</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="inscricoes">Inscrições em cursos</button>
             <button type="button" class="admin-nav-button" data-admin-nav-target="locais-espacos">Locais e espaços</button>

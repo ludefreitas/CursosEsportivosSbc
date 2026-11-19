@@ -22,6 +22,7 @@
             <?php if (empty($internView)) { ?><a href="<?php echo e(url('/grades-de-horario') . '?origem=professor'); ?>" class="admin-nav-button">Grades de horário</a><?php } ?>
             <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="graficos-agendamento">Gráficos e indicadores <span class="admin-nav-subtitle">Agenda</span></button><?php } ?>
             <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="graficos">Gráficos e indicadores <span class="admin-nav-subtitle">Turmas</span></button><?php } ?>
+            <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="graficos-pessoas">Gráficos e indicadores <span class="admin-nav-subtitle">Pessoas</span></button><?php } ?>
             <button type="button" class="admin-nav-button is-active" data-admin-nav-target="inicio">Início</button>
             <?php if (empty($internView)) { ?><button type="button" class="admin-nav-button" data-admin-nav-target="inscricoes">Inscrições em cursos</button><?php } ?>
             <button type="button" class="admin-nav-button" data-staff-notifications-open="1">Minhas notificações</button>

@@ -123,6 +123,8 @@ return [
     ['GET', '/admin/graficos/dados', [AdminController::class, 'chartData']],
     ['GET', '/professor/graficos-agendamento/dados', [ProfessorController::class, 'agendaChartData']],
     ['GET', '/admin/graficos-agendamento/dados', [AdminController::class, 'agendaChartData']],
+    ['GET', '/admin/graficos-pessoas/dados', [AdminController::class, 'peopleChartData']],
+    ['GET', '/professor/graficos-pessoas/dados', [ProfessorController::class, 'peopleChartData']],
     ['POST', '/admin/pagina-professor', [AdminController::class, 'saveProfessorPage']],
     ['POST', '/admin/pagina-ajuda', [AdminController::class, 'saveTutorialPage']],
     ['POST', '/admin/ajuda/videos', [AdminController::class, 'saveStaffTutorialPage']],

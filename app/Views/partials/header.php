@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="<?php echo e(asset_url('css/home.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/blog.css')); ?>">
     <link rel="stylesheet" href="<?php echo e(asset_url('css/style.css')); ?>">
+    <?php if (in_array(current_path(), ['/admin', '/professor'], true)) { ?><link rel="stylesheet" href="<?php echo e(asset_url('css/people-charts.css')); ?>"><?php } ?>
     <?php if (current_path() === '/grades-de-horario') { ?><link rel="stylesheet" href="<?php echo e(asset_url('css/schedule-grid.css')); ?>"><?php } ?>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>

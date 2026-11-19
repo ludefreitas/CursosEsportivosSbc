@@ -156,6 +156,7 @@
     <?php if (current_path() === '/') { ?><script src="<?php echo e(asset_url('js/course-interest.js')); ?>"></script><?php } ?>
     <script src="<?php echo e(asset_url('js/app.js')); ?>"></script>
     <script src="<?php echo e(asset_url('js/form-field-help.js')); ?>"></script>
+    <?php if (in_array(current_path(), ['/admin', '/professor'], true)) { ?><script src="<?php echo e(asset_url('js/people-charts.js')); ?>"></script><script src="<?php echo e(asset_url('js/indicator-slides.js')); ?>"></script><?php } ?>
     <?php if (current_path() === '/grades-de-horario') { ?><script src="<?php echo e(asset_url('js/schedule-grid.js')); ?>"></script><?php } ?>
 <script src="<?php echo e(asset_url('js/pdf-branding.js')); ?>"></script>
 <script src="<?php echo e(asset_url('js/admin-responsibility.js')); ?>"></script>

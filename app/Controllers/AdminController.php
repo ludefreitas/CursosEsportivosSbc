@@ -94,6 +94,7 @@ class AdminController extends Controller
                 'usuarios-online',
                 'graficos',
                 'graficos-agendamento',
+                'graficos-pessoas',
                 'usuarios-pessoas',
                 'validar-condicoes',
                 'validar-atestados',
@@ -163,6 +164,19 @@ class AdminController extends Controller
             error_log('Gráficos do agendamento: ' . $error->getMessage());
             $message = $error instanceof \PDOException ? 'Não foi possível consultar o agendamento. Verifique os registros do servidor.' : $error->getMessage();
             $this->jsonResponse(['success' => false, 'message' => $message], 422);
+        }
+    }
+
+    public function peopleChartData(): void
+    {
+        $this->assertAdminAccess();
+        header('Cache-Control: private, no-store');
+        try {
+            $this->jsonResponse(['success' => true, 'data' => (new \App\Services\PeopleChartService())->report($_GET)]);
+        } catch (\Throwable $error) {
+            error_log('Indicadores de pessoas: ' . $error->getMessage());
+            $this->jsonResponse(['success' => false, 'message' => $error instanceof \PDOException
+                ? 'Não foi possível consultar os indicadores de pessoas.' : $error->getMessage()], 422);
         }
     }
 
@@ -2335,6 +2349,9 @@ class AdminController extends Controller
 
         if ($sectionName === 'graficos-agendamento') {
             $data['agendaChartOptions'] = (new AgendaChartService())->options();
+        }
+        if ($sectionName === 'graficos-pessoas') {
+            $data['peopleChartOptions'] = (new \App\Services\PeopleChartService())->options();
         }
 
         if ($sectionName === 'graficos') {

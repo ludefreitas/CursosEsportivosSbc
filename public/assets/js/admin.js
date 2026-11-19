@@ -486,6 +486,7 @@
             function hydrateDynamicSection() {
                 if (App.adminCharts) App.adminCharts.initialize($host[0]);
                 if (App.agendaCharts) App.agendaCharts.initialize($host[0]);
+                if (App.peopleCharts) App.peopleCharts.initialize($host[0]);
                 $('#popup-todas-paginas').trigger('change');
                 $('select[data-sexo-select="1"]').trigger('change');
                 syncDailyBookingSpaceOptions();

@@ -1,11 +1,12 @@
-<?php
+<?php /* @pdf-model agenda_indicadores|Gráficos e indicadores da agenda */
 $options = $agendaChartOptions ?? ['locations'=>[], 'modalities'=>[], 'spaces'=>[]];
 $today = new \DateTimeImmutable('now', new \DateTimeZone('America/Sao_Paulo'));
 ?>
-<section class="admin-section-panel admin-charts agenda-charts" data-admin-section="graficos-agendamento" data-chart-theme="dark" data-agenda-charts data-url="<?php echo e(url(!empty($professorView) ? '/professor/graficos-agendamento/dados' : '/admin/graficos-agendamento/dados')); ?>">
+<section data-grid-print-model class="admin-section-panel admin-charts people-charts agenda-charts" data-admin-section="graficos-agendamento" data-chart-theme="dark" data-agenda-charts data-url="<?php echo e(url(!empty($professorView) ? '/professor/graficos-agendamento/dados' : '/admin/graficos-agendamento/dados')); ?>">
     <div class="section-head"><div><h2>Gráficos e indicadores do agendamento</h2><p class="muted"><?php echo !empty($professorView) ? 'Reservas, frequência e ocupação nos horários semanais em que você atua como professor principal ou auxiliar.' : 'Compare a procura por reservas, a frequência registrada e a ocupação das vagas.'; ?></p></div></div>
     <button type="button" class="btn btn-outline" data-chart-theme-toggle aria-pressed="true">Usar tema claro</button>
-    <form class="content-card chart-filters" data-agenda-form>
+    <details class="content-card people-chart-filters"><summary>Filtrar agenda</summary>
+    <form class="chart-filters" data-agenda-form>
         <div class="chart-filter-grid">
             <?php if (!empty($professorView)) { ?>
                 <input type="hidden" name="type" value="weekly">
@@ -27,8 +28,11 @@ $today = new \DateTimeImmutable('now', new \DateTimeZone('America/Sao_Paulo'));
         <div class="chart-filter-actions"><label><input type="checkbox" name="compare" value="1"> Comparar com o intervalo anterior de mesma duração</label><button type="submit" class="btn btn-primary">Atualizar indicadores</button><button type="reset" class="btn btn-outline">Limpar filtros</button></div>
         <p class="muted">O status altera somente a contagem separada; mantém a oferta, a ocupação e os denominadores de frequência.</p>
     </form>
+    </details>
     <p data-agenda-loading role="status" aria-live="polite">Carregando indicadores…</p>
     <p class="chart-error" data-agenda-error role="alert" hidden></p>
+    <?php $indicatorDomain = 'agenda'; require __DIR__ . '/indicator_slides.php'; ?>
+    <details class="indicator-advanced"><summary>Controles específicos e detalhamento das sessões</summary>
     <div data-agenda-results hidden>
         <p data-agenda-summary aria-live="polite"></p>
         <p class="chart-anomaly">Oferta estimada pela grade e capacidade atuais. Alterações antigas de horários e vagas não têm histórico completo.</p>
@@ -49,4 +53,5 @@ $today = new \DateTimeImmutable('now', new \DateTimeZone('America/Sao_Paulo'));
         <p data-agenda-coverage></p>
         <details class="content-card"><summary>Como os indicadores são calculados</summary><ul data-agenda-notes></ul><p>Comparecimento = presenças ÷ (presenças + faltas + justificativas). Futuros e chamadas pendentes ficam separados. Ocupação é a razão dos totais, sem média simples dos percentuais. Vagas são vagas-sessão, não pessoas únicas. A procura representa reservas válidas; não mede cliques ou tentativas sem vaga.</p></details>
     </div>
+    </details>
 </section>

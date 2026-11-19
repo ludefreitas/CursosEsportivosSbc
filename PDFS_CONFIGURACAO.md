@@ -6,6 +6,8 @@ Cada modelo possui logo principal e nome da instituição. Sem configuração, o
 
 Modelos atuais: certificado de nível, declaração, chamada, lista com endereços, frequência mensal e grade de horários. A frequência e a grade usam a impressão/salvar PDF do navegador. Rodapés extensos podem ocupar páginas adicionais na grade. Arquivos enviados pelos usuários, como atestados, não são modelos gerados pelo sistema.
 
+As apresentações de indicadores de pessoas (`pessoas_indicadores`), turmas (`turmas_indicadores`) e agenda (`agenda_indicadores`) também possuem modelos próprios. Permitem imprimir o slide atual ou toda a apresentação, com o tipo de gráfico e a visualização escolhidos. Cada slide recebe a identidade visual do respectivo modelo. Categorias extensas são divididas em slides de continuação, preservando a base de cálculo. Rodapés extensos podem exigir páginas adicionais.
+
 Configuração persistida em `config/pdf_branding.json`, com bloqueio de escrita e leitura. Imagens em `public/uploads/pdf-branding`. Preservar ambos nos backups e nas publicações. Não há migração de banco ou alterações de estrutura no fluxo HTTP.
 
 ## Novos documentos

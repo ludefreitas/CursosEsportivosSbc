@@ -28,6 +28,7 @@
         this.load(1);
     }
     Controller.prototype.load=async function(page){
+        App.indicatorSlides?.loading(this.root);
         if(this.abort)this.abort.abort();this.abort=new AbortController();const seq=++this.sequence;
         this.q('[data-agenda-loading]').hidden=false;this.q('[data-agenda-error]').hidden=true;this.q('[data-agenda-results]').hidden=true;this.root.setAttribute('aria-busy','true');
         const params=new URLSearchParams(new FormData(this.form));params.set('page',page);
@@ -71,6 +72,7 @@
         this.q('[data-agenda-prev]').disabled=this.page<=1;this.q('[data-agenda-next]').disabled=this.page>=d.details.pages;
         this.q('[data-agenda-coverage]').textContent=attendance?'Cobertura da chamada: '+number(t.called)+' registros concluídos; '+number(t.pending)+' passados sem chamada; '+number(t.future)+' futuros. Taxa de faltas não justificadas entre as chamadas concluídas: '+pct(t.absence_rate)+'.':'Horários especiais: '+number(t.unassessed)+' inscrições passadas sem chamada equivalente. Não é possível inferir faltas ou presenças.';
         this.q('[data-agenda-notes]').innerHTML=d.notes.map(n=>'<li>'+esc(n)+'</li>').join('');this.trend();
+        App.indicatorSlides?.update(this.root,d,'agenda');
     };
     Controller.prototype.trend=function(){
         const d=this.data,target=this.q('[data-agenda-trend]'),width=Math.max(180,target.getBoundingClientRect().width),height=250,left=52,right=18,top=20,bottom=49,rows=d.groups.date;

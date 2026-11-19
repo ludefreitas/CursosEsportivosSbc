@@ -6,6 +6,11 @@ if ($sectionName === 'turmas-criterio-etario') {
     return;
 }
 
+if ($sectionName === 'graficos-pessoas') {
+    require ROOT_PATH . '/app/Views/admin/partials/people_charts_panel.php';
+    return;
+}
+
 if ($sectionName === 'graficos-agendamento') {
     require ROOT_PATH . '/app/Views/admin/partials/agenda_charts_panel.php';
     return;

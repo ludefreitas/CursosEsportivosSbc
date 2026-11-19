@@ -18,6 +18,12 @@
         this.detailRequested = false;
         root.addEventListener('change', event => this.change(event));
         this.form.addEventListener('submit', event => { event.preventDefault(); clearTimeout(this.timer); this.load(1); });
+        this.form.addEventListener('reset', () => setTimeout(() => {
+            this.customAgeRange = null;
+            this.find('[data-chart-season-fieldset]').classList.remove('hidden');
+            this.find('[data-chart-range]').classList.add('hidden');
+            this.load(1);
+        }, 0));
         root.addEventListener('click', event => this.click(event));
         this.lastWidth = 0;
         if (window.ResizeObserver) {
@@ -102,6 +108,7 @@
             if(values[start]&&values[end]&&(values[start]>values[end]||(Date.parse(values[end])-Date.parse(values[start]))/86400000>365)){this.error('Selecione um intervalo válido de até 366 dias para '+label+'.');return;}
         }
         const validation = this.validate(values), sequence = ++this.sequence;
+        App.indicatorSlides?.loading(this.root);
         if (this.request) this.request.abort();
         this.error(validation);
         this.lastQuery = JSON.stringify(this.values(1));
@@ -191,6 +198,7 @@
         const maxEnrollments = Math.max(1, ...data.publics.map(item => item.enrollments));
         this.find('[data-chart-publics]').innerHTML = data.publics.map(item => '<div class="chart-bar-row"><div class="chart-bar-label"><span>' + escape(item.label) + '</span><span class="chart-numeric">' + number(item.enrollments) + '</span></div><div class="chart-track"><span class="chart-bar" style="background:var(--chart-enrollments);width:' + item.enrollments / maxEnrollments * 100 + '%"></span></div></div>').join('');
         this.drawGroups(); this.drawComparison(); this.drawMatrix(); this.drawDetails(); this.drawDemand(); this.drawProfessors(); this.drawEnrollmentTrend(); this.drawMovements(); this.drawAgeRelationships();
+        App.indicatorSlides?.update(this.root, data, 'turmas');
     };
 
     Controller.prototype.drawAgeRelationships = function () {

@@ -10,7 +10,9 @@ namespace App\Core {
         public static function connection():\PDO {
             $path=getenv('CHART_TEST_DATABASE');
             if(!$path || !is_file($path))throw new \RuntimeException('Base de teste não preparada.');
-            return new ChartTestPdo('sqlite:'.$path,null,null,[\PDO::ATTR_ERRMODE=>\PDO::ERRMODE_EXCEPTION,\PDO::ATTR_DEFAULT_FETCH_MODE=>\PDO::FETCH_ASSOC]);
+            $pdo = new ChartTestPdo('sqlite:'.$path,null,null,[\PDO::ATTR_ERRMODE=>\PDO::ERRMODE_EXCEPTION,\PDO::ATTR_DEFAULT_FETCH_MODE=>\PDO::FETCH_ASSOC]);
+            $pdo->sqliteCreateFunction('NOW', static fn() => date('Y-m-d H:i:s'));
+            return $pdo;
         }
     }
 }
@@ -40,5 +42,5 @@ namespace {
     if($path==='/'){
         echo '<!doctype html><meta charset="utf-8"><button data-home-location-select="1">Baetão</button><button data-home-course-modality-select="1">Futsal</button><button data-home-course-enroll="1">Abrir turma</button><script src="/jquery.js"></script><script>window.App={core:{buildUrl:p=>p}};</script><script src="/assets/js/course-interest.js"></script>';exit;
     }
-    echo '<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/assets/css/core.css"><link rel="stylesheet" href="/assets/css/admin.css"><link rel="stylesheet" href="/assets/css/admin-charts.css"><body class="pagina-admin"><main style="max-width:1180px;margin:auto;padding:12px"><button data-admin-nav-target="graficos">Gráficos e indicadores</button><button data-admin-nav-target="graficos-agendamento">Gráficos do agendamento</button><div data-admin-section-host data-admin-section-url="/admin/secao"></div></main><script src="/jquery.js"></script><script src="/assets/js/core.js"></script><script src="/assets/js/admin.js"></script><script src="/assets/js/chart-themes.js"></script><script src="/assets/js/course-attendance-charts.js"></script><script src="/assets/js/admin-charts.js"></script><script src="/assets/js/agenda-charts.js"></script><script>App.admin.iniciarSecoesAdmin();</script></body></html>';
+    echo '<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/assets/css/core.css"><link rel="stylesheet" href="/assets/css/admin.css"><link rel="stylesheet" href="/assets/css/admin-charts.css"><link rel="stylesheet" href="/assets/css/people-charts.css"><body class="pagina-admin"><main style="max-width:1180px;margin:auto;padding:12px"><button data-admin-nav-target="graficos">Gráficos e indicadores</button><button data-admin-nav-target="graficos-agendamento">Gráficos do agendamento</button><div data-admin-section-host data-admin-section-url="/admin/secao"></div></main><script src="/jquery.js"></script><script src="/assets/js/core.js"></script><script src="/assets/js/admin.js"></script><script src="/assets/js/chart-themes.js"></script><script src="/assets/js/course-attendance-charts.js"></script><script src="/assets/js/admin-charts.js"></script><script src="/assets/js/agenda-charts.js"></script><script src="/assets/js/people-charts.js"></script><script src="/assets/js/indicator-slides.js"></script><script>App.admin.iniciarSecoesAdmin();</script></body></html>';
 }

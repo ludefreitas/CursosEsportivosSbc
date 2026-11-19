@@ -8,6 +8,11 @@ function check($value,$message){if(!$value) throw new RuntimeException($message)
 $service=new \App\Services\PdfBrandingPreviewService();
 $settings=['institution'=>'Instituição esportiva de exemplo','logo'=>'','footer_enabled'=>false,'footer_title'=>'Parceiros','footer_logos'=>[]];
 $catalog=\App\Services\PdfBrandingSettings::catalog();
+foreach (['pessoas_indicadores','turmas_indicadores','agenda_indicadores'] as $model) {
+ check(isset($catalog[$model]),'Apresentação ausente do catálogo: '.$model);
+ [$mime,$html]=$service->render($model,$settings);
+ check(str_starts_with($mime,'text/html') && str_contains($html,'data-people-presentation') && str_contains($html,$settings['institution']),'Prévia real da apresentação ausente: '.$model);
+}
 foreach (glob(dirname(__DIR__).'/app/Services/*PdfService.php') as $file) { preg_match('/@pdf-model ([a-z0-9_]+)\|/',file_get_contents($file),$m);check(isset($catalog[$m[1]??strtolower(basename($file,'PdfService.php'))]),'Gerador ausente no catálogo.'); }
 foreach ($catalog as $type=>$name) {
  [$mime,$content]=$service->render($type,$settings);
@@ -22,4 +27,4 @@ if (!empty($argv[1])) {
  for($i=0;$i<6;$i++)$settings['footer_logos'][]=['logo'=>$settings['logo'],'institution'=>'Instituição parceira '.($i+1).' de apoio ao esporte'];
  foreach($catalog as $type=>$name){[$mime,$content]=$service->render($type,$settings);if($mime==='application/pdf')check(str_contains($content,'/SMask'),'Transparência PNG ausente.');file_put_contents($argv[1].'/logos-'.$type.($mime==='application/pdf'?'.pdf':'.html'),$content);}
 }
-echo "Catálogo, seis prévias, links e validação de caminhos: OK.\n";
+echo "Catálogo, prévias, apresentações, links e validação de caminhos: OK.\n";

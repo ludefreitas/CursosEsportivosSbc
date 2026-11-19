@@ -1,5 +1,6 @@
-<?php $chartOptions = $chartOptions ?? ['seasons' => [], 'locations' => [], 'modalities' => [], 'publics' => [], 'statuses' => [], 'max_seasons' => 12]; ?>
-<section class="admin-section-panel admin-charts" data-admin-section="graficos" data-chart-theme="dark" data-admin-charts<?php if (!empty($professorView)) { ?> data-professor-charts<?php } ?> data-url="<?php echo e(url(!empty($professorView) ? '/professor/graficos/dados' : '/admin/graficos/dados')); ?>">
+<?php /* @pdf-model turmas_indicadores|Gráficos e indicadores de turmas */
+$chartOptions = $chartOptions ?? ['seasons' => [], 'locations' => [], 'modalities' => [], 'publics' => [], 'statuses' => [], 'max_seasons' => 12]; ?>
+<section data-grid-print-model class="admin-section-panel admin-charts people-charts" data-admin-section="graficos" data-chart-theme="dark" data-admin-charts<?php if (!empty($professorView)) { ?> data-professor-charts<?php } ?> data-url="<?php echo e(url(!empty($professorView) ? '/professor/graficos/dados' : '/admin/graficos/dados')); ?>">
     <script type="application/json" data-chart-options><?php echo json_encode($chartOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
     <div class="section-head admin-section-head"><div><h2>Gráficos e indicadores</h2><p class="muted"><?php echo !empty($professorView) ? 'Indicadores das turmas em que você atua como professor principal ou auxiliar.' : 'Compare temporadas, locais, modalidades, vagas e inscrições.'; ?></p></div></div>
     <?php if (!empty($professorView) && $chartOptions['seasons'] === []) { ?>
@@ -7,7 +8,8 @@
     </section>
     <?php return; } ?>
     <button type="button" class="btn btn-outline" data-chart-theme-toggle aria-pressed="true">Usar tema claro</button>
-    <form class="content-card chart-filters" data-chart-form>
+    <details class="content-card people-chart-filters"><summary>Filtrar turmas</summary>
+    <form class="chart-filters" data-chart-form>
         <div class="chart-filter-grid">
             <label><span>Temporadas</span><select name="modo"><option value="multi">Combinar temporadas</option><option value="single">Uma temporada</option><option value="range">Todas no intervalo</option></select></label>
             <label><span>Máximo de temporadas</span><input name="max_temporadas" type="number" min="1" max="<?php echo e((string) $chartOptions['max_seasons']); ?>" value="6" required></label>
@@ -37,10 +39,13 @@
             <label><span>Data final</span><input type="date" name="procura_ate" value="<?php echo e($chartToday->format('Y-m-d')); ?>" required></label>
             <label><span>Período da aula</span><select name="periodo"><option value="">Todos os períodos</option><option value="manha">Manhã</option><option value="tarde">Tarde</option><option value="noite">Noite</option><option value="madrugada">Madrugada</option><option value="sem_horario">Sem horário</option></select></label>
         </div><p class="muted">As datas e o período da aula filtram somente a seção “Mais procurados”. As datas incluem o dia inicial e o final.</p></fieldset>
-        <div class="chart-filter-actions"><button type="submit" class="btn btn-primary">Atualizar gráficos</button><span class="muted" data-chart-updated></span></div>
+        <div class="chart-filter-actions"><button type="submit" class="btn btn-primary">Atualizar gráficos</button><button type="reset" class="btn btn-outline">Limpar filtros</button><span class="muted" data-chart-updated></span></div>
         <p class="chart-error hidden" role="alert" data-chart-error></p>
     </form>
+    </details>
     <p class="muted chart-query-status" role="status" aria-live="polite" data-chart-status>Preparando os gráficos…</p>
+    <?php $indicatorDomain = 'turmas'; require __DIR__ . '/indicator_slides.php'; ?>
+    <details class="indicator-advanced"><summary>Controles específicos, detalhamentos e monitor de chamadas</summary>
     <div data-chart-results class="hidden">
         <p class="muted chart-selection" data-chart-selection></p>
         <div class="chart-stats" data-chart-stats></div>
@@ -145,7 +150,6 @@
                     <div class="chart-filter-grid">
                         <label>Turma<select data-attendance-class><option value="">Todas as turmas</option></select></label>
                         <label>Situação da chamada<select data-attendance-state><option value="scheduled">Aulas previstas no intervalo</option><option value="">Todas as situações</option><option value="nao_iniciada">Chamada não iniciada</option><option value="parcial">Chamada parcial</option><option value="completa">Chamada completa</option><option value="aguardando">Aguardando horário</option><option value="sem_matriculados">Sem matriculados</option><option value="sem_cronograma">Sem cronograma</option><option value="sem_aula">Sem aula no intervalo</option></select></label>
-                        <label><input type="checkbox" data-attendance-auto checked> Atualizar a cada 60 segundos enquanto o painel estiver aberto</label>
                     </div>
                     <p data-attendance-monitor-summary aria-live="polite"></p><div class="chart-stats" data-attendance-monitor-stats></div>
                     <details data-attendance-monitor-list><summary>Ver lista de chamadas por local</summary><div data-attendance-monitor></div>
@@ -157,4 +161,5 @@
         </section>
         <p class="muted chart-explanation">Vagas disponíveis seguem a regra atual do sistema: a capacidade por público menos as reservas de inscrições matriculadas, aguardando matrícula e suspensas. Lista de espera e demais status não ocupam essas vagas. O filtro de status altera as inscrições apresentadas, sem alterar artificialmente a disponibilidade. Inscrições são registros, não pessoas únicas. Turmas encerradas também entram quando pertencem às temporadas selecionadas.</p>
     </div>
+    </details>
 </section>
