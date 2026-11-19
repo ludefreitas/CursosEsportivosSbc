@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Core\Database;
-use DateTimeImmutable;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -31,7 +30,7 @@ class RematriculationService
 
     public function destination(int $classId): array
     {
-        $stmt=Database::connection()->prepare('SELECT t.id,t.nome,t.modalidade_id,m.nome AS modalidade_nome FROM turmas t INNER JOIN modalidades m ON m.id=t.modalidade_id WHERE t.id=:id LIMIT 1');
+        $stmt=Database::connection()->prepare('SELECT t.id,t.nome,t.modalidade_id,m.nome AS modalidade_nome,cm.inscricoes_inicio FROM turmas t INNER JOIN modalidades m ON m.id=t.modalidade_id LEFT JOIN cronogramas_modalidade cm ON cm.id=t.cronograma_modalidade_id WHERE t.id=:id LIMIT 1');
         $stmt->execute([':id'=>$classId]);$row=$stmt->fetch(PDO::FETCH_ASSOC);
         if(!$row)throw new RuntimeException('Turma de destino não encontrada.');
         return $row;
@@ -113,7 +112,11 @@ class RematriculationService
             throw new RuntimeException('Confirme que deseja usar uma modalidade de origem diferente da modalidade da turma de destino.');
         }
         $season = $this->findOption($this->seasons(), $sourceSeason, 'Temporada de origem inválida.');
-        $deadline = (new DateTimeImmutable('now'))->modify('+' . $days . ' days')->format('Y-m-d H:i:s');
+        $deadline = RematriculationDeadlineService::calculate(
+            (string) Database::connection()->query('SELECT CURRENT_TIMESTAMP')->fetchColumn(),
+            $destination['inscricoes_inicio'] ?? null,
+            $days
+        );
         $people = $type === 'legacy' ? $this->legacyEnrolled($classId) : $this->currentEnrolled($classId);
         $people = $this->uniquePeopleByCpf($people);
         if ($people === []) throw new RuntimeException('A turma de origem não possui alunos matriculados.');
@@ -142,7 +145,7 @@ class RematriculationService
     public function campaign(int $campaignId): array
     {
         $pdo = Database::connection();
-        $stmt = $pdo->prepare('SELECT r.*,t.nome AS destino_turma_nome,te.nome AS destino_temporada_nome,m.nome AS destino_modalidade_nome,COALESCE(NULLIF(l.apelido_local,\'\'),l.nome_local) AS destino_local_nome,t.dias_semana,t.hora_inicio,t.hora_fim FROM rematriculas r INNER JOIN turmas t ON t.id=r.destino_turma_id INNER JOIN temporadas te ON te.id=t.temporada_id INNER JOIN modalidades m ON m.id=t.modalidade_id INNER JOIN locais_treino l ON l.id=t.local_treino_id WHERE r.id=:id LIMIT 1');
+        $stmt = $pdo->prepare('SELECT r.*,cm.inscricoes_inicio,t.nome AS destino_turma_nome,te.nome AS destino_temporada_nome,m.nome AS destino_modalidade_nome,COALESCE(NULLIF(l.apelido_local,\'\'),l.nome_local) AS destino_local_nome,t.dias_semana,t.hora_inicio,t.hora_fim FROM rematriculas r INNER JOIN turmas t ON t.id=r.destino_turma_id INNER JOIN temporadas te ON te.id=t.temporada_id INNER JOIN modalidades m ON m.id=t.modalidade_id INNER JOIN locais_treino l ON l.id=t.local_treino_id LEFT JOIN cronogramas_modalidade cm ON cm.id=t.cronograma_modalidade_id WHERE r.id=:id LIMIT 1');
         $stmt->execute([':id'=>$campaignId]);
         $row=$stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) throw new RuntimeException('Campanha de rematrícula não encontrada.');
@@ -165,10 +168,23 @@ class RematriculationService
         if(!in_array($days,[7,14,21,28],true)) throw new RuntimeException('Selecione prazo de 7, 14, 21 ou 28 dias.');
         $campaign=$this->campaign($campaignId);
         $this->assertAccess($accountId,$roles,(int)$campaign['destino_turma_id']);
-        $deadline=(new DateTimeImmutable('now'))->modify('+'.$days.' days')->format('Y-m-d H:i:s');
         $pdo=Database::connection();
-        $pdo->prepare('UPDATE rematriculas SET prazo_dias=:days,prazo_final=:deadline,updated_at=NOW() WHERE id=:id')->execute([':days'=>$days,':deadline'=>$deadline,':id'=>$campaignId]);
-        $pdo->prepare("UPDATE tokens_inscricao_turma tk INNER JOIN rematricula_convites c ON c.token_id=tk.id SET tk.validade=:deadline WHERE c.rematricula_id=:campaign AND tk.status='ativo' AND tk.ativo=1")->execute([':deadline'=>$deadline,':campaign'=>$campaignId]);
+        $destination = $this->destination((int) $campaign['destino_turma_id']);
+        $deadline = RematriculationDeadlineService::calculate(
+            (string) $pdo->query('SELECT CURRENT_TIMESTAMP')->fetchColumn(),
+            $destination['inscricoes_inicio'] ?? null,
+            $days
+        );
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare('UPDATE rematriculas SET prazo_dias=:days,prazo_final=:deadline,updated_at=CURRENT_TIMESTAMP WHERE id=:id')
+                ->execute([':days'=>$days,':deadline'=>$deadline,':id'=>$campaignId]);
+            (new RematriculationDeadlineService($pdo))->updateActiveTokens($campaignId);
+            $pdo->commit();
+        } catch (Throwable $error) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $error;
+        }
         return $this->campaign($campaignId);
     }
 
@@ -209,25 +225,55 @@ class RematriculationService
         return ['message'=>'Campanha de rematrícula cancelada.'];
     }
 
-    public function respond(int $accountId,int $inviteId,string $answer): array
+    public function respond(int $accountId, int $inviteId, string $answer): array
     {
-        if(!in_array($answer,['sim','nao'],true)) throw new RuntimeException('Resposta inválida.');
-        $pdo=Database::connection();
-        $stmt=$pdo->prepare('SELECT c.*,r.destino_turma_id,r.prazo_final,r.criado_por_conta_id,t.nome AS turma_nome FROM rematricula_convites c INNER JOIN rematriculas r ON r.id=c.rematricula_id INNER JOIN turmas t ON t.id=r.destino_turma_id WHERE c.id=:id AND c.responsavel_conta_id=:account LIMIT 1');
-        $stmt->execute([':id'=>$inviteId,':account'=>$accountId]);$invite=$stmt->fetch(PDO::FETCH_ASSOC);
-        if(!$invite) throw new RuntimeException('Convite de rematrícula não encontrado.');
-        if((string)$invite['status']!=='aguardando_resposta') throw new RuntimeException('Este convite já foi respondido ou não está disponível.');
-        if(strtotime((string)$invite['prazo_final'])<time()) throw new RuntimeException('O prazo desta rematrícula terminou.');
-        if($answer==='nao'){
-            $pdo->prepare("UPDATE rematricula_convites SET status='recusada',respondido_em=NOW(),updated_at=NOW() WHERE id=:id")->execute([':id'=>$inviteId]);
-            $this->history($pdo,$inviteId,'aguardando_resposta','recusada','Responsável informou que não tem interesse.',$accountId);
-            $this->notifyDecline($pdo,$invite);
-            return ['message'=>'A desistência da rematrícula foi registrada.'];
+        if (!in_array($answer, ['sim', 'nao'], true)) throw new RuntimeException('Resposta inválida.');
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('SELECT r.destino_turma_id FROM rematricula_convites c
+            INNER JOIN rematriculas r ON r.id=c.rematricula_id
+            WHERE c.id=? AND c.responsavel_conta_id=?');
+        $stmt->execute([$inviteId, $accountId]);
+        $classId = (int) $stmt->fetchColumn();
+        if ($classId <= 0) throw new RuntimeException('Convite de rematrícula não encontrado.');
+        $locking = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' FOR UPDATE' : '';
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare('SELECT id FROM turmas WHERE id=?' . $locking)->execute([$classId]);
+            $stmt = $pdo->prepare('SELECT c.*,r.destino_turma_id,r.prazo_final,r.prazo_dias,
+                r.status AS rematricula_status,r.criado_por_conta_id,t.nome AS turma_nome,cm.inscricoes_inicio
+                FROM rematricula_convites c INNER JOIN rematriculas r ON r.id=c.rematricula_id
+                INNER JOIN turmas t ON t.id=r.destino_turma_id
+                LEFT JOIN cronogramas_modalidade cm ON cm.id=t.cronograma_modalidade_id
+                WHERE c.id=? AND c.responsavel_conta_id=?' . $locking);
+            $stmt->execute([$inviteId, $accountId]);
+            $invite = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$invite || (int) $invite['destino_turma_id'] !== $classId) {
+                throw new RuntimeException('O convite foi alterado. Atualize a página para continuar.');
+            }
+            if ($invite['status'] !== 'aguardando_resposta' || $invite['rematricula_status'] !== 'ativa') {
+                throw new RuntimeException('Este convite já foi respondido ou não está disponível.');
+            }
+            $now = (string) $pdo->query('SELECT CURRENT_TIMESTAMP')->fetchColumn();
+            if ($invite['prazo_final'] < $now) throw new RuntimeException('O prazo desta rematrícula terminou.');
+            if ($answer === 'nao') {
+                $pdo->prepare("UPDATE rematricula_convites SET status='recusada',respondido_em=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?")
+                    ->execute([$inviteId]);
+                $this->history($pdo, $inviteId, 'aguardando_resposta', 'recusada', 'Responsável informou que não tem interesse.', $accountId);
+                $this->notifyDecline($pdo, $invite);
+                $result = ['message' => 'A desistência da rematrícula foi registrada.'];
+            } else {
+                $tokenId = $this->createTokenUntil($pdo, $invite);
+                $pdo->prepare("UPDATE rematricula_convites SET status='token_gerado',token_id=?,respondido_em=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?")
+                    ->execute([$tokenId, $inviteId]);
+                $this->history($pdo, $inviteId, 'aguardando_resposta', 'token_gerado', 'Token de rematrícula criado.', $accountId);
+                $result = ['message' => 'Token criado. Preencha agora o formulário de inscrição.', 'token_id' => $tokenId];
+            }
+            $pdo->commit();
+            return $result;
+        } catch (Throwable $error) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $error;
         }
-        $tokenId=$this->createTokenUntil($pdo,$invite);
-        $pdo->prepare("UPDATE rematricula_convites SET status='token_gerado',token_id=:token,respondido_em=NOW(),updated_at=NOW() WHERE id=:id")->execute([':token'=>$tokenId,':id'=>$inviteId]);
-        $this->history($pdo,$inviteId,'aguardando_resposta','token_gerado','Token de rematrícula criado.',$accountId);
-        return ['message'=>'Token criado. Preencha agora o formulário de inscrição.','token_id'=>$tokenId];
     }
 
     private function sendOne(int $actor,array $campaign,int $inviteId,bool $resend): void
@@ -261,15 +307,19 @@ class RematriculationService
 
     private function createTokenUntil(PDO $pdo,array $invite): int
     {
+        $generatedAt = (string) $pdo->query('SELECT CURRENT_TIMESTAMP')->fetchColumn();
+        $deadline = RematriculationDeadlineService::calculate(
+            $generatedAt, $invite['inscricoes_inicio'] ?? null, (int) $invite['prazo_dias']
+        );
         $existing=$pdo->prepare("SELECT id FROM inscricoes_turma WHERE turma_id=:class AND pessoa_id=:person AND status NOT IN ('cancelada','excluida','desistente') LIMIT 1");
         $existing->execute([':class'=>(int)$invite['destino_turma_id'],':person'=>(int)$invite['pessoa_id']]);
         if($existing->fetchColumn()) throw new RuntimeException('O aluno já possui inscrição na turma de destino.');
-        $pdo->prepare("UPDATE tokens_inscricao_turma SET status='cancelado',ativo=0,cancelado_em=NOW() WHERE turma_id=:class AND cpf=:cpf AND status='ativo'")->execute([':class'=>(int)$invite['destino_turma_id'],':cpf'=>(string)$invite['pessoa_cpf']]);
+        $pdo->prepare("UPDATE tokens_inscricao_turma SET status='cancelado',ativo=0,cancelado_em=NOW() WHERE turma_id=:class AND cpf=:cpf AND status='ativo' AND ativo=1 AND validade>=CURRENT_TIMESTAMP")->execute([':class'=>(int)$invite['destino_turma_id'],':cpf'=>(string)$invite['pessoa_cpf']]);
         $check=$pdo->prepare("SELECT COUNT(*) FROM tokens_inscricao_turma WHERE turma_id=:class AND numero_token=:number AND status='ativo' AND validade>=NOW()");$number='';
         for($i=0;$i<100;$i++){ $candidate=str_pad((string)random_int(0,9999),4,'0',STR_PAD_LEFT);$check->execute([':class'=>(int)$invite['destino_turma_id'],':number'=>$candidate]);if((int)$check->fetchColumn()===0){$number=$candidate;break;} }
         if($number==='')throw new RuntimeException('Não foi possível gerar o token.');
-        $insert=$pdo->prepare("INSERT INTO tokens_inscricao_turma (token,numero_token,turma_id,cpf,publico_alvo,criado_por_conta_id,validade,usos_maximos,motivo,status) VALUES (:token,:number,:class,:cpf,:public,:author,:deadline,1,'Rematrícula','ativo')");
-        $insert->execute([':token'=>bin2hex(random_bytes(32)),':number'=>$number,':class'=>(int)$invite['destino_turma_id'],':cpf'=>(string)$invite['pessoa_cpf'],':public'=>(string)$invite['publico_alvo'],':author'=>(int)$invite['criado_por_conta_id'],':deadline'=>(string)$invite['prazo_final']]);
+        $insert=$pdo->prepare("INSERT INTO tokens_inscricao_turma (token,numero_token,turma_id,cpf,publico_alvo,criado_por_conta_id,validade,usos_maximos,motivo,status,created_at) VALUES (:token,:number,:class,:cpf,:public,:author,:deadline,1,'Rematrícula','ativo',:generated)");
+        $insert->execute([':token'=>bin2hex(random_bytes(32)),':number'=>$number,':class'=>(int)$invite['destino_turma_id'],':cpf'=>(string)$invite['pessoa_cpf'],':public'=>(string)$invite['publico_alvo'],':author'=>(int)$invite['criado_por_conta_id'],':deadline'=>$deadline,':generated'=>$generatedAt]);
         return (int)$pdo->lastInsertId();
     }
 
