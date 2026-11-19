@@ -33,6 +33,7 @@
             let requestVersion = 0;
             let report = null;
             const chartTypes = new Map();
+            const chartTypeFor = slide => chartTypes.get(slide?.key) || (slide?.rate ? 'bar' : 'pie');
             const palette = ['#168b80', '#d69738', '#467ac4', '#b35e91', '#718c39', '#9c6bd0', '#db7154', '#328da6', '#a59055', '#687c92'];
             function drawChart(chart, slide, type) {
                 chart.replaceChildren();
@@ -112,7 +113,7 @@
                 root.querySelector('[data-people-slide-position]').textContent = slides.length ? (selected + 1) + ' de ' + slides.length : 'Sem slides';
                 root.querySelector('[data-people-slide-prev]').disabled = selected <= 0;
                 root.querySelector('[data-people-slide-next]').disabled = selected >= slides.length - 1;
-                root.querySelector('[data-people-chart-type]').value = chartTypes.get(slides[selected]?.key) || 'bar';
+                root.querySelector('[data-people-chart-type]').value = chartTypeFor(slides[selected]);
                 root.querySelector('[data-people-chart-type] option[value="pie"]').disabled = !!slides[selected]?.rate;
             }
 
@@ -169,7 +170,7 @@
                     body.append(tr);
                 });
                 table.append(caption, head, body);
-                drawChart(chart, slide, chartTypes.get(slide.key) || 'bar');
+                drawChart(chart, slide, chartTypeFor(slide));
                 tableWrap.append(table);
                 content.append(chart, tableWrap);
                 article.append(content);

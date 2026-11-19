@@ -6,7 +6,7 @@
             <button type="button" class="btn btn-outline" data-people-slide-next aria-label="Próximo slide">→</button>
         </div>
         <div class="people-chart-actions">
-            <label class="people-chart-view">Tipo de gráfico<select data-people-chart-type><option value="bar">Barras</option><option value="pie">Pizza</option><option value="line">Linhas</option></select></label>
+            <label class="people-chart-view">Tipo de gráfico<select data-people-chart-type><option value="bar">Barras</option><option value="pie" selected>Pizza</option><option value="line">Linhas</option></select></label>
             <label class="people-chart-view">Exibir<select data-people-chart-view><option value="both">Gráfico e tabela</option><option value="chart">Gráfico</option><option value="table">Tabela</option></select></label>
             <button type="button" class="btn btn-outline" data-people-fullscreen>Tela cheia</button>
             <button type="button" class="btn btn-outline" data-indicator-print data-people-print="current">Imprimir slide</button>

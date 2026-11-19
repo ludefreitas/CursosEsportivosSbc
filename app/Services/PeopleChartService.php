@@ -13,7 +13,7 @@ final class PeopleChartService
 {
     private array $unavailable = [];
 
-    public function __construct(private ?PDO $pdo = null) {}
+    public function __construct(private ?PDO $pdo = null, private bool $includeUserRoles = true) {}
 
     private function db(): PDO
     {
@@ -65,7 +65,7 @@ final class PeopleChartService
         $ids = array_keys($people);
         $related = [
             'links' => $this->rows($ids, "SELECT dependente_pessoa_id,responsavel_pessoa_id FROM vinculos_responsaveis WHERE data_fim IS NULL AND (dependente_pessoa_id IN ({{ids}}) OR responsavel_pessoa_id IN ({{ids}}))", 'Vínculos familiares'),
-            'roles' => $this->rows($ids, 'SELECT p.id AS pessoa_id,pa.nome FROM pessoas p INNER JOIN contas c ON c.cpf=p.cpf INNER JOIN conta_papeis cp ON cp.conta_id=c.id INNER JOIN papeis pa ON pa.id=cp.papel_id WHERE p.id IN ({{ids}})', 'Papéis das contas'),
+            'roles' => $this->includeUserRoles ? $this->rows($ids, 'SELECT p.id AS pessoa_id,pa.nome FROM pessoas p INNER JOIN contas c ON c.cpf=p.cpf INNER JOIN conta_papeis cp ON cp.conta_id=c.id INNER JOIN papeis pa ON pa.id=cp.papel_id WHERE p.id IN ({{ids}})', 'Papéis das contas') : [],
             'certificates' => $this->rows($ids, "SELECT cp.pessoa_id,tc.slug,cp.status,cp.validade_certificado,cp.tipos_deficiencia_pcd,cp.beneficio_social,EXISTS(SELECT 1 FROM documentos_certificados dc WHERE dc.certificado_pessoa_id=cp.id) AS has_pdf FROM certificados_pessoa cp INNER JOIN tipos_certificados tc ON tc.id=cp.tipo_certificado_id WHERE cp.pessoa_id IN ({{ids}}) AND tc.slug IN ('pcd','plm','pvs') ORDER BY COALESCE(cp.updated_at,cp.created_at) DESC,cp.id DESC", 'Certificados das condições'),
             'health' => $this->rows($ids, 'SELECT * FROM atestados_saude WHERE pessoa_id IN ({{ids}}) ORDER BY id DESC', 'Atestados internos'),
             'imported' => $this->rows($ids, "SELECT p.id AS pessoa_id,a.tipo_atestado,a.validade_certificado,a.data_emissao FROM atestados_saude_importados a INNER JOIN pessoas p ON p.cpf=a.cpf WHERE p.id IN ({{ids}}) AND a.status_importacao='ativo'", 'Atestados importados'),
@@ -311,6 +311,7 @@ final class PeopleChartService
             'levels'=>['Níveis de modalidade ativos','Uma pessoa pode ter certificados em diferentes modalidades.'],
         ];
         foreach ($definitions as $key => [$title, $description]) {
+            if ($key === 'roles' && !$this->includeUserRoles) continue;
             $records = in_array($key, ['enrollments','publics','origins','bookings','special','attendance','levels'], true);
             $base = $records ? array_sum($counts[$key]) : $total;
             if ($key === 'access' || $key === 'roles') $base = $total - ($counts['accounts']['Sem conta própria'] ?? 0);

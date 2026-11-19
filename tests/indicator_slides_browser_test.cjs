@@ -31,6 +31,7 @@ const root = path.resolve(__dirname, '..');
                 }
                 assert(await deck.locator('.people-slide-thumbnail').count() > 20);
                 assert.equal(await deck.locator('.people-slide:not([hidden])').count(), 1);
+                assert.equal(await deck.locator('[data-people-chart-type]').inputValue(), 'pie');
                 assert.equal(await page.locator('.indicator-advanced').evaluate(node => node.open), false);
                 assert.equal(await deck.locator('.people-chart-stat strong').nth(1).innerText(), domain === 'turmas' ? '20' : '66');
                 await deck.locator('[data-people-chart-type]').selectOption('pie');
@@ -60,6 +61,7 @@ const root = path.resolve(__dirname, '..');
                     await deck.locator('.people-slide-thumbnail').filter({ hasText: 'Ocupação por dia e período' }).first().click();
                     await page.waitForFunction(() => document.querySelector('.people-slide.is-active h3')?.textContent.includes('Ocupação por dia e período'));
                     assert.equal(await deck.locator('[data-people-chart-type] option[value=pie]').evaluate(node => node.disabled), true, await deck.locator('[data-people-chart-type]').evaluate(node => node.outerHTML));
+                    assert.equal(await deck.locator('[data-people-chart-type]').inputValue(), 'bar');
                     assert.match(await deck.locator('.people-slide.is-active table').innerText(), /—/);
                 }
                 await deck.screenshot({ path: path.join(directory, domain + '-desktop.png') });
