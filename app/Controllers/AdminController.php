@@ -760,7 +760,7 @@ class AdminController extends Controller
                 $_POST
             );
 
-            $conditionValidationRows = $this->adminService->listPeopleRequiringConditionValidation();
+            $conditionValidationRows = [];
             $html = $this->renderConditionValidationPanelHtml($conditionValidationRows);
 
             $this->jsonResponse([
@@ -2390,7 +2390,8 @@ class AdminController extends Controller
                 trim((string) ($_GET['validation_search'] ?? '')),
                 (array) ($_GET['validation_conditions'] ?? []),
                 (array) ($_GET['validation_statuses'] ?? []),
-                (array) ($_GET['validation_documentation'] ?? [])
+                (array) ($_GET['validation_documentation'] ?? []),
+                true
             );
         }
         if ($sectionName === 'validar-atestados') {

@@ -2426,3 +2426,19 @@
     justify-content: flex-start;
     gap: 8px;
 }
+
+#admin-condition-validation-panel h2 { margin-bottom: 10px; }
+#admin-condition-validation-panel [data-condition-validation-filter] { gap: 8px; }
+.condition-validation-filter-row { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 12px; }
+.condition-validation-filter-row .people-condition-filter { min-width: 0; margin: 0; padding: 6px 10px 8px; }
+.condition-validation-filter-row .people-condition-filter:last-child { grid-column: 1 / -1; }
+.condition-validation-filter-row .chips-wrap { gap: 6px; }
+#admin-condition-validation-panel .checkbox-chip { gap: 6px; padding: 6px 10px; }
+#admin-condition-validation-panel [data-condition-validation-loading] { margin: 4px 0; min-height: 0; }
+#admin-condition-validation-panel [data-condition-validation-loading]:empty { display: none; }
+#admin-condition-validation-panel .admin-inline-links { margin-top: 8px; gap: 8px; }
+#admin-condition-validation-panel .table-wrap { margin-top: 8px; }
+#admin-condition-validation-panel .admin-validation-details { gap: 4px; }
+@media (max-width: 760px) {
+    .condition-validation-filter-row { grid-template-columns: minmax(0, 1fr); }
+}

@@ -4,6 +4,7 @@ $validationSearch = trim((string) ($_GET['validation_search'] ?? ''));
 $validationConditions = (array) ($_GET['validation_conditions'] ?? []);
 $validationStatuses = (array) ($_GET['validation_statuses'] ?? []);
 $validationDocumentation = (array) ($_GET['validation_documentation'] ?? []);
+$validationHasFilters = $validationSearch !== '' || $validationConditions !== [] || $validationStatuses !== [] || $validationDocumentation !== [];
 
 $buildWhatsappLink = static function (?string $phone): ?string {
     $digits = preg_replace('/\D+/', '', (string) $phone) ?? '';
@@ -22,13 +23,12 @@ $buildWhatsappLink = static function (?string $phone): ?string {
 
 <article class="content-card top-gap" id="admin-condition-validation-panel">
     <h2>Condições que precisam de validação</h2>
-    <p class="muted">Esta relação destaca cada condição declarada que ainda depende de envio de PDF ou de análise da documentação.</p>
-
     <form class="stack-form" data-condition-validation-filter data-manual-submit="1">
         <label>
             <span>Buscar por nome, CPF ou telefone</span>
             <input type="search" name="validation_search" value="<?php echo e($validationSearch); ?>" placeholder="Digite um nome, CPF ou telefone" autocomplete="off">
         </label>
+        <div class="condition-validation-filter-row">
         <fieldset class="people-condition-filter">
             <legend>Condição especial</legend>
             <div class="chips-wrap">
@@ -53,9 +53,10 @@ $buildWhatsappLink = static function (?string $phone): ?string {
                 <?php } ?>
             </div>
         </fieldset>
-        <div><button type="submit" class="btn btn-primary">Buscar</button></div>
+        </div>
     </form>
-
+    <p class="muted" role="status" aria-live="polite" data-condition-validation-loading></p>
+    <div data-condition-validation-results>
     <?php if ($conditionValidationRows !== []) { ?>
         <div class="admin-inline-links top-gap">
             <label class="checkbox-chip">
@@ -79,7 +80,7 @@ $buildWhatsappLink = static function (?string $phone): ?string {
             <tbody>
                 <?php if ($conditionValidationRows === []) { ?>
                     <tr>
-                        <td colspan="3" class="muted">Nenhuma condição pendente de documentação ou validação neste momento.</td>
+                        <td colspan="3" class="muted"><?php echo $validationHasFilters ? 'Nenhuma condição encontrada para os filtros selecionados.' : 'Digite um nome, CPF ou telefone, ou selecione um filtro para consultar.'; ?></td>
                     </tr>
                 <?php } ?>
 
@@ -149,5 +150,6 @@ $buildWhatsappLink = static function (?string $phone): ?string {
                 <?php } ?>
             </tbody>
         </table>
+    </div>
     </div>
 </article>

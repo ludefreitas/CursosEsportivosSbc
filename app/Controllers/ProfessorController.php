@@ -881,7 +881,8 @@ class ProfessorController extends Controller
                 trim((string) ($_GET['validation_search'] ?? '')),
                 (array) ($_GET['validation_conditions'] ?? []),
                 (array) ($_GET['validation_statuses'] ?? []),
-                (array) ($_GET['validation_documentation'] ?? [])
+                (array) ($_GET['validation_documentation'] ?? []),
+                true
             )];
         }
         if ($sectionName === 'validar-atestados') {
@@ -991,7 +992,7 @@ class ProfessorController extends Controller
 
     private function renderPanel(string $type): string
     {
-        $rows = $type === 'condition' ? $this->adminService->listPeopleRequiringConditionValidation() : $this->adminService->listPeopleRequiringHealthCertificateValidation();
+        $rows = $type === 'condition' ? [] : $this->adminService->listPeopleRequiringHealthCertificateValidation();
         ob_start();
         $professorView = true;
         if ($type === 'condition') { $conditionValidationRows = $rows; require ROOT_PATH . '/app/Views/admin/partials/condition_validation_panel.php'; }

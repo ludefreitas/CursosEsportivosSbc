@@ -2,6 +2,10 @@
 require __DIR__ . '/../app/Helpers/functions.php';
 require __DIR__ . '/../app/Core/Database.php';
 require __DIR__ . '/../app/Services/AdminService.php';
+$initialService = new App\Services\AdminService();
+if ($initialService->listPeopleRequiringConditionValidation(' ', [], [], [], true) !== []) {
+    throw new RuntimeException('A consulta inicial deve ficar vazia sem acessar o banco.');
+}
 $db = new PDO('sqlite::memory:', null, null, [
     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -46,6 +50,7 @@ validationFilterCheck($ids('11987654321') === [1], 'Buscar telefone sem máscara
 validationFilterCheck($ids('(11) 98765-4321') === [1], 'Buscar telefone com máscara.');
 validationFilterCheck($ids('11988887777') === [3], 'Buscar pelo telefone do responsável.');
 validationFilterCheck($ids('11987654321', ['pcd'], ['pendente']) === [1], 'Combinar busca, condição e status.');
+validationFilterCheck(count($service->listPeopleRequiringConditionValidation('Ana', [], [], [], true)) === 1, 'A primeira letra ou texto deve habilitar a consulta.');
 validationFilterCheck($ids('11987654321', ['pvs'], ['pendente']) === [], 'Filtros não podem ampliar o resultado de outra condição.');
 $db->exec('DELETE FROM documentos_certificados WHERE certificado_pessoa_id=2');
 $db->exec("INSERT INTO pessoas VALUES (6,'Eva sem certificado','66677788899','1980-01-01',NULL,'2026-11-01',1,0,0)");

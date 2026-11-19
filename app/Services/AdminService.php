@@ -769,10 +769,13 @@ class AdminService
     /**
      * Lista condicoes declaradas que ainda dependem de documentação ou validação.
      */
-    public function listPeopleRequiringConditionValidation(string $search = '', array $conditions = [], array $statuses = [], array $documentation = []): array
+    public function listPeopleRequiringConditionValidation(string $search = '', array $conditions = [], array $statuses = [], array $documentation = [], bool $requireFilters = false): array
     {
-        $pdo = Database::connection();
         $search = trim($search);
+        if ($requireFilters && $search === '' && $conditions === [] && $statuses === [] && $documentation === []) {
+            return [];
+        }
+        $pdo = Database::connection();
         $params = [];
         $searchSql = '';
         if ($search !== '') {

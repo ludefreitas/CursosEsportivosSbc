@@ -3551,6 +3551,9 @@
         },
 
         iniciarValidacaoCondicoesAdmin: function () {
+            let filterRequest = null;
+            let filterRequestVersion = 0;
+
             function filterValues($panel) {
                 const $form = $panel.find('[data-condition-validation-filter]');
                 return {
@@ -3561,9 +3564,47 @@
                 };
             }
 
+            function refreshConditionValidation($panel) {
+                const version = ++filterRequestVersion;
+                if (filterRequest) filterRequest.abort();
+                const $loading = $panel.find('[data-condition-validation-loading]');
+                $loading.text('Buscando...');
+                $panel.find('[data-condition-validation-results]').attr('aria-busy', 'true');
+                filterRequest = $.ajax({
+                    url: $('[data-admin-section-host]').attr('data-admin-section-url'),
+                    method: 'GET',
+                    dataType: 'json',
+                    data: Object.assign({ nome: 'validar-condicoes' }, filterValues($panel)),
+                    suppressGlobalLoading: true
+                }).done(function (response) {
+                    if (version !== filterRequestVersion || !document.documentElement.contains($panel[0])) return;
+                    if (!response || response.success === false || !response.html) {
+                        App.core.abrirPopup('erro', String((response && response.message) || 'Não foi possível atualizar a lista.'));
+                        return;
+                    }
+                    const $results = $('<div>').html(String(response.html)).find('[data-condition-validation-results]').first();
+                    if ($results.length) $panel.find('[data-condition-validation-results]').replaceWith($results);
+                }).fail(function (xhr, status) {
+                    if (status === 'abort' || version !== filterRequestVersion || !document.documentElement.contains($panel[0])) return;
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () {
+                    if (version !== filterRequestVersion) return;
+                    filterRequest = null;
+                    $loading.text('');
+                    $panel.find('[data-condition-validation-results]').removeAttr('aria-busy');
+                });
+            }
+
             $(document).on('submit', '[data-condition-validation-filter]', function (event) {
                 event.preventDefault();
-                App.admin.activateSection('validar-condicoes', filterValues($(this).closest('article')));
+                refreshConditionValidation($(this).closest('article'));
+            });
+            $(document).on('input', '[data-condition-validation-filter] [name="validation_search"]', function (event) {
+                if (event.originalEvent && event.originalEvent.isComposing) return;
+                $(this).closest('form').trigger('submit');
+            });
+            $(document).on('compositionend', '[data-condition-validation-filter] [name="validation_search"]', function () {
+                $(this).closest('form').trigger('submit');
             });
             $(document).on('change', '[data-condition-validation-filter] input[type="checkbox"]', function () {
                 $(this).closest('form').trigger('submit');
@@ -3726,7 +3767,7 @@
                         const $currentPanel = $('#admin-condition-validation-panel');
 
                         if ($currentPanel.length > 0) {
-                            App.admin.activateSection('validar-condicoes', filterValues($currentPanel));
+                            refreshConditionValidation($currentPanel);
                         }
                     }
 
