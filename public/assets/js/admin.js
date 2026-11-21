@@ -4771,6 +4771,33 @@
                 });
             });
 
+            $(document).on('click', '.admin-training-location-delete, .admin-training-space-delete', function () {
+                const $button = $(this);
+                const location = $button.hasClass('admin-training-location-delete');
+                const id = Number($button.attr('data-record-id') || 0);
+                const name = String($button.attr('data-record-name') || '');
+                if (!id || !window.confirm('Deseja excluir definitivamente ' + (location ? 'o local' : 'o espaço') + ' “' + name + '”? A exclusão será bloqueada se houver vínculos com outros cadastros.')) return;
+                $button.prop('disabled', true);
+                const data = location ? { local_treino_id: id } : { espaco_treino_id: id };
+                $.post(App.core.buildUrl(location ? '/admin/locais/excluir' : '/admin/espacos/excluir'), data, null, 'json').done(function (response) {
+                    if (!response || response.success === false) {
+                        App.core.abrirPopup('erro', String(response && response.message || 'Não foi possível excluir o cadastro.'));
+                        return;
+                    }
+                    $button.closest('tr').remove();
+                    if (location) {
+                        const $select = $('#admin-training-space-form select[name="local_treino_id"]');
+                        const selected = String($select.val() || '') === String(id);
+                        $select.find('option[value="' + id + '"]').remove();
+                        if (selected) $select.val('');
+                    }
+                    $(location ? '#admin-training-location-filter-form' : '#admin-training-space-filter-form').trigger('submit');
+                    App.core.abrirPopup('sucesso', String(response.message || 'Cadastro excluído com sucesso.'));
+                }).fail(function (xhr) {
+                    App.core.abrirPopup('erro', App.core.extrairMensagemErroAjax(xhr).mensagem);
+                }).always(function () { $button.prop('disabled', false); });
+            });
+
             $(document).on('keydown', function (event) {
                 if (event.key === 'Escape' && !getLocationModal().hasClass('hidden')) {
                     closeLocationModal();

@@ -1622,6 +1622,28 @@ class AdminController extends Controller
         }
     }
 
+    public function deleteTrainingLocation(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $this->adminService->deleteTrainingLocation((int) $user['conta_id'], (int) ($_POST['local_treino_id'] ?? 0));
+            $this->jsonResponse(['success' => true, 'message' => 'Local de treino excluído com sucesso.']);
+        } catch (\Throwable $error) {
+            $this->jsonResponse(['success' => false, 'message' => $error->getMessage()], 422);
+        }
+    }
+
+    public function deleteTrainingSpace(): void
+    {
+        $user = $this->assertAdminAccess();
+        try {
+            $this->adminService->deleteTrainingSpace((int) $user['conta_id'], (int) ($_POST['espaco_treino_id'] ?? 0));
+            $this->jsonResponse(['success' => true, 'message' => 'Espaço de treino excluído com sucesso.']);
+        } catch (\Throwable $error) {
+            $this->jsonResponse(['success' => false, 'message' => $error->getMessage()], 422);
+        }
+    }
+
     public function storeTrainingSpace(): void
     {
         $this->assertAdminAccess();
@@ -2289,6 +2311,12 @@ class AdminController extends Controller
         }
 
         $path = current_path();
+        // Consultas usadas nos modais de cadastro de locais e espaços.
+        if (has_role($user['roles'] ?? [], 'admin')
+            && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
+            && in_array($path, ['/admin/migracao-locais/lista', '/admin/migracao-espacos/lista'], true)) {
+            return;
+        }
         $restrictedPrefixes = [
             '/admin/migracao-',
             '/admin/home-',

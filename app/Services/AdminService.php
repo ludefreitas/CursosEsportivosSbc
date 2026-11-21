@@ -2147,6 +2147,47 @@ class AdminService
     /**
      * Atualiza os dados de um local de treino existente.
      */
+    public function deleteTrainingLocation(int $accountId, int $locationId): void
+    {
+        $this->deleteTrainingRecord('local', $accountId, $locationId);
+    }
+
+    public function deleteTrainingSpace(int $accountId, int $spaceId): void
+    {
+        $this->deleteTrainingRecord('espaco', $accountId, $spaceId);
+    }
+
+    private function deleteTrainingRecord(string $kind, int $accountId, int $id): void
+    {
+        $location = $kind === 'local';
+        $label = $location ? 'Local' : 'Espaço';
+        $table = $location ? 'locais_treino' : 'espacos_treino';
+        if ($id <= 0) throw new RuntimeException($label . ' de treino inválido para exclusão.');
+        $pdo = Database::connection();
+        $pdo->beginTransaction();
+        try {
+            $find = $pdo->prepare("SELECT * FROM {$table} WHERE id = :id");
+            $find->execute([':id' => $id]);
+            $before = $find->fetch(PDO::FETCH_ASSOC);
+            if (!$before) throw new RuntimeException($label . ' de treino não encontrado.');
+            try {
+                $delete = $pdo->prepare("DELETE FROM {$table} WHERE id = :id");
+                $delete->execute([':id' => $id]);
+            } catch (\PDOException $error) {
+                if ($error->getCode() === '23000' || str_contains($error->getMessage(), 'FOREIGN KEY constraint failed')) {
+                    throw new RuntimeException('Este ' . ($location ? 'local' : 'espaço') . ' não pode ser excluído porque possui vínculos com outros cadastros, como ' . ($location ? 'espaços, turmas, agendas ou pop-ups' : 'turmas, agendas ou suspensões') . '. Inative-o em Editar para preservar o histórico.', 0, $error);
+                }
+                throw $error;
+            }
+            if ($delete->rowCount() !== 1) throw new RuntimeException($label . ' de treino não encontrado.');
+            AuditLogService::record($location ? 'admin.local_treino_excluido' : 'admin.espaco_treino_excluido', $table, $id, ['antes' => $before, 'conta_id' => $accountId]);
+            $pdo->commit();
+        } catch (\Throwable $error) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $error;
+        }
+    }
+
     public function updateTrainingLocation(array $data): void
     {
         $locationId = (int) ($data['local_treino_id'] ?? 0);

@@ -44,6 +44,7 @@
                 class="btn btn-warning admin-training-location-edit"
                 data-location="<?php echo e((string) json_encode($locationEditPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
             >Editar</button>
+            <button type="button" class="btn btn-danger admin-training-location-delete" data-record-id="<?php echo (int) $location['id']; ?>" data-record-name="<?php echo e((string) ($location['apelido_local'] ?: $location['nome_local'])); ?>">Excluir</button>
             <?php foreach (['cursos' => 'cursos', 'agenda' => 'agenda'] as $popupArea => $popupAreaLabel) { $popup = $locationPopupsByArea[$popupArea] ?? null; ?>
                 <div class="admin-modality-popup-cell">
                     <?php if ($popup) { ?>

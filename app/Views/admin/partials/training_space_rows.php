@@ -59,6 +59,7 @@
                     'ativo' => (int) $space['ativo'],
                 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
             >Editar</button>
+            <button type="button" class="btn btn-danger admin-training-space-delete" data-record-id="<?php echo (int) $space['id']; ?>" data-record-name="<?php echo e((string) ($space['nome'] . ' — ' . $space['local_nome'])); ?>">Excluir</button>
         </td>
         <td>
             <div class="admin-training-space-actions">
