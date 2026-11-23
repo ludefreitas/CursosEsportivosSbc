@@ -2502,9 +2502,7 @@ body.pagina-error label span {
 
 .date-entry-native-hidden,
 .date-entry-tools[hidden],
-.date-entry-tools > [hidden],
-input:disabled + .date-entry-tools,
-input[readonly] + .date-entry-tools {
+.date-entry-tools > [hidden] {
     display: none !important;
 }
 

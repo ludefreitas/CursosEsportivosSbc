@@ -65,6 +65,13 @@ const root = path.resolve(__dirname, '..');
                     assert.match(await deck.locator('.people-slide.is-active table').innerText(), /—/);
                 }
                 await deck.screenshot({ path: path.join(directory, domain + '-desktop.png') });
+                if (domain === 'turmas') {
+                    await deck.locator('.people-slide-thumbnail').filter({hasText:'Turmas por exigência de atestados'}).click();
+                    assert.equal(await deck.locator('[data-people-chart-type]').inputValue(),'pie');
+                    const requirements = await deck.locator('.people-slide.is-active table').innerText();
+                    for (const label of ['Somente atestado clínico','Somente atestado dermatológico','Os dois atestados','Nenhum atestado']) assert(requirements.includes(label));
+                    await deck.screenshot({path:path.join(directory,'exigencia-atestados.png')});
+                }
                 const count = await deck.locator('.people-slide-thumbnail').count();
                 await deck.evaluate(node => { node.dataset.printMode = 'all'; document.body.classList.add('printing-people-charts'); });
                 const all = await page.pdf({ path: path.join(directory, domain + '-apresentacao.pdf'), preferCSSPageSize: true, printBackground: true });

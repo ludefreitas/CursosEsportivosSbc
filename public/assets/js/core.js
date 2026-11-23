@@ -447,6 +447,7 @@
         },
 
         validarCampoInline: function (field, forceMessage) {
+            if (App.dateEntry?.isProxy(field)) return true;
             const $field = $(field);
             const isCompactHeaderLogin = $field.closest('.header-login-form').length > 0;
             const type = String($field.attr('type') || '').toLowerCase();
@@ -454,7 +455,7 @@
             const value = String($field.val() == null ? '' : $field.val()).trim();
             const digits = value.replace(/\D+/g, '');
             const isRequired = $field.is('[required]');
-            let message = '';
+            let message = App.dateEntry?.validationMessageFor(field) || '';
 
             function isValidCalendarDate(yearText, monthText, dayText) {
                 if (!/^\d{4}$/.test(yearText) || !/^\d{2}$/.test(monthText) || !/^\d{2}$/.test(dayText)) return false;
@@ -505,7 +506,7 @@
 
             field.setCustomValidity('');
 
-            if (isRequired) {
+            if (isRequired && message === '') {
                 if (
                     type === 'radio' &&
                     !$field.closest('form').find('input[type="radio"][name="' + name + '"]:checked').length
@@ -637,7 +638,7 @@
                 if (isChoice && $label.length > 0) {
                     $label.after($message);
                 } else {
-                    $field.after($message);
+                    $(App.dateEntry?.toolsFor(field) || field).after($message);
                 }
             }
 
@@ -649,6 +650,8 @@
             $field
                 .toggleClass('field-invalid', shouldShow)
                 .attr('aria-invalid', shouldShow ? 'true' : 'false');
+            const visibleField = App.dateEntry?.inputFor(field);
+            if (visibleField && visibleField !== field) $(visibleField).toggleClass('field-invalid', shouldShow).attr('aria-invalid', shouldShow ? 'true' : 'false');
             if ($label.length > 0) {
                 $label.toggleClass('field-invalid-container', shouldShow);
             }
@@ -700,8 +703,9 @@
 
             if (firstInvalid !== null) {
                 form.__appFirstInvalidField = firstInvalid;
-                firstInvalid.focus({ preventScroll: true });
-                firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const focusField = App.dateEntry?.inputFor(firstInvalid) || firstInvalid;
+                focusField.focus({ preventScroll: true });
+                focusField.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return false;
             }
 
@@ -734,11 +738,13 @@
             }, true);
 
             $(document).on('blur change', 'input, select, textarea', function () {
+                if (App.dateEntry?.isProxy(this)) return;
                 $(this).attr('data-validation-touched', '1');
                 App.core.validarCampoInline(this, true);
             });
 
             $(document).on('input', 'input, textarea', function () {
+                if (App.dateEntry?.isProxy(this)) return;
                 $(this).removeAttr('data-remote-validation-error');
 
                 if ($(this).attr('data-validation-touched') === '1') {

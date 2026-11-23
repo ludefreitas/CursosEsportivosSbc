@@ -82,6 +82,18 @@
         }
         enrollmentTrend(r, data.enrollment_trend, root);
         attendance(r, data.attendance);
+        const health = data.health_requirements;
+        if (health) {
+            const context = 'Exigência atual da turma. Cada turma é contada uma vez, inclusive sem inscritos. Segue temporadas, local, modalidade e turma selecionada. Público, status de inscrição e datas de procura/frequência não alteram esta regra. A opção global exige clínico e, para modalidade aquática, também dermatológico.';
+            add(r, 'health-requirements', 'Turmas por exigência de atestados', health.combinations, 'count', context, {unit:'turmas'});
+            for (const [type,label] of [['clinico','clínico'],['dermatologico','dermatológico']]) add(r, 'health-required-' + type, 'Turmas · exigência de atestado ' + label,
+                [{label:'Exigem',count:health[type]},{label:'Dispensam',count:health.total-health[type]}], 'count', context, {unit:'turmas'});
+            for (const [group,title] of [['locations','local'],['modalities','modalidade'],['seasons','temporada']]) {
+                const rows = health.groups[group].flatMap(row => health.combinations.map(combination => ({label:row.label+' · '+combination.label,count:row.counts[combination.id]})));
+                add(r, 'health-by-' + group, 'Exigência de atestados por ' + title, rows, 'count', context, {unit:'turmas'});
+            }
+            for (const combination of health.combinations) add(r, 'health-classes-' + combination.id, combination.label + ' · turmas', health.classes.filter(row=>row.combination===combination.id), 'count', context, {unit:'turmas'});
+        }
         return r;
     }
     function enrollmentTrend(r, trend, root) {

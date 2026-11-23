@@ -130,6 +130,7 @@ class AdminChartService
         }
         $pdo = $this->connection();
         $statement = $pdo->prepare("SELECT t.idade_minima,t.idade_maxima,t.criterio_faixa_etaria,t.professor_conta_id, principal.nome_completo AS professor_nome,t.id,t.temporada_id,t.nome,t.local_treino_id,t.modalidade_id,t.status,t.hora_inicio,t.hora_fim,t.dias_semana,t.vagas_totais,t.vagas_geral,t.vagas_pcd,t.vagas_plm,t.vagas_pvs,
+            t.regra_atestado_clinico,t.regra_atestado_dermatologico,m.tipo_ambiente,
             COALESCE(NULLIF(TRIM(l.apelido_local), ''),l.nome_local) AS local_nome,m.nome AS modalidade_nome
             FROM turmas t INNER JOIN locais_treino l ON l.id=t.local_treino_id INNER JOIN modalidades m ON m.id=t.modalidade_id LEFT JOIN contas principal_conta ON principal_conta.id=t.professor_conta_id LEFT JOIN pessoas principal ON principal.cpf=principal_conta.cpf
             WHERE $where ORDER BY local_nome,m.nome,t.nome,t.id");
@@ -162,6 +163,7 @@ class AdminChartService
         $result['enrollment_trend'] = $this->enrollmentTrend($where, $params, $classes, $filters, $input);
         $result['movements'] = (new EnrollmentMovementService($pdo))->report($filters, $classIds);
         $result['attendance'] = (new CourseAttendanceChartService($pdo))->report($where,$params,$filters,$input);
+        $result['health_requirements'] = $this->healthRequirements($classes, $seasons);
         $classAttendance = array_column($result['attendance']['groups']['classes'] ?? [], null, 'id');
         foreach ($result['professors'] as &$professor) {
             foreach ($professor['rows'] as &$row) $row['frequency'] = ($result['attendance']['available'] ?? false) ? ($classAttendance[$row['id']] ?? ['records'=>0,'attendance'=>null]) : null;
@@ -183,6 +185,37 @@ class AdminChartService
             unset($result['attendance']['groups']['professors']);
         }
         return $result;
+    }
+
+    private function healthRequirements(array $classes, array $seasons): array
+    {
+        $labels = ['clinico'=>'Somente atestado clínico','dermatologico'=>'Somente atestado dermatológico','ambos'=>'Os dois atestados','nenhum'=>'Nenhum atestado'];
+        $totals = array_fill_keys(array_keys($labels), 0);
+        $groups = ['locations'=>[], 'modalities'=>[], 'seasons'=>[]];
+        $seasonNames = array_column($seasons, 'nome', 'id');
+        $details = [];
+        $clinicalTotal = 0;
+        $dermatologicalTotal = 0;
+        foreach ($classes as $class) {
+            $clinical = HealthCertificateRules::requires($class, 'clinico', 'dispensar');
+            $dermatological = HealthCertificateRules::requires($class, 'dermatologico', 'dispensar');
+            $combination = $clinical ? ($dermatological ? 'ambos' : 'clinico') : ($dermatological ? 'dermatologico' : 'nenhum');
+            $totals[$combination]++;
+            $clinicalTotal += (int)$clinical;
+            $dermatologicalTotal += (int)$dermatological;
+            foreach (['locations'=>['local_treino_id',$class['local_nome']], 'modalities'=>['modalidade_id',$class['modalidade_nome']], 'seasons'=>['temporada_id',$seasonNames[$class['temporada_id']] ?? 'Temporada não informada']] as $kind=>[$field,$label]) {
+                $id = (int)$class[$field];
+                $groups[$kind][$id] ??= ['id'=>$id,'label'=>$label,'counts'=>array_fill_keys(array_keys($labels),0)];
+                $groups[$kind][$id]['counts'][$combination]++;
+            }
+            $details[] = ['id'=>(int)$class['id'],'label'=>'['.$class['id'].'] '.$class['nome'].' · '.$class['local_nome'],
+                'combination'=>$combination,'clinico'=>$clinical,'dermatologico'=>$dermatological,'count'=>1];
+        }
+        foreach ($groups as &$rows) $rows = array_values($rows);
+        unset($rows);
+        return ['total'=>count($classes),'clinico'=>$clinicalTotal,'dermatologico'=>$dermatologicalTotal,
+            'combinations'=>array_map(static fn($id,$label)=>['id'=>$id,'label'=>$label,'count'=>$totals[$id]],array_keys($labels),array_values($labels)),
+            'groups'=>$groups,'classes'=>$details];
     }
 
     private function ageRelationships(string $where, array $params, array $classes, array $seasons, array $filters, array $professors, array $input): array
