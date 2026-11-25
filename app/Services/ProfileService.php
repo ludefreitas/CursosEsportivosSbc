@@ -178,6 +178,7 @@ class ProfileService
             FROM vinculos_responsaveis vr
             INNER JOIN pessoas p ON p.id = vr.dependente_pessoa_id
             WHERE vr.responsavel_pessoa_id = :responsavel_pessoa_id
+              AND vr.data_fim IS NULL
             ORDER BY p.nome_completo
         ');
         $stmt->execute([':responsavel_pessoa_id' => $person['id']]);

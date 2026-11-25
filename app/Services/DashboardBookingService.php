@@ -14,7 +14,7 @@ class DashboardBookingService
             INNER JOIN contas c ON c.id=:account_id
             WHERE (p.cpf=c.cpf OR EXISTS (SELECT 1 FROM vinculos_responsaveis vr
                 INNER JOIN pessoas pr ON pr.id=vr.responsavel_pessoa_id
-                WHERE vr.dependente_pessoa_id=p.id AND pr.cpf=c.cpf))';
+                WHERE vr.dependente_pessoa_id=p.id AND pr.cpf=c.cpf AND vr.data_fim IS NULL))';
         $pdo = Database::connection();
         $stmt = $pdo->prepare('SELECT DISTINCT YEAR(a.data_agendada) AS ano' . $scope);
         $stmt->execute([':account_id'=>$accountId]);

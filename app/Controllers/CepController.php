@@ -12,6 +12,7 @@ class CepController extends Controller
      */
     public function validate(): void
     {
+        if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
         $service = new CepService();
         $cep = (string) ($_GET['cep'] ?? '');
 
@@ -24,6 +25,8 @@ class CepController extends Controller
      */
     public function address(): void
     {
+        // A consulta externa não deve prender outras requisições desta sessão.
+        if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
         $service = new CepService();
 
         header('Content-Type: application/json; charset=utf-8');

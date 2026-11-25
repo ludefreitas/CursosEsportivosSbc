@@ -1101,20 +1101,8 @@
                 const rawValue = String($input.val() || '').replace(/\D+/g, '');
                 const $message = obterMensagem($input);
 
-                if ($input.is('[data-person-cep-address="1"]') && $input.data('personCepAddressSelected') !== true) {
-                    if (String($input.attr('data-remote-validation-error') || '').trim() !== '') {
-                        $message.text('');
-                        return;
-                    }
-
-                    $input.attr('data-remote-validation-error', '');
-                    $message.text(
-                        rawValue.length === 8
-                            ? 'Selecione o endereço encontrado para validar o CEP.'
-                            : 'Digite os 8 números do CEP para buscar o endereço.'
-                    );
-                    return;
-                }
+                // A consulta automática já valida o CEP de pessoas, com limite de espera.
+                if ($input.is('[data-person-cep-address="1"]')) return;
 
                 if (rawValue.length === 0) {
                     $message.text('Aceito automaticamente somente CEPs de São Bernardo do Campo.');
@@ -1659,124 +1647,7 @@
         },
 
         iniciarAutocompleteCepPessoa: function () {
-            let debounceTimer = null;
-            let request = null;
-
-            function closeResults($input) {
-                $input.siblings('.cep-address-results').addClass('hidden').empty();
-                $input.attr('aria-expanded', 'false');
-            }
-
-            function getResults($input) {
-                let $results = $input.siblings('.cep-address-results');
-
-                if ($results.length === 0) {
-                    $results = $('<div class="cep-address-results hidden" role="listbox"></div>');
-                    $input.after($results);
-                }
-
-                return $results;
-            }
-
-            function selectPersonAddress($option) {
-                const $input = $option.closest('.cep-autocomplete-field').find('input[data-person-cep-address="1"]').first();
-                const $form = $input.closest('form');
-                const address = $option.data('address') || {};
-
-                if ($input.length === 0 || $form.length === 0 || !address.cep) {
-                    return;
-                }
-
-                closeResults($input);
-                $input.siblings('.cep-helper').text('');
-
-                $.getJSON(App.core.buildUrl('/api/ceps/validar'), { cep: String(address.cep) })
-                    .done(function (validation) {
-                        if (!validation || typeof validation.mensagem === 'undefined') {
-                            $input.attr('data-remote-validation-error', 'Não foi possível validar o CEP neste momento.');
-                            App.core.validarCampoInline($input[0], true);
-                            return;
-                        }
-
-                        if (validation.aceito !== true) {
-                            $input.data('personCepAddressSelected', false);
-                            $input.attr('data-remote-validation-error', String(validation.mensagem || 'CEP fora do intervalo aceito.'));
-                            App.core.validarCampoInline($input[0], true);
-                            return;
-                        }
-
-                        $input.val(String(address.cep).replace(/(\d{5})(\d{3})/, '$1-$2'));
-                        $input.data('personCepAddressSelected', true);
-                        $input.attr('data-remote-validation-error', '');
-                        $form.find('[name="street"]').val(String(address.logradouro || '')).trigger('change');
-                        $form.find('[name="neighborhood"]').val(String(address.bairro || '')).trigger('change');
-                        $form.find('[name="city"]').val(String(address.cidade || '')).trigger('change');
-                        $form.find('[name="state"]').val(String(address.uf || '')).trigger('change');
-                        App.core.validarCampoInline($input[0], false);
-                    })
-                    .fail(function () {
-                        $input.attr('data-remote-validation-error', 'Não foi possível validar o CEP neste momento.');
-                        App.core.validarCampoInline($input[0], true);
-                    });
-            }
-
-            $(document).on('input', 'input[data-person-cep-address="1"]', function () {
-                const $input = $(this);
-                const digits = String($input.val() || '').replace(/\D/g, '').slice(0, 8);
-
-                $input.data('personCepAddressSelected', false);
-                $input.attr('data-remote-validation-error', '');
-                App.core.validarCampoInline($input[0], false);
-                closeResults($input);
-                window.clearTimeout(debounceTimer);
-                if (request) {
-                    request.abort();
-                    request = null;
-                }
-
-                if (digits.length !== 8) {
-                    return;
-                }
-
-                debounceTimer = window.setTimeout(function () {
-                    request = $.getJSON(App.core.buildUrl('/api/ceps/endereco'), { cep: digits })
-                        .done(function (response) {
-                            if (String($input.val() || '').replace(/\D/g, '') !== digits || !response || response.success !== true || !response.address) {
-                                return;
-                            }
-
-                            const address = response.address;
-                            const label = [
-                                String(address.logradouro || ''),
-                                String(address.bairro || ''),
-                                String(address.cidade || '') + '/' + String(address.uf || ''),
-                                String(address.cep || '').replace(/(\d{5})(\d{3})/, '$1-$2')
-                            ].filter(function (item) {
-                                return item.replace('/', '').trim() !== '';
-                            }).join(' — ');
-                            const $option = $('<button type="button" class="cep-address-option" role="option"></button>');
-
-                            $option.text(label).data('address', address).on('click', function (event) {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                selectPersonAddress($option);
-                            });
-                            getResults($input).empty().append($option).removeClass('hidden');
-                            $input.attr('aria-expanded', 'true');
-                        })
-                        .always(function () {
-                            request = null;
-                        });
-                }, 250);
-            });
-
-            $(document).on('click', function (event) {
-                if ($(event.target).closest('.cep-autocomplete-field').length === 0) {
-                    $('input[data-person-cep-address="1"]').each(function () {
-                        closeResults($(this));
-                    });
-                }
-            });
+            App.cepAddress.init();
         },
 
         iniciarImportacaoPessoaExterna: function () {

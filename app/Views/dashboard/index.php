@@ -19,8 +19,8 @@
     <div class="metrics-grid">
         <article class="info-card"><h3 data-dashboard-dependent-count><?php echo e((string) $metrics['dependentes']); ?></h3><p>Dependentes vinculados</p></article>
         <article class="info-card"><h3><?php echo e((string) $metrics['agendamentos_futuros']); ?></h3><p>Agendamentos futuros</p></article>
-        <article class="info-card"><h3><?php echo e((string) $metrics['documentos_pendentes']); ?></h3><p>Documentos pendentes</p></article>
-        <article class="info-card"><h3><?php echo e((string) $metrics['postagens_blog']); ?></h3><p>Postagens ativas</p></article>
+        <article class="info-card" title="Pedidos de validação de PCD, PLM ou PVS pendentes do titular e dos dependentes com vínculo ativo."><h3><?php echo e((string) $metrics['documentos_pendentes']); ?></h3><p>Documentos pendentes</p></article>
+        <article class="info-card" title="Postagens ativas do blog já publicadas e disponíveis para leitura."><h3><?php echo e((string) $metrics['postagens_blog']); ?></h3><p>Postagens publicadas</p></article>
     </div>
 </section>
 

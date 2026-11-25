@@ -118,7 +118,7 @@
                         <small class="muted"><?php echo e(\App\Services\SusCardService::HELP); ?></small>
                     </label>
                     <label>
-                        <span>Contato de emergência</span>
+                        <span>Nome de um contato para emergência</span>
                         <input type="text" name="emergency_contact_name" value="<?php echo e((string) ($dependent['contato_emergencia_nome'] ?? '')); ?>" required>
                     </label>
                     <label>
@@ -153,7 +153,7 @@
                 <div class="dashboard-dependent-edit-grid dashboard-dependent-edit-grid-address">
                     <label class="cep-autocomplete-field">
                         <span>CEP</span>
-                        <input type="text" name="zip_code" value="<?php echo e((string) ($dependent['cep'] ?? '')); ?>" data-cep-sbc="1" data-person-cep-address="1" autocomplete="postal-code" aria-autocomplete="list" aria-expanded="false" required>
+                        <input type="text" name="zip_code" value="<?php echo e((string) ($dependent['cep'] ?? '')); ?>" data-cep-sbc="1" data-person-cep-address="1" autocomplete="postal-code" required>
                     </label>
                     <label class="dashboard-dependent-edit-span-2">
                         <span>Endereço</span>

@@ -63,6 +63,8 @@ class UserService
     public function dashboardMetrics(int $responsiblePersonId): array
     {
         $pdo = Database::connection();
+        $now = (new \DateTimeImmutable('now', new \DateTimeZone('America/Sao_Paulo')))->format('Y-m-d H:i:s');
+        $params = [':titular'=>$responsiblePersonId, ':responsavel'=>$responsiblePersonId];
 
         $metrics = [
             'dependentes' => 0,
@@ -71,27 +73,40 @@ class UserService
             'postagens_blog' => 0,
         ];
 
-        $stmtDependents = $pdo->prepare('SELECT COUNT(*) FROM vinculos_responsaveis WHERE responsavel_pessoa_id = :id');
-        $stmtDependents->execute([':id' => $responsiblePersonId]);
+        $stmtDependents = $pdo->prepare('SELECT COUNT(*) FROM pessoas p WHERE p.id <> :titular
+            AND EXISTS (SELECT 1 FROM vinculos_responsaveis vr WHERE vr.dependente_pessoa_id=p.id
+                AND vr.responsavel_pessoa_id=:responsavel AND vr.data_fim IS NULL)');
+        $stmtDependents->execute($params);
         $metrics['dependentes'] = (int) $stmtDependents->fetchColumn();
 
         $stmtBookings = $pdo->prepare('
             SELECT COUNT(*)
             FROM agendamentos ag
-            INNER JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id = ag.pessoa_id
-            WHERE vr.responsavel_pessoa_id = :id
+            WHERE (ag.pessoa_id=:titular OR EXISTS (SELECT 1 FROM vinculos_responsaveis vr
+                WHERE vr.dependente_pessoa_id=ag.pessoa_id AND vr.responsavel_pessoa_id=:responsavel AND vr.data_fim IS NULL))
               AND ag.status IN ("agendado")
-              AND ag.data_agendada >= CURDATE()
+              AND ag.data_agendada >= :agora
         ');
-        $stmtBookings->execute([':id' => $responsiblePersonId]);
+        $stmtBookings->execute($params + [':agora'=>$now]);
         $metrics['agendamentos_futuros'] = (int) $stmtBookings->fetchColumn();
 
-        $stmtDocs = $pdo->prepare('SELECT COUNT(*) FROM certificados_pessoa WHERE status = "pendente"');
-        $stmtDocs->execute();
+        $stmtDocs = $pdo->prepare('SELECT COUNT(*) FROM certificados_pessoa cp
+            INNER JOIN tipos_certificados tc ON tc.id=cp.tipo_certificado_id
+            INNER JOIN pessoas p ON p.id=cp.pessoa_id
+            WHERE cp.status="pendente"
+              AND ((tc.slug="pcd" AND p.eh_pcd=1) OR (tc.slug="plm" AND p.eh_plm=1) OR (tc.slug="pvs" AND p.eh_pvs=1))
+              AND (cp.pessoa_id=:titular OR EXISTS (SELECT 1 FROM vinculos_responsaveis vr
+                WHERE vr.dependente_pessoa_id=cp.pessoa_id AND vr.responsavel_pessoa_id=:responsavel AND vr.data_fim IS NULL))
+              AND cp.id=(SELECT atual.id FROM certificados_pessoa atual
+                WHERE atual.pessoa_id=cp.pessoa_id AND atual.tipo_certificado_id=cp.tipo_certificado_id
+                ORDER BY atual.updated_at DESC,atual.created_at DESC,atual.id DESC LIMIT 1)');
+        $stmtDocs->execute($params);
         $metrics['documentos_pendentes'] = (int) $stmtDocs->fetchColumn();
 
-        $stmtPosts = $pdo->prepare('SELECT COUNT(*) FROM postagens_blog WHERE ativo = 1');
-        $stmtPosts->execute();
+        $stmtPosts = $pdo->prepare('SELECT COUNT(*) FROM postagens_blog pb
+            INNER JOIN contas c ON c.id=pb.criado_por_conta_id INNER JOIN pessoas autor ON autor.cpf=c.cpf
+            WHERE pb.ativo=1 AND pb.status="publicado" AND COALESCE(pb.data_publicacao,pb.publicado_em,pb.created_at)<=:agora');
+        $stmtPosts->execute([':agora'=>$now]);
         $metrics['postagens_blog'] = (int) $stmtPosts->fetchColumn();
 
         return $metrics;

@@ -127,10 +127,11 @@ class RematriculationService
             $insert = $pdo->prepare('INSERT INTO rematriculas (destino_turma_id,origem_tipo,origem_temporada_id,origem_local_id,origem_modalidade_id,origem_turma_id,origem_temporada_nome,origem_local_nome,origem_modalidade_nome,origem_turma_nome,prazo_dias,prazo_final,criado_por_conta_id) VALUES (:destination,:type,:season,:location,:modality,:class,:season_name,:location_name,:modality_name,:class_name,:days,:deadline,:author)');
             $insert->execute([':destination'=>$destinationId,':type'=>$type,':season'=>$seasonId,':location'=>$locationId,':modality'=>$modalityId,':class'=>$classId,':season_name'=>(string)$season['nome'],':location_name'=>(string)$location['nome'],':modality_name'=>(string)$modality['nome'],':class_name'=>(string)$class['nome'],':days'=>$days,':deadline'=>$deadline,':author'=>$accountId]);
             $campaignId = (int) $pdo->lastInsertId();
+            $recipients = $this->currentRecipients($pdo, array_column($people, 'cpf'));
             $invite = $pdo->prepare("INSERT INTO rematricula_convites (rematricula_id,origem_pessoa_id,pessoa_id,pessoa_nome,pessoa_cpf,pessoa_data_nascimento,publico_alvo,responsavel_conta_id,status) VALUES (:campaign,:source_person,:person,:name,:cpf,:birth,:public,:responsible,:status)");
             foreach ($people as $person) {
-                $mapped = $this->mapCurrentPerson($pdo, (string) $person['cpf']);
-                $responsible = $mapped ? $this->responsibleAccount($pdo, (int) $mapped['id']) : null;
+                $mapped = $recipients[(string) $person['cpf']] ?? null;
+                $responsible = (int) ($mapped['responsavel_conta_id'] ?? 0) ?: null;
                 $public=(string)($person['publico_alvo']??'geral');if(!in_array($public,['geral','pcd','plm','pvs'],true))$public='geral';
                 $invite->execute([':campaign'=>$campaignId,':source_person'=>(int)($person['source_person_id']??0)?:null,':person'=>$mapped ? (int)$mapped['id'] : null,':name'=>(string)$person['nome'],':cpf'=>(string)$person['cpf'],':birth'=>($person['data_nascimento']??null)?:null,':public'=>$public,':responsible'=>$responsible,':status'=>$responsible?'nao_enviada':'sem_responsavel']);
             }
@@ -150,12 +151,23 @@ class RematriculationService
         $row=$stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row) throw new RuntimeException('Campanha de rematrícula não encontrada.');
         $payload=$this->campaignPayload($row);
-        $inv=$pdo->prepare("SELECT c.*,TIMESTAMPDIFF(YEAR,c.pessoa_data_nascimento,CURDATE()) AS idade,CASE WHEN EXISTS(SELECT 1 FROM inscricoes_turma i WHERE i.turma_id=:destination AND i.pessoa_id=c.pessoa_id AND i.status NOT IN ('cancelada','excluida','desistente')) THEN 1 ELSE 0 END AS ja_inscrita FROM rematricula_convites c WHERE c.rematricula_id=:campaign ORDER BY c.pessoa_nome,c.id");
-        $inv->execute([':destination'=>(int)$row['destino_turma_id'],':campaign'=>$campaignId]);
+        $inv=$pdo->prepare("SELECT c.*,TIMESTAMPDIFF(YEAR,c.pessoa_data_nascimento,CURDATE()) AS idade FROM rematricula_convites c WHERE c.rematricula_id=:campaign ORDER BY c.pessoa_nome,c.id");
+        $inv->execute([':campaign'=>$campaignId]);
         $items=$inv->fetchAll(PDO::FETCH_ASSOC)?:[];
+        // A ausência de responsável na criação não pode congelar o convite.
+        // Esta projeção é somente leitura; os dados são gravados no envio explícito.
+        $pending = array_filter($items, static fn(array $item): bool => in_array($item['status'], ['nao_enviada', 'sem_responsavel'], true));
+        $recipients = $this->currentRecipients($pdo, array_column($pending, 'pessoa_cpf'));
+        $enrolled = $pdo->prepare("SELECT DISTINCT pessoa_id FROM inscricoes_turma WHERE turma_id=:class AND status NOT IN ('cancelada','excluida','desistente')");
+        $enrolled->execute([':class'=>(int)$row['destino_turma_id']]);
+        $enrolledIds = array_fill_keys(array_map('intval', $enrolled->fetchAll(PDO::FETCH_COLUMN)), true);
         foreach($items as &$item){
+            if (in_array($item['status'], ['nao_enviada', 'sem_responsavel'], true)) {
+                $item = $this->withCurrentRecipient($item, $recipients);
+            }
+            $item['ja_inscrita'] = isset($enrolledIds[(int) ($item['pessoa_id'] ?? 0)]) ? 1 : 0;
             if((int)$item['ja_inscrita']===1) $item['status']='inscrita';
-            $item['status_label']=$this->statusLabel((string)$item['status']);
+            $item['status_label']=$item['status']==='sem_responsavel' ? $item['destinatario_erro'] : $this->statusLabel((string)$item['status']);
             $item['data_nascimento_formatada']=!empty($item['pessoa_data_nascimento'])?date('d/m/Y',strtotime((string)$item['pessoa_data_nascimento'])):'Não informada';
         }
         unset($item);
@@ -279,12 +291,16 @@ class RematriculationService
     private function sendOne(int $actor,array $campaign,int $inviteId,bool $resend): void
     {
         $pdo=Database::connection();
-        $stmt=$pdo->prepare('SELECT * FROM rematricula_convites WHERE id=:id AND rematricula_id=:campaign LIMIT 1');$stmt->execute([':id'=>$inviteId,':campaign'=>(int)$campaign['id']]);$invite=$stmt->fetch(PDO::FETCH_ASSOC);
+        $locking=$pdo->getAttribute(PDO::ATTR_DRIVER_NAME)==='mysql'?' FOR UPDATE':'';
+        $pdo->beginTransaction();
+        try {
+        $stmt=$pdo->prepare('SELECT * FROM rematricula_convites WHERE id=:id AND rematricula_id=:campaign LIMIT 1'.$locking);$stmt->execute([':id'=>$inviteId,':campaign'=>(int)$campaign['id']]);$invite=$stmt->fetch(PDO::FETCH_ASSOC);
         if(!$invite) throw new RuntimeException('Aluno não pertence a esta lista.');
-        if(empty($invite['responsavel_conta_id'])||empty($invite['pessoa_id'])) throw new RuntimeException($invite['pessoa_nome'].': responsável com conta ativa não encontrado.');
         $status=(string)$invite['status'];
         if($resend&&$status!=='recusada') throw new RuntimeException($invite['pessoa_nome'].': somente desistências podem ser reenviadas.');
-        if(!$resend&&!in_array($status,['nao_enviada'],true)) throw new RuntimeException($invite['pessoa_nome'].': notificação já enviada.');
+        if(!$resend&&!in_array($status,['nao_enviada','sem_responsavel'],true)) throw new RuntimeException($invite['pessoa_nome'].': notificação já enviada.');
+        $invite=$this->withCurrentRecipient($invite,$this->currentRecipients($pdo,[(string)$invite['pessoa_cpf']]));
+        if(empty($invite['responsavel_conta_id'])||empty($invite['pessoa_id'])) throw new RuntimeException($invite['pessoa_nome'].': '.$invite['destinatario_erro']);
         if($resend){
             $this->history($pdo,$inviteId,'recusada','aguardando_resposta','Desistência arquivada e convite reenviado.',$actor);
             if(!empty($invite['notificacao_destinatario_id'])) $pdo->prepare('UPDATE notificacoes_destinatarios SET arquivada_em=COALESCE(arquivada_em,NOW()) WHERE id=:id')->execute([':id'=>(int)$invite['notificacao_destinatario_id']]);
@@ -292,15 +308,14 @@ class RematriculationService
         $subject='Rematrícula — '.$campaign['destino_turma_nome'];
         $message='Olá! Há uma oportunidade de rematrícula para '.$invite['pessoa_nome'].'. Confirme o interesse até '.date('d/m/Y \à\s H:i',strtotime((string)$campaign['prazo_final'])).'.';
         $context=['rematricula_convite_id'=>$inviteId,'rematricula_id'=>(int)$campaign['id'],'destino'=>['turma_id'=>(int)$campaign['destino_turma_id'],'turma'=>$campaign['destino_turma_nome'],'temporada'=>$campaign['destino_temporada_nome'],'modalidade'=>$campaign['destino_modalidade_nome'],'local'=>$campaign['destino_local_nome'],'dias'=>$campaign['dias_semana'],'horario'=>substr((string)$campaign['hora_inicio'],0,5).' às '.substr((string)$campaign['hora_fim'],0,5)],'prazo_final'=>$campaign['prazo_final'],'acoes'=>['aceitar'=>true,'recusar'=>true]];
-        $pdo->beginTransaction();
-        try{
             $notification=$pdo->prepare("INSERT INTO notificacoes (autor_conta_id,tipo,assunto,mensagem,orientacao_tipo,orientacao_texto,orientacao_url,turma_id,contexto_json) VALUES (:author,'rematricula',:subject,:message,'rematricula',:guidance,'',:class,:context)");
             $notification->execute([':author'=>$actor,':subject'=>$subject,':message'=>$message,':guidance'=>'Confira os dados da turma e informe se há interesse na rematrícula.',':class'=>(int)$campaign['destino_turma_id'],':context'=>json_encode($context,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
             $notificationId=(int)$pdo->lastInsertId();
             $recipient=$pdo->prepare('INSERT INTO notificacoes_destinatarios (notificacao_id,pessoa_id,destinatario_conta_id) VALUES (:notification,:person,:account)');
             $recipient->execute([':notification'=>$notificationId,':person'=>(int)$invite['pessoa_id'],':account'=>(int)$invite['responsavel_conta_id']]);
             $recipientId=(int)$pdo->lastInsertId();
-            $pdo->prepare("UPDATE rematricula_convites SET status='aguardando_resposta',notificacao_id=:notification,notificacao_destinatario_id=:recipient,enviado_em=NOW(),respondido_em=NULL,updated_at=NOW() WHERE id=:id")->execute([':notification'=>$notificationId,':recipient'=>$recipientId,':id'=>$inviteId]);
+            $pdo->prepare("UPDATE rematricula_convites SET pessoa_id=:person,responsavel_conta_id=:account,status='aguardando_resposta',notificacao_id=:notification,notificacao_destinatario_id=:recipient,enviado_em=NOW(),respondido_em=NULL,updated_at=NOW() WHERE id=:id")->execute([':person'=>(int)$invite['pessoa_id'],':account'=>(int)$invite['responsavel_conta_id'],':notification'=>$notificationId,':recipient'=>$recipientId,':id'=>$inviteId]);
+            if (!$resend) $this->history($pdo,$inviteId,$status,'aguardando_resposta','Notificação enviada ao destinatário identificado no cadastro atual.',$actor);
             $pdo->commit();
         }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
     }
@@ -346,14 +361,32 @@ class RematriculationService
         return array_values(array_filter($rows,static fn(array $r):bool=>strlen(preg_replace('/\D+/','',(string)($r['cpf']??'')))===11));
     }
 
-    private function responsibleAccount(PDO $pdo,int $personId): ?int
+    private function currentRecipients(PDO $pdo,array $cpfs): array
     {
-        $stmt=$pdo->prepare('SELECT c.id FROM vinculos_responsaveis vr INNER JOIN pessoas rp ON rp.id=vr.responsavel_pessoa_id INNER JOIN contas c ON c.cpf=rp.cpf AND c.ativo=1 WHERE vr.dependente_pessoa_id=:person AND vr.data_fim IS NULL ORDER BY vr.id DESC LIMIT 1');$stmt->execute([':person'=>$personId]);$id=(int)$stmt->fetchColumn();return $id>0?$id:null;
+        $cpfs=array_values(array_unique(array_filter(array_map(static fn($cpf): string => preg_replace('/\D+/','',(string)$cpf),$cpfs),static fn(string $cpf): bool => strlen($cpf)===11)));
+        if($cpfs===[])return [];
+        $stmt=$pdo->prepare('SELECT p.id,p.cpf,vr.responsavel_pessoa_id,c.id AS responsavel_conta_id
+            FROM pessoas p
+            LEFT JOIN vinculos_responsaveis vr ON vr.id=(SELECT atual.id FROM vinculos_responsaveis atual
+                WHERE atual.dependente_pessoa_id=p.id AND atual.data_fim IS NULL ORDER BY atual.id DESC LIMIT 1)
+            LEFT JOIN pessoas rp ON rp.id=vr.responsavel_pessoa_id
+            LEFT JOIN contas c ON c.cpf=CASE WHEN vr.responsavel_pessoa_id IS NOT NULL THEN rp.cpf ELSE p.cpf END AND c.ativo=1
+            WHERE p.cpf IN ('.implode(',',array_fill(0,count($cpfs),'?')).')');
+        $stmt->execute($cpfs);$result=[];
+        foreach($stmt->fetchAll(PDO::FETCH_ASSOC) as $row)$result[(string)$row['cpf']]=$row;
+        return $result;
     }
 
-    private function mapCurrentPerson(PDO $pdo,string $cpf): ?array
+    private function withCurrentRecipient(array $invite,array $recipients): array
     {
-        $cpf=preg_replace('/\D+/','',$cpf);$stmt=$pdo->prepare('SELECT id,cpf FROM pessoas WHERE cpf=:cpf LIMIT 1');$stmt->execute([':cpf'=>$cpf]);$row=$stmt->fetch(PDO::FETCH_ASSOC);return $row?:null;
+        $cpf=preg_replace('/\D+/','',(string)$invite['pessoa_cpf']);
+        $person=$recipients[$cpf]??null;
+        $invite['pessoa_id']=$person ? (int)$person['id'] : null;
+        $invite['responsavel_conta_id']=(int)($person['responsavel_conta_id']??0)?:null;
+        $invite['destinatario_erro']=!$person?'Cadastro atual não localizado pelo CPF do aluno.':
+            (!empty($person['responsavel_pessoa_id'])?'O responsável vinculado não possui conta ativa.':'Sem responsável com vínculo ativo ou conta própria ativa.');
+        if(in_array($invite['status'],['nao_enviada','sem_responsavel'],true))$invite['status']=$invite['responsavel_conta_id']?'nao_enviada':'sem_responsavel';
+        return $invite;
     }
     private function uniquePeopleByCpf(array $people): array
     {

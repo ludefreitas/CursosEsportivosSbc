@@ -99,7 +99,7 @@
         <div class="grid-five">
             <label class="cep-autocomplete-field">
                 <span>CEP</span>
-                <input type="text" name="zip_code" value="<?php echo old('zip_code', $person['cep'] ?? ''); ?>" data-cep-sbc="1" data-person-cep-address="1" autocomplete="postal-code" aria-autocomplete="list" aria-expanded="false" required>
+                <input type="text" name="zip_code" value="<?php echo old('zip_code', $person['cep'] ?? ''); ?>" data-cep-sbc="1" data-person-cep-address="1" autocomplete="postal-code" required>
             </label>
             <label class="span-2">
                 <span>Endereço</span>
@@ -157,7 +157,7 @@
         </div>
         <div class="grid-two">
             <label>
-                <span>Contato de emergência</span>
+                <span>Nome de um contato para emergência</span>
                 <input type="text" name="emergency_contact_name" value="<?php echo old('emergency_contact_name', $person['contato_emergencia_nome'] ?? ''); ?>" required>
             </label>
             <label>

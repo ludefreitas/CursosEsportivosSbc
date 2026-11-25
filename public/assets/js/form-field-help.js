@@ -33,7 +33,7 @@
         admin_local: 'Selecione, entre as contas disponíveis, a pessoa responsável pela administração do local. Use Não definido quando não houver indicação.',
         coord_local: 'Selecione a conta da pessoa que coordena o local. Use Não definido quando não houver indicação.',
         cep: 'Informe os 8 números do CEP. Confira o endereço sugerido pelo sistema antes de salvar.',
-        logradouro: 'Rua, avenida ou outro logradouro preenchido a partir do CEP. Se estiver incorreto, confira o CEP e a sugestão selecionada.',
+        logradouro: 'Rua, avenida ou outro logradouro preenchido automaticamente a partir do CEP. Confira o CEP se o endereço estiver incorreto.',
         numero_endereco: 'Informe o número do imóvel. Quando não houver numeração, informe a identificação correspondente, como S/N.',
         complemento: 'Informação adicional do endereço, como bloco, entrada ou referência. Campo opcional.',
         bairro: 'Bairro obtido pelo CEP. Confira se corresponde ao endereço do local.',

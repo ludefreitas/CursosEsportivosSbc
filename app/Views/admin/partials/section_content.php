@@ -2204,7 +2204,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                 <div class="popup-head admin-popup-head">
                     <div>
                         <h3 id="admin-training-location-modal-title">Cadastrar local de treino</h3>
-                        <p class="muted">Digite o CEP completo e selecione o endereço apresentado na lista flutuante.</p>
+                        <p class="muted">Ao completar os 8 números do CEP, o endereço será preenchido automaticamente.</p>
                     </div>
                     <button type="button" class="popup-close-icon" id="admin-training-location-close" aria-label="Fechar cadastro de local">&times;</button>
                 </div>
@@ -2257,12 +2257,8 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                 inputmode="numeric"
                                 autocomplete="postal-code"
                                 data-cep-address-search="1"
-                                aria-autocomplete="list"
-                                aria-expanded="false"
-                                aria-controls="admin-training-location-cep-results"
                                 required
                             >
-                            <div class="cep-address-results hidden" id="admin-training-location-cep-results" role="listbox"></div>
                             <small class="cep-address-status muted">Digite os 8 números do CEP.</small>
                         </label>
                         <label>

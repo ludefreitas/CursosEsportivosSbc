@@ -25,7 +25,7 @@ class CepService
         $context = stream_context_create([
             'http' => [
                 'method' => 'GET',
-                'timeout' => 5,
+                'timeout' => 3,
                 'header' => "Accept: application/json\r\nUser-Agent: CursosEsportivosSBC/1.0\r\n",
                 'ignore_errors' => true,
             ],

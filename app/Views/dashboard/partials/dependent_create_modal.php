@@ -64,7 +64,7 @@
             Se uma das condições sociais ou de saúde acima for declarada — <?php echo e(condition_public_labels()); ?> —, a pessoa precisará manter a documentação correspondente e o certificado validado para realizar agendamentos e inscrições em qualquer tipo de vaga.
         </div>
         <div class="grid-five">
-            <label class="cep-autocomplete-field"><span>CEP</span><input type="text" name="zip_code" data-cep-sbc="1" data-person-cep-address="1" autocomplete="postal-code" aria-autocomplete="list" aria-expanded="false" required></label>
+            <label class="cep-autocomplete-field"><span>CEP</span><input type="text" name="zip_code" data-cep-sbc="1" data-person-cep-address="1" autocomplete="postal-code" required></label>
             <label class="span-2"><span>Endereço</span><input type="text" name="street" required></label>
             <label><span>Número</span><input type="text" name="address_number" required></label>
             <label><span>Complemento</span><input type="text" name="address_complement"></label>
@@ -87,7 +87,7 @@
             <label><span>CPF do responsável 2</span><input type="text" name="responsavel2_cpf"></label>
         </div>
         <div class="grid-two">
-            <label><span>Contato de emergência</span><input type="text" name="emergency_contact_name" required></label>
+            <label><span>Nome de um contato para emergência</span><input type="text" name="emergency_contact_name" required></label>
             <label>
                 <span>Telefone do contato de emergência</span>
                 <input type="text" name="emergency_contact_phone" required>
