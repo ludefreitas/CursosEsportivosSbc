@@ -201,6 +201,7 @@ return [
     ['POST', '/admin/temporadas-turmas/inativar', [AdminController::class, 'deactivateCourseRecord']],
     ['POST', '/admin/turmas/status', [AdminController::class, 'changeCourseClassStatus']],
     ['POST', '/admin/inscricoes/status', [AdminController::class, 'updateCourseEnrollmentStatus']],
+    ['POST', '/admin/inscricoes/remover', [AdminController::class, 'removeCourseEnrollment']],
     ['GET', '/admin/turmas/chamada', [AdminController::class, 'courseClassAttendance']],
     ['POST', '/admin/turmas/chamada', [AdminController::class, 'saveCourseClassAttendance']],
     ['GET', '/admin/turmas/lista-chamada.pdf', [AdminController::class, 'printableCourseClassAttendance']],

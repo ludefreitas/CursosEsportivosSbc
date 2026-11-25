@@ -352,7 +352,7 @@ class CourseEnrollmentService
                 p.eh_pcd, p.eh_pvs, p.eh_plm,
                 t.professor_conta_id AS professor_principal_conta_id,t.nome AS turma_nome, t.modalidade_id, t.observacao AS turma_observacao, t.dias_semana, t.hora_inicio, t.hora_fim,
                 te.nome AS temporada_nome, te.status AS temporada_status, m.nome AS modalidade_nome,
-                COALESCE(l.apelido_local, l.nome_local) AS local_nome,
+                COALESCE(NULLIF(l.apelido_local, ''), l.nome_local) AS local_nome,
                 l.logradouro AS local_logradouro, l.numero_endereco AS local_numero_endereco,
                 l.bairro AS local_bairro, e.nome AS espaco_nome,
                 cm.aulas_inicio, cm.aulas_fim,

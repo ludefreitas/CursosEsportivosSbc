@@ -248,6 +248,7 @@ class EnrollmentMovementService
                 }
             }
         }
+        $where.=" AND NOT EXISTS (SELECT 1 FROM logs_auditoria audit WHERE audit.tipo_entidade='inscricoes_turma' AND audit.tipo_evento='inscricao_turma.removida_master' AND (audit.entidade_id=m.inscricao_origem_id OR audit.entidade_id=m.inscricao_destino_id))";
         try{$rows=$this->rows("SELECT m.id,m.operacao_uuid,m.modo,m.turma_origem_id,m.inscricao_origem_id,m.turma_destino_id,m.inscricao_destino_id,m.created_at,m.excluida_em,m.periodo_destino,t.nome AS destino,origem.nome AS origem,m.modalidade_destino_id AS modalidade_id,modalidade.nome AS modalidade,p.nome_completo AS usuario FROM movimentacoes_inscricoes m LEFT JOIN turmas t ON t.id=m.turma_destino_id LEFT JOIN turmas origem ON origem.id=m.turma_origem_id LEFT JOIN modalidades modalidade ON modalidade.id=m.modalidade_destino_id LEFT JOIN contas c ON c.id=m.realizado_por_conta_id LEFT JOIN pessoas p ON p.cpf=c.cpf WHERE $where ORDER BY m.id DESC",$params);}
         catch(PDOException $e){if(self::missingTable($e))return ['available'=>false,'message'=>'Indicadores de movimentação disponíveis após executar a migração de Mover inscritos.'];throw $e;}
         $totals=['copias'=>0,'substituicoes'=>0,'excluidas'=>0,'operacoes'=>0];$operations=[];$modalities=[];$recent=[];

@@ -154,9 +154,10 @@ class RematriculationService
         $inv=$pdo->prepare("SELECT c.*,TIMESTAMPDIFF(YEAR,c.pessoa_data_nascimento,CURDATE()) AS idade FROM rematricula_convites c WHERE c.rematricula_id=:campaign ORDER BY c.pessoa_nome,c.id");
         $inv->execute([':campaign'=>$campaignId]);
         $items=$inv->fetchAll(PDO::FETCH_ASSOC)?:[];
+        $removalMarkers=$this->removalMarkers($pdo,array_column($items,'id'));
         // A ausência de responsável na criação não pode congelar o convite.
         // Esta projeção é somente leitura; os dados são gravados no envio explícito.
-        $pending = array_filter($items, static fn(array $item): bool => in_array($item['status'], ['nao_enviada', 'sem_responsavel', 'recusada', 'token_gerado', 'inscrita'], true));
+        $pending = array_filter($items, static fn(array $item): bool => isset($removalMarkers[(int)$item['id']]) || in_array($item['status'], ['nao_enviada', 'sem_responsavel', 'recusada', 'token_gerado', 'inscrita'], true));
         $recipients = $this->currentRecipients($pdo, array_column($pending, 'pessoa_cpf'));
         $enrolled = $pdo->prepare('SELECT pessoa_id,status FROM inscricoes_turma WHERE turma_id=:class');
         $enrolled->execute([':class'=>(int)$row['destino_turma_id']]);
@@ -170,20 +171,23 @@ class RematriculationService
         if($tokenIds!==[]){$tokens=$pdo->prepare('SELECT id,status FROM tokens_inscricao_turma WHERE id IN ('.implode(',',array_fill(0,count($tokenIds),'?')).')');$tokens->execute($tokenIds);$tokenStates=$tokens->fetchAll(PDO::FETCH_KEY_PAIR);}
         $campaignOpen=$row['status']==='ativa' && (string)$row['prazo_final'] >= (string)$pdo->query('SELECT CURRENT_TIMESTAMP')->fetchColumn();
         foreach($items as &$item){
-            if (in_array($item['status'], ['nao_enviada', 'sem_responsavel', 'recusada', 'token_gerado', 'inscrita'], true)) {
+            $removedByMaster=isset($removalMarkers[(int)$item['id']]);
+            $item['inscricao_removida_master']=$removedByMaster;
+            if ($removedByMaster || in_array($item['status'], ['nao_enviada', 'sem_responsavel', 'recusada', 'token_gerado', 'inscrita'], true)) {
                 $item = $this->withCurrentRecipient($item, $recipients);
             }
             $item['ja_inscrita'] = isset($enrolledIds[(int) ($item['pessoa_id'] ?? 0)]) ? 1 : 0;
             // Uma inscrição antiga cancelada não autoriza cancelar um token novo
             // que o responsável acabou de receber e ainda não utilizou.
             $tokenId=(int)($item['token_id']??0);
-            $removed=$tokenId>0 ? ($tokenStates[$tokenId]??'')==='usado' : isset($removedIds[(int)($item['pessoa_id']??0)]);
-            $item['reenvio_apos_exclusao']=in_array($item['status'],['token_gerado','inscrita'],true) && $removed;
+            $removed=$removedByMaster || ($tokenId>0 ? ($tokenStates[$tokenId]??'')==='usado' : isset($removedIds[(int)($item['pessoa_id']??0)]));
+            $item['reenvio_apos_exclusao']=($removedByMaster || in_array($item['status'],['token_gerado','inscrita'],true)) && $removed;
             $item['pode_reenviar']=$campaignOpen && !$item['ja_inscrita'] && !empty($item['responsavel_conta_id'])
                 && ($item['status']==='recusada' || $item['reenvio_apos_exclusao']);
             if((int)$item['ja_inscrita']===1) $item['status']='inscrita';
             $item['status_label']=$item['status']==='sem_responsavel' ? $item['destinatario_erro'] : $this->statusLabel((string)$item['status']);
             if($item['pode_reenviar'] && $item['reenvio_apos_exclusao'])$item['status_label']='Inscrição removida — novo convite disponível';
+            elseif($removedByMaster && !$item['ja_inscrita'])$item['status_label']='Inscrição removida';
             $item['data_nascimento_formatada']=!empty($item['pessoa_data_nascimento'])?date('d/m/Y',strtotime((string)$item['pessoa_data_nascimento'])):'Não informada';
         }
         unset($item);
@@ -239,10 +243,17 @@ class RematriculationService
         $where="rematricula_id=:campaign AND status='aguardando_resposta'";
         $inviteIds=array_values(array_unique(array_filter(array_map('intval',$inviteIds))));
         if($inviteIds!==[]){$holders=[];foreach($inviteIds as $index=>$id){$key=':invite'.$index;$holders[]=$key;$params[$key]=$id;}$where.=' AND id IN ('.implode(',',$holders).')';}
-        $stmt=$pdo->prepare('SELECT id,notificacao_destinatario_id FROM rematricula_convites WHERE '.$where);$stmt->execute($params);$rows=$stmt->fetchAll(PDO::FETCH_ASSOC)?:[];
-        if($rows===[])throw new RuntimeException('Não há notificações aguardando resposta para remover.');
         $pdo->beginTransaction();
-        try{foreach($rows as $row){if((int)$row['notificacao_destinatario_id']>0)$pdo->prepare('UPDATE notificacoes_destinatarios SET arquivada_em=COALESCE(arquivada_em,NOW()) WHERE id=:id')->execute([':id'=>(int)$row['notificacao_destinatario_id']]);$pdo->prepare("UPDATE rematricula_convites SET status='nao_enviada',notificacao_id=NULL,notificacao_destinatario_id=NULL,enviado_em=NULL,updated_at=NOW() WHERE id=:id")->execute([':id'=>(int)$row['id']]);$this->history($pdo,(int)$row['id'],'aguardando_resposta','nao_enviada','Notificação removida pelo professor.',$accountId);}$pdo->commit();}catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+        try{
+            $locking=$pdo->getAttribute(PDO::ATTR_DRIVER_NAME)==='mysql'?' FOR UPDATE':'';
+            $pdo->prepare('SELECT id FROM turmas WHERE id=?'.$locking)->execute([(int)$campaign['destino_turma_id']]);
+            $stmt=$pdo->prepare('SELECT id,notificacao_destinatario_id FROM rematricula_convites WHERE '.$where.$locking);$stmt->execute($params);$rows=$stmt->fetchAll(PDO::FETCH_ASSOC)?:[];
+            $markers=$this->removalMarkers($pdo,array_column($rows,'id'));
+            $rows=array_values(array_filter($rows,static fn(array $row):bool=>!isset($markers[(int)$row['id']])));
+            if($rows===[])throw new RuntimeException('Não há notificações aguardando resposta para remover.');
+            foreach($rows as $row){if((int)$row['notificacao_destinatario_id']>0)$pdo->prepare('UPDATE notificacoes_destinatarios SET arquivada_em=COALESCE(arquivada_em,NOW()) WHERE id=:id')->execute([':id'=>(int)$row['notificacao_destinatario_id']]);$pdo->prepare("UPDATE rematricula_convites SET status='nao_enviada',notificacao_id=NULL,notificacao_destinatario_id=NULL,enviado_em=NULL,updated_at=NOW() WHERE id=:id")->execute([':id'=>(int)$row['id']]);$this->history($pdo,(int)$row['id'],'aguardando_resposta','nao_enviada','Notificação removida pelo professor.',$accountId);}
+            $pdo->commit();
+        }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
         return ['message'=>count($rows).' notificação(ões) removida(s).','campaign'=>$this->campaign($campaignId)];
     }
 
@@ -280,6 +291,7 @@ class RematriculationService
             if (!$invite || (int) $invite['destino_turma_id'] !== $classId) {
                 throw new RuntimeException('O convite foi alterado. Atualize a página para continuar.');
             }
+            if(isset($this->removalMarkers($pdo,[$inviteId])[$inviteId]))throw new RuntimeException('Esta inscrição foi removida. Aguarde um novo convite de rematrícula.');
             if ($invite['status'] !== 'aguardando_resposta' || $invite['rematricula_status'] !== 'ativa') {
                 throw new RuntimeException('Este convite já foi respondido ou não está disponível.');
             }
@@ -321,7 +333,9 @@ class RematriculationService
         $stmt=$pdo->prepare('SELECT * FROM rematricula_convites WHERE id=:id AND rematricula_id=:campaign LIMIT 1'.$locking);$stmt->execute([':id'=>$inviteId,':campaign'=>(int)$campaign['id']]);$invite=$stmt->fetch(PDO::FETCH_ASSOC);
         if(!$invite) throw new RuntimeException('Aluno não pertence a esta lista.');
         $status=(string)$invite['status'];
-        if($resend&&!in_array($status,['recusada','token_gerado','inscrita'],true)) throw new RuntimeException($invite['pessoa_nome'].': este convite não permite reenvio ou já está aguardando resposta.');
+        $removedByMaster=isset($this->removalMarkers($pdo,[$inviteId])[$inviteId]);
+        if($resend&&!$removedByMaster&&!in_array($status,['recusada','token_gerado','inscrita'],true)) throw new RuntimeException($invite['pessoa_nome'].': este convite não permite reenvio ou já está aguardando resposta.');
+        if(!$resend && $removedByMaster)throw new RuntimeException('Use Reenviar convite de rematrícula para registrar o motivo do novo envio.');
         if(!$resend&&!in_array($status,['nao_enviada','sem_responsavel'],true)) throw new RuntimeException($invite['pessoa_nome'].': notificação já enviada.');
         $invite=$this->withCurrentRecipient($invite,$this->currentRecipients($pdo,[(string)$invite['pessoa_cpf']]));
         if(empty($invite['responsavel_conta_id'])||empty($invite['pessoa_id'])) throw new RuntimeException($invite['pessoa_nome'].': '.$invite['destinatario_erro']);
@@ -333,7 +347,7 @@ class RematriculationService
         }
         if($resend && $status!=='recusada'){
             $oldToken=$pdo->prepare('SELECT status FROM tokens_inscricao_turma WHERE id=?');$oldToken->execute([(int)($invite['token_id']??0)]);
-            $hasRemovedEnrollment=!empty($invite['token_id']) ? $oldToken->fetchColumn()==='usado' : $removed;
+            $hasRemovedEnrollment=$removedByMaster || (!empty($invite['token_id']) ? $oldToken->fetchColumn()==='usado' : $removed);
             if(!$hasRemovedEnrollment)throw new RuntimeException('Não foi identificada uma inscrição cancelada ou excluída para permitir o reenvio.');
         }
         if($resend){
@@ -398,6 +412,16 @@ class RematriculationService
         $stmt=$this->legacy()->prepare('SELECT DISTINCT p.idpess AS source_person_id,p.nomepess AS nome,REPLACE(REPLACE(REPLACE(p.numcpf,".",""),"-","")," ","") AS cpf,p.dtnasc AS data_nascimento FROM tb_insc i INNER JOIN tb_pessoa p ON p.idpess=i.idpessoa WHERE i.idtemporada=:season AND i.idturma=:class AND i.idinscstatus=1 ORDER BY p.nomepess');
         $stmt->execute([':season'=>self::LEGACY_SEASON_ID,':class'=>$classId]);$rows=$stmt->fetchAll(PDO::FETCH_ASSOC)?:[];
         return array_values(array_filter($rows,static fn(array $r):bool=>strlen(preg_replace('/\D+/','',(string)($r['cpf']??'')))===11));
+    }
+
+    private function removalMarkers(PDO $pdo,array $ids): array
+    {
+        if($ids===[])return [];
+        $stmt=$pdo->prepare("SELECT h.convite_id FROM rematricula_convites_historico h
+            WHERE h.convite_id IN (".implode(',',array_fill(0,count($ids),'?')).") AND h.status_novo='inscricao_removida'
+            AND h.id=(SELECT MAX(last.id) FROM rematricula_convites_historico last WHERE last.convite_id=h.convite_id)");
+        $stmt->execute($ids);
+        return array_fill_keys(array_map('intval',$stmt->fetchAll(PDO::FETCH_COLUMN)),true);
     }
 
     private function currentRecipients(PDO $pdo,array $cpfs): array

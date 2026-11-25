@@ -3022,6 +3022,20 @@ class AdminController extends Controller
         } catch (\Throwable $e) { $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422); }
     }
 
+    public function removeCourseEnrollment(): void
+    {
+        $user=$this->assertAdminAccess();
+        if(!$this->canAccessMasterSections($user)){
+            $this->jsonResponse(['success'=>false,'message'=>'Somente o Admin Master pode remover inscrições definitivamente.'],403);
+            return;
+        }
+        try{
+            if(empty($_SESSION['enrollment_removal_csrf']) || !is_string($_POST['csrf']??null) || !hash_equals($_SESSION['enrollment_removal_csrf'],$_POST['csrf']))throw new \RuntimeException('Sessão inválida. Atualize a lista de inscritos.');
+            $result=(new \App\Services\EnrollmentRemovalService())->remove((int)($_POST['inscricao_id']??0),(int)$user['conta_id'],(string)($_POST['motivo']??''),(string)($_POST['confirmacao']??''));
+            $this->jsonResponse(array_merge(['success'=>true],$result));
+        }catch(\Throwable $error){$this->jsonResponse(['success'=>false,'message'=>$error->getMessage()],422);}
+    }
+
     public function updateCourseEnrollmentStatus(): void
     {
         $user = $this->assertAdminAccess();

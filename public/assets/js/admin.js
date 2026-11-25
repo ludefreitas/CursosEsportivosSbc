@@ -8770,15 +8770,15 @@
         let rows='';
         (c.pessoas||[]).forEach(function(p){
             const status=String(p.status||'');
-            if(status==='aguardando_resposta')pending++;
+            if(status==='aguardando_resposta'&&!p.inscricao_removida_master)pending++;
             if(!['nao_enviada','sem_responsavel'].includes(status))sentOrAnswered++;
-            const disabled=status!=='nao_enviada';
+            const disabled=status!=='nao_enviada'||!!p.pode_reenviar||!!p.inscricao_removida_master;
             let action='';
             if(p.pode_reenviar){
                 action='<button type="button" class="link-button" data-rematriculation-resend="'+Number(p.id)+'">Reenviar convite de rematrícula</button>';
             }else if(status==='nao_enviada'){
                 action='<button type="button" class="link-button rematriculation-unsent" data-rematriculation-send-one="'+Number(p.id)+'">Enviar notificação</button>';
-            }else if(status==='aguardando_resposta'){
+            }else if(status==='aguardando_resposta'&&!p.inscricao_removida_master){
                 action='<span class="rematriculation-pending-actions"><span title="Notificação enviada">🔔</span><button type="button" class="link-button" data-rematriculation-remove-one="'+Number(p.id)+'">Remover notificação</button></span>';
             }
             rows+='<div class="rematriculation-person status-'+status+'"><input type="checkbox" name="convites[]" value="'+Number(p.id)+'" '+(disabled?'disabled':'')+'><span><strong>'+ $('<div>').text(p.pessoa_nome||'').html()+'</strong> - '+$('<div>').text(p.data_nascimento_formatada||'').html()+' - '+String(p.idade===null?'idade não informada':p.idade+' anos')+'<small>'+ $('<div>').text(p.status_label||'').html()+(status==='sem_responsavel'?' — notificação não enviada':'')+'</small></span>'+action+'</div>';

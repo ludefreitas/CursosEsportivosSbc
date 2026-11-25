@@ -1113,6 +1113,18 @@
 .admin-daily-bookings-search-step select {
     grid-column: 1 / -1;
 }
+.admin-daily-bookings-search-step > .date-entry-tools {
+    grid-column: 1 / -1;
+    width: 100%;
+}
+.admin-daily-bookings-search-step .date-entry-text {
+    grid-column: 1;
+    grid-row: 1;
+}
+.admin-daily-bookings-search-step .date-entry-calendar-toggle {
+    grid-column: 2;
+    grid-row: 1;
+}
 .admin-search-step-number {
     display: inline-grid;
     width: 30px;

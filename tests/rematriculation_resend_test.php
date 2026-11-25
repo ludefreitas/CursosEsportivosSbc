@@ -56,5 +56,13 @@ $db->exec("INSERT INTO tokens_inscricao_turma(id,numero_token,cpf,turma_id,statu
 $before=(int)$db->query('SELECT COUNT(*) FROM rematricula_convites_historico')->fetchColumn();resendFails(fn()=>$service->send(9,['admin'],1,[2],true,'Teste de reversão.'),'Falha simulada');
 resendCheck((int)$db->query('SELECT COUNT(*) FROM rematricula_convites_historico')->fetchColumn()===$before&&$db->query('SELECT status FROM tokens_inscricao_turma WHERE id=3')->fetchColumn()==='ativo','Reverter histórico e cancelamento do token na falha.');
 resendCheck($db->query('SELECT status FROM rematricula_convites WHERE id=2')->fetchColumn()==='token_gerado','Preservar o convite para permitir nova tentativa.');
+$db->exec("DROP TRIGGER falhar_nova_notificacao;UPDATE rematricula_convites SET status='aguardando_resposta',token_id=3 WHERE id=2;INSERT INTO rematricula_convites_historico(convite_id,status_anterior,status_novo,observacao,realizado_por_conta_id) VALUES(2,'aguardando_resposta','inscricao_removida','Remoção pelo Master.',9)");
+resendCheck($people()[2]['pode_reenviar'],'A remoção do Master permite reenvio também de convite anterior sem resposta.');
+resendFails(fn()=>$service->respond(30,2,'sim'),'foi removida');
+resendFails(fn()=>$service->removeNotifications(9,['admin'],1,[2]),'Não há notificações');
+resendFails(fn()=>$service->send(9,['admin'],1,[2],false),'Use Reenviar');
+$service->send(9,['admin'],1,[2],true,'Inscrição removida pelo Master.');
+resendCheck(!$people()[2]['pode_reenviar'],'O novo envio consome o marcador de remoção e impede duplicidade.');
+resendFails(fn()=>$service->send(9,['admin'],1,[2],true,'Repetição.'),'aguardando resposta');
 echo "Reenvio: cancelamento/exclusão, conta ativa, campanha/prazo, motivo, arquivo da notificação, tokens antigos, novo aceite/token, histórico, duplicidade e reversão atômica verificados em banco isolado.\n";
 }
