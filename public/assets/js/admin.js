@@ -8765,7 +8765,24 @@
     function renderRematriculationCampaign($modal,c){
         $modal.data('initialEnrollmentStart', c.inscricoes_inicio || '');
         $('[data-rematriculation-open="'+String(c.destino_turma_id)+'"]').addClass('is-active').text('SIM, tem rematrícula');
-        let pending=0,sentOrAnswered=0;$modal.data('campaignId',c.id); let rows=''; (c.pessoas||[]).forEach(function(p){const status=String(p.status||'');if(status==='aguardando_resposta')pending++;if(!['nao_enviada','sem_responsavel'].includes(status))sentOrAnswered++;const disabled=!['nao_enviada'].includes(status);const action=status==='recusada'?'<button type="button" class="link-button" data-rematriculation-resend="'+p.id+'">Reenviar notificação de rematrícula</button>':(status==='nao_enviada'?'<button type="button" class="link-button rematriculation-unsent" data-rematriculation-send-one="'+p.id+'">Enviar notificação</button>':(status==='aguardando_resposta'?'<span class="rematriculation-pending-actions"><span title="Notificação enviada">🔔</span><button type="button" class="link-button" data-rematriculation-remove-one="'+p.id+'">Remover notificação</button></span>':''));rows+='<div class="rematriculation-person status-'+status+'"><input type="checkbox" name="convites[]" value="'+p.id+'" '+(disabled?'disabled':'')+'><span><strong>'+ $('<div>').text(p.pessoa_nome||'').html()+'</strong> - '+$('<div>').text(p.data_nascimento_formatada||'').html()+' - '+String(p.idade===null?'idade não informada':p.idade+' anos')+'<small>'+ $('<div>').text(p.status_label||'').html()+(status==='sem_responsavel'?' — notificação não enviada':'')+'</small></span>'+action+'</div>';});
+        let pending=0,sentOrAnswered=0;
+        $modal.data('campaignId',c.id);
+        let rows='';
+        (c.pessoas||[]).forEach(function(p){
+            const status=String(p.status||'');
+            if(status==='aguardando_resposta')pending++;
+            if(!['nao_enviada','sem_responsavel'].includes(status))sentOrAnswered++;
+            const disabled=status!=='nao_enviada';
+            let action='';
+            if(p.pode_reenviar){
+                action='<button type="button" class="link-button" data-rematriculation-resend="'+Number(p.id)+'">Reenviar convite de rematrícula</button>';
+            }else if(status==='nao_enviada'){
+                action='<button type="button" class="link-button rematriculation-unsent" data-rematriculation-send-one="'+Number(p.id)+'">Enviar notificação</button>';
+            }else if(status==='aguardando_resposta'){
+                action='<span class="rematriculation-pending-actions"><span title="Notificação enviada">🔔</span><button type="button" class="link-button" data-rematriculation-remove-one="'+Number(p.id)+'">Remover notificação</button></span>';
+            }
+            rows+='<div class="rematriculation-person status-'+status+'"><input type="checkbox" name="convites[]" value="'+Number(p.id)+'" '+(disabled?'disabled':'')+'><span><strong>'+ $('<div>').text(p.pessoa_nome||'').html()+'</strong> - '+$('<div>').text(p.data_nascimento_formatada||'').html()+' - '+String(p.idade===null?'idade não informada':p.idade+' anos')+'<small>'+ $('<div>').text(p.status_label||'').html()+(status==='sem_responsavel'?' — notificação não enviada':'')+'</small></span>'+action+'</div>';
+        });
         const bulkRemove=pending?'<button type="button" class="btn btn-secondary" data-rematriculation-remove-all="1">Remover todas as notificações sem resposta</button>':'';
         const html='<div class="alert-inline rematriculation-warning"><strong>Atenção:</strong> a turma atual deve estar com seu status como “Inscrições suspensas” para não ficar disponível na área pública e não receber inscrições que não sejam com autorização/rematrícula.</div><div class="rematriculation-summary"><p><strong>Origem:</strong> '+$('<div>').text(c.origem_temporada_nome+' — '+c.origem_local_nome+' — '+c.origem_modalidade_nome+' — ['+c.origem_turma_id+'] '+c.origem_turma_nome).html()+'</p><p><strong>Destino:</strong> '+$('<div>').text('['+c.destino_turma_id+'] '+c.destino_turma_nome+' — '+c.destino_modalidade_nome+' — '+c.destino_local_nome).html()+'</p></div><form data-rematriculation-deadline-form="1" class="rematriculation-deadline-form"><input type="hidden" name="id" value="'+c.id+'"><label><span>Prazo para responder ao convite</span><select name="prazo_dias"><option value="7">7 dias</option><option value="14">14 dias</option><option value="21">21 dias</option><option value="28">28 dias</option></select></label><strong>até '+String(c.prazo_final_formatado||'')+'</strong><button class="btn btn-secondary" type="submit">Alterar prazo</button></form><p class="muted">Cada token vence após o prazo escolhido, contado da geração ou do início das inscrições iniciais, o que ocorrer depois.</p><form data-rematriculation-send="1"><label class="rematriculation-select-all"><input type="checkbox" data-rematriculation-all="1"><span>Selecionar todos disponíveis</span></label><div class="rematriculation-list">'+(rows||'<p class="muted">Nenhum matriculado encontrado.</p>')+'</div><div class="popup-actions rematriculation-list-actions">'+bulkRemove+'<button type="submit" class="btn btn-primary">Enviar notificações selecionadas</button></div></form>';
         $modal.find('[data-rematriculation-content]').html(html).find('[name="prazo_dias"]').val(String(c.prazo_dias));
@@ -8787,7 +8804,51 @@
     $(document).on('click','[data-rematriculation-remove-all="1"]',function(){removeRematriculationNotifications([]);});
     $(document).on('click','[data-rematriculation-cancel="1"]',function(){const $m=$('#rematriculation-modal');if(!window.confirm('Cancelar esta campanha de rematrícula? A seleção de origem será descartada.'))return;$.post(App.core.buildUrl('/rematriculas/cancelar'),{id:$m.data('campaignId')},function(r){if(!r||r.success===false){App.core.abrirPopup('erro',String((r&&r.message)||'Não foi possível cancelar.'));return;}$('[data-rematriculation-open="'+String($m.data('classId'))+'"]').removeClass('is-active').text('NÃO tem rematrícula');$m.addClass('hidden').attr('aria-hidden','true');App.core.abrirPopup('sucesso',r.message);},'json').fail(function(x){rematriculationError(x,'Não foi possível cancelar a rematrícula.');});});
     $(document).on('submit','[data-rematriculation-deadline-form="1"]',function(e){e.preventDefault();const $m=$('#rematriculation-modal');$.post(App.core.buildUrl('/rematriculas/prazo'),$(this).serialize(),function(r){if(r&&r.success){renderRematriculationCampaign($m,r.campaign);App.core.abrirPopup('sucesso','Prazo atualizado.');}else App.core.abrirPopup('erro',String((r&&r.message)||'Não foi possível alterar.'));},'json');});
-    $(document).on('click','[data-rematriculation-resend]',function(){if(!window.confirm('A desistência anterior será arquivada e o convite voltará a aguardar resposta. Deseja reenviar?'))return;const $m=$('#rematriculation-modal');$.post(App.core.buildUrl('/rematriculas/reenviar'),{id:$m.data('campaignId'),convite_id:$(this).attr('data-rematriculation-resend')},function(r){if(r&&r.success){renderRematriculationCampaign($m,r.campaign);App.core.abrirPopup('sucesso',r.message);}else App.core.abrirPopup('erro',String((r&&r.message)||'Não foi possível reenviar.'));},'json');});
+    function closeRematriculationResend() {
+        const $dialog=$('#rematriculation-resend-modal');
+        if($dialog.data('sending'))return;
+        const trigger=$dialog.data('trigger');
+        $dialog.remove();
+        if(trigger&&document.contains(trigger))trigger.focus();
+    }
+    $(document).on('click','[data-rematriculation-resend]',function(){
+        if($('#rematriculation-resend-modal').data('sending'))return;
+        const $main=$('#rematriculation-modal');
+        const id=Number($(this).attr('data-rematriculation-resend'));
+        $('#rematriculation-resend-modal').remove();
+        const $dialog=$('<div>',{id:'rematriculation-resend-modal',class:'popup-overlay','aria-hidden':'false'}).css('z-index',10060);
+        const $card=$('<div>',{class:'popup-card',role:'dialog','aria-modal':'true','aria-labelledby':'rematriculation-resend-title'});
+        const $form=$('<form>',{class:'stack-form','data-rematriculation-resend-form':'1','data-manual-submit':'1'});
+        $form.append($('<input>',{type:'hidden',name:'id',value:Number($main.data('campaignId'))}),$('<input>',{type:'hidden',name:'convite_id',value:id}));
+        $form.append($('<p>',{text:'A notificação anterior será arquivada e os tokens antigos ainda ativos desta pessoa para esta turma serão cancelados. O responsável receberá um novo convite para responder.'}));
+        $form.append($('<label>').append($('<span>',{text:'Motivo do reenvio'}),$('<textarea>',{name:'motivo',rows:3,maxlength:120,required:true,placeholder:'Ex.: inscrição realizada antes da abertura e posteriormente excluída.'})));
+        $form.append($('<p>',{class:'alert-inline hidden',role:'alert','data-rematriculation-resend-error':'1'}));
+        $form.append($('<div>',{class:'popup-actions'}).append($('<button>',{type:'button',class:'btn btn-secondary','data-rematriculation-resend-close':'1',text:'Voltar'}),$('<button>',{type:'submit',class:'btn btn-primary',text:'Confirmar reenvio'})));
+        $card.append($('<div>',{class:'popup-head'}).append($('<h3>',{id:'rematriculation-resend-title',text:'Reenviar convite de rematrícula'}),$('<button>',{type:'button',class:'popup-close-icon','data-rematriculation-resend-close':'1','aria-label':'Fechar',html:'&times;'})),$('<div>',{class:'popup-body'}).append($form));
+        $('body').append($dialog.append($card));
+        $dialog.data('trigger',this);
+        $form.find('[name=motivo]').trigger('focus');
+    });
+    $(document).on('click','[data-rematriculation-resend-close]',closeRematriculationResend);
+    $(document).on('keydown','#rematriculation-resend-modal',function(event){if(event.key==='Escape'){event.stopPropagation();closeRematriculationResend();}});
+    $(document).on('submit','[data-rematriculation-resend-form]',function(event){
+        event.preventDefault();
+        const $dialog=$('#rematriculation-resend-modal'),$form=$(this),$error=$form.find('[data-rematriculation-resend-error]');
+        if($dialog.data('sending'))return;
+        const reason=String($form.find('[name=motivo]').val()||'').trim();
+        if(!reason||Array.from(reason).length>120){$error.text('Informe o motivo do reenvio, com até 120 caracteres.').removeClass('hidden');return;}
+        $error.addClass('hidden').empty();
+        $dialog.data('sending',true).find('button').prop('disabled',true);
+        $.post(App.core.buildUrl('/rematriculas/reenviar'),{id:$form.find('[name=id]').val(),convite_id:$form.find('[name=convite_id]').val(),motivo:reason},null,'json')
+            .done(function(response){
+                if(!response||response.success===false){$error.text(String((response&&response.message)||'Não foi possível reenviar.')).removeClass('hidden');return;}
+                $dialog.remove();
+                renderRematriculationCampaign($('#rematriculation-modal'),response.campaign);
+                App.core.abrirPopup('sucesso',response.message);
+            }).fail(function(xhr){$error.text(String((xhr.responseJSON&&xhr.responseJSON.message)||'Não foi possível reenviar. Tente novamente.')).removeClass('hidden');})
+            .always(function(){$dialog.data('sending',false).find('button').prop('disabled',false);});
+    });
+
 }(window, window.jQuery));
 (function (window, $) {
     function reloadTimeline(season, period, modality) {

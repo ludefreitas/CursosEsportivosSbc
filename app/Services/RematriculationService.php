@@ -156,18 +156,34 @@ class RematriculationService
         $items=$inv->fetchAll(PDO::FETCH_ASSOC)?:[];
         // A ausência de responsável na criação não pode congelar o convite.
         // Esta projeção é somente leitura; os dados são gravados no envio explícito.
-        $pending = array_filter($items, static fn(array $item): bool => in_array($item['status'], ['nao_enviada', 'sem_responsavel'], true));
+        $pending = array_filter($items, static fn(array $item): bool => in_array($item['status'], ['nao_enviada', 'sem_responsavel', 'recusada', 'token_gerado', 'inscrita'], true));
         $recipients = $this->currentRecipients($pdo, array_column($pending, 'pessoa_cpf'));
-        $enrolled = $pdo->prepare("SELECT DISTINCT pessoa_id FROM inscricoes_turma WHERE turma_id=:class AND status NOT IN ('cancelada','excluida','desistente')");
+        $enrolled = $pdo->prepare('SELECT pessoa_id,status FROM inscricoes_turma WHERE turma_id=:class');
         $enrolled->execute([':class'=>(int)$row['destino_turma_id']]);
-        $enrolledIds = array_fill_keys(array_map('intval', $enrolled->fetchAll(PDO::FETCH_COLUMN)), true);
+        $enrolledIds=[];$removedIds=[];
+        foreach($enrolled->fetchAll(PDO::FETCH_ASSOC) as $enrollment){
+            if(in_array($enrollment['status'],['cancelada','excluida','excluida_por_falta','desistente'],true))$removedIds[(int)$enrollment['pessoa_id']]=true;
+            else $enrolledIds[(int)$enrollment['pessoa_id']]=true;
+        }
+        $tokenIds=array_values(array_unique(array_filter(array_map(static fn(array $item):int=>(int)($item['token_id']??0),$items))));
+        $tokenStates=[];
+        if($tokenIds!==[]){$tokens=$pdo->prepare('SELECT id,status FROM tokens_inscricao_turma WHERE id IN ('.implode(',',array_fill(0,count($tokenIds),'?')).')');$tokens->execute($tokenIds);$tokenStates=$tokens->fetchAll(PDO::FETCH_KEY_PAIR);}
+        $campaignOpen=$row['status']==='ativa' && (string)$row['prazo_final'] >= (string)$pdo->query('SELECT CURRENT_TIMESTAMP')->fetchColumn();
         foreach($items as &$item){
-            if (in_array($item['status'], ['nao_enviada', 'sem_responsavel'], true)) {
+            if (in_array($item['status'], ['nao_enviada', 'sem_responsavel', 'recusada', 'token_gerado', 'inscrita'], true)) {
                 $item = $this->withCurrentRecipient($item, $recipients);
             }
             $item['ja_inscrita'] = isset($enrolledIds[(int) ($item['pessoa_id'] ?? 0)]) ? 1 : 0;
+            // Uma inscrição antiga cancelada não autoriza cancelar um token novo
+            // que o responsável acabou de receber e ainda não utilizou.
+            $tokenId=(int)($item['token_id']??0);
+            $removed=$tokenId>0 ? ($tokenStates[$tokenId]??'')==='usado' : isset($removedIds[(int)($item['pessoa_id']??0)]);
+            $item['reenvio_apos_exclusao']=in_array($item['status'],['token_gerado','inscrita'],true) && $removed;
+            $item['pode_reenviar']=$campaignOpen && !$item['ja_inscrita'] && !empty($item['responsavel_conta_id'])
+                && ($item['status']==='recusada' || $item['reenvio_apos_exclusao']);
             if((int)$item['ja_inscrita']===1) $item['status']='inscrita';
             $item['status_label']=$item['status']==='sem_responsavel' ? $item['destinatario_erro'] : $this->statusLabel((string)$item['status']);
+            if($item['pode_reenviar'] && $item['reenvio_apos_exclusao'])$item['status_label']='Inscrição removida — novo convite disponível';
             $item['data_nascimento_formatada']=!empty($item['pessoa_data_nascimento'])?date('d/m/Y',strtotime((string)$item['pessoa_data_nascimento'])):'Não informada';
         }
         unset($item);
@@ -200,15 +216,17 @@ class RematriculationService
         return $this->campaign($campaignId);
     }
 
-    public function send(int $accountId,array $roles,int $campaignId,array $inviteIds,bool $resend=false): array
+    public function send(int $accountId,array $roles,int $campaignId,array $inviteIds,bool $resend=false,string $reason=''): array
     {
         $campaign=$this->campaign($campaignId);
         $this->assertAccess($accountId,$roles,(int)$campaign['destino_turma_id']);
         $inviteIds=array_values(array_unique(array_filter(array_map('intval',$inviteIds))));
         if($inviteIds===[]) throw new RuntimeException('Selecione ao menos um aluno.');
+        $reason=trim($reason);
+        if($resend && ($reason==='' || mb_strlen($reason,'UTF-8')>120))throw new RuntimeException('Informe o motivo do reenvio, com até 120 caracteres.');
         $sent=0;$ignored=[];
         foreach($inviteIds as $inviteId){
-            try{$this->sendOne($accountId,$campaign,$inviteId,$resend);$sent++;}catch(Throwable $e){$ignored[]=$e->getMessage();}
+            try{$this->sendOne($accountId,$campaign,$inviteId,$resend,$reason);$sent++;}catch(Throwable $e){$ignored[]=$e->getMessage();}
         }
         if($sent===0) throw new RuntimeException($ignored[0]??'Nenhuma notificação pôde ser enviada.');
         return ['message'=>$sent.' notificação(ões) de rematrícula enviada(s).','enviadas'=>$sent,'ignoradas'=>$ignored,'campaign'=>$this->campaign($campaignId)];
@@ -278,7 +296,8 @@ class RematriculationService
                 $pdo->prepare("UPDATE rematricula_convites SET status='token_gerado',token_id=?,respondido_em=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?")
                     ->execute([$tokenId, $inviteId]);
                 $this->history($pdo, $inviteId, 'aguardando_resposta', 'token_gerado', 'Token de rematrícula criado.', $accountId);
-                $result = ['message' => 'Token criado. Preencha agora o formulário de inscrição.', 'token_id' => $tokenId];
+                $openingBlock = EnrollmentOpeningService::blockReason($invite);
+                $result = ['message' => $openingBlock !== null ? 'Token criado. ' . $openingBlock : 'Token criado. Preencha agora o formulário de inscrição.', 'token_id' => $tokenId];
             }
             $pdo->commit();
             return $result;
@@ -288,22 +307,42 @@ class RematriculationService
         }
     }
 
-    private function sendOne(int $actor,array $campaign,int $inviteId,bool $resend): void
+    private function sendOne(int $actor,array $campaign,int $inviteId,bool $resend,string $reason=''): void
     {
         $pdo=Database::connection();
         $locking=$pdo->getAttribute(PDO::ATTR_DRIVER_NAME)==='mysql'?' FOR UPDATE':'';
         $pdo->beginTransaction();
         try {
+        // Mesma ordem de bloqueio usada pela inscrição e pela resposta ao convite.
+        $classLock=$pdo->prepare('SELECT id FROM turmas WHERE id=?'.$locking);$classLock->execute([(int)$campaign['destino_turma_id']]);
+        if(!$classLock->fetchColumn())throw new RuntimeException('Turma de destino não encontrada.');
+        $campaignLock=$pdo->prepare('SELECT status,prazo_final FROM rematriculas WHERE id=?'.$locking);$campaignLock->execute([(int)$campaign['id']]);$currentCampaign=$campaignLock->fetch(PDO::FETCH_ASSOC);
+        if(!$currentCampaign || $currentCampaign['status']!=='ativa' || $currentCampaign['prazo_final']<(string)$pdo->query('SELECT CURRENT_TIMESTAMP')->fetchColumn())throw new RuntimeException('A campanha de rematrícula não está ativa ou seu prazo terminou.');
         $stmt=$pdo->prepare('SELECT * FROM rematricula_convites WHERE id=:id AND rematricula_id=:campaign LIMIT 1'.$locking);$stmt->execute([':id'=>$inviteId,':campaign'=>(int)$campaign['id']]);$invite=$stmt->fetch(PDO::FETCH_ASSOC);
         if(!$invite) throw new RuntimeException('Aluno não pertence a esta lista.');
         $status=(string)$invite['status'];
-        if($resend&&$status!=='recusada') throw new RuntimeException($invite['pessoa_nome'].': somente desistências podem ser reenviadas.');
+        if($resend&&!in_array($status,['recusada','token_gerado','inscrita'],true)) throw new RuntimeException($invite['pessoa_nome'].': este convite não permite reenvio ou já está aguardando resposta.');
         if(!$resend&&!in_array($status,['nao_enviada','sem_responsavel'],true)) throw new RuntimeException($invite['pessoa_nome'].': notificação já enviada.');
         $invite=$this->withCurrentRecipient($invite,$this->currentRecipients($pdo,[(string)$invite['pessoa_cpf']]));
         if(empty($invite['responsavel_conta_id'])||empty($invite['pessoa_id'])) throw new RuntimeException($invite['pessoa_nome'].': '.$invite['destinatario_erro']);
+        $registrations=$pdo->prepare('SELECT status FROM inscricoes_turma WHERE turma_id=? AND pessoa_id=?');$registrations->execute([(int)$campaign['destino_turma_id'],(int)$invite['pessoa_id']]);
+        $removed=false;
+        foreach($registrations->fetchAll(PDO::FETCH_COLUMN) as $registrationStatus){
+            if(!in_array($registrationStatus,['cancelada','excluida','excluida_por_falta','desistente'],true))throw new RuntimeException('O aluno ainda possui inscrição ativa na turma de destino.');
+            $removed=true;
+        }
+        if($resend && $status!=='recusada'){
+            $oldToken=$pdo->prepare('SELECT status FROM tokens_inscricao_turma WHERE id=?');$oldToken->execute([(int)($invite['token_id']??0)]);
+            $hasRemovedEnrollment=!empty($invite['token_id']) ? $oldToken->fetchColumn()==='usado' : $removed;
+            if(!$hasRemovedEnrollment)throw new RuntimeException('Não foi identificada uma inscrição cancelada ou excluída para permitir o reenvio.');
+        }
         if($resend){
-            $this->history($pdo,$inviteId,'recusada','aguardando_resposta','Desistência arquivada e convite reenviado.',$actor);
+            $note=($status==='recusada'?'Reenvio após desistência.':'Reenvio após remoção da inscrição.').' Motivo: '.$reason;
+            if(!empty($invite['token_id']))$note.=' Token anterior: #'.(int)$invite['token_id'].'.';
+            $this->history($pdo,$inviteId,$status,'aguardando_resposta',$note,$actor);
             if(!empty($invite['notificacao_destinatario_id'])) $pdo->prepare('UPDATE notificacoes_destinatarios SET arquivada_em=COALESCE(arquivada_em,NOW()) WHERE id=:id')->execute([':id'=>(int)$invite['notificacao_destinatario_id']]);
+            $pdo->prepare("UPDATE tokens_inscricao_turma SET status='cancelado',ativo=0,cancelado_em=CURRENT_TIMESTAMP WHERE turma_id=? AND cpf=? AND status='ativo' AND ativo=1")
+                ->execute([(int)$campaign['destino_turma_id'],preg_replace('/\D+/','',(string)$invite['pessoa_cpf'])]);
         }
         $subject='Rematrícula — '.$campaign['destino_turma_nome'];
         $message='Olá! Há uma oportunidade de rematrícula para '.$invite['pessoa_nome'].'. Confirme o interesse até '.date('d/m/Y \à\s H:i',strtotime((string)$campaign['prazo_final'])).'.';
@@ -314,7 +353,7 @@ class RematriculationService
             $recipient=$pdo->prepare('INSERT INTO notificacoes_destinatarios (notificacao_id,pessoa_id,destinatario_conta_id) VALUES (:notification,:person,:account)');
             $recipient->execute([':notification'=>$notificationId,':person'=>(int)$invite['pessoa_id'],':account'=>(int)$invite['responsavel_conta_id']]);
             $recipientId=(int)$pdo->lastInsertId();
-            $pdo->prepare("UPDATE rematricula_convites SET pessoa_id=:person,responsavel_conta_id=:account,status='aguardando_resposta',notificacao_id=:notification,notificacao_destinatario_id=:recipient,enviado_em=NOW(),respondido_em=NULL,updated_at=NOW() WHERE id=:id")->execute([':person'=>(int)$invite['pessoa_id'],':account'=>(int)$invite['responsavel_conta_id'],':notification'=>$notificationId,':recipient'=>$recipientId,':id'=>$inviteId]);
+            $pdo->prepare("UPDATE rematricula_convites SET pessoa_id=:person,responsavel_conta_id=:account,status='aguardando_resposta',token_id=NULL,notificacao_id=:notification,notificacao_destinatario_id=:recipient,enviado_em=NOW(),respondido_em=NULL,updated_at=NOW() WHERE id=:id")->execute([':person'=>(int)$invite['pessoa_id'],':account'=>(int)$invite['responsavel_conta_id'],':notification'=>$notificationId,':recipient'=>$recipientId,':id'=>$inviteId]);
             if (!$resend) $this->history($pdo,$inviteId,$status,'aguardando_resposta','Notificação enviada ao destinatário identificado no cadastro atual.',$actor);
             $pdo->commit();
         }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}

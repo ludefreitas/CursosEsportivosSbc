@@ -1578,6 +1578,7 @@ class CourseEnrollmentService
         $pdo = Database::connection();
         $class = $this->findClass($pdo, $classId);
         $class = $this->applyCalculatedClassStatus($pdo, $class);
+        $class['inscricao_bloqueio_prazo'] = EnrollmentOpeningService::blockReason($class);
         $class['dias_semana_descricao'] = $this->describeClassWeekdays((string) ($class['dias_semana'] ?? ''));
         $class['periodo_dia'] = $this->describeClassDayPeriod((string) ($class['hora_inicio'] ?? ''));
         $class['criterio_faixa_etaria'] = normalize_age_rule_mode((string) ($class['criterio_faixa_etaria'] ?? 'idade_exata'));
@@ -1644,6 +1645,10 @@ class CourseEnrollmentService
                         : 'Não há lugares disponíveis na lista de espera para o público-alvo desta pessoa';
                 }
                 if ($person['possui_token_ativo']) { $reasons = []; }
+                if ($class['inscricao_bloqueio_prazo'] !== null) {
+                    $reasons[] = $class['inscricao_bloqueio_prazo'];
+                    $person['elegivel_por_token'] = false;
+                }
                 $parQBlock = ParQService::blockReason($parQRecords[(int) $person['id']] ?? null);
                 if ($parQBlock !== null) {
                     $reasons[] = $parQBlock;
@@ -1681,6 +1686,9 @@ class CourseEnrollmentService
 
         $pdo = Database::connection();
         $class = $this->findClass($pdo, $classId);
+        $now = new DateTimeImmutable('now', new \DateTimeZone('America/Sao_Paulo'));
+        $openingBlock = EnrollmentOpeningService::blockReason($class, $now);
+        if ($openingBlock !== null) throw new RuntimeException($openingBlock);
         $season = $this->findSeason($pdo, (int) $class['temporada_id']);
         $season['inscricoes_inicio'] = $class['cronograma_inscricoes_inicio'] ?? null;
         $season['inscricoes_fim'] = $class['cronograma_inscricoes_fim'] ?? null;
@@ -1700,7 +1708,6 @@ class CourseEnrollmentService
         if ($token === null && (string) ($season['status'] ?? '') !== 'ativa') {
             throw new RuntimeException('Esta temporada não está ativa para receber inscrições.');
         }
-        $now = new DateTimeImmutable();
         $today = $now->format('Y-m-d');
         if ($token === null && ($today < (string) ($class['cronograma_data_inicio'] ?? '') || $today > (string) ($class['cronograma_data_fim'] ?? '9999-12-31'))) {
             throw new RuntimeException('Esta turma não está disponível para consulta e inscrição neste período.');
@@ -2049,10 +2056,13 @@ class CourseEnrollmentService
         if ($accountId <= 0) { return []; }
         $pdo = Database::connection();
         $pdo->exec("UPDATE tokens_inscricao_turma SET status='expirado', ativo=0 WHERE status='ativo' AND validade<NOW()");
-        $stmt = $pdo->prepare("SELECT tk.id, tk.numero_token, tk.cpf, tk.publico_alvo, tk.validade, t.exigir_token_inscricao,
-            EXISTS (SELECT 1 FROM rematricula_convites rc WHERE rc.token_id = tk.id) AS token_rematricula, p.id AS pessoa_id, p.nome_completo, p.cadastro_completo, t.id AS turma_id, t.nome AS turma_nome, t.programa, t.dias_semana, t.hora_inicio, t.hora_fim, te.nome AS temporada_nome, m.nome AS modalidade_nome, COALESCE(l.apelido_local,l.nome_local) AS local_nome FROM tokens_inscricao_turma tk INNER JOIN pessoas p ON p.cpf=tk.cpf INNER JOIN turmas t ON t.id=tk.turma_id INNER JOIN temporadas te ON te.id=t.temporada_id INNER JOIN modalidades m ON m.id=t.modalidade_id INNER JOIN locais_treino l ON l.id=t.local_treino_id INNER JOIN contas conta ON conta.id=:conta INNER JOIN pessoas titular ON titular.cpf=conta.cpf LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id=p.id AND vr.data_fim IS NULL WHERE tk.status='ativo' AND tk.ativo=1 AND tk.validade>=NOW() AND p.cadastro_completo=1 AND (p.id=titular.id OR vr.responsavel_pessoa_id=titular.id) ORDER BY tk.id");
+        $stmt = $pdo->prepare("SELECT tk.id, tk.numero_token, tk.cpf, tk.publico_alvo, tk.validade, t.exigir_token_inscricao, cm.inscricoes_inicio AS cronograma_inscricoes_inicio,
+            EXISTS (SELECT 1 FROM rematricula_convites rc WHERE rc.token_id = tk.id) AS token_rematricula, p.id AS pessoa_id, p.nome_completo, p.cadastro_completo, t.id AS turma_id, t.nome AS turma_nome, t.programa, t.dias_semana, t.hora_inicio, t.hora_fim, te.nome AS temporada_nome, m.nome AS modalidade_nome, COALESCE(l.apelido_local,l.nome_local) AS local_nome FROM tokens_inscricao_turma tk INNER JOIN pessoas p ON p.cpf=tk.cpf INNER JOIN turmas t ON t.id=tk.turma_id LEFT JOIN cronogramas_modalidade cm ON cm.id=t.cronograma_modalidade_id INNER JOIN temporadas te ON te.id=t.temporada_id INNER JOIN modalidades m ON m.id=t.modalidade_id INNER JOIN locais_treino l ON l.id=t.local_treino_id INNER JOIN contas conta ON conta.id=:conta INNER JOIN pessoas titular ON titular.cpf=conta.cpf LEFT JOIN vinculos_responsaveis vr ON vr.dependente_pessoa_id=p.id AND vr.data_fim IS NULL WHERE tk.status='ativo' AND tk.ativo=1 AND tk.validade>=NOW() AND p.cadastro_completo=1 AND (p.id=titular.id OR vr.responsavel_pessoa_id=titular.id) ORDER BY tk.id");
         $stmt->execute([':conta' => $accountId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $tokens = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        foreach ($tokens as &$token) $token['inscricao_bloqueio_prazo'] = EnrollmentOpeningService::blockReason($token);
+        unset($token);
+        return $tokens;
     }
 
     public function cancelEnrollmentTokenForAccount(int $tokenId, int $accountId): void

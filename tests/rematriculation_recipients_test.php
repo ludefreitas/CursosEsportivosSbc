@@ -25,7 +25,7 @@ $db->exec("CREATE TABLE pessoas(id INTEGER PRIMARY KEY,cpf TEXT UNIQUE,nome_comp
  CREATE TABLE cronogramas_modalidade(id INTEGER PRIMARY KEY,inscricoes_inicio TEXT);
  CREATE TABLE turmas(id INTEGER PRIMARY KEY,nome TEXT,temporada_id INTEGER,modalidade_id INTEGER,local_treino_id INTEGER,cronograma_modalidade_id INTEGER,dias_semana TEXT,hora_inicio TEXT,hora_fim TEXT);
  CREATE TABLE rematriculas(id INTEGER PRIMARY KEY,destino_turma_id INTEGER,prazo_final TEXT,status TEXT);
- CREATE TABLE rematricula_convites(id INTEGER PRIMARY KEY,rematricula_id INTEGER,pessoa_cpf TEXT,pessoa_nome TEXT,pessoa_data_nascimento TEXT,pessoa_id INTEGER,responsavel_conta_id INTEGER,status TEXT,notificacao_id INTEGER,notificacao_destinatario_id INTEGER,enviado_em TEXT,respondido_em TEXT,updated_at TEXT);
+ CREATE TABLE rematricula_convites(id INTEGER PRIMARY KEY,rematricula_id INTEGER,pessoa_cpf TEXT,pessoa_nome TEXT,pessoa_data_nascimento TEXT,pessoa_id INTEGER,responsavel_conta_id INTEGER,status TEXT,notificacao_id INTEGER,notificacao_destinatario_id INTEGER,enviado_em TEXT,respondido_em TEXT,updated_at TEXT,token_id INTEGER);
  CREATE TABLE inscricoes_turma(id INTEGER PRIMARY KEY,turma_id INTEGER,pessoa_id INTEGER,status TEXT);
  CREATE TABLE notificacoes(id INTEGER PRIMARY KEY,autor_conta_id INTEGER,tipo TEXT,assunto TEXT,mensagem TEXT,orientacao_tipo TEXT,orientacao_texto TEXT,orientacao_url TEXT,turma_id INTEGER,contexto_json TEXT);
  CREATE TABLE notificacoes_destinatarios(id INTEGER PRIMARY KEY,notificacao_id INTEGER,pessoa_id INTEGER,destinatario_conta_id INTEGER,arquivada_em TEXT);

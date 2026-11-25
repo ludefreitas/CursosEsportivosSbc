@@ -364,7 +364,7 @@
                 if (courseClass.status === 'planejada') {
                     const start = format(courseClass.inscricoes_inicio);
                     const end = format(courseClass.inscricoes_fim);
-                    if (start && end) return 'As inscrições iniciais 2026 de validação do novo sistema para esta turma estão previstas para acontecer de ' + start + ' a ' + end + '.';
+                    if (start && end) return 'As inscrições iniciais para esta turma estão previstas para acontecer de ' + start + ' a ' + end + '.';
                     return 'As datas das inscrições iniciais para esta turma ainda não foram definidas.';
                 }
                 if (courseClass.status === 'periodo_matricula' && !Number(courseClass.permitir_inscricao_periodo_matricula || 0)) {
@@ -525,6 +525,12 @@
                     $summary.append($('<p>').append($('<strong>', { text: 'Inscrição somente com token' })));
                 }
                 $content.append($summary);
+                if (courseClass.inscricao_bloqueio_prazo) {
+                    $('#home-course-enrollment-subtitle').text('Aguarde a abertura das inscrições iniciais desta turma.');
+                    $content.append($('<p>', { class: 'alert-inline', role: 'status', text: String(courseClass.inscricao_bloqueio_prazo) }));
+                    $('#home-course-enrollment-modal').removeClass('hidden').attr('aria-hidden', 'false');
+                    return;
+                }
                 if (people.length === 0) {
                     $content.append($('<div>', { class: 'auth-action-notice', role: 'note' })
                         .append($('<strong>', { text: 'Entre na sua conta para continuar' }))
@@ -700,14 +706,17 @@
                 $card.append($('<div>',{class:'popup-head'}).append($('<span>',{'aria-hidden':'true'}),$('<button>',{type:'button',class:'popup-close-icon','data-pending-token-close':'1','aria-label':'Fechar',html:'&times;'})));
                 const isRematriculation = Number(token.token_rematricula) === 1;
                 const requiresToken = Number(token.exigir_token_inscricao) === 1;
-                const title = isRematriculation ? 'Rematrícula disponível' : (requiresToken ? 'Convite para inscrição' : 'Autorização de inscrição');
+                const title = token.inscricao_bloqueio_prazo
+                    ? (isRematriculation ? 'Rematrícula aguardando abertura' : 'Inscrição aguardando abertura')
+                    : (isRematriculation ? 'Rematrícula disponível' : (requiresToken ? 'Convite para inscrição' : 'Autorização de inscrição'));
                 const vacancy = { geral: 'Lista geral', pcd: 'PCD', plm: 'PLM', pvs: 'PVS' }[token.publico_alvo];
                 const deadline = String(token.validade || '').match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})/);
                 const $message=$('<p>').append($('<strong>',{class:'course-token-alert-attention',text: title + ' para '})).append($('<strong>',{class:'course-token-alert-person',text:token.nome_completo})).append(document.createTextNode('. Confira a turma abaixo para continuar.'));
                 $body.append($message,$('<h3>',{text:String(token.modalidade_nome||'')+' - '+String(token.temporada_nome||'')}),$('<p>').append($('<strong>',{text:'['+token.turma_id+'] - '+token.turma_nome})),$('<p>',{text:schedule}),$('<p>',{text:'Local da aula: '+String(token.local_nome||'')}));
                 if (vacancy) $body.append($('<p>', { text: 'Condição da vaga: ' + vacancy }));
                 if (deadline) $body.append($('<p>', { text: 'Prazo: ' + deadline[3] + '/' + deadline[2] + '/' + deadline[1] + ' às ' + deadline[4] }));
-                const $actions=$('<div>',{class:'popup-actions'}).append($('<button>',{type:'button',class:'btn btn-primary','data-pending-token-enroll':token.id,text:isRematriculation ? 'Continuar rematrícula' : 'Inscrever '+token.nome_completo}),$('<button>',{type:'button',class:'btn btn-danger','data-pending-token-cancel':token.id,text:'Não fazer inscrição nesta turma! (Cancelar token)'}));
+                if (token.inscricao_bloqueio_prazo) $body.append($('<p>', { class: 'alert-inline', role: 'status', text: String(token.inscricao_bloqueio_prazo) }));
+                const $actions=$('<div>',{class:'popup-actions'}).append($('<button>',{type:'button',class:'btn btn-primary','data-pending-token-enroll':token.id,disabled:!!token.inscricao_bloqueio_prazo,text:isRematriculation ? 'Continuar rematrícula' : 'Inscrever '+token.nome_completo}),$('<button>',{type:'button',class:'btn btn-danger','data-pending-token-cancel':token.id,text:'Não fazer inscrição nesta turma! (Cancelar token)'}));
                 $card.append($body.append($actions)); $('body').append($modal.append($card)); $modal.data('token',token);
             }
             const dismissedTokens = new Set();

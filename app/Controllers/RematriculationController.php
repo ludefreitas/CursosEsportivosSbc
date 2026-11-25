@@ -21,7 +21,7 @@ class RematriculationController extends Controller
     public function show(): void { $this->run(function(array $u){$campaign=$this->service->campaign((int)($_GET['id']??0));$this->service->assertAccess((int)$u['conta_id'],(array)$u['roles'],(int)$campaign['destino_turma_id']);return ['campaign'=>$campaign];}); }
     public function deadline(): void { $this->run(fn(array $u)=>['campaign'=>$this->service->updateDeadline((int)$u['conta_id'],(array)$u['roles'],(int)($_POST['id']??0),(int)($_POST['prazo_dias']??0))]); }
     public function send(): void { $this->run(fn(array $u)=>$this->service->send((int)$u['conta_id'],(array)$u['roles'],(int)($_POST['id']??0),(array)($_POST['convites']??[]),false)); }
-    public function resend(): void { $this->run(fn(array $u)=>$this->service->send((int)$u['conta_id'],(array)$u['roles'],(int)($_POST['id']??0),[(int)($_POST['convite_id']??0)],true)); }
+    public function resend(): void { $this->run(fn(array $u)=>$this->service->send((int)$u['conta_id'],(array)$u['roles'],(int)($_POST['id']??0),[(int)($_POST['convite_id']??0)],true,(string)($_POST['motivo']??''))); }
     public function removeNotifications(): void { $this->run(fn(array $u)=>$this->service->removeNotifications((int)$u['conta_id'],(array)$u['roles'],(int)($_POST['id']??0),(array)($_POST['convites']??[]))); }
     public function cancelCampaign(): void { $this->run(fn(array $u)=>$this->service->cancelCampaign((int)$u['conta_id'],(array)$u['roles'],(int)($_POST['id']??0))); }
     public function respond(): void { $this->run(fn(array $u)=>$this->service->respond((int)$u['conta_id'],(int)($_POST['convite_id']??0),(string)($_POST['resposta']??'')),false); }

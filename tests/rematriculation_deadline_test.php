@@ -21,6 +21,7 @@ namespace App\Services {
 }
 namespace {
 require __DIR__ . '/../app/Services/RematriculationDeadlineService.php';
+require __DIR__ . '/../app/Services/EnrollmentOpeningService.php';
 require __DIR__ . '/../app/Services/RematriculationService.php';
 use App\Services\RematriculationDeadlineService as Deadline;
 
@@ -42,6 +43,9 @@ $clock = '2026-11-19 10:00:00';
 $db->sqliteCreateFunction('current_timestamp', static function () use (&$clock) { return $clock; });
 $db->sqliteCreateFunction('NOW', static function () use (&$clock) { return $clock; });
 $db->exec("CREATE TABLE temporadas (id INTEGER PRIMARY KEY,nome TEXT);
+    CREATE TABLE pessoas (id INTEGER PRIMARY KEY,cpf TEXT);
+    CREATE TABLE contas (id INTEGER PRIMARY KEY,cpf TEXT,ativo INTEGER);
+    CREATE TABLE vinculos_responsaveis (id INTEGER PRIMARY KEY,dependente_pessoa_id INTEGER,responsavel_pessoa_id INTEGER,data_fim TEXT);
     CREATE TABLE modalidades (id INTEGER PRIMARY KEY,nome TEXT);
     CREATE TABLE locais_treino (id INTEGER PRIMARY KEY,nome_local TEXT,apelido_local TEXT);
     CREATE TABLE cronogramas_modalidade (id INTEGER PRIMARY KEY,inscricoes_inicio TEXT);
