@@ -484,6 +484,7 @@
             }
 
             function hydrateDynamicSection() {
+                if (typeof App.admin.ensureSpecialScheduleFieldHelp === 'function') App.admin.ensureSpecialScheduleFieldHelp();
                 if (App.adminCharts) App.adminCharts.initialize($host[0]);
                 if (App.agendaCharts) App.agendaCharts.initialize($host[0]);
                 if (App.peopleCharts) App.peopleCharts.initialize($host[0]);
@@ -3327,6 +3328,55 @@
         },
 
         iniciarEditorEventosEspeciais: function () {
+            const specialScheduleFieldHelp = {
+                titulo: 'Nome obrigatório que identifica o horário especial na agenda e nos canais de divulgação selecionados.',
+                descricao: 'Opcional. Descreva a atividade, os critérios de participação e as orientações para os participantes.',
+                data_inicio: 'Data e hora em que a atividade começa. Este campo é obrigatório.',
+                data_fim: 'Data e hora em que a atividade termina. Deve ser posterior ao início.',
+                data_publicacao_inicio: 'Data e hora em que o horário especial começa a aparecer e aceitar inscrições, inclusive nos canais de divulgação selecionados.',
+                data_publicacao_fim: 'Data e hora em que as inscrições e a divulgação são encerradas. Deve ser posterior à abertura e anterior ou igual ao início da atividade.',
+                idade_minima: 'Menor idade permitida para participar. Não pode ser maior que a idade máxima.',
+                idade_maxima: 'Maior idade permitida para participar. Não pode ser menor que a idade mínima.',
+                vagas_geral: 'Quantidade de vagas para o público geral. A soma de todas as categorias deve ter pelo menos uma vaga.',
+                vagas_pcd: 'Quantidade de vagas para pessoas com deficiência (PCD). Informe zero quando não houver vagas nesta categoria.',
+                vagas_pvs: 'Quantidade de vagas para pessoas em situação de vulnerabilidade social (PVS). Informe zero quando não houver vagas nesta categoria.',
+                vagas_plm: 'Quantidade de vagas da categoria PLM. Informe zero quando não houver vagas nesta categoria.',
+                espaco_treino_id: 'Opcional. Vincula a atividade a um espaço cadastrado e identifica seu local de treino. Sem seleção, o horário especial fica sem esse vínculo.',
+                modalidade_id: 'Opcional. Vincula a atividade a uma modalidade cadastrada e permite encontrá-la pelo filtro da modalidade.',
+                publicar_pagina_inicial: 'Opcional. Marque para divulgar também na página inicial enquanto o horário estiver ativo e dentro do período de inscrições.',
+                publicar_blog: 'Opcional. Marque para divulgar também na seção Horários especiais do blog enquanto o horário estiver ativo e dentro do período de inscrições. Não cria uma postagem independente.',
+                imagem_url: 'Opcional. Informe uma URL de imagem ou um caminho interno iniciado por /. Você também pode enviar um arquivo; se preencher as duas opções, o arquivo enviado terá prioridade.',
+                imagem_arquivo: 'Opcional. Envie uma imagem JPG, JPEG, PNG ou WebP. O arquivo enviado substitui a imagem informada por URL.',
+                url_destino: 'Opcional. Endereço que será aberto pelo botão de divulgação, como /#home-training-locations ou uma URL completa. Sem preenchimento, será usada a agenda da página inicial.',
+                rotulo_acao: 'Opcional. Texto exibido no botão de divulgação, como Ver detalhes. Sem preenchimento, será usado o texto padrão.',
+                ativo: 'Ativo permite disponibilizar o horário no período configurado. Inativo impede novas inscrições e a divulgação pública.'
+            };
+
+            function ensureSpecialScheduleFieldHelp() {
+                $('#admin-special-schedule-create-form, #admin-special-schedule-form').each(function () {
+                    const $form = $(this);
+                    Object.keys(specialScheduleFieldHelp).forEach(function (name) {
+                        const $field = $form.find('[name="' + name + '"]').first();
+                        const $text = $field.closest('label').children('span').first();
+                        if (!$text.length || $text.find('[data-special-schedule-field-help]').length) return;
+                        $('<button>', {type: 'button', class: 'season-field-help', text: '?',
+                            title: 'Explicação deste campo', 'aria-label': 'Explicação do campo ' + $text.text().trim()})
+                            .attr('data-special-schedule-field-help', name).appendTo($text);
+                    });
+                });
+            }
+            App.admin.ensureSpecialScheduleFieldHelp = ensureSpecialScheduleFieldHelp;
+            ensureSpecialScheduleFieldHelp();
+            $(document).off('click.specialScheduleHelp', '[data-special-schedule-field-help]')
+                .on('click.specialScheduleHelp', '[data-special-schedule-field-help]', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const message = specialScheduleFieldHelp[$(this).attr('data-special-schedule-field-help')];
+                    if (!message) return;
+                    App.core.abrirPopup('sucesso', message);
+                    $('#popup-titulo').text('Ajuda sobre o campo');
+                });
+
             function getModal() {
                 return $('#admin-special-schedule-editor');
             }

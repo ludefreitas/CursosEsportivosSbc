@@ -424,6 +424,9 @@ $suggestedCourseModalities = array_slice($suggestedCourseModalities, 0, 3);
     <div class="post-grid">
         <?php foreach (($blogSpecialEvents ?? []) as $event) { ?>
             <article class="post-card post-card-special-event">
+                <?php if (!empty($event['imagem_url'])) { ?>
+                    <img src="<?php echo e((string) $event['imagem_url']); ?>" alt="<?php echo e((string) $event['titulo']); ?>" class="special-event-card-image">
+                <?php } ?>
                 <span class="eyebrow eyebrow-soft">Horário especial</span>
                 <h3><?php echo e((string) $event['titulo']); ?></h3>
                 <p><?php echo e(trim((string) ($event['descricao'] ?? '')) !== '' ? (string) $event['descricao'] : 'Horário especial publicado na agenda.'); ?></p>

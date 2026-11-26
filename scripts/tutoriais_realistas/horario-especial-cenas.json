@@ -1,0 +1,321 @@
+[
+  {
+    "id": "inicio",
+    "title": "Criar um horário especial",
+    "speech": "Vamos preencher todos os campos do horário especial, incluindo os opcionais, adicionar uma imagem e divulgar na página inicial e no blog. Usaremos dados fictícios e salvamento simulado.",
+    "caption": "Criar um horário especial"
+  },
+  {
+    "id": "navegar",
+    "title": "Acessar a Agenda",
+    "speech": "No menu da área administrativa, clique em Agenda.",
+    "caption": "Acessar a Agenda"
+  },
+  {
+    "id": "abrir",
+    "title": "Criar horário especial",
+    "speech": "Role a página e clique em Criar horário especial ou avaliação especial.",
+    "caption": "Criar horário especial"
+  },
+  {
+    "id": "ajuda",
+    "title": "Ajuda em todos os campos",
+    "caption": "Ajuda em todos os campos",
+    "speech": "Todos os campos agora têm um ponto de interrogação. Clique para entender o preenchimento. Aqui, a ajuda explica por que o espaço de treino é opcional.",
+    "selector": "$form [data-special-schedule-field-help=\"espaco_treino_id\"]"
+  },
+  {
+    "id": "titulo",
+    "title": "Título do horário especial",
+    "speech": "Digite um título claro para identificar a atividade.",
+    "caption": "Título do horário especial",
+    "fields": [
+      [
+        "titulo",
+        "Aula especial de alongamento"
+      ]
+    ]
+  },
+  {
+    "id": "descricao",
+    "title": "Descrição e orientações",
+    "speech": "A descrição é opcional. Neste exemplo, vamos preenchê-la com orientações para os participantes.",
+    "caption": "Descrição e orientações",
+    "fields": [
+      [
+        "descricao",
+        "Aula especial de alongamento. Compareça com roupa confortável e chegue com 15 minutos de antecedência."
+      ]
+    ]
+  },
+  {
+    "id": "inicio-evento",
+    "title": "Início do horário especial",
+    "speech": "Informe a data e a hora de início: vinte de fevereiro de dois mil e vinte e sete, às nove horas. As datas são ilustrativas.",
+    "caption": "Início do horário especial",
+    "fields": [
+      [
+        "data_inicio",
+        "2027-02-20T09:00"
+      ]
+    ]
+  },
+  {
+    "id": "fim-evento",
+    "title": "Fim do horário especial",
+    "speech": "Informe o fim da atividade na mesma data, às dez horas.",
+    "caption": "Fim do horário especial",
+    "fields": [
+      [
+        "data_fim",
+        "2027-02-20T10:00"
+      ]
+    ]
+  },
+  {
+    "id": "abertura",
+    "title": "Abertura das inscrições",
+    "speech": "Defina quando a agenda aparecerá e começará a aceitar inscrições. Neste exemplo, quinze de fevereiro, às oito horas.",
+    "caption": "Abertura das inscrições",
+    "fields": [
+      [
+        "data_publicacao_inicio",
+        "2027-02-15T08:00"
+      ]
+    ]
+  },
+  {
+    "id": "fechamento",
+    "title": "Fechamento das inscrições",
+    "speech": "Defina o fechamento em dezenove de fevereiro, às dezoito horas. Ele deve ocorrer até o início da atividade.",
+    "caption": "Fechamento das inscrições",
+    "fields": [
+      [
+        "data_publicacao_fim",
+        "2027-02-19T18:00"
+      ]
+    ]
+  },
+  {
+    "id": "minima",
+    "title": "Idade mínima",
+    "speech": "Informe a idade mínima: dezoito anos.",
+    "caption": "Idade mínima",
+    "fields": [
+      [
+        "idade_minima",
+        "18"
+      ]
+    ]
+  },
+  {
+    "id": "maxima",
+    "title": "Idade máxima",
+    "speech": "Informe a idade máxima: sessenta anos.",
+    "caption": "Idade máxima",
+    "fields": [
+      [
+        "idade_maxima",
+        "60"
+      ]
+    ]
+  },
+  {
+    "id": "geral",
+    "title": "Vagas gerais",
+    "speech": "Defina quinze vagas para o público geral.",
+    "caption": "Vagas gerais",
+    "fields": [
+      [
+        "vagas_geral",
+        "15"
+      ]
+    ]
+  },
+  {
+    "id": "pcd",
+    "title": "Vagas PCD",
+    "speech": "Neste exemplo, reserve duas vagas para pessoas com deficiência.",
+    "caption": "Vagas PCD",
+    "fields": [
+      [
+        "vagas_pcd",
+        "2"
+      ]
+    ]
+  },
+  {
+    "id": "pvs",
+    "title": "Vagas PVS",
+    "speech": "Reserve duas vagas para pessoas em situação de vulnerabilidade social.",
+    "caption": "Vagas PVS",
+    "fields": [
+      [
+        "vagas_pvs",
+        "2"
+      ]
+    ]
+  },
+  {
+    "id": "plm",
+    "title": "Vagas PLM",
+    "speech": "Reserve uma vaga para pessoa com laudo médico de doença. Ajuste os valores à capacidade da atividade.",
+    "caption": "Vagas PLM",
+    "fields": [
+      [
+        "vagas_plm",
+        "1"
+      ]
+    ]
+  },
+  {
+    "id": "espaco",
+    "title": "Espaço de treino",
+    "speech": "Selecione a sala de atividades. No horário especial, esse vínculo é opcional.",
+    "caption": "Espaço de treino",
+    "fields": [
+      [
+        "espaco_treino_id",
+        "9005"
+      ]
+    ]
+  },
+  {
+    "id": "modalidade",
+    "title": "Modalidade",
+    "speech": "Selecione Alongamento demonstrativo. A modalidade é opcional, assim como o espaço de treino. Esses vínculos ajudam a organizar a atividade e os filtros da agenda.",
+    "caption": "Modalidade",
+    "fields": [
+      [
+        "modalidade_id",
+        "9002"
+      ]
+    ]
+  },
+  {
+    "id": "publicar-home",
+    "title": "Publicar na página inicial",
+    "caption": "Publicar na página inicial",
+    "speech": "Esta opção é facultativa. Vamos marcá-la para exibir o horário especial também na página inicial durante o período de inscrições.",
+    "fields": [
+      [
+        "publicar_pagina_inicial",
+        true
+      ]
+    ]
+  },
+  {
+    "id": "publicar-blog",
+    "title": "Publicar no blog",
+    "caption": "Publicar no blog",
+    "speech": "A publicação no blog também é opcional. Vamos ativá-la. O horário aparecerá na seção Horários especiais; isso não cria uma postagem independente.",
+    "fields": [
+      [
+        "publicar_blog",
+        true
+      ]
+    ]
+  },
+  {
+    "id": "imagem-url",
+    "title": "Imagem por URL — opcional",
+    "caption": "Imagem por URL — opcional",
+    "speech": "A imagem é opcional. Primeiro, vamos informar um caminho interno de imagem. Você também pode usar o endereço completo de uma imagem.",
+    "fields": [
+      [
+        "imagem_url",
+        "/assets/img/blog/galeria/galeria-1-20260626230020-f20457.jpg"
+      ]
+    ]
+  },
+  {
+    "id": "imagem-arquivo",
+    "title": "Enviar imagem — opcional",
+    "caption": "Enviar imagem — opcional",
+    "speech": "Agora vamos selecionar um arquivo de imagem. O envio também é opcional. Ao preencher URL e arquivo juntos, o arquivo enviado tem prioridade. A foto do centro esportivo é ilustrativa.",
+    "fields": [
+      [
+        "imagem_arquivo",
+        "public/assets/img/blog/galeria/galeria-1-20260626230020-f20457.jpg"
+      ]
+    ]
+  },
+  {
+    "id": "destino",
+    "title": "URL de destino — opcional",
+    "caption": "URL de destino — opcional",
+    "speech": "O endereço de destino é opcional. Vamos usar o atalho para a agenda da página inicial, que será aberto pelo botão de divulgação.",
+    "fields": [
+      [
+        "url_destino",
+        "/#home-training-locations"
+      ]
+    ]
+  },
+  {
+    "id": "rotulo",
+    "title": "Rótulo do botão — opcional",
+    "caption": "Rótulo do botão — opcional",
+    "speech": "O rótulo do botão também é opcional. Vamos escrever Consultar agenda. Se ficar vazio, o sistema usa o texto padrão.",
+    "fields": [
+      [
+        "rotulo_acao",
+        "Consultar agenda"
+      ]
+    ]
+  },
+  {
+    "id": "status",
+    "title": "Status inicial",
+    "speech": "Mantenha o status ativo e confira o preenchimento antes de salvar.",
+    "caption": "Status inicial",
+    "fields": [
+      [
+        "ativo",
+        "1"
+      ]
+    ]
+  },
+  {
+    "id": "salvar",
+    "title": "Salvar o horário",
+    "speech": "Clique em Salvar horário e aguarde a confirmação.",
+    "caption": "Salvar o horário"
+  },
+  {
+    "id": "fim",
+    "title": "Cadastro concluído",
+    "caption": "Cadastro concluído",
+    "speech": "O horário foi salvo nesta demonstração. Os dados não foram gravados no banco. A seguir, veremos uma prévia real das duas páginas, simulando o período em que as inscrições estão abertas."
+  },
+  {
+    "id": "preview-home",
+    "title": "Resultado na página inicial",
+    "caption": "Resultado na página inicial",
+    "speech": "Na página inicial, o horário aparece em Horários especiais em destaque, com a imagem, o título, a descrição, as datas e o botão Consultar agenda.",
+    "page": "/",
+    "selector": ".special-event-card"
+  },
+  {
+    "id": "preview-home-botao",
+    "title": "Botão da divulgação",
+    "caption": "Botão da divulgação",
+    "speech": "O botão usa o rótulo e o endereço que preenchemos. Clique para abrir a agenda da página inicial.",
+    "selector": ".special-event-card .btn"
+  },
+  {
+    "id": "preview-blog",
+    "title": "Resultado no blog",
+    "caption": "Resultado no blog",
+    "speech": "No blog, o mesmo horário aparece na seção Horários especiais, com a imagem e o botão. Esta é uma divulgação da agenda, não uma postagem independente.",
+    "page": "/blog",
+    "selector": ".blog-mini-event"
+  },
+  {
+    "id": "encerrar",
+    "title": "Campos opcionais e período de exibição",
+    "caption": "Campos opcionais e período de exibição",
+    "speech": "Descrição, espaço, modalidade, canais de publicação, imagem, endereço de destino e rótulo são opcionais. A divulgação só aparece com o horário ativo, dentro do período de inscrições e antes do início da atividade.",
+    "selector": ".blog-mini-event"
+  }
+]

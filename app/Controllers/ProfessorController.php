@@ -571,6 +571,26 @@ class ProfessorController extends Controller
         redirect('/professor');
     }
 
+    public function storeSpecialSchedule(): void
+    {
+        $user = $this->assertProfessorMutationAccess();
+
+        try {
+            $this->adminService->createSpecialSchedule((int) $user['conta_id'], $_POST, $_FILES);
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse(['success' => true, 'message' => 'Horário especial salvo com sucesso.']);
+            }
+            flash('success', 'Horário especial salvo com sucesso.');
+        } catch (\Throwable $e) {
+            if ($this->isAjaxRequest()) {
+                $this->jsonResponse(['success' => false, 'message' => $e->getMessage()], 422);
+            }
+            flash('error', $e->getMessage());
+        }
+
+        redirect('/professor');
+    }
+
     public function weeklyScheduleDetails(): void
     {
         $user = $this->assertProfessorAccess();

@@ -166,8 +166,13 @@ $blogAdminMode = !empty($blogAdminMode);
                     <div class="blog-sidebar-events">
                         <?php foreach ($blogSpecialEvents as $event) { ?>
                             <article class="blog-mini-event">
+                                <?php if (!empty($event['imagem_url'])) { ?>
+                                    <img src="<?php echo e((string) $event['imagem_url']); ?>" alt="<?php echo e((string) $event['titulo']); ?>" class="special-event-card-image">
+                                <?php } ?>
                                 <strong><?php echo e((string) $event['titulo']); ?></strong>
                                 <span><?php echo e(date('d/m/Y H:i', strtotime((string) $event['data_inicio']))); ?></span>
+                                <?php if (!empty($event['descricao'])) { ?><p><?php echo e((string) $event['descricao']); ?></p><?php } ?>
+                                <a href="<?php echo e((string) (!empty($event['url_destino']) ? $event['url_destino'] : url('/#home-training-locations'))); ?>" class="btn btn-primary"><?php echo e((string) (!empty($event['rotulo_acao']) ? $event['rotulo_acao'] : 'Ver detalhes')); ?></a>
                             </article>
                         <?php } ?>
                     </div>

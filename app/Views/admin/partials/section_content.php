@@ -1112,7 +1112,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                     <button type="button" class="popup-close-icon" id="admin-special-schedule-create-close" aria-label="Fechar criação">&times;</button>
                 </div>
                 <div class="popup-body admin-popup-body">
-                <form method="POST" action="<?php echo e(url('/admin/agenda-horarios-especiais')); ?>" class="stack-form" id="admin-special-schedule-create-form" data-manual-submit="1" enctype="multipart/form-data">
+                <form method="POST" action="<?php echo e(url(!empty($professorView) ? '/professor/agenda-horarios-especiais' : '/admin/agenda-horarios-especiais')); ?>" class="stack-form" id="admin-special-schedule-create-form" data-manual-submit="1" enctype="multipart/form-data">
                     <label><span>Título</span><input type="text" name="titulo" maxlength="180" required></label>
                     <label><span>Descrição</span><textarea name="descricao" rows="4" placeholder="Texto livre para orientar o usuário sobre a avaliação, inscrição ou critério especial."></textarea></label>
                     <div class="grid-two">
@@ -1136,16 +1136,6 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <label><span>Vagas PLM</span><input type="number" name="vagas_plm" min="0" value="0" required></label>
                     </div>
                     <div class="grid-two">
-                        <label class="checkbox-line">
-                            <input type="checkbox" name="publicar_pagina_inicial" value="1">
-                            <span>Publicar também na página inicial</span>
-                        </label>
-                        <label class="checkbox-line">
-                            <input type="checkbox" name="publicar_blog" value="1">
-                            <span>Publicar também no blog</span>
-                        </label>
-                    </div>
-                    <div class="grid-two">
                         <label>
                             <span>Espaço de treino</span>
                             <select name="espaco_treino_id">
@@ -1165,6 +1155,16 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                                     <option value="<?php echo e((string) $modality['id']); ?>"><?php echo e($modality['nome']); ?></option>
                                 <?php } ?>
                             </select>
+                        </label>
+                    </div>
+                    <div class="grid-two">
+                        <label class="checkbox-line">
+                            <input type="checkbox" name="publicar_pagina_inicial" value="1">
+                            <span>Publicar também na página inicial</span>
+                        </label>
+                        <label class="checkbox-line">
+                            <input type="checkbox" name="publicar_blog" value="1">
+                            <span>Publicar também no blog</span>
                         </label>
                     </div>
                     <div class="grid-two">
@@ -1201,7 +1201,7 @@ if (!isset($formatarStatusAgendamentoAdmin)) {
                         <h2>Horários especiais cadastrados</h2>
                         <p class="muted">Consulte os horários especiais existentes ou crie um novo.</p>
                     </div>
-                    <button type="button" class="btn btn-primary" id="admin-special-schedule-create-open">Criar horário especial ou avaliação especial</button>
+                    <?php if (empty($internView)) { ?><button type="button" class="btn btn-primary" id="admin-special-schedule-create-open">Criar horário especial ou avaliação especial</button><?php } ?>
                 </div>
                 <div class="table-wrap">
                     <table class="data-table">

@@ -1,0 +1,255 @@
+[
+  {
+    "id": "inicio",
+    "title": "Criar um horário semanal",
+    "speech": "Neste vídeo, vamos criar um horário semanal pela área administrativa. Os dados são fictícios e o salvamento é simulado.",
+    "caption": "Criar um horário semanal"
+  },
+  {
+    "id": "navegar",
+    "title": "Acessar a Agenda",
+    "speech": "No menu da área administrativa, clique em Agenda.",
+    "caption": "Acessar a Agenda"
+  },
+  {
+    "id": "abrir",
+    "title": "Criar horário semanal",
+    "speech": "Role a página até Horários semanais cadastrados e clique em Criar horário semanal.",
+    "caption": "Criar horário semanal"
+  },
+  {
+    "id": "espaco",
+    "title": "Espaço de treino",
+    "speech": "Selecione o espaço onde a atividade acontecerá. Neste exemplo, a sala de atividades do centro esportivo.",
+    "caption": "Espaço de treino",
+    "fields": [
+      [
+        "espaco_treino_id",
+        "9005"
+      ]
+    ]
+  },
+  {
+    "id": "modalidade",
+    "title": "Modalidade",
+    "speech": "Escolha a modalidade. Vamos usar Alongamento demonstrativo.",
+    "caption": "Modalidade",
+    "fields": [
+      [
+        "modalidade_id",
+        "9002"
+      ]
+    ]
+  },
+  {
+    "id": "tipo",
+    "title": "Tipo de horário",
+    "speech": "Selecione Aula. As outras opções são Treino e Avaliação.",
+    "caption": "Tipo de horário",
+    "fields": [
+      [
+        "tipo_horario",
+        "aula"
+      ]
+    ]
+  },
+  {
+    "id": "dia",
+    "title": "Dia da semana",
+    "speech": "Escolha Segunda-feira. Esse horário se repetirá nesse dia da semana.",
+    "caption": "Dia da semana",
+    "fields": [
+      [
+        "dia_semana",
+        "1"
+      ]
+    ]
+  },
+  {
+    "id": "sexo",
+    "title": "Sexo permitido",
+    "speech": "Mantenha Livre para permitir a participação de ambos os sexos.",
+    "caption": "Sexo permitido",
+    "fields": [
+      [
+        "sexo",
+        ""
+      ]
+    ]
+  },
+  {
+    "id": "avaliacao",
+    "title": "Avaliação física prévia",
+    "speech": "Neste exemplo, vamos manter a exigência de avaliação apta antes de participar da aula.",
+    "caption": "Avaliação física prévia",
+    "fields": [
+      [
+        "dispensar_avaliacao_previa",
+        "0"
+      ]
+    ]
+  },
+  {
+    "id": "niveis",
+    "title": "Níveis aceitos",
+    "speech": "Sem marcar níveis, o horário fica sem limitação de nível. Se a atividade exigir, marque os níveis aceitos.",
+    "caption": "Níveis aceitos",
+    "selector": "$form .course-levels-field"
+  },
+  {
+    "id": "inicio-aula",
+    "title": "Hora inicial",
+    "speech": "Informe o início da aula. Neste exemplo, oito horas.",
+    "caption": "Hora inicial",
+    "fields": [
+      [
+        "hora_inicio",
+        "08:00"
+      ]
+    ]
+  },
+  {
+    "id": "fim-aula",
+    "title": "Hora final",
+    "speech": "Informe o término da aula. Vamos usar nove horas.",
+    "caption": "Hora final",
+    "fields": [
+      [
+        "hora_fim",
+        "09:00"
+      ]
+    ]
+  },
+  {
+    "id": "criterio",
+    "title": "Critério etário",
+    "speech": "Mantenha a idade exata pela data de nascimento. A outra opção considera somente o ano de nascimento.",
+    "caption": "Critério etário",
+    "fields": [
+      [
+        "criterio_faixa_etaria",
+        "idade_exata"
+      ]
+    ]
+  },
+  {
+    "id": "minima",
+    "title": "Idade mínima",
+    "speech": "Defina a idade mínima. Neste exemplo, dezoito anos.",
+    "caption": "Idade mínima",
+    "fields": [
+      [
+        "idade_minima",
+        "18"
+      ]
+    ]
+  },
+  {
+    "id": "maxima",
+    "title": "Idade máxima",
+    "speech": "Defina a idade máxima: sessenta anos. Confira a faixa etária calculada abaixo.",
+    "caption": "Idade máxima",
+    "fields": [
+      [
+        "idade_maxima",
+        "60"
+      ]
+    ]
+  },
+  {
+    "id": "clinico",
+    "title": "Atestado clínico",
+    "speech": "Para o atestado clínico, vamos seguir a regra global. Ajuste conforme a regra da atividade.",
+    "caption": "Atestado clínico",
+    "fields": [
+      [
+        "regra_atestado_clinico",
+        "global"
+      ]
+    ]
+  },
+  {
+    "id": "dermatologico",
+    "title": "Atestado dermatológico",
+    "speech": "Para o atestado dermatológico, também manteremos a regra global.",
+    "caption": "Atestado dermatológico",
+    "fields": [
+      [
+        "regra_atestado_dermatologico",
+        "global"
+      ]
+    ]
+  },
+  {
+    "id": "vagas",
+    "title": "Vagas totais",
+    "speech": "Informe vinte vagas totais. Observe a distribuição automática nas categorias abaixo e confira os valores antes de salvar.",
+    "caption": "Vagas totais",
+    "fields": [
+      [
+        "vagas_totais",
+        "20"
+      ]
+    ]
+  },
+  {
+    "id": "janela",
+    "title": "Janela de agendamento",
+    "speech": "Escolha abertura por antecedência da ocorrência para definir quando cada aula aceitará agendamentos.",
+    "caption": "Janela de agendamento",
+    "fields": [
+      [
+        "janela_agendamento_tipo",
+        "antecedencia"
+      ]
+    ]
+  },
+  {
+    "id": "dias",
+    "title": "Antecedência da abertura",
+    "speech": "Defina sete dias de antecedência para abrir os agendamentos de cada ocorrência.",
+    "caption": "Antecedência da abertura",
+    "fields": [
+      [
+        "janela_dias_antecedencia",
+        "7"
+      ]
+    ]
+  },
+  {
+    "id": "fechamento",
+    "title": "Fechamento da agenda",
+    "speech": "Defina o fechamento duas horas antes do início da aula.",
+    "caption": "Fechamento da agenda",
+    "fields": [
+      [
+        "janela_horas_antes_fechamento",
+        "2"
+      ]
+    ]
+  },
+  {
+    "id": "status",
+    "title": "Status inicial",
+    "speech": "Mantenha o horário ativo. Antes de salvar, confira os dados e as regras escolhidas.",
+    "caption": "Status inicial",
+    "fields": [
+      [
+        "ativo",
+        "1"
+      ]
+    ]
+  },
+  {
+    "id": "salvar",
+    "title": "Salvar o horário",
+    "speech": "Clique em Salvar horário e aguarde a confirmação.",
+    "caption": "Salvar o horário"
+  },
+  {
+    "id": "fim",
+    "title": "Cadastro concluído",
+    "speech": "A mensagem confirma o cadastro. Nesta demonstração, o envio foi simulado e nenhum registro foi gravado no banco.",
+    "caption": "Cadastro concluído"
+  }
+]

@@ -284,6 +284,7 @@ return [
     ['GET', '/professor/usuarios/dependentes', [ProfessorController::class, 'userDependents']],
     ['GET', '/api/professor/agenda/eventos', [ProfessorController::class, 'calendarEvents']],
     ['POST', '/professor/horarios-semanais', [ProfessorController::class, 'storeWeeklySchedule']],
+    ['POST', '/professor/agenda-horarios-especiais', [ProfessorController::class, 'storeSpecialSchedule']],
     ['GET', '/professor/horarios-semanais/detalhe', [ProfessorController::class, 'weeklyScheduleDetails']],
     ['POST', '/professor/horarios-semanais/atualizar', [ProfessorController::class, 'updateWeeklySchedule']],
     ['POST', '/professor/horarios-semanais/inativar', [ProfessorController::class, 'deactivateWeeklySchedule']],
